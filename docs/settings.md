@@ -30,6 +30,34 @@ write preferences. Each page keeps its scroll position within the current window
 The bar preview appears within bar and item pages. Control feedback and the short
 page fade honor an explicit disabled Hyprland animation preference.
 
+**Devices → Network** manages NetworkManager's saved connections. It shows
+active profiles and cached internet connectivity, filters by name/type, opens
+profile editing, connects through a detached Kitty terminal with `nmcli --ask`,
+and deactivates connections. Forget requires confirmation and an inactive
+connection. UUIDs distinguish duplicate names; a metadata revision rejects
+stale actions. Deactivation can be followed by NetworkManager automatically
+reconnecting; disable automatic connection in Edit when needed.
+
+Hidden Wi-Fi accepts an exact SSID and opens the same authentication terminal.
+Add Wi-Fi opens `nm-connection-editor` for enterprise security and certificate
+settings. Ethernet, VPN and WireGuard creation and advanced connection settings
+also use this editor. Its connection chooser supports VPN import; provider VPNs
+need their corresponding NetworkManager plugin. WireGuard support is built in.
+The editor package is part of the desktop dependencies; no extra applet is started.
+
+The Network page is created only when selected and released when leaving it,
+after any short helper command completes. There is no Network-page timer or
+background status process. Refresh reads metadata on demand; it does not force
+a network scan or connectivity probe. Editor/connection windows survive closing
+Settings; their results are reviewed there and status refreshed here. Passwords
+are entered in NetworkManager's tools, never QML or helper arguments. Profiles,
+certificates, and credentials remain outside Hyprshell's config payload and
+GitHub sync. Installing the UI does not change this laptop's connections.
+
+Network checks: `python3 -m unittest discover -s tests -p test_network.py -v`.
+These exercise isolated commands and the native Settings page without touching
+the real network. Physical network behavior requires a desktop-session check.
+
 **Bar & layout → Layout & spacing → Screen edge** selects Top, Left, Right,
 or Bottom. `bar.position` defaults to `top` for existing settings. On either
 side edge, the left item group sits at the top, the center group stays centered,

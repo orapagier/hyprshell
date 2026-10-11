@@ -35,6 +35,7 @@ gvfs-mtp
 xdg-user-dirs
 # Networking, pairing, and battery data
 networkmanager
+nm-connection-editor
 wpa_supplicant
 bluez
 bluez-utils

@@ -1,9 +1,16 @@
 # Daily-driver Settings roadmap
 
-Recorded 2026-10-09. Updated 2026-10-10.
+Recorded 2026-10-09. Updated 2026-10-11.
 
 Goal: make Hyprshell usable every day by beginners and intermediate users,
 with common tasks available through Settings rather than editing Lua.
+
+Standing design preference: keep system resource use low while retaining a
+modern, beautiful, functional desktop. Reuse existing native services and the
+shared Settings design. Load optional controls on demand, avoid background
+polling where manual refresh is sufficient, and add dependencies only when they
+provide a needed capability. Idle desktop cost matters alongside feature coverage;
+do not claim resource savings without measurements.
 
 Existing foundations: Wi-Fi, Bluetooth pairing, audio output selection,
 screenshots, editable shortcuts, screen locking, cleanup, and GitHub config sync.
@@ -35,6 +42,9 @@ screenshots, editable shortcuts, screen locking, cleanup, and GitHub config sync
    not back up documents. Physical upgrade/restore workflow testing remains.
 8. **Advanced networking** — saved-network management, hidden Wi-Fi,
    enterprise connections, VPN, and access to advanced connection settings.
+   Implemented 2026-10-11 through an on-demand Network page and NetworkManager's
+   connection editor. Physical authentication, hidden/enterprise Wi-Fi, and VPN
+   testing remains; provider-specific VPN plugins are optional.
 9. **Accessibility and regional settings** — larger text, high contrast,
    reduced motion, language, timezone, and date/number formats.
 10. **Help and diagnostics** — Settings search, first-run guide, useful service
@@ -44,7 +54,9 @@ screenshots, editable shortcuts, screen locking, cleanup, and GitHub config sync
 Intermediate-user follow-ups: window rules and behavior, workspace preferences,
 clipboard history controls, and printing/scanning access.
 
-Suggested order: Displays → Input → Power → Notifications → Recovery.
+Next implementation: Accessibility and regional settings, then Help and diagnostics.
+Settings search is already implemented. Keep physical acceptance checks for the
+completed pages alongside new work.
 Current personal automatic-lock timeout is 60 minutes; consider shorter presets.
 
 ## Displays acceptance criteria
@@ -319,3 +331,40 @@ Next: check update preview and terminal cancellation on the laptop, make a check
 change a bar preference, preview and restore it, and record a checked personal backup.
 Run a full system upgrade only when ready after reading Arch news. Then priority 8,
 Advanced networking. Wider config recovery and a real backup engine are follow-ups.
+
+## Advanced networking handoff — 2026-10-11
+
+Settings → Devices → Network now lists and filters saved connections, marks
+active profiles, shows cached connectivity status, and offers Connect, Disconnect,
+Edit and confirmed Forget for inactive profiles. Actions target UUIDs rather than
+names; stale name/type/active-state snapshots are rejected. Automatic reconnection
+is controlled in Edit. Hidden Wi-Fi accepts an exact SSID and requests its password
+in a detached terminal. Enterprise authentication/certificates, Ethernet, VPN,
+WireGuard, IP/DNS and provider VPN import use the installed connection editor.
+Provider VPN plugins remain optional; no duplicate network applet is started.
+
+The page is instantiated only when selected, then released after any short helper
+finishes. There is no background timer, network scan, or forced connectivity probe.
+Metadata refresh is explicit. Authentication and editor windows survive closing
+Settings; complete their workflow, then refresh status. Passwords stay in the
+NetworkManager tools. Network profiles and credentials are outside GitHub config
+sync. The installer now explicitly includes the already-installed editor package.
+Repository and live Quickshell payloads are updated together, dependencies first.
+The live files match the repository. Touching the live shell entry point produced
+no new activation-log entry in this agent session, so live reload is unconfirmed.
+
+Validation: 10 network checks including the native page's lazy lifecycle,
+confirmation/cancellation, duplicate profile names, errors/recovery, narrow layout,
+and closing during a helper command passed. Five available native Settings checks,
+16 installer checks, 10 GitHub-sync checks, and native runtime dependencies passed.
+The broader Qt run passed 150 checks with one existing IconSizes expectation
+failure (18 px vs 12 px); this also stops the full installer smoke test. Both
+failures were reproduced from the committed baseline in an isolated checkout.
+The remaining native bar-position check references a fixture already absent from
+HEAD (`SettingsBarPosition.qml`). These validation follow-ups remain open.
+
+No real connection, disconnection, forgetting, or credential entry was performed.
+Desktop-session NetworkManager access is blocked in the agent sandbox, so physical
+hidden/enterprise Wi-Fi, VPN/provider-plugin, editor and authentication results
+still need laptop testing. Next implementation: priority 9, Accessibility and
+regional settings, retaining the low-idle-cost design preference above.

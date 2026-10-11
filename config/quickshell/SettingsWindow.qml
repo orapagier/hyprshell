@@ -27,7 +27,7 @@ FloatingWindow {
     property var submitted: Model.copy(store.defaults)
     property bool editingSession: false
     readonly property bool saving: writer.running
-    readonly property bool idle: !writer.running && !autoSave.running && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy
+    readonly property bool idle: !writer.running && !autoSave.running && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && (!networkPage.item || !networkPage.item.busy)
     onDraftChanged: if (editingSession) autoSave.restart()
     onVisibleChanged: if (!visible && editingSession && dirty) apply()
     property int section: -1
@@ -45,6 +45,7 @@ FloatingWindow {
         ]},
         {group: "Devices", pages: [
             {section: -7, title: "Displays", symbol: "󰍹", keywords: "monitor resolution scale rotation"},
+            {section: -15, title: "Network", symbol: "󰤨", keywords: "wifi wi-fi hidden enterprise vpn wireguard ethernet connections dns"},
             {section: -12, title: "Sound", symbol: "󰕾", keywords: "audio volume microphone speakers"},
             {section: -9, title: "Mouse & keyboard", symbol: "󰍽", keywords: "input touchpad scrolling typing layouts"},
             {section: -6, title: "Keyboard shortcuts", symbol: "󰌌", keywords: "keybindings hotkeys"}
@@ -623,7 +624,7 @@ FloatingWindow {
                             Layout.fillWidth: true
                             Layout.topMargin: -14
                             font.pixelSize: Style.bodySize
-                            text: window.section === -14 ? "Keep your system updated, recover saved desktop settings, and track your personal backup checks." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for your desktop bar." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
+                            text: window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover saved desktop settings, and track your personal backup checks." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for your desktop bar." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
                             wrapMode: Text.WordWrap
                             color: Style.muted
                         }
@@ -741,6 +742,28 @@ FloatingWindow {
                             id: applicationsPage
                             visible: window.section === -13
                             Layout.fillWidth: true
+                        }
+                        Loader {
+                            id: networkPage
+                            objectName: "settingsNetworkLoader"
+                            Layout.fillWidth: true
+                            visible: window.visible && window.section === -15
+                            // Let an in-flight command finish before releasing the page.
+                            active: false
+                            onVisibleChanged: {
+                                if (visible) active = true;
+                                else networkRelease.restart();
+                            }
+                            sourceComponent: SettingsNetwork {}
+                            Connections {
+                                target: networkPage.item
+                                function onBusyChanged() { if (!networkPage.visible) networkRelease.restart(); }
+                            }
+                            Timer {
+                                id: networkRelease
+                                interval: 0
+                                onTriggered: if (!networkPage.visible && (!networkPage.item || !networkPage.item.busy)) networkPage.active = false
+                            }
                         }
                         SettingsRecovery {
                             id: recoveryPage
