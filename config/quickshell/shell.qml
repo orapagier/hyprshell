@@ -63,7 +63,10 @@ ShellRoot {
             MenuController { id: menuState; dismissPinnedOnLeave: !panel.visible || openedByShortcut }
             screen: modelData
             visible: {
-                let monitor = Hyprland.monitorFor(panel.screen);
+                // The window's resolved screen can change while hiding/showing.
+                // Read the stable Variants model instead of feeding that change
+                // back into the window's own visibility binding.
+                let monitor = Hyprland.monitorFor(panel.modelData);
                 let ws = monitor && monitor.activeWorkspace;
                 return ws ? Settings.barVisible(preferences.config.bar, ws.id) : preferences.config.bar.visible !== false;
             }

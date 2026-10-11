@@ -89,16 +89,23 @@ Item {
         onWidthChanged: sampler.invalidate()
         onHeightChanged: sampler.invalidate()
         onPaint: {
-            if (wallpaper.status !== Image.Ready || sampler.screenWidth <= 0 || sampler.screenHeight <= 0) return;
+            if (wallpaper.status !== Image.Ready || sampler.screenWidth <= 0 || sampler.screenHeight <= 0
+                    || sampler.bandWidth <= 0 || sampler.bandHeight <= 0) return;
             let iw = wallpaper.implicitWidth, ih = wallpaper.implicitHeight;
             if (!iw || !ih) return;
             // Match awww's default center-cropped, aspect-preserving wallpaper.
             let scale = Math.max(sampler.screenWidth / iw, sampler.screenHeight / ih);
             let sx = (iw - sampler.screenWidth / scale) / 2 + sampler.regionOffsetX / scale;
             let sy = (ih - sampler.screenHeight / scale) / 2 + sampler.offsetY / scale;
+            // Layout/reload can briefly place the strip outside the wallpaper.
+            // Sample its nearest edge until the final geometry is available.
+            sx = Math.max(0, Math.min(iw - 1, sx));
+            sy = Math.max(0, Math.min(ih - 1, sy));
+            let sw = Math.min(iw - sx, sampler.bandWidth / scale);
+            let sh = Math.min(ih - sy, sampler.bandHeight / scale);
             let ctx = getContext("2d");
             ctx.clearRect(0, 0, width, height);
-            ctx.drawImage(wallpaper, sx, sy, sampler.bandWidth / scale, sampler.bandHeight / scale, 0, 0, width, height);
+            ctx.drawImage(wallpaper, sx, sy, sw, sh, 0, 0, width, height);
             let data = ctx.getImageData(0, 0, width, height).data;
             let copy = [];
             for (let i = 0; i < data.length; ++i) copy.push(data[i]);

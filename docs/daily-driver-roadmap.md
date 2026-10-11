@@ -447,7 +447,23 @@ legacy native fixtures were restored and headless tests isolated from the deskto
 GTK platform theme.
 
 Matching installed payloads are updated before the local commit. Desktop-session
-IPC remains inaccessible, so automatic live reload and physical acceptance are
-not asserted. The installer was exercised only in isolated mocked environments;
+IPC remains inaccessible for physical acceptance. The internal Quickshell log
+confirms successful live reload after the payload update (2026-10-11 16:43:12). The installer was exercised only in isolated mocked
+environments;
 no real upgrade, document backup, CUPS activation, suspend or configuration restore
 was performed.
+
+
+Final activation follow-up: read Quickshell's internal binary log rather than the
+launcher stdout file to verify reloads. It revealed a visibility binding loop and
+transient wallpaper sampling errors. Bar visibility now uses the stable screen
+model rather than the window's changing resolved screen. Wallpaper sampling waits
+for non-empty layout dimensions and clamps transient out-of-image regions. Two
+new Qt regression checks cover empty geometry/recovery and out-of-bounds sampling.
+
+Final validation: the complete Qt suite passes all 153 checks, including 13
+wallpaper checks. The two production fixes are deployed with backups.
+
+The latest live reload is confirmed in the internal log at 2026-10-11 16:47:29,
+with no bar visibility loop or wallpaper sampling error during that reload.
+Physical hardware acceptance remains outstanding and requires the desktop session.

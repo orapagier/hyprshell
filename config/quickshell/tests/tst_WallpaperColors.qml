@@ -30,6 +30,8 @@ Item {
         function init() {
             sampler.source = Qt.resolvedUrl("fixtures/wallpaper-regions.svg");
             sampler.screenWidth = 800; sampler.screenHeight = 400;
+            sampler.bandWidth = Qt.binding(() => sampler.screenWidth); sampler.bandHeight = 32;
+            sampler.regionOffsetX = 0; sampler.offsetY = 8;
             movingRow.x = 20;
             tryCompare(sampler, "ready", true);
         }
@@ -67,6 +69,25 @@ Item {
             sampler.source = "";
             compare(sampler.ready, false);
             verify(Colors.luminance(pill.effectiveForeground) > 0.15);
+        }
+        function test_emptyBandWaitsForLayoutAndRecovers() {
+            sampler.bandWidth = 0;
+            wait(60);
+            compare(sampler.ready, false);
+            sampler.bandWidth = 800;
+            tryCompare(sampler, "ready", true);
+            sampler.bandHeight = 0;
+            wait(60);
+            compare(sampler.ready, false);
+            sampler.bandHeight = 32;
+            tryCompare(sampler, "ready", true);
+        }
+        function test_transientOutsideRegionSamplesNearestEdge() {
+            sampler.regionOffsetX = 1000; sampler.offsetY = 1000;
+            tryCompare(sampler, "ready", true);
+            let color = sampler.sampleRect(Qt.rect(1000, 1000, 10, 10));
+            verify(isFinite(color.r) && isFinite(color.g) && isFinite(color.b));
+            compare(color.a, 1);
         }
         function test_contrastForEveryStateAndUnderlyingExtreme() {
             let samples = [Qt.rgba(0,0,0,1), Qt.rgba(1,1,1,1), Qt.rgba(1,0,0,1), Qt.rgba(0,1,0,1), Qt.rgba(0,0,1,1), Qt.rgba(0.6,0.6,0.6,1)];
