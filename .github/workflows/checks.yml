@@ -46,3 +46,37 @@ jobs:
         run: /usr/lib/qt6/bin/qmltestrunner -input config/quickshell/tests
       - name: Check native FFT and QML delivery
         run: python3 config/quickshell/tests/test_spectrum.py
+
+  fedora:
+    runs-on: ubuntu-latest
+    container: fedora:44
+    steps:
+      - name: Bootstrap checkout and explicitly selected COPR
+        run: |
+          dnf install -y git python3 'dnf5-command(copr)'
+          dnf copr enable -y lionheartp/Hyprland
+      - uses: actions/checkout@v4
+      - name: Install the Fedora desktop manifests
+        shell: bash
+        run: |
+          mapfile -t packages < <(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' packages-fedora.txt packages-apps-fedora.txt)
+          dnf upgrade --refresh -y
+          dnf install -y --setopt=install_weak_deps=False wayland-devel "${packages[@]}"
+      - name: Create a normal desktop test user
+        run: useradd --create-home --shell /bin/bash hyprshell-test
+      - name: Check Fedora runtime and Lua configuration
+        run: |
+          runuser -u hyprshell-test -- python3 tools/check_runtime.py --native
+          runuser -u hyprshell-test -- Hyprland --verify-config --config "$PWD/config/hypr/hyprland.lua"
+      - name: Test isolated installers and Settings helpers
+        run: runuser -u hyprshell-test -- python3 -m unittest discover -s tests -v
+      - name: Compile the spectrum helper and check QML offscreen
+        shell: bash
+        env:
+          QT_QPA_PLATFORMTHEME: ""
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+        run: |
+          cc -O2 config/quickshell/helpers/audio-spectrum.c -o config/quickshell/helpers/audio-spectrum -lpulse-simple -lpulse -lfftw3 -lm
+          "$(python3 tools/check_runtime.py --qmltestrunner)" -input config/quickshell/tests
+          python3 config/quickshell/tests/test_spectrum.py

@@ -101,6 +101,14 @@ def install(repo):
         if wallpaper.is_file():
             put(wallpaper, home / 'Pictures/Wallpapers' / wallpaper.name,
                 Path('Pictures/Wallpapers') / wallpaper.name)
+    # Fedora has no Arch ttf-go-nerd package; keep shell glyphs available offline.
+    data = Path(os.environ.get('XDG_DATA_HOME') or home / '.local/share')
+    fonts = repo / 'assets/fonts'
+    if fonts.is_dir():
+        for font in sorted(fonts.iterdir()):
+            if font.suffix in ('.ttf', '.txt'):
+                put(font, data / 'fonts/hyprshell' / font.name,
+                    Path('fonts/hyprshell') / font.name)
     put(repo / 'config/hyprshell/hyprland', config / 'hyprshell/hyprland',
         Path('config/hyprshell/hyprland'))
     for name in ('settings.json', 'cleanup.json', 'keybindings.json', 'keybindings.lua', 'displays.json', 'displays.lua', 'theme.json', 'applications.json', 'regional.json', 'behavior.json'):

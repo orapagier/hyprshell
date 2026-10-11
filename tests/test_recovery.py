@@ -19,6 +19,8 @@ import recovery
 
 class RecoveryTests(unittest.TestCase):
     def setUp(self):
+        distro = patch.object(recovery.system_packages, 'distribution', return_value='arch')
+        distro.start(); self.addCleanup(distro.stop)
         temporary = tempfile.TemporaryDirectory(); self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         self.config = self.root / 'config'

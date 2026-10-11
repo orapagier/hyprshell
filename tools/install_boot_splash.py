@@ -325,8 +325,8 @@ def apply_plan(plan, commands, outputs, backup_root, runner=subprocess.run, comp
                 write_atomic(path, *original)
         print(f'{component} configuration restored after failure.')
         if commands:
-            print('Generated boot images may have changed; rerun sudo mkinitcpio -P '
-                  '(and grub-mkconfig if used) successfully before rebooting.')
+            print('Generated boot images may have changed; rerun the rebuild commands '
+                  'successfully before rebooting: ' + '; '.join(shlex.join(command) for command in commands))
         raise
     print(f'{component} configured. Configuration backups: {backup}')
 

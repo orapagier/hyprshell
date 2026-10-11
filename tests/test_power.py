@@ -19,6 +19,8 @@ import power
 
 class PowerTests(unittest.TestCase):
     def setUp(self):
+        distro = patch.object(power.system_packages, 'distribution', return_value='arch')
+        distro.start(); self.addCleanup(distro.stop)
         self.temp = tempfile.TemporaryDirectory(prefix='hyprshell-power-')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the native Hyprshell desktop into the current user's Arch system.
+# Install the native Hyprshell desktop on Arch Linux or Fedora Everything.
 set -Eeuo pipefail
 umask 022
 
@@ -11,15 +11,19 @@ SKIP_BROWSER=0
 SKIP_BOOT_SPLASH=0
 SKIP_LOGIN_THEME=0
 TIMEZONE=
+DISTRO=auto
+COPR=
 
 usage() {
   cat <<'HELP'
 Usage: ./setup.sh [options]
 
-Run as your normal user, with sudo access, on an installed Arch Linux system.
+Run as your normal user, with sudo access, on Arch Linux or Fedora Everything.
   --dry-run          Check installed packages and show the plan; change nothing
   --config-only      Copy configs, compile helpers, and copy wallpapers only
-  --extra            Also install daily-driver apps from packages-apps.txt
+  --distro NAME      auto (default), arch, or fedora; cross-distro previews allowed
+  --copr OWNER/REPO  Explicitly enable a Fedora COPR (see docs/fedora.md)
+  --extra            Also install daily-driver apps from the distro manifest
   --skip-browser     Exclude Chromium from --extra
   --skip-boot-splash  Leave system boot configuration unchanged
   --skip-login-theme Leave the existing login screen appearance unchanged
@@ -28,8 +32,9 @@ Run as your normal user, with sudo access, on an installed Arch Linux system.
   -h, --help         Show this help
 
 Hyprland and Quickshell are checked first; missing desktop dependencies are
-installed from official Arch repositories. Daily-driver apps are opt-in;
-no AUR apps are installed. --config-only skips all package installation.
+installed through pacman or DNF. Fedora uses only enabled repositories unless
+--copr is supplied. Daily-driver apps are opt-in; no AUR apps are installed.
+--config-only skips all package installation.
 Existing configs are backed up under ~/.local/state/hyprshell/backups/.
 XDG_CONFIG_HOME and XDG_STATE_HOME are respected. A reboot is recommended.
 HELP
@@ -43,6 +48,10 @@ while (( $# )); do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
     --config-only) MODE=config-only ;;
+    --distro|--copr)
+      (( $# >= 2 )) || die "$1 requires a value"
+      if [[ "$1" == --distro ]]; then DISTRO=$2; else COPR=$2; fi
+      shift ;;
     --extra) INSTALL_APPS=1 ;;
     --skip-browser) SKIP_BROWSER=1 ;;
     --skip-boot-splash) SKIP_BOOT_SPLASH=1 ;;
@@ -63,10 +72,27 @@ CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}
 STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}
 [[ "$CONFIG_DIR" == /* && "$STATE_DIR" == /* ]] || die 'XDG paths must be absolute'
 [[ -f "$REPO_DIR/config/quickshell/shell.qml" && -f "$REPO_DIR/packages.txt" ]] || die 'Run setup.sh from a complete clone of the repository'
-mapfile -t PACKAGES < <(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$REPO_DIR/packages.txt")
+# /etc/os-release is supplied by the operating system, never by the checkout.
+OS_ID=
+if [[ -f /etc/os-release ]]; then
+  # shellcheck disable=SC1091
+  OS_ID=$(. /etc/os-release; printf '%s' "${ID:-}")
+fi
+if [[ "$DISTRO" == auto ]]; then DISTRO=$OS_ID; fi
+[[ "$DISTRO" == arch || "$DISTRO" == fedora ]] || die 'Choose --distro arch or --distro fedora for a preview; installation supports Arch and Fedora'
+[[ -z "$COPR" || "$DISTRO" == fedora ]] || die '--copr is only supported on Fedora'
+[[ -z "$COPR" || "$COPR" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*/[A-Za-z0-9][A-Za-z0-9_-]*$ ]] || die 'COPR must be OWNER/REPO'
+PACKAGE_FILE=packages.txt
+APP_PACKAGE_FILE=packages-apps.txt
+if [[ "$DISTRO" == fedora ]]; then
+  PACKAGE_FILE=packages-fedora.txt
+  APP_PACKAGE_FILE=packages-apps-fedora.txt
+fi
+[[ -f "$REPO_DIR/$PACKAGE_FILE" ]] || die "Missing $PACKAGE_FILE"
+mapfile -t PACKAGES < <(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$REPO_DIR/$PACKAGE_FILE")
 if (( INSTALL_APPS )); then
-  [[ -f "$REPO_DIR/packages-apps.txt" ]] || die 'Missing packages-apps.txt; use a complete clone of the repository'
-  mapfile -t APP_PACKAGES < <(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$REPO_DIR/packages-apps.txt")
+  [[ -f "$REPO_DIR/$APP_PACKAGE_FILE" ]] || die "Missing $APP_PACKAGE_FILE"
+  mapfile -t APP_PACKAGES < <(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$REPO_DIR/$APP_PACKAGE_FILE")
   for package in "${APP_PACKAGES[@]}"; do
     if (( SKIP_BROWSER )) && [[ "$package" == chromium ]]; then continue; fi
     PACKAGES+=("$package")
@@ -98,6 +124,14 @@ has_login_manager() {
 check_packages() {
   log 'Checking Hyprland and Quickshell'
   local package missing_text status
+  if [[ "$DISTRO" == fedora ]]; then
+    MISSING_PACKAGES=()
+    for package in "${PACKAGES[@]}"; do
+      if ! rpm -q --whatprovides "$package" >/dev/null 2>&1; then MISSING_PACKAGES+=("$package"); fi
+    done
+    printf 'Missing desktop packages: %s\n' "${MISSING_PACKAGES[*]:-none}"
+    return
+  fi
   for package in hyprland quickshell; do
     if pacman -T "$package" >/dev/null 2>&1; then
       printf '%s: installed (will be updated with the system)\n' "$package"
@@ -124,8 +158,15 @@ check_packages() {
 if (( DRY_RUN )); then
   log 'Preview only; no files, packages, services, or settings will change'
   if [[ "$MODE" == install ]]; then
-    if command -v pacman >/dev/null; then check_packages; fi
-    printf 'Full Arch upgrade; ensure desktop packages: %s\n' "${PACKAGES[*]}"
+    if [[ "$DISTRO" == fedora ]]; then
+      if command -v rpm >/dev/null; then check_packages; fi
+      printf 'Full Fedora upgrade; ensure desktop packages: %s\n' "${PACKAGES[*]}"
+      printf 'COPR: %s\n' "${COPR:-preserve enabled repositories}"
+      printf 'Fonts: install bundled GoMono Nerd Font for shell icons\n'
+    else
+      if command -v pacman >/dev/null; then check_packages; fi
+      printf 'Full Arch upgrade; ensure desktop packages: %s\n' "${PACKAGES[*]}"
+    fi
     if has_login_manager; then
       printf 'Login screen: preserve existing login manager\n'
     else
@@ -140,6 +181,8 @@ if (( DRY_RUN )); then
     printf 'Timezone: %s\n' "${TIMEZONE:-unchanged}"
     if (( SKIP_BOOT_SPLASH )); then
       printf 'Boot splash: leave boot configuration unchanged\n'
+    elif [[ "$DISTRO" == fedora ]]; then
+      printf 'Boot splash: restore Hyprshell Glass using dracut; preserve Fedora kernel parameters\n'
     else
       printf 'Boot splash: restore saved Hyprshell Glass Plymouth theme for supported mkinitcpio boot layouts; preserve local disk/encryption options\n'
     fi
@@ -152,31 +195,61 @@ fi
 
 (( EUID != 0 )) || die 'Run as your normal desktop user, not root or sudo ./setup.sh'
 if [[ "$MODE" == install ]]; then
-  [[ -f /etc/arch-release ]] || die 'This installer supports Arch Linux'
-  [[ $(uname -m) == x86_64 ]] || die 'This setup currently supports x86_64 Arch Linux'
+  [[ "$OS_ID" == "$DISTRO" ]] || die 'The selected distribution does not match this operating system'
+  [[ ! -e /run/ostree-booted ]] || die 'Fedora Atomic/OSTree is not supported; use a traditional Fedora Everything installation'
+  [[ $(uname -m) == x86_64 ]] || die 'This setup currently supports x86_64'
   command -v sudo >/dev/null || die 'Install sudo and grant your user sudo access first'
-  command -v pacman >/dev/null || die 'pacman is required'
+  if [[ "$DISTRO" == fedora ]]; then
+    command -v dnf >/dev/null || die 'DNF is required'
+    command -v rpm >/dev/null || die 'RPM is required'
+  else
+    command -v pacman >/dev/null || die 'pacman is required'
+  fi
   if [[ -n "$TIMEZONE" ]]; then
     [[ "$TIMEZONE" != /* && "$TIMEZONE" != *..* && -f "/usr/share/zoneinfo/$TIMEZONE" ]] || die "Unknown timezone: $TIMEZONE"
   fi
   check_packages
   sudo -v
-  log 'Upgrading Arch and installing missing desktop dependencies'
-  # Always upgrade together with installation to avoid unsupported partial upgrades.
-  # Already-satisfied packages keep their existing explicit/dependency status.
-  sudo pacman -Syu --needed --noconfirm "${MISSING_PACKAGES[@]}"
+  if [[ "$DISTRO" == fedora ]]; then
+    if [[ -n "$COPR" ]]; then
+      log "Enabling the explicitly selected COPR: $COPR"
+      sudo dnf install -y 'dnf5-command(copr)'
+      sudo dnf copr enable -y "$COPR"
+    fi
+    log 'Checking that enabled Fedora repositories supply the complete package manifest'
+    # Resolve the whole transaction before upgrading or replacing any configs.
+    # DNF --assumeno returns 1 when a valid transaction is declined; use downloadonly
+    # instead so resolver failures are unambiguous and no RPMs are installed here.
+    sudo dnf install -y --setopt=install_weak_deps=False --downloadonly "${PACKAGES[@]}"
+    log 'Upgrading Fedora and installing desktop dependencies'
+    sudo dnf upgrade --refresh -y
+    sudo dnf install -y --setopt=install_weak_deps=False "${PACKAGES[@]}"
+  else
+    log 'Upgrading Arch and installing missing desktop dependencies'
+    # Always upgrade together with installation to avoid partial upgrades.
+    sudo pacman -Syu --needed --noconfirm "${MISSING_PACKAGES[@]}"
+  fi
 
   python3 - <<'PY'
 import json, re, subprocess
 info = json.loads(subprocess.check_output(['Hyprland', '--version-json'], text=True))
 version = tuple(map(int, re.findall(r'\d+', info['version'])[:3]))
 if version < (0, 56, 0):
-    raise SystemExit('Hyprland 0.56 or newer is required; update your Arch mirrors and rerun.')
+    raise SystemExit('Hyprland 0.56 or newer is required; use compatible distribution packages (see docs/fedora.md on Fedora) and rerun.')
 print('Hyprland version:', info['version'])
 PY
 fi
 
 command -v python3 >/dev/null || die 'Python 3 is required for --config-only'
+# Reject an incompatible desktop before replacing configuration on config-only too.
+if [[ "$MODE" == config-only && "$DISTRO" == fedora ]]; then
+  python3 - <<'PY_VERSION'
+import json, re, subprocess
+info = json.loads(subprocess.check_output(['Hyprland', '--version-json'], text=True))
+if tuple(map(int, re.findall(r'\d+', info['version'])[:3])) < (0, 56, 0):
+    raise SystemExit('Hyprland 0.56+ is required before installing the Lua config; see docs/fedora.md.')
+PY_VERSION
+fi
 # The bundled default.jpg is selected by hypr/wallpaper-start.sh.
 [[ -f "$REPO_DIR/assets/wallpapers/default.jpg" ]] || die 'Missing bundled default wallpaper'
 log 'Installing configs and wallpapers, with backups for changed files'
@@ -190,8 +263,9 @@ fi
 
 log 'Validating the installed configuration and refreshing fonts'
 python3 "$REPO_DIR/tools/check_runtime.py" --native
-# Arch's unqualified qmltestrunner may be Qt 5; this config requires Qt 6.
-QT_QPA_PLATFORMTHEME= QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software /usr/lib/qt6/bin/qmltestrunner -input "$CONFIG_DIR/quickshell/tests"
+# Distribution paths differ; never accidentally select a Qt 5 runner.
+QML_TEST_RUNNER=$(python3 "$REPO_DIR/tools/check_runtime.py" --qmltestrunner)
+QT_QPA_PLATFORMTHEME= QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "$QML_TEST_RUNNER" -input "$CONFIG_DIR/quickshell/tests"
 Hyprland --verify-config --config "$CONFIG_DIR/hypr/hyprland.lua"
 fc-cache -f
 xdg-user-dirs-update
@@ -200,6 +274,9 @@ log 'Enabling networking, Bluetooth, battery information, and audio'
 sudo systemctl enable --now NetworkManager.service bluetooth.service
 # UPower is D-Bus activated (a static unit), so start it rather than enable it.
 sudo systemctl start upower.service
+if [[ "$DISTRO" == fedora ]]; then
+  sudo systemctl enable --now tuned.service tuned-ppd.service
+fi
 if [[ -n "$TIMEZONE" ]]; then
   sudo timedatectl set-timezone "$TIMEZONE"
 fi
@@ -214,7 +291,11 @@ fi
 
 if ! has_login_manager; then
   log 'Installing SDDM because no login manager was found'
-  sudo pacman -S --needed --noconfirm sddm
+  if [[ "$DISTRO" == fedora ]]; then
+    sudo dnf install -y --setopt=install_weak_deps=False sddm sddm-x11
+  else
+    sudo pacman -S --needed --noconfirm sddm
+  fi
   sudo systemctl enable sddm.service
   sudo systemctl set-default graphical.target
 fi
@@ -233,7 +314,11 @@ fi
 
 if (( ! SKIP_BOOT_SPLASH )); then
   log 'Restoring the saved Hyprshell Glass boot splash'
-  sudo python3 "$REPO_DIR/tools/install_boot_splash.py"
+  if [[ "$DISTRO" == fedora ]]; then
+    sudo python3 "$REPO_DIR/tools/install_boot_splash_fedora.py"
+  else
+    sudo python3 "$REPO_DIR/tools/install_boot_splash.py"
+  fi
 fi
 
 log 'Setup complete'

@@ -14,10 +14,11 @@ Item {
                 result.push(root + "/icons/hicolor/" + size + "/apps");
             result.push(root + "/pixmaps");
         }
-        // Pop is installed on this desktop; use its general icons when the
-        // platform theme supplies no lookup for categories such as networking.
-        for (let category of ["apps", "devices", "places", "status", "mimetypes"])
-            result.push("file:///usr/share/icons/Pop/32x32/" + category);
+        // Include distribution themes when the platform has no category lookup.
+        for (let theme of ["Pop", "Adwaita"])
+            for (let size of ["32x32", "scalable", "symbolic"])
+                for (let category of ["apps", "devices", "places", "status", "mimetypes"])
+                    result.push("file:///usr/share/icons/" + theme + "/" + size + "/" + category);
         return result;
     }
     function source(name) {

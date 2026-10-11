@@ -1,6 +1,6 @@
 # Hyprshell
 
-Hyprshell is a configurable desktop shell for **Hyprland on Arch Linux**, built
+Hyprshell is a configurable desktop shell for **Hyprland on Arch Linux and Fedora Everything**, built
 with **Quickshell**. It brings the application launcher, status bar, desktop
 menus, notification inbox, and settings into one native Wayland interface.
 
@@ -19,20 +19,27 @@ each item. Its layout and appearance can be changed through a graphical
 settings window, including the position of modules and selected Hyprland
 appearance options.
 
-This repository includes the shell, a Hyprland configuration, an Arch Linux
+This repository includes the shell, a Hyprland configuration, an Arch/Fedora
 installer, desktop utilities, and wallpapers. Together they provide a common
 desktop setup that users can install and customize through the same workflow.
-It installs onto an existing Arch system; it does not install the operating
+It installs onto an existing system; it does not install the operating
 system, partition disks, install a bootloader, or install GPU drivers. It can
 configure the animated Hyprshell Glass splash for a supported existing boot setup.
 Full setup also installs the matching animated SDDM login theme and restores
 the desktop preferences saved in this checkout.
+
+The **Fedora Everything port** has separate package manifests, DNF-backed
+Settings controls, and dracut boot splash support. See [Fedora installation
+and validation](docs/fedora.md) for the minimal-install workflow, explicit
+COPR selection, and current validation limits. The instructions below
+describe the established Arch installation unless stated otherwise.
 
 ## Contents
 
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Fedora Everything port](docs/fedora.md)
 - [A consistent desktop experience](#a-consistent-desktop-experience)
 - [First login and machine-specific configuration](#first-login-and-machine-specific-configuration)
 - [Using the desktop](#using-the-desktop)

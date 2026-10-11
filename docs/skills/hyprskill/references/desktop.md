@@ -31,8 +31,8 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | Updates / recovery | `quickshell/SettingsRecovery.qml`, `quickshell/settings/recovery.py`; explicit checkupdates with a separate database, detached interactive full upgrade, validated settings checkpoints/restore; local state `hyprshell/{upgrade-last,personal-backup,recovery-preview}.json` |
 | Portals | `xdg-desktop-portal/hyprland-portals.conf` |
 | Launch helpers | `$HOME/.local/bin/{start-quickshell-bar,hyprshell-settings,app-launcher}` / checkout `bin/` |
-| Install / package lists | checkout `setup.sh`, `tools/install_configs.py`, `packages.txt`, optional `packages-apps.txt` |
-| Boot splash | checkout `config/boot/plymouth.json`, `config/boot/hyprshell/`, `tools/install_boot_splash.py`, `docs/boot-splash.md`; root-owned live Plymouth, mkinitcpio, and bootloader settings; full setup restores Hyprshell Glass with animated text and progress while preserving local disk/encryption options; `docs/boot-splash-preview.html` previews it without starting Plymouth |
+| Install / package lists | checkout `setup.sh`, `tools/install_configs.py`, Arch `packages.txt` / `packages-apps.txt`, Fedora `packages-fedora.txt` / `packages-apps-fedora.txt`; `docs/fedora.md` covers the Fedora Everything port and validation limits |
+| Boot splash | checkout `config/boot/plymouth.json`, `config/boot/hyprshell/`, Arch `tools/install_boot_splash.py`, Fedora `tools/install_boot_splash_fedora.py`, `docs/boot-splash.md`; root-owned live Plymouth and initramfs settings; Fedora uses dracut with SELinux label restoration, preserving BLS/kernel parameters; `docs/boot-splash-preview.html` previews it without starting Plymouth |
 | Login appearance / early UKI splash | checkout `config/sddm/hyprshell-glass/`, `config/boot/uki-splash.bmp`, `tools/install_login_theme.py`, `docs/login-appearance.md`; root-owned `/etc/sddm.conf` and `/usr/share/sddm/themes/hyprshell-glass/`; installer `--with-boot-splash` includes the replacement for the preset's Arch BMP and rebuilds mkinitcpio, without changing systemd-boot; no greeter restart; use SDDM Qt 6 test mode for preview |
 | App autostart overrides | `autostart/*.desktop` / checkout `config/autostart/*.desktop`; installer copies managed entries individually; `nm-applet.desktop` hides the duplicate network tray icon |
 | Sync | `quickshell/settings/github_sync.py`; copies live configs **into** checkout, stages allowed project paths, commits and pushes |
@@ -73,7 +73,11 @@ All history, schedules, destinations and documents stay outside GitHub sync.
 Use `tests/test_{recovery,configuration,personal_backup,optional_daily_driver}.py`
 and native `test_daily_driver_ui.py`; never start real upgrades, restore laptop
 preferences or copy documents just to validate controls. Upgrades remain explicit
-interactive `sudo pacman -Syu` in Kitty.
+interactive `sudo pacman -Syu` in Kitty on this Arch laptop. Fedora uses
+`sudo dnf upgrade --refresh`; `settings/system_packages.py` owns package
+commands and update-help links. Fedora power profile controls call tuned-ppd's
+D-Bus API directly; Arch retains powerprofilesctl. Runtime checks discover the
+Qt 6 test runner with `python3 tools/check_runtime.py --qmltestrunner`.
 
 Run commands in the checkout (or use absolute paths), choosing checks for the change:
 

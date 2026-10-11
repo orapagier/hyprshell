@@ -15,6 +15,7 @@ ColumnLayout {
     property var preview: null
     property var personal: ({folder: "", confirmed: "", available: false})
     property var upgrade: ({status: "none", message: ""})
+    property var system: ({name: "System", news: "", help: "", foreign: ""})
     property var updates: null
     property string action: ""
     readonly property bool busy: worker.running || fullRecovery.busy || personalBackup.busy
@@ -52,6 +53,7 @@ ColumnLayout {
                         page.revision = result.revision;
                         page.personal = result.personal;
                         page.upgrade = result.upgrade;
+                        if (result.system) page.system = result.system;
                         page.loaded = true;
                         if (result.updates) page.updates = result.updates;
                         if (result.preview) page.preview = result.preview;
@@ -70,12 +72,12 @@ ColumnLayout {
     SettingsButton { objectName: "refreshRecovery"; text: "Refresh"; enabled: !page.busy; onClicked: page.request({operation: "status"}) }
     SettingsCard {
         title: "System updates"
-        subtitle: "Read Arch news before upgrading, save your work, and check your backup. The upgrade window asks for your password and lets you review all package changes."
+        subtitle: "Read distribution news before upgrading, save your work, and check your backup. The upgrade window asks for your password and lets you review all package changes."
         Layout.fillWidth: true
         RowLayout {
             Layout.fillWidth: true
             SettingsButton { objectName: "checkSystemUpdates"; text: page.busy && page.action === "check-updates" ? "Checking…" : "Check for updates"; enabled: !page.busy && !page.upgrading; onClicked: page.request({operation: "check-updates"}) }
-            SettingsButton { text: "Arch news"; onClicked: Qt.openUrlExternally("https://archlinux.org/news/") }
+            SettingsButton { text: page.system.name + " news"; enabled: !!page.system.news; onClicked: Qt.openUrlExternally(page.system.news) }
         }
         Label { text: page.updates ? page.updates.packages.length + " repository updates · checked " + page.updates.checked : "Update availability has not been checked."; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
         ScrollView {
@@ -85,8 +87,8 @@ ColumnLayout {
         }
         SettingsButton { objectName: "startSystemUpgrade"; text: page.upgrading ? "Upgrade window open" : "Open full system upgrade…"; enabled: page.loaded && !page.busy && !page.upgrading; onClicked: page.request({operation: "upgrade"}) }
         Label { text: page.upgrade.message; color: ["failed", "unknown"].indexOf(page.upgrade.status) >= 0 ? Style.Theme.danger : Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        Label { text: "AUR and other foreign packages need separate review after the full upgrade. The terminal stays open when you close Settings."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        SettingsButton { text: "Upgrade troubleshooting"; onClicked: Qt.openUrlExternally("https://wiki.archlinux.org/title/System_maintenance#Upgrading_the_system") }
+        Label { text: page.system.foreign + " The terminal stays open when you close Settings."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        SettingsButton { text: "Upgrade troubleshooting"; enabled: !!page.system.help; onClicked: Qt.openUrlExternally(page.system.help) }
     }
     SettingsCard {
         title: "Desktop settings recovery"

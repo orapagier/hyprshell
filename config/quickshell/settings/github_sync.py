@@ -11,6 +11,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import system_packages
 
 FORK_URL = 'https://github.com/orapagier/hyprshell/fork'
 
@@ -188,7 +189,8 @@ def sync(repo, config, target=None, slug=None):
         # Keep this explicit so unrelated files in the checkout stay private.
         project_paths = ('config', 'bin', 'assets', 'tools', 'tests', 'docs',
                          '.github', '.gitignore', 'README.md', 'setup.sh',
-                         'packages.txt', 'packages-apps.txt', 'packages-fallback.txt')
+                         'packages.txt', 'packages-apps.txt', 'packages-fallback.txt',
+                         'packages-fedora.txt', 'packages-apps-fedora.txt')
         tracked = git(repo, 'ls-files', '-z').split('\0')
         paths = [path for path in project_paths
                  if (repo / path).exists() or any(
@@ -271,9 +273,9 @@ def login_terminal():
     try:
         if not shutil.which('gh'):
             print('GitHub CLI is needed for browser authentication.')
-            if input('Install github-cli with pacman now? [y/N] ').lower() != 'y':
+            if input('Install GitHub CLI with the system package manager now? [y/N] ').lower() != 'y':
                 return 1
-            subprocess.run(['sudo', 'pacman', '-S', '--needed', 'github-cli'], check=True)
+            subprocess.run(system_packages.install_command(['github-cli']), check=True)
         subprocess.run(['gh', 'auth', 'login', '--hostname', 'github.com', '--git-protocol', 'https', '--web'], check=True)
         subprocess.run(['gh', 'auth', 'setup-git', '--hostname', 'github.com'], check=True)
         print('Authenticated. Return to Hyprshell and click Sync.')

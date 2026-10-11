@@ -68,19 +68,26 @@ def main():
     try:
         plan = build_login_plan(Path('/'))
         commands, outputs = [], set()
+        if Path('/etc/fedora-release').is_file():
+            commands.append(['restorecon', '-RF', '/usr/share/sddm/themes/' + THEME, '/etc/sddm.conf'])
         if args.with_boot_splash:
             import json
             from install_boot_splash import build_plan
-            if not Path('/usr/lib/plymouth/script.so').is_file():
+            if not any(Path(name).is_file() for name in ('/usr/lib/plymouth/script.so', '/usr/lib64/plymouth/script.so')):
                 raise UnsupportedBoot('Install the Plymouth script plugin first')
             preference = json.loads((REPO / 'config/boot/plymouth.json').read_text())
-            boot_plan, commands, outputs = build_plan(Path('/'), preference)
+            if Path('/etc/fedora-release').is_file():
+                from install_boot_splash_fedora import build_plan as build_fedora_plan
+                boot_plan, boot_commands, outputs = build_fedora_plan(Path('/'))
+            else:
+                boot_plan, boot_commands, outputs = build_plan(Path('/'), preference)
             # A login-only change must not force an otherwise unnecessary rebuild.
             if not any(not path.exists() or path.read_bytes() !=
                        (value.encode() if isinstance(value, str) else value)
                        for path, value in boot_plan.items()):
-                commands = []
+                boot_commands = []
                 outputs = set()
+            commands.extend(boot_commands)
             plan.update(boot_plan)
         for path, value in sorted(plan.items()):
             data = value.encode() if isinstance(value, str) else value

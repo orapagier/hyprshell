@@ -21,7 +21,7 @@ class InstallerTests(unittest.TestCase):
                         XDG_STATE_HOME=str(self.state), PYTHONDONTWRITEBYTECODE='1')
 
     def run_setup(self, *args, check=True):
-        return subprocess.run(['bash', str(ROOT / 'setup.sh'), *args],
+        return subprocess.run(['bash', str(ROOT / 'setup.sh'), '--distro', 'arch', *args],
                               env=self.env, text=True, capture_output=True, check=check)
 
     def install(self):
@@ -198,7 +198,7 @@ class InstallerTests(unittest.TestCase):
             if entry.name != 'hyprshell':
                 (repo / 'config' / entry.name).symlink_to(entry)
         for entry in (ROOT / 'config/hyprshell').iterdir():
-            if entry.name != 'settings.json':
+            if entry.name not in ('settings.json', 'behavior.json', 'behavior.lua'):
                 (repo / 'config/hyprshell' / entry.name).symlink_to(entry)
         saved = json.loads((ROOT / 'config/hyprshell/settings.json').read_text())
         saved['hyprland'].update(pointerSpeed=0.25, tapToClick=False,

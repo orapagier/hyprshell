@@ -21,6 +21,8 @@ import power
 
 class OptionalDailyDriverTests(unittest.TestCase):
     def setUp(self):
+        distro = patch.object(optional_tools.system_packages, 'distribution', return_value='arch')
+        distro.start(); self.addCleanup(distro.stop)
         temporary = tempfile.TemporaryDirectory(); self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         env = patch.dict(os.environ, XDG_CONFIG_HOME=str(self.root / 'config'), XDG_STATE_HOME=str(self.root / 'state'), HYPRLAND_INSTANCE_SIGNATURE='')

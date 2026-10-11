@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Interactive Arch upgrades and validated recovery of saved desktop settings.
+"""Interactive distribution upgrades and validated recovery of saved desktop settings.
 
 Recovery never executes files from a backup. Only settings JSON is imported;
 the normal settings transaction regenerates compositor overrides.
 """
 import argparse
+import system_packages
+import shlex
 from collections import deque
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -167,7 +169,7 @@ def update_status():
         try:
             os.kill(data['pid'], 0)
         except ProcessLookupError:
-            return {**data, 'status': 'unknown', 'message': 'The update window ended without reporting completion. Review /var/log/pacman.log before retrying.'}
+            return {**data, 'status': 'unknown', 'message': 'The update window ended without reporting completion. Review the package manager log before retrying.'}
     return data
 
 
@@ -194,17 +196,35 @@ def update_error(output):
     if 'unable to lock database' in text or 'database is locked' in text:
         return 'Another package manager is active or left a lock. Close it and retry; inspect the lock before removing it.'
     if 'signature' in text or 'keyring' in text or 'unknown trust' in text:
-        return 'Package signature verification failed. Check the clock and follow Arch’s package-signing recovery guide.'
+        return 'Package signature verification failed. Check the clock and follow your distribution’s package-signing recovery guide.'
     if 'space' in text and ('disk' in text or 'device' in text):
         return 'There is not enough disk space. Review System cleanup or move files, then retry the full upgrade.'
     if any(term in text for term in ('failed retrieving', 'could not resolve', 'failed to synchronize')):
         return 'Package servers could not be reached. Check your network and mirrors, then retry the full upgrade.'
     if 'exists in filesystem' in text or 'conflicting dependencies' in text or 'could not satisfy dependencies' in text:
-        return 'A package or file conflict blocked the upgrade. Review the terminal and Arch news before retrying.'
+        return 'A package or file conflict blocked the upgrade. Review the terminal and distribution news before retrying.'
     return 'The full upgrade did not complete. Review the terminal output and resolve the error before installing other packages.'
 
 
 def check_updates():
+    if system_packages.distribution() == 'fedora':
+        if not shutil.which('dnf'):
+            raise ValueError('DNF is required to check Fedora updates.')
+        # An unprivileged check only updates the user's metadata cache.
+        result = subprocess.run(['dnf', '--refresh', '--quiet', 'check-upgrade', '--json'],
+                                capture_output=True, text=True,
+                                env=dict(os.environ, LC_ALL='C'), timeout=120)
+        if result.returncode not in (0, 100):
+            raise ValueError('Could not check Fedora updates. Review your connection and enabled repositories.')
+        packages = []
+        if result.returncode == 100:
+            try:
+                sections = json.loads(result.stdout)
+                packages = [f"{package['name']}.{package['arch']}  {package['evr']}  {package['repository']}"
+                            for entries in sections.values() for package in entries]
+            except (ValueError, KeyError, TypeError, AttributeError):
+                raise ValueError('Could not read DNF update results. Update DNF5 and retry.') from None
+        return {'packages': packages, 'checked': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     if not shutil.which('checkupdates'):
         raise ValueError('Install pacman-contrib during a full system upgrade to enable update checks.')
     # Never refresh the system package database for a preview.
@@ -218,7 +238,7 @@ def check_updates():
 
 
 def launch_upgrade():
-    for command in ('kitty', 'sudo', 'pacman'):
+    for command in ('kitty', 'sudo', system_packages.upgrade_command()[1]):
         if not shutil.which(command):
             raise ValueError(f'{command} is required to open the system upgrade window.')
     _, state = roots()
@@ -242,18 +262,20 @@ def upgrade_terminal():
     # Held for the whole terminal workflow, including the explicit review step.
     with upgrade_lock():
         write_update('running', 'System upgrade window is open. Review and complete it in the terminal.')
-        print('Hyprshell system upgrade\n\nRead https://archlinux.org/news/ for required manual steps.\n'
+        metadata = system_packages.metadata()
+        command = system_packages.upgrade_command()
+        print('Hyprshell system upgrade\n\nRead ' + metadata['news'] + ' before upgrading.\n'
               'Save your work and check your personal backup.\n'
-              'This upgrades all repository packages with sudo pacman -Syu.\n'
-              'AUR and other foreign packages need separate review after this completes.\n'
-              'Your password and pacman’s package confirmation stay in this terminal.\n')
+              'This upgrades all repository packages with ' + shlex.join(command) + '.\n'
+              + metadata['foreign'] + '\n'
+              'Your password and package confirmation stay in this terminal.\n')
         try:
             if input('Start the full system upgrade? [y/N] ').strip().lower() != 'y':
                 write_update('cancelled', 'System upgrade cancelled before any package changes.')
                 return 0
             env = dict(os.environ, LC_ALL='C')
             tail = deque(maxlen=80)
-            with subprocess.Popen(['sudo', 'pacman', '-Syu'], stdout=subprocess.PIPE,
+            with subprocess.Popen(command, stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT, text=True, env=env) as process:
                 for line in process.stdout:
                     print(line, end='', flush=True)
@@ -266,7 +288,7 @@ def upgrade_terminal():
             return code
         except (EOFError, KeyboardInterrupt):
             if update_status()['status'] == 'running':
-                write_update('unknown', 'The upgrade was interrupted. Check the terminal and /var/log/pacman.log before retrying.')
+                write_update('unknown', 'The upgrade was interrupted. Check the terminal and package manager log before retrying.')
             return 1
         except (OSError, subprocess.SubprocessError) as error:
             message = update_error(str(error))
@@ -281,7 +303,7 @@ def upgrade_terminal():
 
 def status():
     return {'ok': True, 'backups': backups(), 'revision': revision(),
-            'personal': backup_status(), 'upgrade': update_status()}
+            'personal': backup_status(), 'upgrade': update_status(), 'system': system_packages.metadata()}
 
 
 def request(payload):

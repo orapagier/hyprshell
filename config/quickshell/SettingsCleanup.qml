@@ -129,7 +129,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Package cache"
-        subtitle: "Your existing system paccache.timer manages pacman's package cache independently. It is not included in the file deletion preview above."
+        subtitle: "System package caches are managed separately by your distribution's package tools. They are not included in the file deletion preview above."
         Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "paccache.timer: " + page.paccache; color: Style.Theme.text }
         Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Hyprshell cleanup timer: " + page.timerStatus; color: Style.Theme.muted }
     }

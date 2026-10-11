@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import time
+import system_packages
 
 
 def state_root():
@@ -122,7 +123,32 @@ def resume():
         raise ValueError('; '.join(errors))
 
 
+def power_profile_property(name, value=None):
+    """Use Fedora tuned-ppd's compatible API without a second power daemon."""
+    from gi.repository import Gio, GLib
+    interface = 'net.hadess.PowerProfiles'
+    try:
+        connection = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+        arguments = GLib.Variant('(ss)', (interface, name)) if value is None else GLib.Variant(
+            '(ssv)', (interface, name, GLib.Variant('s', value)))
+        result = connection.call_sync(interface, '/net/hadess/PowerProfiles',
+                                      'org.freedesktop.DBus.Properties',
+                                      'Get' if value is None else 'Set', arguments,
+                                      None, Gio.DBusCallFlags.NONE, 5000, None)
+        return result.unpack()[0] if value is None else None
+    except GLib.Error as error:
+        raise ValueError('Power profiles unavailable. Check tuned-ppd and the authorization agent: ' + str(error)) from None
+
+
 def profiles():
+    if system_packages.distribution() == 'fedora':
+        rows = power_profile_property('Profiles')
+        available = [row['Profile'] for row in rows
+                     if row.get('Profile') in ('power-saver', 'balanced', 'performance')]
+        active = power_profile_property('ActiveProfile')
+        if active not in available:
+            raise ValueError('Power profile service did not report a supported current profile')
+        return {'available': available, 'active': active}
     try:
         text = command(['powerprofilesctl', 'list'])
     except ValueError as error:
@@ -143,7 +169,10 @@ def apply_profile():
     if profile not in info['available']:
         raise ValueError(f'{profile} is not supported on this machine. Choose another profile or Use system setting.')
     if profile != info['active']:
-        command(['powerprofilesctl', 'set', profile])
+        if system_packages.distribution() == 'fedora':
+            power_profile_property('ActiveProfile', profile)
+        else:
+            command(['powerprofilesctl', 'set', profile])
 
 
 def lid_state():

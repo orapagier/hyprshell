@@ -7,7 +7,12 @@ if ! hyprctl -j monitors >/dev/null 2>&1; then
     exit 1
 fi
 if ! command -v quickshell >/dev/null && ! command -v qs >/dev/null; then
-    sudo pacman -S --needed quickshell
+    python3 - "$config" <<'PY'
+import subprocess, sys
+sys.path.insert(0, sys.argv[1] + '/settings')
+from system_packages import install_command
+subprocess.run(install_command(['quickshell']), check=True)
+PY
 fi
 shell_bin=$(command -v quickshell || command -v qs)
 # Stop this shell even when an existing instance was launched from a different path.
