@@ -329,7 +329,12 @@ def run_locker():
             fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return 0
-        return subprocess.run(args, check=False).returncode
+        # The bundled lock theme resolves its relative images from this folder.
+        # Keep custom locker commands (and their relative arguments) untouched.
+        options = {}
+        if args == ['hyprlock']:
+            options['cwd'] = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config') / 'hypr'
+        return subprocess.run(args, check=False, **options).returncode
 
 
 def run_idle(on_battery=False):
@@ -433,6 +438,8 @@ def save(data, expected=None, *, toggle_workspace=None):
             data['bar']['workspaceOverrides'][str(toggle_workspace)] = not bar_visible(current['bar'], toggle_workspace)
         if expected is not None and current != validate(expected):
             raise ValueError('Settings changed outside this window. Close and reopen settings before applying.')
+        if data['locking']['command'] != current['locking']['command'] and not shutil.which(lock_argv(data['locking']['command'])[0]):
+            raise ValueError('Lock program was not found. Install it or enter its full path')
         if data['locking'] != current['locking'] or data['power'] != current['power']:
             idle_dependencies(data['locking'], data['power'])
             idle_dependencies(data['locking'], effective_power(data['power'], True))

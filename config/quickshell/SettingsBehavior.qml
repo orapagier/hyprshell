@@ -16,11 +16,12 @@ ColumnLayout {
     property bool success: true
     property bool loaded: false
     property bool pending: false
+    readonly property bool dirty: pending
     readonly property bool busy: worker.running
     readonly property var layouts: ["inherit", "dwindle", "master", "scrolling"]
     spacing: 16
     Component.onCompleted: if (visible) request("status")
-    onVisibleChanged: if (visible && !busy) request("status")
+    onVisibleChanged: if (visible && !busy && !dirty) request("status")
     function request(operation) {
         if (busy) return;
         let payload = {operation: operation, expected: revision, settings: draft};

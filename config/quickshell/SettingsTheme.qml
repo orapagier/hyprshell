@@ -16,12 +16,15 @@ ColumnLayout {
     property var cursors: []
     property string fontFamily: ""
     property int fontSize: 11
+    property var retainedAppearance: null
     readonly property bool busy: worker.running
+    readonly property bool dirty: loaded && (fontPicker.currentText !== fontFamily || fontPoints.value !== fontSize || cursorPicker.currentText !== appearance.cursorTheme || cursorPixels.value !== appearance.cursorSize)
     spacing: 16
-    onVisibleChanged: if (visible && !busy) request("status", mode)
+    onVisibleChanged: if (visible && !busy && !dirty) request("status", mode)
     Component.onCompleted: if (visible) request("status", mode)
     function request(operation, nextMode, nextAppearance) {
         if (busy) return;
+        retainedAppearance = operation === "save" && !nextAppearance && dirty ? {font: fontPicker.currentText, size: fontPoints.value, cursor: cursorPicker.currentText, pixels: cursorPixels.value} : null;
         let payload = {operation: operation, mode: nextMode, expected: mode};
         if (revision) payload.expectedRevision = revision;
         if (nextAppearance) { payload.appearance = nextAppearance; payload.expectedAppearance = appearance; }
@@ -43,10 +46,11 @@ ColumnLayout {
                             page.appearance = {font: result.font, cursorTheme: result.cursorTheme, cursorSize: result.cursorSize};
                             page.fonts = result.fonts; page.cursors = result.cursors;
                             page.fontFamily = result.fontFamily; page.fontSize = result.fontSize;
-                            fontPicker.currentIndex = page.fonts.indexOf(page.fontFamily);
-                            fontPoints.value = page.fontSize;
-                            cursorPicker.currentIndex = page.cursors.indexOf(result.cursorTheme);
-                            cursorPixels.value = result.cursorSize;
+                            // A color-only save must keep unapplied font/cursor edits.
+                            fontPicker.currentIndex = page.fonts.indexOf(page.retainedAppearance ? page.retainedAppearance.font : page.fontFamily);
+                            fontPoints.value = page.retainedAppearance ? page.retainedAppearance.size : page.fontSize;
+                            cursorPicker.currentIndex = page.cursors.indexOf(page.retainedAppearance ? page.retainedAppearance.cursor : result.cursorTheme);
+                            cursorPixels.value = page.retainedAppearance ? page.retainedAppearance.pixels : result.cursorSize;
                         }
                     }
                     themeToggle.checked = Qt.binding(() => page.mode === "dark");
@@ -70,7 +74,7 @@ ColumnLayout {
         Label { text: page.mode === "dark" ? "Dark" : "Light"; color: Style.Theme.accentText }
         Label { text: "Apps with their own appearance setting should use Follow system. Reopen apps that do not change automatically."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        SettingsButton { text: "Refresh"; enabled: !page.busy; onClicked: page.request("status", page.mode) }
+        SettingsButton { text: page.dirty ? "Discard edits & refresh" : "Refresh"; enabled: !page.busy; onClicked: page.request("status", page.mode) }
     }
     SettingsCard {
         Layout.fillWidth: true
@@ -93,7 +97,8 @@ ColumnLayout {
         SettingsButton {
             objectName: "saveApplicationAppearance"
             text: "Apply font and cursor"
-            enabled: page.loaded && !page.busy && fontPicker.currentIndex >= 0 && cursorPicker.currentIndex >= 0
+            highlighted: page.dirty
+            enabled: page.loaded && !page.busy && page.dirty && fontPicker.currentIndex >= 0 && cursorPicker.currentIndex >= 0
             onClicked: page.request("save", page.mode, {font: page.fonts[fontPicker.currentIndex] + " " + fontPoints.value, cursorTheme: page.cursors[cursorPicker.currentIndex], cursorSize: cursorPixels.value})
         }
         Label { text: "Apps with custom fonts or themes keep their own choices. The topbar uses its separate appearance controls."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }

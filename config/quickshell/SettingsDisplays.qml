@@ -13,6 +13,8 @@ ColumnLayout {
     property string message: ""
     property bool success: true
     property bool loaded: false
+    property var initialEntries: []
+    readonly property bool dirty: loaded && JSON.stringify(entries) !== JSON.stringify(initialEntries)
     property bool pending: false
     property bool decisionSent: false
     property int seconds: 0
@@ -21,7 +23,7 @@ ColumnLayout {
     readonly property bool busy: worker.running
     spacing: 16
     onVisibleChanged: {
-        if (visible && !busy) request("status");
+        if (visible && !busy && !dirty) request("status");
         if (!visible && pending) decide("revert");
     }
     Component.onCompleted: if (visible) request("status")
@@ -68,7 +70,7 @@ ColumnLayout {
     function receive(result) {
         if (result.message !== undefined || !result.ok || !message) success = result.ok;
         if (result.message !== undefined) message = result.message;
-        if (result.monitors) { monitors = result.monitors; entries = result.entries; saved = result.saved; loaded = true; }
+        if (result.monitors) { monitors = result.monitors; entries = result.entries; initialEntries = result.entries.map(e => Object.assign({}, e)); saved = result.saved; loaded = true; }
         if (result.pending === true) { pending = true; seconds = result.seconds; countdown.restart(); }
         if (result.pending === false) { pending = false; countdown.stop(); refreshAfterExit = previewRunning; previewRunning = false; }
     }
@@ -116,7 +118,7 @@ ColumnLayout {
             SettingsButton { objectName: "keepDisplays"; text: "Keep changes"; highlighted: true; visible: page.pending; enabled: !page.decisionSent && page.seconds > 0; onClicked: page.decide("keep") }
             SettingsButton { objectName: "revertDisplays"; text: "Revert"; visible: page.pending; enabled: !page.decisionSent; onClicked: page.decide("revert") }
             SettingsButton { objectName: "applyDisplays"; text: "Apply changes…"; highlighted: true; visible: !page.pending; enabled: page.loaded && page.entries.length > 0 && !page.busy; onClicked: page.request("preview") }
-            SettingsButton { text: "Refresh"; visible: !page.pending; enabled: !page.busy; onClicked: page.request("status") }
+            SettingsButton { text: page.dirty ? "Discard edits & refresh" : "Refresh"; visible: !page.pending; enabled: !page.busy; onClicked: page.request("status") }
         }
         Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label { visible: page.loaded && !page.monitors.length; text: "No active displays found."; color: Style.Theme.muted }

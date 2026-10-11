@@ -28,7 +28,24 @@ FloatingWindow {
     property var submitted: Model.copy(store.defaults)
     property bool editingSession: false
     readonly property bool saving: writer.running
-    readonly property bool idle: !writer.running && !autoSave.running && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && !networkPage.busy && !regionalPage.busy && !helpPage.busy && !behaviorPage.busy && !clipboardPage.busy && !peripheralsPage.busy
+    readonly property bool idle: !writer.running && !autoSave.running && !displayPage.busy && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && !networkPage.busy && !regionalPage.busy && !helpPage.busy && !behaviorPage.busy && !clipboardPage.busy && !peripheralsPage.busy
+    readonly property bool manualDirty: lockPage.dirty || themePage.dirty || displayPage.dirty || keybindingsPage.dirty || cleanupPage.dirty || regionalPage.dirty || behaviorPage.dirty || recoveryPage.dirty
+    readonly property bool pageDirty: section === -3 ? lockPage.dirty : section === -8 ? themePage.dirty : section === -7 ? displayPage.dirty : section === -6 ? keybindingsPage.dirty : section === -4 ? cleanupPage.dirty : section === -17 ? regionalPage.dirty : section === -19 ? behaviorPage.dirty : section === -14 ? recoveryPage.dirty : false
+    function savingPolicy() {
+        if (section === -3) return "Timers save automatically · Use Apply lock command to change the locker";
+        if (section === -8) return "Colors save immediately · Apply font and cursor to save them";
+        if (section === -7) return "Apply and confirm display changes before they are saved";
+        if (section === -6) return "Use Save shortcut to apply your edits";
+        if (section === -4) return "Use Save cleanup settings to apply your edits";
+        if (section === -17) return "Use Save for next login to save language and region";
+        if (section === -19) return "Use Apply changes to save workspaces and rules";
+        if (section === -14) return "Backup plans require Save · Recovery and updates require an explicit action";
+        if ([-5, -15, -18, -21].indexOf(section) >= 0) return "Use this page’s action buttons";
+        if (section === -12) return "Sound changes apply immediately and are remembered by the audio service";
+        if (section === -10) return "Timers save automatically · Hardware controls apply immediately";
+        if (section === -13) return "Choices save immediately · Startup changes take effect at next login";
+        return "Changes save automatically";
+    }
     onDraftChanged: { Style.Theme.preferences = draft.accessibility || {}; if (editingSession) autoSave.restart(); }
     Component.onCompleted: Style.Theme.preferences = draft.accessibility || {}
     onVisibleChanged: if (!visible && editingSession && dirty) apply()
@@ -135,7 +152,7 @@ FloatingWindow {
             focusRequested();
             return;
         }
-        if (editingSession && (dirty || saving)) {
+        if (editingSession && (dirty || saving || manualDirty)) {
             visible = true;
             return;
         }
@@ -224,6 +241,7 @@ FloatingWindow {
         if (Object.keys(Object.assign({}, before.hyprland, after.hyprland)).some(key => inputKeys.indexOf(key) < 0 && before.hyprland[key] !== after.hyprland[key])) labels.push("Hyprland appearance");
         if (JSON.stringify(before.notifications) !== JSON.stringify(after.notifications)) labels.push("Notification delivery");
         if (JSON.stringify(before.accessibility) !== JSON.stringify(after.accessibility)) labels.push("Accessibility");
+        if (JSON.stringify(before.clipboard) !== JSON.stringify(after.clipboard)) labels.push("Clipboard history");
         if (JSON.stringify(before.power) !== JSON.stringify(after.power)) labels.push("Power & battery");
         if (JSON.stringify(before.locking) !== JSON.stringify(after.locking)) labels.push("Screen locking");
         after.items.forEach(item => {
@@ -473,7 +491,7 @@ FloatingWindow {
                 SettingsButton {
                     objectName: "githubSyncButton"
                     text: githubSync.running ? "Syncing…" : "Sync to GitHub"
-                    enabled: !githubSync.running && !window.dirty && !window.saving && window.success && window.store.loaded && !cleanupPage.busy && !recoveryPage.busy
+                    enabled: window.idle && !window.dirty && !window.manualDirty && window.success && window.store.loaded
                     ToolTip.visible: hovered
                     ToolTip.text: "Commit and push your desktop setup to your GitHub hyprshell repository"
                     onClicked: {
@@ -755,6 +773,7 @@ FloatingWindow {
                             onResetRequested: window.resetItem()
                         }
                         SettingsLocking {
+                            id: lockPage
                             visible: window.section === -3
                             Layout.fillWidth: true
                             settings: window.draft.locking
@@ -782,6 +801,7 @@ FloatingWindow {
                         }
                         SettingsPageLoader {
                             id: regionalPage
+                            objectName: "settingsRegionalLoader"
                             visible: window.visible && window.section === -17
                             Layout.fillWidth: true
                             sourceComponent: SettingsRegional {}
@@ -794,6 +814,7 @@ FloatingWindow {
                         }
                         SettingsPageLoader {
                             id: behaviorPage
+                            objectName: "settingsBehaviorLoader"
                             visible: window.visible && window.section === -19
                             Layout.fillWidth: true
                             sourceComponent: SettingsBehavior {}
@@ -825,6 +846,7 @@ FloatingWindow {
                             }
                         }
                         SettingsDisplays {
+                            id: displayPage
                             visible: window.section === -7
                             Layout.fillWidth: true
                         }
@@ -896,11 +918,11 @@ FloatingWindow {
                 Layout.rightMargin: 16
                 topPadding: 7
                 bottomPadding: 7
-                text: !window.success ? (window.message || window.store.error) : window.saving ? "Saving changes…" : window.savedNotice || ([-14, -15, -17, -18, -19, -21].indexOf(window.section) >= 0 ? "Use this page’s action buttons to apply changes" : "Changes save automatically")
+                text: !window.success ? (window.message || window.store.error) : window.saving ? "Saving changes…" : window.savedNotice || (window.pageDirty ? "Unapplied edits kept while Settings is running · " : window.manualDirty ? "Another page has unapplied edits · " : "") + window.savingPolicy()
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 font.pixelSize: Style.Theme.captionSize
-                color: window.success ? Style.Theme.muted : Style.Theme.danger
+                color: !window.success ? Style.Theme.danger : window.manualDirty ? Style.Theme.warning : Style.Theme.muted
             }
         }
     }

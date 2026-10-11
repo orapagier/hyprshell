@@ -199,7 +199,7 @@ ShellRoot {
                 page.text = "UTC"; test.find(editor.contentItem, "previewRegional").clicked(); test.phase = 2;
             } else if (test.phase === 2 && test.find(editor.contentItem, "saveRegional").enabled) {
                 test.find(editor.contentItem, "saveRegional").clicked(); test.phase = 3;
-            } else if (test.phase === 3 && test.find(editor.contentItem, "saveRegional").enabled) {
+            } else if (test.phase === 3 && editor.idle && !editor.manualDirty) {
                 if (editor.dirty || editor.saving) { test.fail("changed unrelated Settings"); return; }
                 editor.section = -2; test.phase = 4;
             } else if (test.phase === 4) {

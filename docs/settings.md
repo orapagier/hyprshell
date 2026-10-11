@@ -146,6 +146,28 @@ columns and 160 rows) so small bright patches are not averaged out first.
 An accent underline marks a hovered or
 selected control and the active workspace without restoring a background pill.
 
+The footer describes each page's saving behavior. Bar appearance, desktop
+appearance, input, accessibility, notifications, clipboard capture, and idle
+timers save automatically. Custom keyboard layout text enters that draft while
+typing, without needing to leave the field. Application colors/defaults/startup
+save immediately; sound and hardware controls use their existing services.
+
+Display layouts still require Apply and the timed Keep confirmation. Lock command,
+font/cursor, keyboard shortcuts, cleanup schedules, language/region, workspace
+rules, and backup plans require their explicit Save or Apply button. Typed lock
+commands cannot replace the active locker before Apply, and nonexistent commands
+are rejected. Deletion, restore, upgrades and other actions retain their separate
+confirmation flows.
+
+Unapplied manual edits survive navigation and closing/reopening Settings within
+the running shell. The footer highlights these edits and disables GitHub sync
+until they are applied or discarded. Drafts are not written to disk on close and
+do not survive a shell restart or logout. Clean pages still unload normally;
+hidden dirty pages retain their controls without starting polling. Display
+previews continue to revert when leaving their page. Changing application colors
+preserves unapplied font/cursor choices. Cleanup preview waits for schedule edits
+to be saved or discarded, so its preview uses the settings shown on screen.
+
 The editor keeps a draft and saves it automatically after 500 ms without an
 edit. A bottom status message names the settings in the successfully saved
 snapshot (for example, “Bluetooth settings saved!”) and clears after two seconds.

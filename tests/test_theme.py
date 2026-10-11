@@ -191,8 +191,10 @@ ShellRoot {
             let toggle = test.find(page);
             if (test.phase === 0 && page.loaded && !page.busy) {
                 if (!toggle || toggle.checked) { console.error("THEME_FAILED initial"); Qt.quit(); return; }
+                test.find(page, "applicationFontSize").value = 14;
                 toggle.checked = true; toggle.toggled(); test.phase = 1;
             } else if (test.phase === 1 && !page.busy && page.mode === "dark") {
+                if (test.find(page, "applicationFontSize").value !== 14 || !page.dirty || page.appearance.font !== "Noto Sans 11") { console.error("THEME_FAILED color discarded manual draft"); Qt.quit(); return; }
                 toggle.checked = false; toggle.toggled(); test.phase = 2;
             } else if (test.phase === 2 && !page.busy && !page.success) {
                 if (!toggle.checked || page.mode !== "dark") { console.error("THEME_FAILED recovery"); Qt.quit(); return; }

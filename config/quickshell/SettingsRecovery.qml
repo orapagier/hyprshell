@@ -18,6 +18,7 @@ ColumnLayout {
     property var updates: null
     property string action: ""
     readonly property bool busy: worker.running || fullRecovery.busy || personalBackup.busy
+    readonly property bool dirty: personalBackup.dirty
     readonly property bool upgrading: upgrade.status === "launching" || upgrade.status === "running"
     signal restored(var settings)
     spacing: 16

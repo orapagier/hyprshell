@@ -16,10 +16,11 @@ SettingsCard {
     property bool success: true
     readonly property bool busy: worker.running
     readonly property bool pending: initial !== null && JSON.stringify(draft) !== JSON.stringify(initial)
+    readonly property bool dirty: pending
     title: "Personal-file backups"
     subtitle: "Copy selected personal folders to a connected local drive or folder. Scheduling is off until enabled. Snapshots and paths stay local and are excluded from GitHub sync."
     Component.onCompleted: if (visible) request("status")
-    onVisibleChanged: if (visible && !busy) request("status")
+    onVisibleChanged: if (visible && !busy && !dirty) request("status")
     function edit(key, value) { let next = Model.copy(draft); next[key] = value; draft = next; }
     function toggleSource(path, enabled) { edit("sources", enabled ? draft.sources.concat([path]) : draft.sources.filter(value => value !== path)); }
     function request(operation) {

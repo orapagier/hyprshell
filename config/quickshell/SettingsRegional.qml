@@ -16,9 +16,10 @@ ColumnLayout {
     property bool loaded: false
     property bool confirmSystemZone: false
     readonly property bool busy: worker.running
+    readonly property bool dirty: loaded && JSON.stringify(draft()) !== JSON.stringify(settings)
     spacing: 16
     Component.onCompleted: if (visible) request({operation: "status"})
-    onVisibleChanged: { confirmSystemZone = false; if (visible && !busy) request({operation: "status"}); }
+    onVisibleChanged: { confirmSystemZone = false; if (visible && !busy && !dirty) request({operation: "status"}); }
     function draft() { return {version: 1, language: language.currentIndex > 0 ? locales[language.currentIndex - 1] : "", formats: formats.currentIndex > 0 ? locales[formats.currentIndex - 1] : "", timezone: zone.text.trim()}; }
     function request(payload) {
         if (busy) return;
@@ -45,7 +46,7 @@ ColumnLayout {
         onExited: (code, status) => { if (code !== 0 && page.success) { page.success = false; page.message = "Regional helper failed. Refresh and try again."; } }
     }
     Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    SettingsButton { text: "Refresh"; enabled: !page.busy; onClicked: page.request({operation: "status"}) }
+    SettingsButton { text: page.dirty ? "Discard edits & refresh" : "Refresh"; enabled: !page.busy; onClicked: page.request({operation: "status"}) }
     SettingsCard {
         title: "Application language and formats"
         subtitle: "Choose from locales generated on this machine. Application translations depend on each app. Hyprshell’s interface currently uses English."
@@ -60,7 +61,7 @@ ColumnLayout {
         Flow {
             Layout.fillWidth: true; spacing: 8
             SettingsButton { objectName: "previewRegional"; text: "Preview formats"; enabled: page.loaded && !page.busy; onClicked: page.request({operation: "preview", settings: page.draft()}) }
-            SettingsButton { objectName: "saveRegional"; text: "Save for next login"; enabled: page.loaded && !page.busy; onClicked: page.request({operation: "save", settings: page.draft()}) }
+            SettingsButton { objectName: "saveRegional"; text: "Save for next login"; highlighted: page.dirty; enabled: page.loaded && !page.busy && page.dirty; onClicked: page.request({operation: "save", settings: page.draft()}) }
         }
         Label { text: page.preview.error || [page.preview.date, page.preview.time, page.preview.zone, page.preview.number].filter(Boolean).join(" · "); color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize; wrapMode: Text.Wrap; Layout.fillWidth: true }
         Label { text: "To add another language, generate its locale using your system’s locale settings, then Refresh. A manually configured LC_ALL takes precedence over these format choices."; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; wrapMode: Text.Wrap; Layout.fillWidth: true }

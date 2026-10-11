@@ -13,9 +13,11 @@ ColumnLayout {
     property var preview: null
     property string action: ""
     property bool loaded: false
+    property var initial: ({})
+    readonly property bool dirty: loaded && JSON.stringify(settings) !== JSON.stringify(initial)
     readonly property bool busy: worker.running
     spacing: 20
-    onVisibleChanged: if (visible) request("status", "")
+    onVisibleChanged: if (visible && !dirty) request("status", "")
     Component.onCompleted: if (visible) request("status", "")
     function request(operation, value) {
         if (busy) return;
@@ -41,6 +43,7 @@ ColumnLayout {
                     page.message = result.message || "";
                     if (result.ok && result.settings) {
                         page.settings = result.settings;
+                        page.initial = Object.assign({}, result.settings);
                         page.paccache = result.paccache;
                         page.timerStatus = result.timer;
                         page.loaded = true;
@@ -80,7 +83,10 @@ ColumnLayout {
         SettingsCheckBox { text: "Thumbnail cache (~/.cache/thumbnails or XDG cache directory)"; checked: page.settings.thumbnails; onToggled: page.edit("thumbnails", checked) }
         SettingsCheckBox { text: "Your old temporary files in /tmp and /var/tmp"; checked: page.settings.temporary; onToggled: page.edit("temporary", checked) }
         SettingsCheckBox { text: "Old Hyprshell config backups"; checked: page.settings.backups; onToggled: page.edit("backups", checked) }
-        SettingsButton { text: "Save cleanup settings"; onClicked: page.request("save", JSON.stringify(page.settings)) }
+        RowLayout {
+            SettingsButton { text: "Save cleanup settings"; highlighted: page.dirty; enabled: page.dirty; onClicked: page.request("save", JSON.stringify(page.settings)) }
+            SettingsButton { text: "Discard edits"; visible: page.dirty; onClicked: page.request("status", "") }
+        }
     }
     SettingsCard {
         Layout.fillWidth: true
@@ -88,7 +94,7 @@ ColumnLayout {
         subtitle: "Preview eligible files using your saved cleanup settings. Active configs, general application caches, and other users' files are excluded. Empty directories are kept."
         SettingsButton {
             text: page.busy ? "Working…" : "Clean System Now…"
-            enabled: page.loaded && !page.busy
+            enabled: page.loaded && !page.dirty && !page.busy
             onClicked: page.request("preview", "")
         }
         Label {

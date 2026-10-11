@@ -32,6 +32,13 @@ Item {
             mouseClick(findChild(control, "sliderReset"));
             compare(page.settings.pointerSpeed, undefined);
         }
+        function test_customLayoutEditsReachDraftWithoutLosingFocus() {
+            let field = findChild(page, "customLayouts");
+            field.forceActiveFocus();
+            for (let key of [Qt.Key_U, Qt.Key_S, Qt.Key_Comma, Qt.Key_G, Qt.Key_B]) keyClick(key);
+            compare(page.settings.keyboardLayouts, "us,gb");
+            verify(field.activeFocus);
+        }
         function test_layoutsSwitchAndInheritance() {
             let layouts = findChild(page, "keyboardLayoutsControl");
             layouts.activated(6);

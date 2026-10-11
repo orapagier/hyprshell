@@ -60,6 +60,24 @@ class LockingTests(unittest.TestCase):
                     backend.save(data)
                 self.assertFalse((Path(directory) / 'hyprshell/settings.json').exists())
 
+    def test_default_locker_resolves_artwork_from_custom_config_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict(os.environ, XDG_STATE_HOME=directory, XDG_CONFIG_HOME=directory), \
+                 patch.object(backend, 'read_locking', return_value={'command': 'hyprlock'}), \
+                 patch.object(backend.shutil, 'which', return_value='/bin/hyprlock'), \
+                 patch.object(backend.subprocess, 'run', return_value=Mock(returncode=0)) as run:
+                self.assertEqual(backend.run_locker(), 0)
+                run.assert_called_once_with(['hyprlock'], check=False, cwd=Path(directory) / 'hypr')
+
+    def test_new_lock_command_must_exist_even_when_auto_lock_is_off(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict(os.environ, XDG_CONFIG_HOME=directory, XDG_STATE_HOME=directory), patch.object(backend.shutil, 'which', return_value=None):
+                data = copy.deepcopy(backend.DEFAULTS)
+                data['locking']['command'] = 'missing-locker'
+                with self.assertRaisesRegex(ValueError, 'Lock program was not found'):
+                    backend.save(data)
+                self.assertFalse((Path(directory) / 'hyprshell/settings.json').exists())
+
     def test_existing_idle_process_is_preserved(self):
         with patch.object(backend, 'read_locking', return_value=dict(backend.DEFAULTS['locking'], enabled=True)), \
              patch.object(backend.shutil, 'which', return_value='/bin/present'), \

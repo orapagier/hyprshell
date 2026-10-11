@@ -55,7 +55,7 @@ ColumnLayout {
             currentIndex: root.settings.keyboardLayouts === undefined ? 0 : codes.indexOf(root.settings.keyboardLayouts) >= 0 ? codes.indexOf(root.settings.keyboardLayouts) : 9
             onActivated: index => { if (index < codes.length) root.edited("keyboardLayouts", codes[index]); else customLayouts.forceActiveFocus(); }
         }
-        TextField {
+        SettingsTextField {
             id: customLayouts
             objectName: "customLayouts"
             Layout.fillWidth: true
@@ -63,7 +63,7 @@ ColumnLayout {
             placeholderText: "Custom layout codes (for example us,gb)"
             maximumLength: 100
             Accessible.name: "Custom keyboard layout codes"
-            onEditingFinished: if (text !== (root.settings.keyboardLayouts || "")) root.edited("keyboardLayouts", text.trim())
+            onTextEdited: root.edited("keyboardLayouts", text.trim())
         }
         Label { text: "Switch between layouts"; color: Style.Theme.text }
         SettingsComboBox {
@@ -80,7 +80,7 @@ ColumnLayout {
             text: "Switching needs more than one layout. This choice replaces configured keyboard options; Use config restores them. Custom variants remain in your input configuration."
             wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
-        TextField {
+        SettingsTextField {
             objectName: "typingTest"
             Layout.fillWidth: true
             placeholderText: "Type here to test your layout and key repeat"

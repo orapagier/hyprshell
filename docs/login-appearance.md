@@ -88,3 +88,24 @@ and the firmware/Plymouth/SDDM handoff still require testing on the machine.
 References: [SDDM theme API](https://github.com/sddm/sddm/wiki/Theming),
 [systemd-boot menu](https://github.com/systemd/systemd/blob/main/man/systemd-boot.xml),
 [EFI splash rendering](https://github.com/systemd/systemd/blob/main/src/boot/splash.c).
+
+## Lock and logout
+
+Lock uses Hyprlock with the same background, glass card, and Hyprshell title as
+the login theme. Enter your password and press Enter to resume your open apps.
+The password field highlights Caps Lock and failed authentication. Logout ends
+the session and returns to SDDM.
+
+The power menu and Super + Shift + M share `quickshell/settings/session.py`.
+It uses `uwsm stop` for a managed session, or terminates the current logind
+session when UWSM is inactive. Missing session information and inaccessible
+manager checks report an error. The helper never restarts SDDM.
+
+The bundled lock config and artwork live under `config/hypr/` and are restored
+by the existing config installer. Run `python3 tools/render_lock_theme.py` after
+changing the login artwork. The default `hyprlock` command is launched by the
+settings backend with the config's `hypr` folder as its working directory, so
+relative images work with custom XDG config roots. To launch this config directly,
+run Hyprlock from that folder. Custom locker commands retain their working directory.
+Lock command edits require **Apply lock command**; typing does not change the
+active locker. A replacement executable must exist before it can be saved.

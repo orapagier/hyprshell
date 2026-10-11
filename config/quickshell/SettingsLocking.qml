@@ -8,25 +8,32 @@ ColumnLayout {
     required property var settings
     property bool saved: true
     property string runtimeError: ""
+    property string commandDraft: settings.command
+    readonly property bool dirty: commandDraft !== settings.command
     signal lockRequested()
     signal edited(string key, var value)
     spacing: 20
     SettingsCard {
         Layout.fillWidth: true
         title: "Your lock screen"
-        subtitle: "Use Hyprlock or another installed Wayland locker. Its own configuration controls the lock screen appearance."
+        subtitle: "Hyprlock matches the Hyprshell login theme and keeps your apps open. You can also choose another installed Wayland locker."
         SettingField {
+            objectName: "lockCommandField"
             Layout.fillWidth: true
             label: "Lock command"
-            value: page.settings.command
+            value: page.commandDraft
             hint: "hyprlock"
             description: "Executable and arguments, for example: hyprlock --config /home/you/lock.conf. Quote paths containing spaces. Shell expressions and variables are not expanded. Use a foreground locker."
-            onEdited: value => page.edited("command", value)
+            onEdited: value => page.commandDraft = value
+        }
+        RowLayout {
+            SettingsButton { objectName: "applyLockCommand"; text: "Apply lock command"; highlighted: page.dirty; enabled: page.dirty && page.saved && page.commandDraft.trim().length > 0; onClicked: page.edited("command", page.commandDraft) }
+            SettingsButton { text: "Discard command edit"; visible: page.dirty; onClicked: page.commandDraft = Qt.binding(() => page.settings.command) }
         }
         SettingsButton {
             objectName: "lockNowButton"
             text: "Lock now"
-            enabled: page.saved
+            enabled: page.saved && !page.dirty
             onClicked: page.lockRequested()
         }
         Label {

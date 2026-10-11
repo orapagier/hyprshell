@@ -41,7 +41,7 @@ Item {
         let ui = editor.item;
         // Process startup is deferred. Dirty edits without a reported error
         // may still be waiting to start, even while running is briefly false.
-        if (!ui || ui.visible || !ui.idle || (ui.dirty && ui.success)) return;
+        if (!ui || ui.visible || !ui.idle || ui.manualDirty || (ui.dirty && ui.success)) return;
         retainedSession = ui.dirty ? {
             initial: Model.copy(ui.initial),
             draft: Model.copy(ui.draft),
@@ -76,6 +76,7 @@ Item {
         function onIdleChanged() { release.restart(); }
         function onDirtyChanged() { release.restart(); }
         function onSuccessChanged() { release.restart(); }
+        function onManualDirtyChanged() { release.restart(); }
     }
     // Defer destruction until close handlers and process collectors finish.
     Timer { id: release; interval: 0; onTriggered: controller.releaseIfClosed() }

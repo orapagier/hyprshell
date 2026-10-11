@@ -6,7 +6,7 @@ local mainMod = "SUPER" -- Sets "Windows" key as main modifier
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(programs.terminal), { description = "Open terminal" })
 local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close(), { description = "Close window" })
 -- closeWindowBind:set_enabled(false)
-hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"), { description = "Exit desktop session" })
+hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/session.py\" --logout"), { description = "Log out to login screen" })
 hl.bind(mainMod .. " + M", hl.dsp.window.fullscreen({ mode = "maximized" }), { description = "Maximize window" })
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(programs.fileManager), { description = "Open file manager" })
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }), { description = "Toggle floating window" })
