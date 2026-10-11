@@ -1,5 +1,5 @@
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell.Io
@@ -56,7 +56,7 @@ ColumnLayout {
         }
         stderr: StdioCollector { onStreamFinished: if (text) { page.success = false; page.message = "Could not update application preferences. Try refreshing."; } }
     }
-    Label { visible: !!page.message; text: page.message; color: page.success ? Style.success : Style.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
     SettingsButton { text: "Refresh"; enabled: !page.busy; onClicked: page.request({operation: "status"}) }
     SettingsCard {
         title: "Default applications"
@@ -68,7 +68,7 @@ ColumnLayout {
                 id: association
                 required property var modelData
                 Layout.fillWidth: true
-                Label { text: association.modelData.label; color: Style.text }
+                Label { text: association.modelData.label; color: Style.Theme.text }
                 SettingsComboBox {
                     objectName: "defaultApplication-" + association.modelData.types[0]
                     Layout.fillWidth: true
@@ -77,12 +77,12 @@ ColumnLayout {
                     currentIndex: 0
                     onActivated: index => { if (index > 0) page.request({operation: "default", types: association.modelData.types, application: association.modelData.candidates[index - 1]}); }
                 }
-                Label { visible: association.modelData.candidates.length === 0; text: "No installed application advertises support for this file type."; color: Style.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                Label { visible: association.modelData.candidates.length === 0; text: "No installed application advertises support for this file type."; color: Style.Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
             }
         }
         RowLayout {
             Layout.fillWidth: true
-            TextField { id: mime; objectName: "customMimeType"; Layout.fillWidth: true; placeholderText: "Other file type, e.g. application/zip"; color: Style.text; selectByMouse: true; onAccepted: inspect.clicked() }
+            TextField { id: mime; objectName: "customMimeType"; Layout.fillWidth: true; placeholderText: "Other file type, e.g. application/zip"; color: Style.Theme.text; selectByMouse: true; onAccepted: inspect.clicked() }
             SettingsButton { id: inspect; text: "Find apps"; enabled: !page.busy && mime.text.trim().length > 0; onClicked: page.request({operation: "status", extra: mime.text.trim()}) }
         }
     }
@@ -104,15 +104,15 @@ ColumnLayout {
                     enabled: page.loaded && !page.busy
                     onToggled: page.request({operation: "startup", entry: startupEntry.modelData.id, enabled: checked})
                 }
-                Label { visible: !!startupEntry.modelData.reason; text: startupEntry.modelData.reason; color: Style.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Label { visible: !!startupEntry.modelData.reason; text: startupEntry.modelData.reason; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
             }
         }
-        Label { visible: page.loaded && page.startup.length === 0; text: "No application startup entries found."; color: Style.muted }
+        Label { visible: page.loaded && page.startup.length === 0; text: "No application startup entries found."; color: Style.Theme.muted }
         RowLayout {
             Layout.fillWidth: true
             SettingsComboBox { id: addApp; objectName: "startupAppPicker"; Layout.fillWidth: true; enabled: page.loaded && !page.busy; model: page.apps.map(app => app.name) }
             SettingsButton { text: "Add app"; enabled: page.loaded && !page.busy && addApp.currentIndex >= 0; onClicked: page.request({operation: "add", application: page.apps[addApp.currentIndex].id, enabled: true}) }
         }
-        Label { text: "Desktop essentials such as the bar, wallpaper, authorization, and power services are managed separately."; color: Style.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: "Desktop essentials such as the bar, wallpaper, authorization, and power services are managed separately."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
 }

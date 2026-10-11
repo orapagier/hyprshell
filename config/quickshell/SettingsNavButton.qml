@@ -1,5 +1,5 @@
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 
 Button {
@@ -18,22 +18,22 @@ Button {
         implicitWidth: 180; implicitHeight: 24
         Text {
             text: control.symbol; width: 22; anchors.verticalCenter: parent.verticalCenter
-            color: control.highlighted ? Style.text : Style.muted
+            color: control.highlighted ? Style.Theme.text : Style.Theme.muted
             font.family: "GoMono Nerd Font"; font.pixelSize: 16
         }
         Text {
             id: labelText
             x: 33; width: parent.width - 33; anchors.verticalCenter: parent.verticalCenter
-            text: control.text; font.pixelSize: Style.bodySize; font.weight: control.highlighted ? Font.DemiBold : Font.Normal
-            color: control.itemEnabled ? Style.text : Style.disabled
+            text: control.text; font.pixelSize: Style.Theme.bodySize; font.weight: control.highlighted ? Font.DemiBold : Font.Normal
+            color: control.itemEnabled ? Style.Theme.text : Style.Theme.disabled
             elide: Text.ElideRight
         }
     }
     background: Rectangle {
         radius: 8
-        color: control.highlighted ? Style.selection : control.hovered ? Style.button : "transparent"
+        color: control.highlighted ? Style.Theme.selection : control.hovered ? Style.Theme.button : "transparent"
         border.width: control.activeFocus ? 2 : 0
-        border.color: control.activeFocus ? Style.accentText : Style.border
-        Behavior on color { ColorAnimation { duration: Style.duration(control, 140) } }
+        border.color: control.activeFocus ? Style.Theme.accentText : Style.Theme.border
+        Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, 140) } }
     }
 }

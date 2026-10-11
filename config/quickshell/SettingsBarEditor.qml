@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import "SettingsModel.js" as Model
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
@@ -36,8 +36,8 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Individual workspace"
-            color: Style.text
-            font.pixelSize: Style.bodySize
+            color: Style.Theme.text
+            font.pixelSize: Style.Theme.bodySize
         }
         SettingsComboBox {
             objectName: "barWorkspaceControl"
@@ -62,8 +62,8 @@ ColumnLayout {
                 return baseline + (choices.length ? " Individual choices: " + choices.map(w => w + (root.settings.workspaceOverrides[w] ? " on" : " off")).join(", ") + "." : "");
             }
             wrapMode: Text.WordWrap
-            color: Style.muted
-            font.pixelSize: Style.captionSize
+            color: Style.Theme.muted
+            font.pixelSize: Style.Theme.captionSize
         }
     }
     SettingsCard {
@@ -84,7 +84,7 @@ ColumnLayout {
         Layout.fillWidth: true
         title: "Layout & spacing"
         subtitle: "Set the global gap here. Select a module in the sidebar or preview to adjust its individual spacing."
-        Label { text: "Screen edge"; color: Style.muted; font.pixelSize: Style.bodySize }
+        Label { text: "Screen edge"; color: Style.Theme.muted; font.pixelSize: Style.Theme.bodySize }
         SettingsComboBox {
             objectName: "barPositionControl"
             Layout.fillWidth: true
@@ -95,7 +95,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "On either side edge, the left group sits at the top and the right group sits at the bottom."
-            wrapMode: Text.WordWrap; color: Style.muted; font.pixelSize: Style.captionSize
+            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
         GridLayout {
             Layout.fillWidth: true
@@ -145,8 +145,8 @@ ColumnLayout {
             Layout.fillWidth: true
             text: "Give each item a bright color. Colors reshuffle when the wallpaper changes and stay readable. Turn off to use the current theme. Individual colors and wallpaper choices take priority."
             wrapMode: Text.WordWrap
-            color: Style.muted
-            font.pixelSize: Style.captionSize
+            color: Style.Theme.muted
+            font.pixelSize: Style.Theme.captionSize
         }
         SettingsBackgroundControl {
             Layout.fillWidth: true
@@ -187,8 +187,8 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Preview   " + Qt.formatDateTime(new Date(), root.settings.clockFormat)
-            color: Style.accentText
-            font.pixelSize: Style.bodySize
+            color: Style.Theme.accentText
+            font.pixelSize: Style.Theme.bodySize
             wrapMode: Text.Wrap
         }
     }

@@ -1,26 +1,26 @@
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 
 Button {
     id: control
-    implicitHeight: Style.controlHeight
+    implicitHeight: Style.Theme.controlHeight
     implicitWidth: Math.max(100, contentItem.implicitWidth + 36)
     leftPadding: 18; rightPadding: 18
     hoverEnabled: true
-    font.pixelSize: Style.bodySize
+    font.pixelSize: Style.Theme.bodySize
     opacity: enabled ? 1 : 0.4
     contentItem: Text {
         text: control.text; font: control.font
-        color: control.highlighted ? Style.onAccent : Style.text
+        color: control.highlighted ? Style.Theme.accentForeground : Style.Theme.text
         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
     background: Rectangle {
-        radius: Style.controlRadius
-        color: control.highlighted ? (control.down ? Style.accentPressed : control.hovered ? Style.accentHover : Style.accent) : control.down ? Style.pressed : control.hovered ? Style.hover : control.flat ? "transparent" : Style.button
-        border.color: control.activeFocus ? Style.accentText : control.highlighted ? Style.accent : Style.border
+        radius: Style.Theme.controlRadius
+        color: control.highlighted ? (control.down ? Style.Theme.accentPressed : control.hovered ? Style.Theme.accentHover : Style.Theme.accent) : control.down ? Style.Theme.pressed : control.hovered ? Style.Theme.hover : control.flat ? "transparent" : Style.Theme.button
+        border.color: control.activeFocus ? Style.Theme.accentText : control.highlighted ? Style.Theme.accent : Style.Theme.border
         border.width: control.activeFocus ? 2 : control.flat ? 0 : 1
-        Behavior on color { ColorAnimation { duration: Style.duration(control, 130) } }
+        Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, 130) } }
     }
 }

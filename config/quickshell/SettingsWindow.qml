@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell
@@ -27,8 +27,9 @@ FloatingWindow {
     property var submitted: Model.copy(store.defaults)
     property bool editingSession: false
     readonly property bool saving: writer.running
-    readonly property bool idle: !writer.running && !autoSave.running && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && (!networkPage.item || !networkPage.item.busy)
-    onDraftChanged: if (editingSession) autoSave.restart()
+    readonly property bool idle: !writer.running && !autoSave.running && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && !networkPage.busy && !regionalPage.busy && !helpPage.busy
+    onDraftChanged: { Style.Theme.preferences = draft.accessibility || {}; if (editingSession) autoSave.restart(); }
+    Component.onCompleted: Style.Theme.preferences = draft.accessibility || {}
     onVisibleChanged: if (!visible && editingSession && dirty) apply()
     property int section: -1
     property var scrollPositions: ({})
@@ -51,10 +52,13 @@ FloatingWindow {
             {section: -6, title: "Keyboard shortcuts", symbol: "󰌌", keywords: "keybindings hotkeys"}
         ]},
         {group: "System", pages: [
+            {section: -16, title: "Accessibility", symbol: "󰋁", keywords: "large text size contrast reduced motion animations"},
+            {section: -17, title: "Language & region", symbol: "󰗊", keywords: "locale timezone date time number formats"},
             {section: -10, title: "Power & battery", symbol: "󰁹", keywords: "brightness sleep lid profiles"},
             {section: -3, title: "Screen locking", symbol: "󰌾", keywords: "security idle lock"},
             {section: -4, title: "Cleanup", symbol: "󰃢", keywords: "storage files maintenance"},
             {section: -14, title: "Updates & recovery", symbol: "󰁯", keywords: "backup restore checkpoints"},
+            {section: -18, title: "Help & diagnostics", symbol: "󰋖", keywords: "welcome guide health diagnostics support getting started"},
             {section: -5, title: "Hyprskill", symbol: "󰒓", keywords: "agents coding knowledge"}
         ]}
     ]
@@ -111,7 +115,16 @@ FloatingWindow {
     title: "Hyprshell Settings"
     implicitWidth: screen ? Math.min(1180, Math.round(screen.width * 0.9)) : 1180
     implicitHeight: screen ? Math.min(860, Math.round(screen.height * 0.85)) : 810
-    color: Style.background
+    color: Style.Theme.background
+    property bool firstRunPending: {
+        try { return JSON.parse(welcomeFile.text()).completed !== true; } catch (e) { return true; }
+    }
+    FileView {
+        id: welcomeFile
+        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/hyprshell/welcome.json"
+        blockLoading: true
+        printErrors: false
+    }
     function open() {
         minimized = false;
         if (visible) {
@@ -130,6 +143,7 @@ FloatingWindow {
         message = store.error;
         success = !store.error;
         editingSession = true;
+        if (firstRunPending) section = -18;
         visible = true;
     }
     function updateItem(key, value) {
@@ -173,6 +187,9 @@ FloatingWindow {
         next.notifications[key] = value;
         draft = next;
     }
+    function updateAccessibility(key, value) {
+        let next = Model.copy(draft); next.accessibility[key] = value; draft = next;
+    }
     function updatePower(key, value) {
         let next = Model.copy(draft);
         next.power[key] = value;
@@ -201,6 +218,7 @@ FloatingWindow {
         if (inputKeys.some(key => before.hyprland[key] !== after.hyprland[key])) labels.push("Mouse, touchpad & keyboard");
         if (Object.keys(Object.assign({}, before.hyprland, after.hyprland)).some(key => inputKeys.indexOf(key) < 0 && before.hyprland[key] !== after.hyprland[key])) labels.push("Hyprland appearance");
         if (JSON.stringify(before.notifications) !== JSON.stringify(after.notifications)) labels.push("Notification delivery");
+        if (JSON.stringify(before.accessibility) !== JSON.stringify(after.accessibility)) labels.push("Accessibility");
         if (JSON.stringify(before.power) !== JSON.stringify(after.power)) labels.push("Power & battery");
         if (JSON.stringify(before.locking) !== JSON.stringify(after.locking)) labels.push("Screen locking");
         after.items.forEach(item => {
@@ -336,12 +354,12 @@ FloatingWindow {
         padding: 24
         modal: true
         closePolicy: githubSync.running ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle { color: Style.surface; radius: 14; border.color: Style.controlBorder }
+        background: Rectangle { color: Style.Theme.surface; radius: 14; border.color: Style.Theme.controlBorder }
         contentItem: ColumnLayout {
             spacing: 14
-            Label { text: "Sync to GitHub"; color: Style.text; font.pixelSize: 20; font.bold: true }
-            Label { objectName: "githubRepositoryLabel"; text: window.syncRepository || "Sign in to find your repository"; color: Style.accentText }
-            Label { Layout.fillWidth: true; text: window.syncMessage; wrapMode: Text.WordWrap; color: window.syncSuccess ? Style.muted : Style.danger }
+            Label { text: "Sync to GitHub"; color: Style.Theme.text; font.pixelSize: 20; font.bold: true }
+            Label { objectName: "githubRepositoryLabel"; text: window.syncRepository || "Sign in to find your repository"; color: Style.Theme.accentText }
+            Label { Layout.fillWidth: true; text: window.syncMessage; wrapMode: Text.WordWrap; color: window.syncSuccess ? Style.Theme.muted : Style.Theme.danger }
             RowLayout {
                 SettingsButton {
                     objectName: "githubForkButton"
@@ -407,21 +425,21 @@ FloatingWindow {
         objectName: "settingsRoot"
         anchors.fill: parent
         padding: 0
-        property bool settingsMotionEnabled: window.draft.hyprland.animations !== false
-        palette.window: Style.background
-        palette.windowText: Style.text
-        palette.text: Style.text
-        palette.base: Style.surface
-        palette.button: Style.button
-        palette.buttonText: Style.text
-        palette.highlight: Style.accent
-        palette.highlightedText: Style.onAccent
-        palette.brightText: Style.onAccent
-        palette.dark: Style.accentText
-        palette.mid: Style.border
+        property bool settingsMotionEnabled: window.draft.hyprland.animations !== false && !window.draft.accessibility.reducedMotion
+        palette.window: Style.Theme.background
+        palette.windowText: Style.Theme.text
+        palette.text: Style.Theme.text
+        palette.base: Style.Theme.surface
+        palette.button: Style.Theme.button
+        palette.buttonText: Style.Theme.text
+        palette.highlight: Style.Theme.accent
+        palette.highlightedText: Style.Theme.accentForeground
+        palette.brightText: Style.Theme.accentForeground
+        palette.dark: Style.Theme.accentText
+        palette.mid: Style.Theme.border
         font.family: "Noto Sans"
-        font.pixelSize: Style.bodySize
-        background: Rectangle { color: Style.background }
+        font.pixelSize: Style.Theme.bodySize
+        background: Rectangle { color: Style.Theme.background }
         contentItem: ColumnLayout {
             spacing: 0
             RowLayout {
@@ -436,12 +454,12 @@ FloatingWindow {
                         text: "Settings"
                         font.pixelSize: 18
                         font.bold: true
-                        color: Style.text
+                        color: Style.Theme.text
                     }
                     Label {
                         text: "Hyprshell"
-                        font.pixelSize: Style.captionSize
-                        color: Style.muted
+                        font.pixelSize: Style.Theme.captionSize
+                        color: Style.Theme.muted
                     }
                 }
                 Item {
@@ -470,7 +488,7 @@ FloatingWindow {
                     }
                 }
             }
-            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Style.separator }
+            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Style.Theme.separator }
             RowLayout {
                 enabled: !githubSync.running && !recoveryPage.busy
                 Layout.fillWidth: true
@@ -485,7 +503,7 @@ FloatingWindow {
                     padding: 12
                     contentWidth: availableWidth
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                    background: Rectangle { color: Style.sidebar }
+                    background: Rectangle { color: Style.Theme.sidebar }
                     ColumnLayout {
                         width: sidebar.availableWidth
                         spacing: 4
@@ -496,9 +514,9 @@ FloatingWindow {
                             Layout.bottomMargin: 10
                             implicitHeight: 38
                             placeholderText: "Search settings"
-                            color: Style.text
-                            placeholderTextColor: Style.muted
-                            font.pixelSize: Style.bodySize
+                            color: Style.Theme.text
+                            placeholderTextColor: Style.Theme.muted
+                            font.pixelSize: Style.Theme.bodySize
                             leftPadding: 12
                             rightPadding: searchClear.visible ? 38 : 12
                             selectByMouse: true
@@ -510,10 +528,10 @@ FloatingWindow {
                                 else event.accepted = false;
                             }
                             background: Rectangle {
-                                radius: Style.controlRadius
-                                color: Style.field
+                                radius: Style.Theme.controlRadius
+                                color: Style.Theme.field
                                 border.width: searchField.activeFocus ? 2 : 1
-                                border.color: searchField.activeFocus ? Style.accentText : Style.border
+                                border.color: searchField.activeFocus ? Style.Theme.accentText : Style.Theme.border
                             }
                             ToolButton {
                                 id: searchClear
@@ -525,8 +543,8 @@ FloatingWindow {
                                 visible: searchField.text.length > 0
                                 Accessible.name: "Clear search"
                                 onClicked: { searchField.clear(); searchField.forceActiveFocus(); }
-                                contentItem: Text { text: searchClear.text; color: Style.muted; font.pixelSize: 20; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { radius: 6; color: searchClear.hovered ? Style.hover : "transparent"; border.color: searchClear.activeFocus ? Style.accentText : "transparent" }
+                                contentItem: Text { text: searchClear.text; color: Style.Theme.muted; font.pixelSize: 20; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                background: Rectangle { radius: 6; color: searchClear.hovered ? Style.Theme.hover : "transparent"; border.color: searchClear.activeFocus ? Style.Theme.accentText : "transparent" }
                             }
                         }
                         Repeater {
@@ -543,8 +561,8 @@ FloatingWindow {
                                     Layout.leftMargin: 12
                                     Layout.topMargin: 12
                                     Layout.bottomMargin: 5
-                                    color: Style.muted
-                                    font.pixelSize: Style.captionSize
+                                    color: Style.Theme.muted
+                                    font.pixelSize: Style.Theme.captionSize
                                     font.weight: Font.DemiBold
                                 }
                                 Repeater {
@@ -589,13 +607,13 @@ FloatingWindow {
                             Layout.fillWidth: true
                             Layout.margins: 12
                             text: "No settings found. Try another search."
-                            color: Style.muted
-                            font.pixelSize: Style.bodySize
+                            color: Style.Theme.muted
+                            font.pixelSize: Style.Theme.bodySize
                             wrapMode: Text.WordWrap
                         }
                     }
                 }
-                Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Style.separator }
+                Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Style.Theme.separator }
                 ScrollView {
                     id: editorScroll
                     objectName: "settingsEditorScroll"
@@ -605,7 +623,7 @@ FloatingWindow {
                     contentWidth: availableWidth
                     padding: window.width < 900 ? 22 : 36
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                    background: Rectangle { color: Style.background }
+                    background: Rectangle { color: Style.Theme.background }
                     ColumnLayout {
                         id: pageContent
                         objectName: "settingsPageContent"
@@ -615,7 +633,7 @@ FloatingWindow {
                         Label {
                             objectName: "settingsPageTitle"
                             text: window.section >= 0 ? window.names[window.selected.id] || "" : window.navigation.reduce((pages, group) => pages.concat(group.pages), []).find(page => page.section === window.section)?.title || "Settings"
-                            font.pixelSize: Style.titleSize
+                            font.pixelSize: Style.Theme.titleSize
                             font.bold: true
                             Layout.fillWidth: true
                             wrapMode: Text.WordWrap
@@ -623,19 +641,19 @@ FloatingWindow {
                         Label {
                             Layout.fillWidth: true
                             Layout.topMargin: -14
-                            font.pixelSize: Style.bodySize
-                            text: window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover saved desktop settings, and track your personal backup checks." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for your desktop bar." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
+                            font.pixelSize: Style.Theme.bodySize
+                            text: window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover saved desktop settings, and track your personal backup checks." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for your desktop bar." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
                             wrapMode: Text.WordWrap
-                            color: Style.muted
+                            color: Style.Theme.muted
                         }
                         Rectangle {
                             objectName: "settingsBarPreview"
                             Layout.fillWidth: true
                             visible: window.section >= -1
                             Layout.preferredHeight: previewBar.y + previewBar.height * previewBar.scale + 16
-                            radius: Style.radius
-                            color: Style.surface
-                            border.color: Style.border
+                            radius: Style.Theme.radius
+                            color: Style.Theme.surface
+                            border.color: Style.Theme.border
                             Label {
                                 id: previewLabel
                                 x: 16
@@ -643,8 +661,8 @@ FloatingWindow {
                                 width: parent.width - 32
                                 wrapMode: Text.WordWrap
                                 text: "Bar preview · drag to rearrange, click to customize"
-                                color: Style.muted
-                                font.pixelSize: Style.captionSize
+                                color: Style.Theme.muted
+                                font.pixelSize: Style.Theme.captionSize
                                 font.letterSpacing: 0
                             }
                             Bar {
@@ -705,6 +723,13 @@ FloatingWindow {
                                 }
                             }
                         }
+                        SettingsAccessibility {
+                            visible: window.section === -16
+                            Layout.fillWidth: true
+                            settings: window.draft.accessibility
+                            onEdited: (key, value) => window.updateAccessibility(key, value)
+                            onNavigate: section => window.section = section
+                        }
                         SettingsBarEditor {
                             visible: window.section === -1
                             Layout.fillWidth: true
@@ -743,27 +768,24 @@ FloatingWindow {
                             visible: window.section === -13
                             Layout.fillWidth: true
                         }
-                        Loader {
+                        SettingsPageLoader {
                             id: networkPage
                             objectName: "settingsNetworkLoader"
                             Layout.fillWidth: true
                             visible: window.visible && window.section === -15
-                            // Let an in-flight command finish before releasing the page.
-                            active: false
-                            onVisibleChanged: {
-                                if (visible) active = true;
-                                else networkRelease.restart();
-                            }
                             sourceComponent: SettingsNetwork {}
-                            Connections {
-                                target: networkPage.item
-                                function onBusyChanged() { if (!networkPage.visible) networkRelease.restart(); }
-                            }
-                            Timer {
-                                id: networkRelease
-                                interval: 0
-                                onTriggered: if (!networkPage.visible && (!networkPage.item || !networkPage.item.busy)) networkPage.active = false
-                            }
+                        }
+                        SettingsPageLoader {
+                            id: regionalPage
+                            visible: window.visible && window.section === -17
+                            Layout.fillWidth: true
+                            sourceComponent: SettingsRegional {}
+                        }
+                        SettingsPageLoader {
+                            id: helpPage
+                            visible: window.visible && window.section === -18
+                            Layout.fillWidth: true
+                            sourceComponent: SettingsHelp { onNavigate: section => window.section = section; onGuideFinished: window.firstRunPending = false }
                         }
                         SettingsRecovery {
                             id: recoveryPage
@@ -854,8 +876,8 @@ FloatingWindow {
                 text: !window.success ? (window.message || window.store.error) : window.saving ? "Saving changes…" : window.savedNotice || "Changes save automatically"
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                font.pixelSize: Style.captionSize
-                color: window.success ? Style.muted : Style.danger
+                font.pixelSize: Style.Theme.captionSize
+                color: window.success ? Style.Theme.muted : Style.Theme.danger
             }
         }
     }

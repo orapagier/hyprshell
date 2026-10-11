@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell.Io
@@ -88,13 +88,13 @@ ColumnLayout {
             implicitHeight: 42; leftPadding: 14; rightPadding: 14
             placeholderText: "Search shortcuts…"
             Accessible.name: "Search shortcuts"
-            color: Style.text; placeholderTextColor: Style.muted
-            font.family: "Noto Sans"; font.pixelSize: Style.bodySize
+            color: Style.Theme.text; placeholderTextColor: Style.Theme.muted
+            font.family: "Noto Sans"; font.pixelSize: Style.Theme.bodySize
             selectByMouse: true
             background: Rectangle {
-                radius: 10; color: Style.field
-                border.color: filter.activeFocus ? Style.accentText : Style.border
-                Behavior on border.color { ColorAnimation { duration: Style.duration(filter, 140) } }
+                radius: 10; color: Style.Theme.field
+                border.color: filter.activeFocus ? Style.Theme.accentText : Style.Theme.border
+                Behavior on border.color { ColorAnimation { duration: Style.Theme.duration(filter, 140) } }
             }
         }
         SettingsButton { text: "+ New"; highlighted: true; enabled: page.loaded && !page.busy && !page.dirty; onClicked: page.add() }
@@ -108,7 +108,7 @@ ColumnLayout {
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 8
-            Label { text: "Shortcut"; color: Style.muted; font.pixelSize: Style.bodySize }
+            Label { text: "Shortcut"; color: Style.Theme.muted; font.pixelSize: Style.Theme.bodySize }
             ShortcutRecorder {
                 id: recorder
                 objectName: "shortcutRecorder"
@@ -119,14 +119,14 @@ ColumnLayout {
             }
             RowLayout {
                 Layout.fillWidth: true
-                Label { visible: !!page.conflict; text: page.conflict; color: Style.danger; font.pixelSize: Style.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Label { visible: !!page.conflict; text: page.conflict; color: Style.Theme.danger; font.pixelSize: Style.Theme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 Item { visible: !page.conflict; Layout.fillWidth: true }
                 Button {
                     text: page.manualEntry ? "Hide manual entry" : "Enter manually"
-                    flat: true; font.pixelSize: Style.captionSize
+                    flat: true; font.pixelSize: Style.Theme.captionSize
                     enabled: !recorder.recording
                     onClicked: page.manualEntry = !page.manualEntry
-                    contentItem: Text { text: parent.text; color: Style.muted; font: parent.font }
+                    contentItem: Text { text: parent.text; color: Style.Theme.muted; font: parent.font }
                     background: Item {}
                 }
             }
@@ -135,9 +135,9 @@ ColumnLayout {
                 Layout.fillWidth: true
                 implicitHeight: 40; leftPadding: 12
                 text: page.draft.shortcut; placeholderText: "SUPER + SHIFT + N"
-                color: Style.text; selectByMouse: true
+                color: Style.Theme.text; selectByMouse: true
                 Accessible.name: "Enter shortcut manually"
-                background: Rectangle { radius: 8; color: Style.field; border.color: Style.border }
+                background: Rectangle { radius: 8; color: Style.Theme.field; border.color: Style.Theme.border }
                 onTextEdited: page.edit("shortcut", text)
             }
         }
@@ -187,14 +187,14 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: page.message !== ""
         text: page.message
-        color: page.success ? Style.success : Style.danger
+        color: page.success ? Style.Theme.success : Style.Theme.danger
         wrapMode: Text.Wrap
-        font.pixelSize: Style.bodySize
+        font.pixelSize: Style.Theme.bodySize
     }
     RowLayout {
         Layout.fillWidth: true
-        Label { text: "Your shortcuts"; color: Style.text; font.family: "Noto Sans"; font.pixelSize: Style.bodySize; font.weight: Font.Medium; Layout.fillWidth: true }
-        Label { text: page.busy && !page.loaded ? "Loading…" : String(page.filtered.length); color: Style.muted; font.pixelSize: Style.captionSize }
+        Label { text: "Your shortcuts"; color: Style.Theme.text; font.family: "Noto Sans"; font.pixelSize: Style.Theme.bodySize; font.weight: Font.Medium; Layout.fillWidth: true }
+        Label { text: page.busy && !page.loaded ? "Loading…" : String(page.filtered.length); color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize }
     }
     ListView {
         id: list
@@ -213,27 +213,27 @@ ColumnLayout {
             onClicked: page.select(modelData)
             background: Rectangle {
                 radius: 10
-                color: row.hovered ? Style.hover : Style.field
-                border.color: row.activeFocus ? Style.accentText : "transparent"
-                Behavior on color { ColorAnimation { duration: Style.duration(row, 120) } }
+                color: row.hovered ? Style.Theme.hover : Style.Theme.field
+                border.color: row.activeFocus ? Style.Theme.accentText : "transparent"
+                Behavior on color { ColorAnimation { duration: Style.Theme.duration(row, 120) } }
             }
             contentItem: ColumnLayout {
                 id: contents
                 spacing: 8
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: row.modelData.description; color: Style.text; font.family: "Noto Sans"; font.pixelSize: Style.bodySize; Layout.fillWidth: true; elide: Text.ElideRight }
-                    Rectangle { visible: !!row.modelData.id; width: 5; height: 5; radius: 3; color: Style.accentText }
-                    Label { text: "›"; color: Style.muted; font.pixelSize: 18 }
+                    Label { text: row.modelData.description; color: Style.Theme.text; font.family: "Noto Sans"; font.pixelSize: Style.Theme.bodySize; Layout.fillWidth: true; elide: Text.ElideRight }
+                    Rectangle { visible: !!row.modelData.id; width: 5; height: 5; radius: 3; color: Style.Theme.accentText }
+                    Label { text: "›"; color: Style.Theme.muted; font.pixelSize: 18 }
                 }
-                ShortcutBadges { Layout.fillWidth: true; shortcut: row.modelData.shortcut; fill: Style.button; outline: Style.border }
+                ShortcutBadges { Layout.fillWidth: true; shortcut: row.modelData.shortcut; fill: Style.Theme.button; outline: Style.Theme.border }
             }
         }
         Column {
             anchors.centerIn: parent; spacing: 6
             visible: page.loaded && !page.filtered.length
-            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "No shortcuts found"; color: Style.text; font.pixelSize: Style.bodySize }
-            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Try another search"; color: Style.muted; font.pixelSize: Style.captionSize }
+            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "No shortcuts found"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
+            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Try another search"; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize }
         }
     }
 }

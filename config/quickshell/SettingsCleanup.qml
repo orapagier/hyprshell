@@ -1,5 +1,5 @@
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell.Io
@@ -57,7 +57,7 @@ ColumnLayout {
         title: "Automatic cleanup"
         subtitle: "Clean old user files on a systemd user timer. Missed runs are picked up at your next login. Save these settings separately below."
         enabled: page.loaded && !page.busy
-        Label { text: "Schedule"; color: Style.muted }
+        Label { text: "Schedule"; color: Style.Theme.muted }
         SettingsComboBox {
             model: ["Off", "Daily", "Weekly", "Monthly"]
             currentIndex: ["off", "daily", "weekly", "monthly"].indexOf(page.settings.schedule)
@@ -95,7 +95,7 @@ ColumnLayout {
             Layout.fillWidth: true
             visible: page.preview !== null
             text: page.preview ? page.preview.entries.length + " files · " + (page.preview.bytes / 1048576).toFixed(2) + " MiB eligible" : ""
-            color: Style.text
+            color: Style.Theme.text
         }
         ScrollView {
             Layout.fillWidth: true
@@ -106,7 +106,7 @@ ColumnLayout {
                 readOnly: true
                 selectByMouse: true
                 wrapMode: TextEdit.WrapAnywhere
-                color: Style.text
+                color: Style.Theme.text
                 text: page.preview ? page.preview.entries.map(e => e.category + " · " + e.size + " bytes\n" + e.path).join("\n\n") || "No eligible files." : ""
             }
         }
@@ -124,8 +124,8 @@ ColumnLayout {
         Layout.fillWidth: true
         title: "Package cache"
         subtitle: "Your existing system paccache.timer manages pacman's package cache independently. It is not included in the file deletion preview above."
-        Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "paccache.timer: " + page.paccache; color: Style.text }
-        Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Hyprshell cleanup timer: " + page.timerStatus; color: Style.muted }
+        Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "paccache.timer: " + page.paccache; color: Style.Theme.text }
+        Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Hyprshell cleanup timer: " + page.timerStatus; color: Style.Theme.muted }
     }
-    Label { Layout.fillWidth: true; text: page.message; wrapMode: Text.WrapAnywhere; color: Style.warning }
+    Label { Layout.fillWidth: true; text: page.message; wrapMode: Text.WrapAnywhere; color: Style.Theme.warning }
 }

@@ -108,7 +108,7 @@ def checkpoint(expected):
 def preview(ident):
     _, state = roots()
     before, after = current(), snapshot(ident)
-    labels = {'bar': 'Bar & layout', 'items': 'Topbar items', 'hyprland': 'Compositor, mouse & keyboard',
+    labels = {'accessibility': 'Accessibility', 'bar': 'Bar & layout', 'items': 'Topbar items', 'hyprland': 'Compositor, mouse & keyboard',
               'locking': 'Screen locking', 'power': 'Power & battery', 'notifications': 'Notification delivery'}
     changes = [label for key, label in labels.items() if before[key] != after[key]]
     token = secrets.token_hex(24)

@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
@@ -67,7 +67,7 @@ ColumnLayout {
             delegate: ColumnLayout {
                 required property string modelData
                 Layout.fillWidth: true
-                Label { Layout.fillWidth: true; text: parent.modelData; wrapMode: Text.Wrap; color: Style.text; textFormat: Text.PlainText }
+                Label { Layout.fillWidth: true; text: parent.modelData; wrapMode: Text.Wrap; color: Style.Theme.text; textFormat: Text.PlainText }
                 SettingsComboBox {
                     Layout.fillWidth: true
                     model: ["Follow defaults", "Inbox only", "Off"]

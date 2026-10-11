@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
-import "SettingsStyle.js" as Style
+import "style" as Style
 
 ColumnLayout {
     id: root
@@ -15,15 +15,15 @@ ColumnLayout {
         Layout.leftMargin: 2
         Layout.rightMargin: 2
         spacing: 4
-        Label { Layout.fillWidth: true; text: root.title; color: Style.text; font.pixelSize: Style.sectionSize; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
-        Label { visible: text !== ""; text: root.subtitle; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Style.muted; font.pixelSize: Style.captionSize }
+        Label { Layout.fillWidth: true; text: root.title; color: Style.Theme.text; font.pixelSize: Style.Theme.sectionSize; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+        Label { visible: text !== ""; text: root.subtitle; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize }
     }
     Rectangle {
         Layout.fillWidth: true
         implicitHeight: body.implicitHeight + 36
-        color: Style.surface
-        radius: Style.radius
-        border.color: Style.separator
+        color: Style.Theme.surface
+        radius: Style.Theme.radius
+        border.color: Style.Theme.separator
         ColumnLayout {
             id: body
             anchors.left: parent.left

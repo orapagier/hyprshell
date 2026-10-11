@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
@@ -46,7 +46,7 @@ ColumnLayout {
         subtitle: "Frost the content behind translucent windows. Add transparency above to make the effect visible."
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Background blur"; color: Style.text; font.pixelSize: Style.bodySize; Layout.fillWidth: true }
+            Label { text: "Background blur"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize; Layout.fillWidth: true }
             SettingsComboBox {
                 objectName: "blurMode"
                 model: ["Use config", "Enabled", "Disabled"]
@@ -134,7 +134,7 @@ ColumnLayout {
             delegate: RowLayout {
                 required property var modelData
                 Layout.fillWidth: true
-                Label { text: modelData.label; color: Style.text; font.pixelSize: Style.bodySize; Layout.fillWidth: true }
+                Label { text: modelData.label; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize; Layout.fillWidth: true }
                 SettingsComboBox {
                     model: ["Use config", "Enabled", "Disabled"]
                     currentIndex: root.settings[parent.modelData.key] === undefined ? 0 : root.settings[parent.modelData.key] ? 1 : 2
@@ -146,8 +146,8 @@ ColumnLayout {
     Label {
         Layout.fillWidth: true
         text: "Use config leaves a setting under your Hyprland configuration. Sliders start at suggested values until you adjust them. Use ↺ to remove an override. App-specific window rules may take priority."
-        color: Style.muted
-        font.pixelSize: Style.captionSize
+        color: Style.Theme.muted
+        font.pixelSize: Style.Theme.captionSize
         wrapMode: Text.WordWrap
     }
 }

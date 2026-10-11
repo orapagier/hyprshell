@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import QtQuick.Window
@@ -90,10 +90,10 @@ Control {
     }
     background: Rectangle {
         radius: 12
-        color: recorder.recording ? Style.selection : Style.field
-        border.color: recorder.recording || recorder.activeFocus ? Style.accentText : Style.controlBorder
-        Behavior on color { ColorAnimation { duration: Style.duration(recorder, 160) } }
-        Behavior on border.color { ColorAnimation { duration: Style.duration(recorder, 160) } }
+        color: recorder.recording ? Style.Theme.selection : Style.Theme.field
+        border.color: recorder.recording || recorder.activeFocus ? Style.Theme.accentText : Style.Theme.controlBorder
+        Behavior on color { ColorAnimation { duration: Style.Theme.duration(recorder, 160) } }
+        Behavior on border.color { ColorAnimation { duration: Style.Theme.duration(recorder, 160) } }
     }
     contentItem: ColumnLayout {
         id: content
@@ -103,12 +103,12 @@ Control {
             Item {
                 Layout.fillWidth: true
                 implicitHeight: Math.max(27, badges.implicitHeight)
-                ShortcutBadges { id: badges; width: parent.width; shortcut: recorder.recording ? recorder.preview : recorder.value; foreground: Style.text; fill: Style.button; outline: Style.border }
+                ShortcutBadges { id: badges; width: parent.width; shortcut: recorder.recording ? recorder.preview : recorder.value; foreground: Style.Theme.text; fill: Style.Theme.button; outline: Style.Theme.border }
                 Label {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: !badges.shortcut
                     text: recorder.recording ? "Press a combination…" : "No shortcut set"
-                    color: recorder.recording ? Style.accentText : Style.muted; font.pixelSize: Style.bodySize
+                    color: recorder.recording ? Style.Theme.accentText : Style.Theme.muted; font.pixelSize: Style.Theme.bodySize
                 }
             }
             SettingsButton {
@@ -125,7 +125,7 @@ Control {
             Layout.fillWidth: true
             visible: recorder.recording || recorder.error !== ""
             text: recorder.error || (!recorder.ready ? "Preparing recorder…" : recorder.pending ? "Release the keys to confirm" : "Press your shortcut · Esc to cancel")
-            color: recorder.error ? Style.danger : Style.muted; font.pixelSize: Style.captionSize
+            color: recorder.error ? Style.Theme.danger : Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
             wrapMode: Text.Wrap
         }
     }

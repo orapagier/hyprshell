@@ -33,7 +33,7 @@ def install(repo):
     settings_backend = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(settings_backend)
     saved_settings = settings_backend.validate(json.loads((repo / 'config/hyprshell/settings.json').read_text()))
-    overrides = settings_backend.render_hypr(saved_settings['hyprland'], True)
+    overrides = settings_backend.render_hypr(saved_settings['hyprland'], True, saved_settings['accessibility'])
     home = Path(os.environ['HOME'])
     config = Path(os.environ.get('XDG_CONFIG_HOME') or home / '.config')
     state = Path(os.environ.get('XDG_STATE_HOME') or home / '.local/state')
@@ -99,7 +99,7 @@ def install(repo):
                 Path('Pictures/Wallpapers') / wallpaper.name)
     put(repo / 'config/hyprshell/hyprland', config / 'hyprshell/hyprland',
         Path('config/hyprshell/hyprland'))
-    for name in ('settings.json', 'cleanup.json', 'keybindings.json', 'keybindings.lua', 'displays.json', 'displays.lua', 'theme.json', 'applications.json'):
+    for name in ('settings.json', 'cleanup.json', 'keybindings.json', 'keybindings.lua', 'displays.json', 'displays.lua', 'theme.json', 'applications.json', 'regional.json'):
         if (repo / 'config/hyprshell' / name).exists():
             put(repo / 'config/hyprshell' / name, config / 'hyprshell' / name, Path('config/hyprshell') / name)
     with tempfile.TemporaryDirectory(prefix='hyprshell-overrides-') as temporary:
@@ -108,6 +108,10 @@ def install(repo):
         put(generated, config / 'hyprshell/overrides.lua', Path('config/hyprshell/overrides.lua'))
     state.joinpath('hyprshell').mkdir(parents=True, exist_ok=True)
     state.joinpath('hyprshell/repository').write_text(str(repo.resolve()) + '\n')
+    if (config / 'hyprshell/regional.json').exists():
+        restored = subprocess.run(['python3', str(config / 'quickshell/settings/regional.py'), '--restore'], capture_output=True, text=True)
+        if restored.returncode:
+            print('Regional preferences need review:', restored.stdout.strip())
     if (config / 'hyprshell/applications.json').exists():
         # Restore at install time so startup choices are present before UWSM's generator.
         restored = subprocess.run(['python3', str(config / 'quickshell/settings/applications.py'), '--restore'], capture_output=True, text=True)

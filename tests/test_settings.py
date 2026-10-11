@@ -16,6 +16,25 @@ spec.loader.exec_module(backend)
 
 
 class SettingsTests(unittest.TestCase):
+    def test_accessibility_migrates_old_settings_and_reduced_motion_restores_animation_choice(self):
+        self.assertEqual(backend.validate({'version': 1})['accessibility'], {'textScale': 1, 'highContrast': False, 'reducedMotion': False})
+        main = self.config / 'hypr/hyprland.lua'; main.parent.mkdir(parents=True); main.write_text('-- isolated\n')
+        data = copy.deepcopy(self.data)
+        data['hyprland']['animations'] = True
+        data['accessibility'] = {'textScale': 1.5, 'highContrast': True, 'reducedMotion': True}
+        backend.save(data)
+        generated = self.config / 'hyprshell/overrides.lua'
+        self.assertIn('enabled = false', generated.read_text())
+        data['accessibility']['reducedMotion'] = False
+        backend.save(data)
+        self.assertIn('enabled = true', generated.read_text())
+        self.assertEqual(json.loads(self.path.read_text())['accessibility']['textScale'], 1.5)
+
+    def test_accessibility_rejects_invalid_values_before_writing(self):
+        for changes in ({'textScale': 0.8}, {'textScale': True}, {'textScale': 2}, {'highContrast': 1}, {'reducedMotion': 'false'}, {'unknown': True}):
+            data = copy.deepcopy(self.data); data['accessibility'].update(changes)
+            with self.assertRaises(ValueError): backend.save(data)
+            self.assertFalse(self.path.exists())
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='hyprshell-settings-')
         self.addCleanup(self.temp.cleanup)

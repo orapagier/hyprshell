@@ -1,5 +1,5 @@
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
@@ -33,8 +33,8 @@ ColumnLayout {
             Layout.fillWidth: true
             text: "Save a valid command before testing. Unlock with your locker's configured authentication."
             wrapMode: Text.WordWrap
-            color: Style.muted
-            font.pixelSize: Style.captionSize
+            color: Style.Theme.muted
+            font.pixelSize: Style.Theme.captionSize
         }
     }
     SettingsCard {
@@ -67,6 +67,6 @@ ColumnLayout {
         visible: text !== ""
         text: page.runtimeError
         wrapMode: Text.WordWrap
-        color: Style.danger
+        color: Style.Theme.danger
     }
 }

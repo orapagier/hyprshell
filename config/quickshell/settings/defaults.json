@@ -378,5 +378,10 @@
     "criticalBypass": true,
     "popupSeconds": 5,
     "apps": {}
+  },
+  "accessibility": {
+    "textScale": 1,
+    "highContrast": false,
+    "reducedMotion": false
   }
 }

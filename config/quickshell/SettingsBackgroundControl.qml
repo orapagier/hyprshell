@@ -1,5 +1,5 @@
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
@@ -31,8 +31,8 @@ ColumnLayout {
     Label {
         Layout.fillWidth: true
         text: control.mode === "inherit" ? control.inheritDescription : control.mode === "on" ? "Background pill shown" : "Background pill removed"
-        color: Style.muted
-        font.pixelSize: Style.captionSize
+        color: Style.Theme.muted
+        font.pixelSize: Style.Theme.captionSize
         wrapMode: Text.WordWrap
     }
 }

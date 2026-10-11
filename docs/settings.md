@@ -11,7 +11,7 @@ browser, or additional GUI framework is required.
 
 Settings follows GNOME and COSMIC's restrained desktop conventions: a persistent
 sidebar, a compact header, a centered editor, and rounded preference groups with
-headings above the surface. `SettingsStyle.js` owns the neutral dark surfaces,
+headings above the surface. `style/Theme.qml` owns the neutral dark surfaces,
 blue accent, semantic feedback colors, typography, and control sizes. The
 direction was informed by [UI/UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
 and the [GNOME boxed-list guidelines](https://developer.gnome.org/hig/patterns/containers/boxed-lists.html).
@@ -991,3 +991,29 @@ databases, detached launch arguments, full upgrade arguments, cancellation, and
 failure guidance. A native Quickshell check exercises preview, disabled restoration
 with unsaved changes, rejected tokens, and confirmation through the actual helper.
 No live system upgrade or laptop settings restore is run during validation.
+
+## Accessibility, language and help
+
+Accessibility controls Settings text at 100–150%, high-contrast colors, and
+reduced desktop motion. Shared reactive styles resize controls and show visible
+focus borders. Reduced motion disables compositor and Settings animation while
+retaining the user's Windows animation preference for restoration. Application
+font/cursor size, display scale and bar sizes remain independently adjustable.
+All preferences use the validated settings transaction and migrate from old files.
+
+Language & region offers generated locales, separate date/number formats, a
+personal timezone and previews. It saves a managed UWSM environment block for the
+next login, preserves other blocks and rejects concurrent changes. System timezone
+changes are separate, explicit, confirmed and authenticated through timedatectl.
+Restoration skips locales missing on another laptop while keeping the saved choice.
+The language choice affects apps that provide translations; Hyprshell currently
+uses English. User-configured LC_ALL takes precedence.
+
+Help & diagnostics appears on the first Settings launch until its guide is marked
+complete. Completion stays local. Service checks run only on request; inaccessible
+buses are shown as unavailable rather than a broken service. Redacted reports are
+600-permission local files under state/hyprshell/diagnostics, with fixed service
+states, tool availability and system/kernel/architecture. They contain no raw logs,
+configuration, usernames, hostnames, IP/SSID, notification history or clipboard data.
+Nothing is sent externally. Help, regional and Network controls use a shared lazy
+loader and wait for short in-flight commands before unloading.

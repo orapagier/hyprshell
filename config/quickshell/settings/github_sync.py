@@ -97,6 +97,13 @@ def snapshot_managed_files(repo, config, home):
         destination.mkdir(parents=True, exist_ok=True)
         (destination / 'keybindings.json').write_text(json.dumps({'version': 1, 'entries': entries}, indent=2) + '\n')
         (destination / 'keybindings.lua').write_text(render_keybindings(entries))
+    regional = config / 'hyprshell/regional.json'
+    if regional.exists():
+        from regional import validate as validate_regional
+        data = validate_regional(json.loads(regional.read_text()))
+        destination = repo / 'config/hyprshell/regional.json'
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(data, indent=2) + '\n')
     applications = config / 'hyprshell/applications.json'
     if applications.exists():
         from applications import validate as validate_applications

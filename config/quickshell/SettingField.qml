@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import "style" as Style
 
 ColumnLayout {
     id: field
@@ -13,8 +14,8 @@ ColumnLayout {
     spacing: 8
     Label {
         text: field.label
-        color: "#aeb9d2"
-        font.pixelSize: 12
+        color: Style.Theme.text
+        font.pixelSize: Style.Theme.bodySize
     }
     RowLayout {
         Layout.fillWidth: true
@@ -33,21 +34,21 @@ ColumnLayout {
             leftPadding: 14
             Accessible.name: field.label
             rightPadding: 14
-            color: "#e0e5f4"
-            font.pixelSize: 12
-            selectionColor: "#6e6099"
-            selectedTextColor: "#ffffff"
+            color: Style.Theme.text
+            font.pixelSize: Style.Theme.bodySize
+            selectionColor: Style.Theme.selection
+            selectedTextColor: Style.Theme.text
             text: field.value
             placeholderText: field.hint
-            placeholderTextColor: "#939bb3"
+            placeholderTextColor: Style.Theme.muted
             selectByMouse: true
             background: Rectangle {
                 radius: 8
-                color: input.activeFocus ? "#202735" : input.hovered ? "#222a38" : "#171d27"
-                border.color: input.activeFocus ? "#a894db" : input.hovered ? "#596582" : "#364153"
+                color: Style.Theme.field
+                border.color: input.activeFocus ? Style.Theme.accentText : Style.Theme.controlBorder
                 Behavior on color {
                     ColorAnimation {
-                        duration: 130
+                        duration: Style.Theme.duration(field, 130)
                     }
                 }
             }
@@ -59,7 +60,7 @@ ColumnLayout {
         Layout.fillWidth: true
         text: field.description
         wrapMode: Text.WordWrap
-        color: "#939bb3"
-        font.pixelSize: 11
+        color: Style.Theme.muted
+        font.pixelSize: Style.Theme.captionSize
     }
 }

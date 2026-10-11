@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell.Io
@@ -118,8 +118,8 @@ ColumnLayout {
             SettingsButton { objectName: "applyDisplays"; text: "Apply changes…"; highlighted: true; visible: !page.pending; enabled: page.loaded && page.entries.length > 0 && !page.busy; onClicked: page.request("preview") }
             SettingsButton { text: "Refresh"; visible: !page.pending; enabled: !page.busy; onClicked: page.request("status") }
         }
-        Label { visible: !!page.message; text: page.message; color: page.success ? Style.success : Style.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        Label { visible: page.loaded && !page.monitors.length; text: "No active displays found."; color: Style.muted }
+        Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { visible: page.loaded && !page.monitors.length; text: "No active displays found."; color: Style.Theme.muted }
     }
     Repeater {
         model: page.monitors
@@ -146,7 +146,7 @@ ColumnLayout {
                 columnSpacing: 20; rowSpacing: 16
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Label { text: "Resolution"; color: Style.muted }
+                    Label { text: "Resolution"; color: Style.Theme.muted }
                     SettingsComboBox {
                         objectName: "displayResolution"
                         Layout.fillWidth: true
@@ -160,7 +160,7 @@ ColumnLayout {
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Label { text: "Refresh rate"; color: Style.muted }
+                    Label { text: "Refresh rate"; color: Style.Theme.muted }
                     SettingsComboBox {
                         objectName: "displayRefresh"
                         Layout.fillWidth: true
@@ -171,7 +171,7 @@ ColumnLayout {
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Label { text: "Scale"; color: Style.muted }
+                    Label { text: "Scale"; color: Style.Theme.muted }
                     SettingsComboBox {
                         objectName: "displayScale"
                         Layout.fillWidth: true
@@ -187,7 +187,7 @@ ColumnLayout {
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Label { text: "Rotation"; color: Style.muted }
+                    Label { text: "Rotation"; color: Style.Theme.muted }
                     SettingsComboBox {
                         objectName: "displayRotation"
                         Layout.fillWidth: true
@@ -200,7 +200,7 @@ ColumnLayout {
             ColumnLayout {
                 Layout.fillWidth: true
                 visible: page.monitors.length > 1
-                Label { text: "Place this display next to"; color: Style.muted }
+                Label { text: "Place this display next to"; color: Style.Theme.muted }
                 SettingsComboBox {
                     id: anchorDisplay
                     Layout.fillWidth: true
@@ -223,14 +223,14 @@ ColumnLayout {
             RowLayout {
                 Layout.fillWidth: true
                 visible: card.entry.position !== "auto"
-                Label { text: "X"; color: Style.muted }
+                Label { text: "X"; color: Style.Theme.muted }
                 SpinBox {
                     objectName: "displayX"
                     Layout.fillWidth: true; editable: true; from: -32000; to: 32000
                     value: parseInt(card.entry.position.split("x")[0]) || 0
                     onValueModified: page.edit(card.index, "position", value + "x" + card.entry.position.split("x")[1])
                 }
-                Label { text: "Y"; color: Style.muted }
+                Label { text: "Y"; color: Style.Theme.muted }
                 SpinBox {
                     objectName: "displayY"
                     Layout.fillWidth: true; editable: true; from: -32000; to: 32000
@@ -238,7 +238,7 @@ ColumnLayout {
                     onValueModified: page.edit(card.index, "position", card.entry.position.split("x")[0] + "x" + value)
                 }
             }
-            Label { text: "Place a second display beside the first using its width ÷ scale for X (use height ÷ scale when rotated). Negative X places it to the left."; Layout.fillWidth: true; wrapMode: Text.Wrap; color: Style.muted; font.pixelSize: Style.captionSize }
+            Label { text: "Place a second display beside the first using its width ÷ scale for X (use height ÷ scale when rotated). Negative X places it to the left."; Layout.fillWidth: true; wrapMode: Text.Wrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize }
         }
     }
 }

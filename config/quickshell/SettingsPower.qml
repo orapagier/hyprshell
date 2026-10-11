@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell.Io
@@ -61,7 +61,7 @@ ColumnLayout {
             Layout.fillWidth: true
             visible: !!root.batteryInfo.present && root.batteryInfo.seconds > 0
             text: Math.round((root.batteryInfo.seconds || 0) / 60) + " minutes " + (root.batteryInfo.charging ? "until full" : "remaining") + " (estimate)"
-            color: Style.muted; wrapMode: Text.WordWrap
+            color: Style.Theme.muted; wrapMode: Text.WordWrap
         }
     }
     SettingsCard {
@@ -83,7 +83,7 @@ ColumnLayout {
             Layout.fillWidth: true
             visible: !!root.status.brightnessError && !root.status.brightness
             text: root.status.brightnessError || ""
-            color: Style.muted; wrapMode: Text.WordWrap; font.pixelSize: Style.captionSize
+            color: Style.Theme.muted; wrapMode: Text.WordWrap; font.pixelSize: Style.Theme.captionSize
         }
     }
     SettingsCard {
@@ -116,7 +116,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Enabled timers must increase in this order: dim, screen off, then suspend. Brightness returns on activity unless you adjusted it manually. Suspending does not enable screen locking."
-            color: Style.muted; wrapMode: Text.WordWrap; font.pixelSize: Style.captionSize
+            color: Style.Theme.muted; wrapMode: Text.WordWrap; font.pixelSize: Style.Theme.captionSize
         }
     }
     SettingsCard {
@@ -136,7 +136,7 @@ ColumnLayout {
             Layout.fillWidth: true
             visible: !!root.status.lidError
             text: root.status.lidError || ""
-            wrapMode: Text.WordWrap; color: Style.muted; font.pixelSize: Style.captionSize
+            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
     }
     SettingsCard {
@@ -155,7 +155,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: root.settings.profile !== "system" && profile.profiles.indexOf(root.settings.profile) < 0 ? "Saved preference: " + root.settings.profile + ". This profile is currently unavailable; choose Use system setting or another supported profile." : root.status.profiles ? "Active: " + root.status.profiles.active : root.status.profilesError || "Checking supported profiles…"
-            wrapMode: Text.WordWrap; color: Style.muted; font.pixelSize: Style.captionSize
+            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
     }
     SettingsButton { text: "Refresh power controls"; enabled: !root.busy; onClicked: root.request(["--status"]) }
@@ -163,6 +163,6 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: text !== ""
         text: [root.success ? "" : root.message, root.runtimeError].filter(Boolean).join("\n")
-        wrapMode: Text.WordWrap; color: Style.danger
+        wrapMode: Text.WordWrap; color: Style.Theme.danger
     }
 }

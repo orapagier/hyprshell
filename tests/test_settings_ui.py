@@ -13,6 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(shutil.which('quickshell'), 'Quickshell is needed for the native UI smoke test')
 class AutosaveTests(unittest.TestCase):
+    def test_accessibility_updates_all_controls_and_survives_reopen(self):
+        settings = self.run_ui_scenario('SettingsAccessibilityNative', 'ACCESSIBILITY_OK', ('right', '', 1))
+        self.assertEqual(settings['accessibility'], {'textScale': 1.5, 'highContrast': True, 'reducedMotion': True})
     def test_debounce_queued_edits_validation_recovery_and_close_flush(self):
         self.run_ui_scenario('SettingsAutosave', 'AUTOSAVE_OK', ('left', '#00ff00', 0.7))
 
@@ -87,7 +90,9 @@ class AutosaveTests(unittest.TestCase):
             entry = payload / (scenario + '.qml')
             entry.write_text((payload / 'tests' / (scenario + '.qml')).read_text()
                              .replace('import ".."', 'import "."').replace('import "../', 'import "./'))
-            env = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'), XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software', PATH=str(commands) + os.pathsep + os.environ['PATH'])
+            if scenario == 'SettingsAccessibilityNative':
+                main = root / 'config/hypr/hyprland.lua'; main.parent.mkdir(); main.write_text('-- isolated accessibility\n')
+            env = dict(os.environ, HYPRLAND_INSTANCE_SIGNATURE='', XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'), XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software', PATH=str(commands) + os.pathsep + os.environ['PATH'])
             result = subprocess.run(['quickshell', '-p', str(entry)], env=env, capture_output=True, text=True, timeout=20)
             self.assertIn(marker, result.stdout + result.stderr, result.stdout + result.stderr)
             self.assertEqual(result.returncode, 0)

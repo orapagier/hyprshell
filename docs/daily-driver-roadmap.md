@@ -46,10 +46,12 @@ screenshots, editable shortcuts, screen locking, cleanup, and GitHub config sync
    connection editor. Physical authentication, hidden/enterprise Wi-Fi, and VPN
    testing remains; provider-specific VPN plugins are optional.
 9. **Accessibility and regional settings** — larger text, high contrast,
-   reduced motion, language, timezone, and date/number formats.
+   reduced motion, language, timezone, and date/number formats. Implemented
+   2026-10-11; application locale changes apply at the next login.
 10. **Help and diagnostics** — Settings search, first-run guide, useful service
     errors, and privacy-conscious diagnostic reports. Super+K already provides
-    a shortcut guide.
+    a shortcut guide. Implemented 2026-10-11 with a first-use guide and manual
+    service checks/redacted local reports.
 
 Intermediate-user follow-ups: window rules and behavior, workspace preferences,
 clipboard history controls, and printing/scanning access.
@@ -368,3 +370,20 @@ Desktop-session NetworkManager access is blocked in the agent sandbox, so physic
 hidden/enterprise Wi-Fi, VPN/provider-plugin, editor and authentication results
 still need laptop testing. Next implementation: priority 9, Accessibility and
 regional settings, retaining the low-idle-cost design preference above.
+
+## Accessibility, regional and help handoff — 2026-10-11
+
+Priorities 9 and 10 now have native Settings controls. Settings text/contrast react
+immediately; reduced motion shares validated compositor overrides. Language,
+formats and personal timezone use a backed-up, conflict-checked UWSM environment
+block at the next login. System timezone requires its separate confirmed action.
+Help provides a local first-use guide and explicitly requested checks/reports.
+No diagnostic checks or export run during installation or ordinary browsing.
+
+Restored the bar-position fixture from its original feature commit and supplied
+the missing shortcut recording fixture; the native shortcut check now isolates
+Qt theme/runtime state. The proportional icon-size assertion matches the existing
+18 px behavior. The full Qt suite now passes 151 checks. Accessibility transactions,
+reactive native controls, regional save/preview/rollback, guide completion and
+diagnostic privacy are tested in isolated profiles. Laptop-session behavior and
+next-login language changes remain physical acceptance checks.

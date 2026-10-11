@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import "SettingsStyle.js" as Style
+import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
@@ -32,7 +32,7 @@ ColumnLayout {
             delegate: RowLayout {
                 required property var modelData
                 Layout.fillWidth: true
-                Label { text: parent.modelData.label; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Style.text }
+                Label { text: parent.modelData.label; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Style.Theme.text }
                 SettingsComboBox {
                     objectName: parent.modelData.key + "Control"
                     model: ["Use config", "Enabled", "Disabled"]
@@ -65,7 +65,7 @@ ColumnLayout {
             Accessible.name: "Custom keyboard layout codes"
             onEditingFinished: if (text !== (root.settings.keyboardLayouts || "")) root.edited("keyboardLayouts", text.trim())
         }
-        Label { text: "Switch between layouts"; color: Style.text }
+        Label { text: "Switch between layouts"; color: Style.Theme.text }
         SettingsComboBox {
             id: switching
             objectName: "layoutSwitchControl"
@@ -78,7 +78,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Switching needs more than one layout. This choice replaces configured keyboard options; Use config restores them. Custom variants remain in your input configuration."
-            wrapMode: Text.WordWrap; color: Style.muted; font.pixelSize: Style.captionSize
+            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
         TextField {
             objectName: "typingTest"
@@ -110,6 +110,6 @@ ColumnLayout {
     Label {
         Layout.fillWidth: true
         text: "Use config and ↺ restore your existing input configuration. Suggested slider positions are not measured device settings."
-        color: Style.muted; font.pixelSize: Style.captionSize; wrapMode: Text.WordWrap
+        color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; wrapMode: Text.WordWrap
     }
 }

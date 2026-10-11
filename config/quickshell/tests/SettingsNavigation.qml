@@ -16,7 +16,8 @@ ShellRoot {
         if (object.objectName === name) return object;
         let children = [];
         if (object.children) for (let child of object.children) children.push(child);
-        if (object.data) for (let child of object.data) children.push(child);
+        if (object.data && typeof object.data.length === "number")
+            for (let i = 0; i < object.data.length; ++i) children.push(object.data[i]);
         if (object.contentItem) children.push(object.contentItem);
         for (let child of children) {
             let result = find(child, name, seen);
