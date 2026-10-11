@@ -28,6 +28,7 @@ ShellRoot {
         powerError: [locking.error, power.error].filter(Boolean).join("\n")
         audioServices: desktopServices
         notificationApps: notificationInbox.applications
+        clipboardError: clipboard.error
         batteryInfo: desktopServices.batteryInfo
         currentWorkspace: shell.currentWorkspace
         onLockRequested: locking.lockNow()
@@ -43,7 +44,8 @@ ShellRoot {
         let now = new Date();
         clockText = Qt.formatDateTime(now, preferences.config.bar.clockFormat);
     }
-    LockingController { id: locking; store: preferences }
+    ClipboardController { id: clipboard; store: preferences }
+    LockingController { id: locking; store: preferences; onBattery: desktopServices.batteryInfo.present && !desktopServices.batteryInfo.pluggedIn }
     PowerController { id: power; store: preferences }
     DesktopServices { id: desktopServices }
     NotificationInbox { id: notificationInbox; preferences: preferences.config.notifications }

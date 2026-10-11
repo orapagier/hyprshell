@@ -212,7 +212,7 @@ ShellRoot {
 ''')
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
             environment = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'),
-                               XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
+                               XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
             result = subprocess.run(['quickshell', '-p', str(fixture)], capture_output=True, text=True, env=environment, timeout=10)
             output = result.stdout + result.stderr
             self.assertIn('THEME_NATIVE_OK', output, output)

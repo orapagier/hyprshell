@@ -68,7 +68,7 @@ ColumnLayout {
         title: "Saved connections"
         subtitle: "Connect opens a terminal for passwords and connection results. Edit includes automatic connection, IP addresses, DNS, and security. Refresh after using another network tool."
         Layout.fillWidth: true
-        TextField { objectName: "networkSearch"; Layout.fillWidth: true; placeholderText: "Find a connection or type"; color: Style.Theme.text; selectByMouse: true; onTextChanged: page.query = text }
+        SettingsTextField { objectName: "networkSearch"; Layout.fillWidth: true; placeholderText: "Find a connection or type"; color: Style.Theme.text; selectByMouse: true; onTextChanged: page.query = text }
         Label { visible: page.loaded && page.filtered.length === 0; text: page.profiles.length ? "No matching connections." : "No saved connections. Use the Wi-Fi menu or add one below."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Repeater {
             model: page.filtered
@@ -99,7 +99,7 @@ ColumnLayout {
         title: "Hidden Wi-Fi"
         subtitle: "Enter the exact network name. The connection terminal asks for its password and shows the result."
         Layout.fillWidth: true
-        TextField { id: hiddenName; objectName: "hiddenNetworkName"; Layout.fillWidth: true; placeholderText: "Network name (SSID)"; color: Style.Theme.text; selectByMouse: true; enabled: !page.busy }
+        SettingsTextField { id: hiddenName; objectName: "hiddenNetworkName"; Layout.fillWidth: true; placeholderText: "Network name (SSID)"; color: Style.Theme.text; selectByMouse: true; enabled: !page.busy }
         SettingsButton { objectName: "connectHiddenNetwork"; text: "Connect hidden Wi-Fi…"; enabled: !page.busy && hiddenName.text.length > 0; onClicked: page.request({operation: "hidden", ssid: hiddenName.text}) }
         Label { text: "For enterprise networks, configure authentication and certificates with Add Wi-Fi first, then connect the saved profile above."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }

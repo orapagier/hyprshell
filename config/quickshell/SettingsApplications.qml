@@ -82,7 +82,7 @@ ColumnLayout {
         }
         RowLayout {
             Layout.fillWidth: true
-            TextField { id: mime; objectName: "customMimeType"; Layout.fillWidth: true; placeholderText: "Other file type, e.g. application/zip"; color: Style.Theme.text; selectByMouse: true; onAccepted: inspect.clicked() }
+            SettingsTextField { id: mime; objectName: "customMimeType"; Layout.fillWidth: true; placeholderText: "Other file type, e.g. application/zip"; color: Style.Theme.text; selectByMouse: true; onAccepted: inspect.clicked() }
             SettingsButton { id: inspect; text: "Find apps"; enabled: !page.busy && mime.text.trim().length > 0; onClicked: page.request({operation: "status", extra: mime.text.trim()}) }
         }
     }

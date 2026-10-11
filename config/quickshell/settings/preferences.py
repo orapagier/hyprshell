@@ -22,7 +22,8 @@ def revision(paths):
 
 
 def transaction(changes, prefix, activate=None):
-    changes = {path: text for path, text in changes.items() if not path.exists() or path.read_text() != text}
+    changes = {path: text for path, text in changes.items()
+               if (path.exists() if text is None else not path.exists() or path.read_text() != text)}
     if not changes:
         return None
     _, state = roots()
@@ -38,7 +39,11 @@ def transaction(changes, prefix, activate=None):
     applied = []
     try:
         for path, text in changes.items():
-            atomic(path, text); applied.append(path)
+            if text is None:
+                path.unlink(missing_ok=True)
+            else:
+                atomic(path, text)
+            applied.append(path)
         if activate:
             activate()
     except Exception:

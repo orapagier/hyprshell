@@ -1,11 +1,15 @@
 # Native Hyprshell desktop. Dependencies are resolved by pacman.
 # Session, Wayland, portals, authorization, and rendering
 hyprland
+# Syntax validation for personal configuration recovery
+lua
 quickshell
 uwsm
 hyprpolkitagent
 xdg-desktop-portal
 xdg-desktop-portal-hyprland
+# Syntax validation for personal configuration recovery
+lua
 xdg-desktop-portal-gtk
 glib2
 gsettings-desktop-schemas

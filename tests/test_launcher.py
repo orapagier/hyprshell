@@ -52,7 +52,7 @@ ShellRoot {
 ''')
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
             environment = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'),
-                               XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software',
+                               XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software',
                                PATH=str(commands) + os.pathsep + os.environ['PATH'])
             result = subprocess.run(['quickshell', '-p', str(fixture)], capture_output=True, text=True, env=environment, timeout=10)
             self.assertIn('LAUNCHER_OK', result.stdout + result.stderr, result.stdout + result.stderr)

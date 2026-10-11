@@ -26,7 +26,6 @@ ColumnLayout {
     function refresh() { if (visible && requestedBrightness < 0 && !busy) request(["--status"]); }
     onVisibleChanged: if (visible) refresh()
     Component.onCompleted: refresh()
-    Timer { interval: 5000; running: root.visible; repeat: true; onTriggered: root.refresh() }
     Timer {
         id: brightnessDelay
         interval: 250
@@ -88,7 +87,7 @@ ColumnLayout {
     }
     SettingsCard {
         Layout.fillWidth: true
-        title: "Inactivity timers"
+        title: root.settings.separateBatteryTimers ? "Inactivity timers · Plugged in" : "Inactivity timers"
         subtitle: "Timers run while Hyprshell is open and respect Hypridle activity inhibitors. Screen locking is configured separately. Set 0 to disable a timer."
         Repeater {
             model: [{key: "dimMinutes", label: "Dim screen after"}, {key: "offMinutes", label: "Turn screen off after"}, {key: "suspendMinutes", label: "Suspend after"}]
@@ -118,6 +117,21 @@ ColumnLayout {
             text: "Enabled timers must increase in this order: dim, screen off, then suspend. Brightness returns on activity unless you adjusted it manually. Suspending does not enable screen locking."
             color: Style.Theme.muted; wrapMode: Text.WordWrap; font.pixelSize: Style.Theme.captionSize
         }
+    }
+    SettingsCard {
+        Layout.fillWidth: true
+        title: "Battery timer policy"
+        subtitle: "Switch using the desktop's existing battery service. No additional polling or idle daemon is needed. Screen locking keeps its own timeout on both power sources."
+        SettingsSwitch { objectName: "separateBatteryTimers"; text: "Use different timers on battery"; checked: root.settings.separateBatteryTimers === true; Layout.fillWidth: true; onToggled: root.edited("separateBatteryTimers", checked) }
+        Repeater {
+            model: root.settings.separateBatteryTimers ? [{key: "batteryDimMinutes", label: "Dim on battery after"}, {key: "batteryOffMinutes", label: "Turn screen off on battery after"}, {key: "batterySuspendMinutes", label: "Suspend on battery after"}] : []
+            delegate: SettingsSlider {
+                required property var modelData
+                Layout.fillWidth: true; label: modelData.label; settingValue: root.settings[modelData.key]; to: 240; suffix: " min"
+                onEdited: value => root.edited(modelData.key, value === "" ? 0 : value)
+            }
+        }
+        SettingsSlider { visible: root.settings.separateBatteryTimers === true; Layout.fillWidth: true; label: "Dimmed brightness on battery"; settingValue: root.settings.batteryDimPercent || 20; from: 1; to: 100; suffix: "%"; onEdited: value => root.edited("batteryDimPercent", value === "" ? 20 : value) }
     }
     SettingsCard {
         Layout.fillWidth: true

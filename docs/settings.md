@@ -935,8 +935,8 @@ do not establish the physical cause of a persistently high input level.
 ## Updates and recovery
 
 Settings → **Updates & recovery** provides explicit update checks, an interactive
-full-system upgrade, recovery of saved desktop settings, and a local record of
-personal backup checks. Opening the page does not contact package servers, run
+full-system upgrade, Settings recovery, complete personal-configuration recovery,
+and optional local personal-file backups. Opening the page does not contact package servers, run
 an upgrade, change desktop settings, or inspect personal-file contents.
 
 **Check for updates** runs `checkupdates --nocolor` from pacman-contrib against a
@@ -961,10 +961,11 @@ machine. See [Arch system maintenance](https://wiki.archlinux.org/title/System_m
 **Desktop settings recovery** lists up to 100 recent validated settings backups,
 including automatic pre-change backups and explicit checkpoints. Restore imports
 only validated `settings.json` data: bar layout/items, compositor appearance,
-mouse/keyboard, power, locking, and notification delivery. It does not restore
+mouse/keyboard, power, locking, notification delivery, accessibility and clipboard
+capture preferences. It does not restore
 display layouts, application theme/defaults/startup, keybindings, manual Lua edits,
 shell source code, packages, or personal files. Those remain separate controls or
-configuration recovery follow-ups. It never executes backed-up Lua or QML.
+the complete personal-configuration checkpoint below. It never executes backed-up Lua or QML.
 
 Preview names the sections that would change. Confirmation expires after five
 minutes and rejects changed backups, concurrent settings edits, and manual changes
@@ -976,7 +977,7 @@ existing `backups/` directory and follow the configured cleanup retention policy
 The installer carries the page/helper; GitHub sync exports the current preferences,
 not recovery history.
 
-**Personal-file backup status** records the readable backup folder and the time
+**External backup check** records the readable backup folder and the time
 the user clicks **I checked my backup today**. It reports whether that folder is
 currently readable and keeps the last confirmation when a drive is disconnected.
 This is a self-report, not a backup engine, content verification, or proof that
@@ -1017,3 +1018,103 @@ states, tool availability and system/kernel/architecture. They contain no raw lo
 configuration, usernames, hostnames, IP/SSID, notification history or clipboard data.
 Nothing is sent externally. Help, regional and Network controls use a shared lazy
 loader and wait for short in-flight commands before unloading.
+
+
+## Workspaces, window rules and optional peripherals
+
+**Workspaces & rules** saves `hyprshell/behavior.json` and generated `behavior.lua`.
+Unedited controls inherit personal Lua; applying an override never rewrites the
+editable base modules. Workspaces use numbered IDs (1–99), optional names, layout
+and persistence, with hardware-adaptive monitor assignment. Rules match exact
+application classes, escaped as anchored expressions. Running-class discovery
+reads only classes, not window titles. Placement/size rules affect newly opened
+windows. Pinning and size require a floating rule. Every save validates schema,
+parses generated rules with the installed compositor, rejects concurrent edits,
+backs up files and rolls back failed activation. Installer and sync regenerate Lua
+from validated JSON. With no desktop IPC, manual class entry remains available.
+See [Hyprland workspace rules](https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/)
+and [window rules](https://wiki.hypr.land/configuring/core/rules/window-rules/).
+
+**Clipboard history** uses optional cliphist/wl-clipboard. Capture defaults off;
+`ClipboardController.qml` supervises one event-driven wl-paste watcher only while
+it is enabled. Text-only capture is the default, images optional. Each entry is
+limited to 5 MiB; 10–200 entries are retained, trimmed on the next store. Sensitive,
+clear and nil clipboard hints are skipped. Apps must supply sensitive hints;
+disable capture for secrets whose app does not. Saved data is unencrypted and
+private to the user under `state/hyprshell/clipboard`, outside GitHub sync.
+Settings reads history only after **Show history**, with bounded plain-text
+previews. Copy decodes bytes directly into wl-copy, keeping content out of command
+arguments and logs. Remove uses a validated ID; Clear all requires confirmation.
+Disabling capture preserves entries. The optional installer opens a detached
+interactive `sudo pacman -Syu --needed …` terminal; no install runs automatically.
+See [cliphist](https://github.com/sentriz/cliphist).
+
+**Printing & scanning** has no polling or new service at startup. Open the printer
+or Document Scanner app, or explicitly request queue/scanner discovery. Missing
+tools can be installed in an interactive full-upgrade terminal. **Enable printing
+on demand** separately confirms opening a terminal for `sudo systemctl enable
+--now cups.socket`. No CUPS unit is enabled by Hyprshell installation. Hardware
+may need optional SANE/manufacturer drivers; discovery has bounded timeouts.
+
+**AC/battery timers** live in the existing Settings power section. The existing
+UPower battery signal selects the timer policy and restarts the single Hypridle
+supervisor only when effective timers change. Both sources keep the same locking
+policy. Dim callbacks inherit the chosen battery policy; stopping the previous
+idle worker restores managed brightness/DPMS before starting its replacement.
+Battery timers default disabled, and separate policies default off. Hardware
+status refresh on the Power page is manual.
+
+## Complete configuration and personal-file backups
+
+**Complete personal configuration** checkpoints current Settings, display and
+shortcut preferences, app/theme/regional/workspace choices, cleanup preferences,
+manual desktop Lua/conf modules, GTK settings, UWSM environment, MIME associations,
+terminal preference and XDG autostart entries. It excludes installed Quickshell
+source, package/system configuration, network credentials and documents. Paths
+are allowlisted, links refused, individual files bounded at 2 MB and each
+checkpoint at 10 MB. Checkpoints are private local state under `backups/` and
+follow System cleanup retention. Manual Lua/startup entries can include your
+custom commands; restore only a checkpoint you trust.
+
+Preview lists changed files and expires after five minutes. Confirmation checks
+both the checkpoint and current-file hashes, regenerates GUI Lua from validated
+JSON, parses Lua syntax without executing it, creates a selectable pre-restore
+checkpoint and atomically restores/deletes files with rollback on write failure.
+Generated monitor rules are not applied live without a display confirmation.
+Settings runtime preferences reload now; log out and back in for restored
+compositor and application files to take effect. The separate Settings-only
+restore continues using immediate compositor validation and rollback.
+
+**Personal-file backups** are a distinct optional engine, with local preferences
+in `state/hyprshell/personal-files.json`. Choose existing non-hidden folders inside
+your home and an existing writable destination. Source/destination nesting,
+links and full-home/root selection are rejected. The saved destination device and
+inode identify the selected mounted folder; changed/disconnected destinations
+fail rather than creating a replacement path. After replacing a drive/folder,
+save the intended destination again. Some mount identities may change after a
+reboot, in which case resave after confirming the mounted target.
+
+Manual backups run detached and are serialized. A snapshot becomes visible only
+after all regular files are copied and a SHA-256 manifest is written. Links and
+special files are skipped; empty directories are retained. Verified unchanged
+backup copies can be hard-linked between snapshots; source originals are never
+linked to a snapshot. Source changes during copying fail the new snapshot while
+preserving earlier ones. Verification recomputes each recorded content hash and
+reports missing/corrupt files. It does not establish application consistency for
+files being actively edited, nor replace offline/offsite protection.
+
+Daily/weekly schedules generate a systemd user timer/service only when enabled.
+They use lower CPU/I/O priority and require the user manager and selected drive
+to be available. Schedule changes roll back if service activation fails. Off
+removes the managed timer and service; it does not remove snapshots. Status is
+manual, and no backup starts merely by opening Settings. Snapshots are never
+removed automatically; monitor free space. **Open snapshots / recover files**
+opens ordinary files for recovery into a separate folder before replacing originals.
+The older **I checked my backup today** record remains a separate self-report for
+external backup applications. GitHub configuration sync excludes both engines'
+state, schedules, destination paths and personal contents.
+
+Tests use temporary synthetic files, inert hardware/tool stubs, actual Lua parsing
+and native offscreen UI. They do not copy personal documents, install optional
+packages, enable CUPS, run upgrades, restore laptop preferences, or exercise real
+hardware/session IPC.

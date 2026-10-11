@@ -15,6 +15,7 @@ FloatingWindow {
     property string powerError: ""
     property var audioServices: null
     property var notificationApps: []
+    property string clipboardError: ""
     property var batteryInfo: ({})
     property int currentWorkspace: 1
     signal lockRequested()
@@ -27,7 +28,7 @@ FloatingWindow {
     property var submitted: Model.copy(store.defaults)
     property bool editingSession: false
     readonly property bool saving: writer.running
-    readonly property bool idle: !writer.running && !autoSave.running && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && !networkPage.busy && !regionalPage.busy && !helpPage.busy
+    readonly property bool idle: !writer.running && !autoSave.running && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && !networkPage.busy && !regionalPage.busy && !helpPage.busy && !behaviorPage.busy && !clipboardPage.busy && !peripheralsPage.busy
     onDraftChanged: { Style.Theme.preferences = draft.accessibility || {}; if (editingSession) autoSave.restart(); }
     Component.onCompleted: Style.Theme.preferences = draft.accessibility || {}
     onVisibleChanged: if (!visible && editingSession && dirty) apply()
@@ -39,6 +40,9 @@ FloatingWindow {
     readonly property var navigation: [
         {group: "Desktop", pages: [
             {section: -8, title: "Appearance", symbol: "󰔎", keywords: "theme colors font cursor"},
+            {section: -20, title: "Clipboard history", symbol: "󰅍", keywords: "copy paste clips text images"},
+            {section: -21, title: "Printing & scanning", symbol: "󰐪", keywords: "printer scanner cups paper documents"},
+            {section: -19, title: "Workspaces & rules", symbol: "󰍹", keywords: "workspace rules tiling layout focus pointer"},
             {section: -2, title: "Windows", symbol: "󰖲", keywords: "hyprland transparency blur gaps animations"},
             {section: -1, title: "Bar & layout", symbol: "󰕮", keywords: "topbar hyprbar position screen edge top bottom left right spacing workspace workspaces"},
             {section: -13, title: "Applications", symbol: "󰀻", keywords: "default apps startup"},
@@ -190,6 +194,7 @@ FloatingWindow {
     function updateAccessibility(key, value) {
         let next = Model.copy(draft); next.accessibility[key] = value; draft = next;
     }
+    function updateClipboard(key, value) { let next = Model.copy(draft); next.clipboard[key] = value; draft = next; }
     function updatePower(key, value) {
         let next = Model.copy(draft);
         next.power[key] = value;
@@ -642,7 +647,7 @@ FloatingWindow {
                             Layout.fillWidth: true
                             Layout.topMargin: -14
                             font.pixelSize: Style.Theme.bodySize
-                            text: window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover saved desktop settings, and track your personal backup checks." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for your desktop bar." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
+                            text: window.section === -20 ? "Optional local clipboard history" : window.section === -21 ? "Printers and scanners when you need them" : window.section === -19 ? "Choose workspace layouts and rules for application windows." : window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover personal configuration, and back up personal files." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for your desktop bar." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
                             wrapMode: Text.WordWrap
                             color: Style.Theme.muted
                         }
@@ -787,6 +792,24 @@ FloatingWindow {
                             Layout.fillWidth: true
                             sourceComponent: SettingsHelp { onNavigate: section => window.section = section; onGuideFinished: window.firstRunPending = false }
                         }
+                        SettingsPageLoader {
+                            id: behaviorPage
+                            visible: window.visible && window.section === -19
+                            Layout.fillWidth: true
+                            sourceComponent: SettingsBehavior {}
+                        }
+                        SettingsPageLoader {
+                            id: clipboardPage
+                            visible: window.visible && window.section === -20
+                            Layout.fillWidth: true
+                            sourceComponent: SettingsClipboard { settings: window.draft.clipboard; runtimeError: window.clipboardError; onEdited: (key, value) => window.updateClipboard(key, value) }
+                        }
+                        SettingsPageLoader {
+                            id: peripheralsPage
+                            visible: window.visible && window.section === -21
+                            Layout.fillWidth: true
+                            sourceComponent: SettingsPeripherals {}
+                        }
                         SettingsRecovery {
                             id: recoveryPage
                             visible: window.visible && window.section === -14
@@ -873,7 +896,7 @@ FloatingWindow {
                 Layout.rightMargin: 16
                 topPadding: 7
                 bottomPadding: 7
-                text: !window.success ? (window.message || window.store.error) : window.saving ? "Saving changes…" : window.savedNotice || "Changes save automatically"
+                text: !window.success ? (window.message || window.store.error) : window.saving ? "Saving changes…" : window.savedNotice || ([-14, -15, -17, -18, -19, -21].indexOf(window.section) >= 0 ? "Use this page’s action buttons to apply changes" : "Changes save automatically")
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 font.pixelSize: Style.Theme.captionSize

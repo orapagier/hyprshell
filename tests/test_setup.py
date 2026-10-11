@@ -205,12 +205,17 @@ class InstallerTests(unittest.TestCase):
                                  keyboardLayouts='us,gb', layoutSwitch='grp:alt_shift_toggle')
         saved['power'] = {'dimMinutes': 3, 'dimPercent': 20, 'offMinutes': 5, 'suspendMinutes': 10, 'lidAction': 'system', 'profile': 'system'}
         (repo / 'config/hyprshell/settings.json').write_text(json.dumps(saved))
+        behavior = {'version': 1, 'general': {'layout': 'master'}, 'workspaces': [], 'rules': []}
+        (repo / 'config/hyprshell/behavior.json').write_text(json.dumps(behavior))
+        (repo / 'config/hyprshell/behavior.lua').write_text('error("do not install stale rules")')
         for name in ('bin', 'assets'):
             (repo / name).symlink_to(ROOT / name)
         subprocess.run(['python3', str(ROOT / 'tools/install_configs.py'), str(repo)],
                        env=self.env, capture_output=True, text=True, check=True)
         restored = json.loads((self.config / 'hyprshell/settings.json').read_text())
         self.assertEqual(restored['power'], saved['power'])
+        self.assertIn('layout = "master"', (self.config / 'hyprshell/behavior.lua').read_text())
+        self.assertNotIn('stale rules', (self.config / 'hyprshell/behavior.lua').read_text())
         generated = (self.config / 'hyprshell/overrides.lua').read_text()
         self.assertIn('sensitivity = 0.25', generated)
         self.assertIn('tap_to_click = false', generated)

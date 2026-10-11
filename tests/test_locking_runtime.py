@@ -50,7 +50,7 @@ ShellRoot {
 ''')
             runtime = root / 'runtime'
             runtime.mkdir(mode=0o700)
-            env = dict(os.environ, XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
+            env = dict(os.environ, XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
             result = subprocess.run(['quickshell', '-p', str(root / 'shell.qml')], env=env,
                                     capture_output=True, text=True, timeout=10)
             output = result.stdout + result.stderr

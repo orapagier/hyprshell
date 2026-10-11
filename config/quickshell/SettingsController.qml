@@ -11,6 +11,7 @@ Item {
     property string powerError: ""
     property var audioServices: null
     property var notificationApps: []
+    property string clipboardError: ""
     property var batteryInfo: ({})
     property int currentWorkspace: 1
     readonly property var window: editor.item
@@ -62,6 +63,7 @@ Item {
             powerError: controller.powerError
             audioServices: controller.audioServices
             notificationApps: controller.notificationApps
+            clipboardError: controller.clipboardError
             batteryInfo: controller.batteryInfo
             currentWorkspace: controller.currentWorkspace
             onFocusRequested: controller.focusRequested(settingsWindow)

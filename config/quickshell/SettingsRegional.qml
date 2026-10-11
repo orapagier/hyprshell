@@ -55,7 +55,7 @@ ColumnLayout {
         Label { text: "Date, time, and number formats"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
         SettingsComboBox { id: formats; objectName: "regionalFormats"; Layout.fillWidth: true; model: ["Use system formats"].concat(page.locales); enabled: page.loaded && !page.busy }
         Label { text: "Your timezone (optional)"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
-        TextField { id: zone; objectName: "regionalTimezone"; Layout.fillWidth: true; placeholderText: "Use system timezone, or e.g. Asia/Manila"; color: Style.Theme.text; selectByMouse: true; enabled: page.loaded && !page.busy }
+        SettingsTextField { id: zone; objectName: "regionalTimezone"; Layout.fillWidth: true; placeholderText: "Use system timezone, or e.g. Asia/Manila"; color: Style.Theme.text; selectByMouse: true; enabled: page.loaded && !page.busy }
         Label { text: zone.text.trim() && !page.timezones.includes(zone.text.trim()) ? "Enter an installed timezone such as Asia/Manila or Europe/London." : "A personal timezone affects your apps at the next login. It does not change the hardware clock."; color: Style.Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
         Flow {
             Layout.fillWidth: true; spacing: 8

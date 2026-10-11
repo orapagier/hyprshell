@@ -37,9 +37,10 @@ screenshots, editable shortcuts, screen locking, cleanup, and GitHub config sync
    physical app-opening, next-login startup, and appearance testing remains.
 7. **Updates and recovery** — guided full system upgrades, useful failure
    messages, configuration restore, and personal-file backup status.
-   Implemented 2026-10-10 for saved desktop Settings; full configuration recovery
-   and automatic personal backups remain follow-ups. GitHub config sync does
-   not back up documents. Physical upgrade/restore workflow testing remains.
+   Implemented 2026-10-10 for saved Settings and completed 2026-10-11 with
+   complete personal-configuration checkpoints and opt-in local personal-file
+   snapshots, scheduling and checksum verification. GitHub config sync does not
+   back up documents. Physical upgrade/restore and mounted-drive testing remains.
 8. **Advanced networking** — saved-network management, hidden Wi-Fi,
    enterprise connections, VPN, and access to advanced connection settings.
    Implemented 2026-10-11 through an on-demand Network page and NetworkManager's
@@ -53,13 +54,20 @@ screenshots, editable shortcuts, screen locking, cleanup, and GitHub config sync
     a shortcut guide. Implemented 2026-10-11 with a first-use guide and manual
     service checks/redacted local reports.
 
-Intermediate-user follow-ups: window rules and behavior, workspace preferences,
-clipboard history controls, and printing/scanning access.
+Intermediate-user controls implemented 2026-10-11: window rules and behavior,
+workspace preferences, clipboard history, and printing/scanning access. Separate
+AC/battery timer policies and the recovery/backup follow-ups are also implemented.
 
-Next implementation: Accessibility and regional settings, then Help and diagnostics.
-Settings search is already implemented. Keep physical acceptance checks for the
-completed pages alongside new work.
-Current personal automatic-lock timeout is 60 minutes; consider shorter presets.
+**Implementation status:** all ten priorities and the recorded implementation
+follow-ups are complete. Physical acceptance remains separate: monitor rollback,
+input devices, lid/suspend/wake, audio routes, notification delivery, network/VPN
+credentials, printer/scanner hardware, backup-drive disconnects, next-login
+persistence and actual upgrades/restores must be checked in the desktop session.
+Sandbox socket restrictions prevent those checks here.
+
+Optional clipboard capture, automatic personal-file backups and printing setup
+remain disabled until selected. Existing personal preferences are preserved.
+Current personal automatic-lock timeout is 60 minutes; shorter presets are available.
 
 ## Displays acceptance criteria
 
@@ -387,3 +395,59 @@ Qt theme/runtime state. The proportional icon-size assertion matches the existin
 reactive native controls, regional save/preview/rollback, guide completion and
 diagnostic privacy are tested in isolated profiles. Laptop-session behavior and
 next-login language changes remain physical acceptance checks.
+
+
+## Completion handoff — 2026-10-11
+
+Workspaces & rules provides default tiling layout, border resizing, pointer focus,
+workspace naming/layout/persistence, and literal application-class rules for
+floating/tiling, workspace placement, pinning, animation and floating size. The
+installed compositor validates generated Lua before a backed-up transaction;
+failed live activation rolls back. Setup and sync regenerate saved rules.
+
+Clipboard history defaults off. One wl-paste event watcher exists only while
+capture is enabled. Text is the default; images are optional. Up to 10–200 entries
+of at most 5 MiB each are stored locally, with lazy manual listing, copy, removal
+and confirmed clearing. Sensitive-state hints are respected; arbitrary copied
+secrets cannot be inferred. History and contents are excluded from sync.
+
+Printing & scanning loads tool availability on demand, opens the existing printer
+and document scanner apps, and provides explicit bounded queue/device checks.
+Optional package installation uses an interactive full-upgrade terminal. Printing
+socket activation requires a separate explicit choice; setup enables no CUPS unit.
+
+Power reuses the existing UPower signal and one Hypridle process for AC/battery
+policies, with independent locking. The Power page no longer polls hardware.
+
+Updates & recovery now adds complete local configuration checkpoints with file
+previews, stale-preview rejection, syntax-only Lua validation, regenerated GUI
+Lua, atomic restoration and a selectable pre-restore checkpoint. Installed shell
+source and network secrets are excluded. Settings preferences reload immediately;
+log out/back in to activate restored compositor and application configuration.
+
+Personal-file backups copy selected home folders to an existing local destination,
+refuse changed/unmounted destinations, skip links/special files and preserve older
+snapshots. Verified unchanged copies can be shared between snapshots; originals
+are never hard-linked. Manual SHA-256 verification detects changed backup contents.
+Daily/weekly user timers are opt-in; no worker or timer is installed while off.
+Snapshots have no automatic deletion. Open snapshots to recover files into a
+separate folder. Preferences, schedules and contents stay local.
+
+All new controls use the shared native theme; text inputs, numeric inputs and
+labels follow Settings text scaling and high contrast. Optional pages are lazy,
+and no optional tool is installed or enabled during this update.
+
+Validation: 240 full-suite Python checks passed, including mocked fresh/full
+installation, sync preservation and native Settings workflows. An additional native
+supervisor check confirms event watcher/idle restart and shutdown without overlap,
+bringing the validated Python checks to 241. All 151 Qt checks passed; native
+runtime dependencies and the actual Hyprland config parser passed. Offscreen
+visual previews confirm the new pages use the shared dark Settings theme. Missing
+legacy native fixtures were restored and headless tests isolated from the desktop
+GTK platform theme.
+
+Matching installed payloads are updated before the local commit. Desktop-session
+IPC remains inaccessible, so automatic live reload and physical acceptance are
+not asserted. The installer was exercised only in isolated mocked environments;
+no real upgrade, document backup, CUPS activation, suspend or configuration restore
+was performed.

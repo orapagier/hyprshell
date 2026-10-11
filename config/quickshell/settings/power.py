@@ -70,13 +70,13 @@ def set_brightness(percent):
 
 
 def dim():
-    from backend import read_power, atomic
+    from backend import read_power, effective_power, atomic
     with power_lock() as root:
         saved = root / 'power-brightness.json'
         if saved.exists():
             return
         info = backlight()
-        target = max(1, round(info['max'] * read_power()['dimPercent'] / 100))
+        target = max(1, round(info['max'] * effective_power(read_power(), os.environ.get('HYPRSHELL_IDLE_BATTERY') == '1')['dimPercent'] / 100))
         if info['raw'] <= target:
             return
         # Save before changing brightness so a failure never loses the original.

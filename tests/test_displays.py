@@ -181,7 +181,7 @@ else:
             runtime = root / 'runtime'
             runtime.mkdir(mode=0o700)
             env = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'),
-                       XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
+                       XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
             import subprocess
             result = subprocess.run(['quickshell', '-p', str(fixture)], env=env,
                                     capture_output=True, text=True, timeout=15)

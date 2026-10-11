@@ -80,14 +80,14 @@ ColumnLayout {
         RowLayout {
             Layout.fillWidth: true
             SettingsComboBox { id: fontPicker; objectName: "applicationFont"; Layout.fillWidth: true; model: page.fonts; enabled: page.loaded && !page.busy }
-            SpinBox { id: fontPoints; objectName: "applicationFontSize"; from: 6; to: 32; value: 11; enabled: page.loaded && !page.busy }
+            SettingsSpinBox { id: fontPoints; objectName: "applicationFontSize"; from: 6; to: 32; value: 11; enabled: page.loaded && !page.busy }
             Label { text: "pt"; color: Style.Theme.muted }
         }
         Label { text: "Cursor theme and size"; color: Style.Theme.text }
         RowLayout {
             Layout.fillWidth: true
             SettingsComboBox { id: cursorPicker; objectName: "applicationCursor"; Layout.fillWidth: true; model: page.cursors; enabled: page.loaded && !page.busy }
-            SpinBox { id: cursorPixels; objectName: "applicationCursorSize"; from: 16; to: 64; value: 24; stepSize: 4; enabled: page.loaded && !page.busy }
+            SettingsSpinBox { id: cursorPixels; objectName: "applicationCursorSize"; from: 16; to: 64; value: 24; stepSize: 4; enabled: page.loaded && !page.busy }
             Label { text: "px"; color: Style.Theme.muted }
         }
         SettingsButton {

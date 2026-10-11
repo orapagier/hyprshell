@@ -370,7 +370,12 @@
     "offMinutes": 0,
     "suspendMinutes": 0,
     "lidAction": "system",
-    "profile": "system"
+    "profile": "system",
+    "separateBatteryTimers": false,
+    "batteryDimMinutes": 0,
+    "batteryOffMinutes": 0,
+    "batterySuspendMinutes": 0,
+    "batteryDimPercent": 20
   },
   "notifications": {
     "popups": false,
@@ -383,5 +388,10 @@
     "textScale": 1,
     "highContrast": false,
     "reducedMotion": false
+  },
+  "clipboard": {
+    "enabled": false,
+    "maxItems": 50,
+    "includeImages": false
   }
 }

@@ -7,7 +7,7 @@ import shutil
 
 
 def check_native():
-    required = ('Hyprland', 'hyprctl', 'awww', 'awww-daemon', 'nmcli', 'nm-connection-editor',
+    required = ('luac', 'Hyprland', 'hyprctl', 'awww', 'awww-daemon', 'nmcli', 'nm-connection-editor',
                 'bluetoothctl', 'pactl', 'paplay', 'wpctl', 'kitty', 'nautilus', 'uwsm',
                 'sqlite3', 'cc', 'busctl', 'systemctl', 'brightnessctl',
                 'hypridle', 'powerprofilesctl', 'systemd-inhibit',

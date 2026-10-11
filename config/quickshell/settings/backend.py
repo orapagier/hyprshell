@@ -197,9 +197,25 @@ def validate(data):
         raise ValueError('Unknown lid behavior')
     if power['profile'] not in ('system', 'power-saver', 'balanced', 'performance'):
         raise ValueError('Unknown power profile')
+    if type(power['separateBatteryTimers']) is not bool:
+        raise ValueError('Separate battery timers must be boolean')
+    for key in ('batteryDimMinutes', 'batteryOffMinutes', 'batterySuspendMinutes'):
+        number(power[key], 0, 240, True)
+    number(power['batteryDimPercent'], 1, 100, True)
+    battery_timers = [power[key] for key in ('batteryDimMinutes', 'batteryOffMinutes', 'batterySuspendMinutes') if power[key]]
+    if battery_timers != sorted(battery_timers) or len(battery_timers) != len(set(battery_timers)):
+        raise ValueError('Battery timers must increase: dim, screen off, then suspend')
     timers = [power[key] for key in ('dimMinutes', 'offMinutes', 'suspendMinutes') if power[key]]
     if timers != sorted(timers) or len(timers) != len(set(timers)):
         raise ValueError('Enabled timers must be in order: dim, screen off, then suspend, with different times')
+    clipboard = data.get('clipboard', {})
+    if not isinstance(clipboard, dict) or set(clipboard) - set(result['clipboard']):
+        raise ValueError('Unknown clipboard setting')
+    result['clipboard'].update(clipboard)
+    number(result['clipboard']['maxItems'], 10, 200, True)
+    for key in ('enabled', 'includeImages'):
+        if type(result['clipboard'][key]) is not bool:
+            raise ValueError('Clipboard toggles must be boolean')
     accessibility = data.get('accessibility', {})
     if not isinstance(accessibility, dict) or set(accessibility) - set(result['accessibility']):
         raise ValueError('Unknown accessibility setting')
@@ -226,6 +242,14 @@ def lock_dependencies(settings):
         raise ValueError('Install hypridle to enable automatic locking')
     if not shutil.which(lock_argv(settings['command'])[0]):
         raise ValueError('Lock program was not found. Install it or enter its full path')
+
+
+def effective_power(power, on_battery=False):
+    result = dict(power)
+    if on_battery and power.get('separateBatteryTimers'):
+        for key in ('dimMinutes', 'offMinutes', 'suspendMinutes', 'dimPercent'):
+            result[key] = power['battery' + key[0].upper() + key[1:]]
+    return result
 
 
 def power_idle_enabled(power):
@@ -308,9 +332,9 @@ def run_locker():
         return subprocess.run(args, check=False).returncode
 
 
-def run_idle():
+def run_idle(on_battery=False):
     settings = read_locking()
-    power = read_power()
+    power = effective_power(read_power(), on_battery)
     if not settings['enabled'] and not power_idle_enabled(power):
         return 0
     idle_dependencies(settings, power)
@@ -320,7 +344,8 @@ def run_idle():
     config = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config')
     path = config / 'hyprshell/hypridle.conf'
     atomic(path, render_idle(settings, power))
-    child = subprocess.Popen(['hypridle', '-c', str(path)])
+    child_env = dict(os.environ, HYPRSHELL_IDLE_BATTERY='1' if on_battery else '0')
+    child = subprocess.Popen(['hypridle', '-c', str(path)], env=child_env)
     def stop(signum, frame):
         raise SystemExit(0)
     old_handlers = {sig: signal.signal(sig, stop) for sig in (signal.SIGTERM, signal.SIGINT)}
@@ -410,6 +435,7 @@ def save(data, expected=None, *, toggle_workspace=None):
             raise ValueError('Settings changed outside this window. Close and reopen settings before applying.')
         if data['locking'] != current['locking'] or data['power'] != current['power']:
             idle_dependencies(data['locking'], data['power'])
+            idle_dependencies(data['locking'], effective_power(data['power'], True))
             render_idle(data['locking'], data['power'])
         changes = {}
         hypr_changed = data['hyprland'] != current['hyprland'] or data['accessibility']['reducedMotion'] != current['accessibility']['reducedMotion']
@@ -475,13 +501,14 @@ def main():
     parser.add_argument('--toggle-bar', type=int, metavar='WORKSPACE')
     parser.add_argument('--lock', action='store_true')
     parser.add_argument('--idle', action='store_true')
+    parser.add_argument('--battery', action='store_true')
     parser.add_argument('--expected-json')
     args = parser.parse_args()
     try:
         if args.lock:
             return run_locker()
         if args.idle:
-            return run_idle()
+            return run_idle(args.battery)
         if args.toggle_bar is not None:
             result = save(DEFAULTS, toggle_workspace=args.toggle_bar)
             print(json.dumps(result))

@@ -17,7 +17,7 @@ ColumnLayout {
     property var upgrade: ({status: "none", message: ""})
     property var updates: null
     property string action: ""
-    readonly property bool busy: worker.running
+    readonly property bool busy: worker.running || fullRecovery.busy || personalBackup.busy
     readonly property bool upgrading: upgrade.status === "launching" || upgrade.status === "running"
     signal restored(var settings)
     spacing: 16
@@ -89,7 +89,7 @@ ColumnLayout {
     }
     SettingsCard {
         title: "Desktop settings recovery"
-        subtitle: "Restore bar layout, compositor appearance, input, power, locking, and notification preferences. Displays, app defaults, application theme, keybindings, and manually edited Lua files are outside this restore."
+        subtitle: "Restore bar layout, compositor appearance, input, power, locking, notifications, accessibility and clipboard capture preferences. Displays, app defaults, application theme, keybindings, and manually edited Lua files are outside this restore."
         Layout.fillWidth: true
         Label { visible: !page.ready; text: "Wait for Settings to finish saving before creating or restoring a checkpoint."; color: Style.Theme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap }
         SettingsButton { objectName: "createSettingsCheckpoint"; text: "Save current settings checkpoint"; enabled: page.loaded && page.ready && !page.busy; onClicked: page.request({operation: "checkpoint"}) }
@@ -104,12 +104,14 @@ ColumnLayout {
         }
         Label { text: "Recovery backups stay on this laptop and may be removed by your System cleanup policy. GitHub sync preserves the current saved configuration."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
+    SettingsPersonalBackup { id: personalBackup; Layout.fillWidth: true }
+    SettingsConfigurationRecovery { id: fullRecovery; Layout.fillWidth: true; ready: page.ready && !worker.running; onRestored: settings => page.restored(settings) }
     SettingsCard {
-        title: "Personal-file backup status"
-        subtitle: "GitHub configuration sync does not back up Documents, Pictures, or other personal files. After using your backup app, check the backup and record the folder here."
+        title: "External backup check"
+        subtitle: "GitHub configuration sync does not back up Documents, Pictures, or other personal files. If you use another backup app, check its backup and record the folder here."
         Layout.fillWidth: true
         Label { objectName: "personalBackupStatus"; text: page.personal.confirmed ? "Last backup check you confirmed: " + Qt.formatDateTime(new Date(page.personal.confirmed), "yyyy-MM-dd HH:mm") + "\n" + page.personal.folder + "\n" + (page.personal.available ? "Folder is currently readable." : "Folder is currently unavailable. Connect the backup drive and check again.") : "No personal backup check has been recorded."; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        TextField { id: backupFolder; objectName: "personalBackupFolder"; Layout.fillWidth: true; placeholderText: "Absolute backup folder path"; text: page.personal.folder; color: Style.Theme.text; selectByMouse: true; enabled: !page.busy }
+        SettingsTextField { id: backupFolder; objectName: "personalBackupFolder"; Layout.fillWidth: true; placeholderText: "Absolute backup folder path"; text: page.personal.folder; color: Style.Theme.text; selectByMouse: true; enabled: !page.busy }
         SettingsButton { objectName: "confirmPersonalBackup"; text: "I checked my backup today"; enabled: page.loaded && !page.busy && backupFolder.text.trim().length > 0; onClicked: page.request({operation: "confirm-backup", folder: backupFolder.text}) }
         Label { text: "This is your confirmation, not an automatic backup or verification of file contents. The folder and date stay local and are excluded from GitHub sync."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }

@@ -20,6 +20,8 @@ file-roller
 # Desktop integration, Wayland clipboard, media control
 xdg-utils
 wl-clipboard
+# Optional clipboard history; capture stays disabled until enabled in Settings
+cliphist
 playerctl
 # Graphical file picker and dialogs for shell scripts
 zenity

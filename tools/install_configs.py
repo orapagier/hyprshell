@@ -33,6 +33,10 @@ def install(repo):
     settings_backend = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(settings_backend)
     saved_settings = settings_backend.validate(json.loads((repo / 'config/hyprshell/settings.json').read_text()))
+    sys.path.insert(0, str(repo / 'config/quickshell/settings'))
+    from behavior import validate as validate_behavior, render as render_behavior
+    behavior_path = repo / 'config/hyprshell/behavior.json'
+    behavior_source = render_behavior(validate_behavior(json.loads(behavior_path.read_text()))) if behavior_path.exists() else None
     overrides = settings_backend.render_hypr(saved_settings['hyprland'], True, saved_settings['accessibility'])
     home = Path(os.environ['HOME'])
     config = Path(os.environ.get('XDG_CONFIG_HOME') or home / '.config')
@@ -99,13 +103,18 @@ def install(repo):
                 Path('Pictures/Wallpapers') / wallpaper.name)
     put(repo / 'config/hyprshell/hyprland', config / 'hyprshell/hyprland',
         Path('config/hyprshell/hyprland'))
-    for name in ('settings.json', 'cleanup.json', 'keybindings.json', 'keybindings.lua', 'displays.json', 'displays.lua', 'theme.json', 'applications.json', 'regional.json'):
+    for name in ('settings.json', 'cleanup.json', 'keybindings.json', 'keybindings.lua', 'displays.json', 'displays.lua', 'theme.json', 'applications.json', 'regional.json', 'behavior.json'):
         if (repo / 'config/hyprshell' / name).exists():
             put(repo / 'config/hyprshell' / name, config / 'hyprshell' / name, Path('config/hyprshell') / name)
     with tempfile.TemporaryDirectory(prefix='hyprshell-overrides-') as temporary:
         generated = Path(temporary) / 'overrides.lua'
         generated.write_text(overrides)
         put(generated, config / 'hyprshell/overrides.lua', Path('config/hyprshell/overrides.lua'))
+    if behavior_source is not None:
+        with tempfile.TemporaryDirectory(prefix='hyprshell-behavior-') as temporary:
+            generated = Path(temporary) / 'behavior.lua'
+            generated.write_text(behavior_source)
+            put(generated, config / 'hyprshell/behavior.lua', Path('config/hyprshell/behavior.lua'))
     state.joinpath('hyprshell').mkdir(parents=True, exist_ok=True)
     state.joinpath('hyprshell/repository').write_text(str(repo.resolve()) + '\n')
     if (config / 'hyprshell/regional.json').exists():

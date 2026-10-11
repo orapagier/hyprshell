@@ -124,6 +124,20 @@ class SyncTests(unittest.TestCase):
                 self.assertFalse((repo / payload / 'private').exists())
                 self.assertEqual((repo / payload / 'missing').read_text(), 'installer fallback')
 
+    def test_behavior_snapshot_regenerates_rules_and_excludes_backup_and_clipboard_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); repo, config, home = root / 'repo', root / 'config', root / 'home'
+            (config / 'hyprshell').mkdir(parents=True); home.mkdir()
+            data = {'version': 1, 'general': {'layout': 'master'}, 'workspaces': [], 'rules': []}
+            (config / 'hyprshell/behavior.json').write_text(json.dumps(data))
+            (config / 'hyprshell/behavior.lua').write_text('error("stale generated Lua")')
+            (config / 'hyprshell/personal-files.json').write_text('private destination')
+            syncer.snapshot_managed_files(repo, config, home)
+            self.assertEqual(json.loads((repo / 'config/hyprshell/behavior.json').read_text()), data)
+            generated = (repo / 'config/hyprshell/behavior.lua').read_text()
+            self.assertIn('layout = "master"', generated); self.assertNotIn('stale', generated)
+            self.assertFalse((repo / 'config/hyprshell/personal-files.json').exists())
+
     def test_identity_is_local_and_validated(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

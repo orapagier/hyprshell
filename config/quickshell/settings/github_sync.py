@@ -97,6 +97,14 @@ def snapshot_managed_files(repo, config, home):
         destination.mkdir(parents=True, exist_ok=True)
         (destination / 'keybindings.json').write_text(json.dumps({'version': 1, 'entries': entries}, indent=2) + '\n')
         (destination / 'keybindings.lua').write_text(render_keybindings(entries))
+    behavior = config / 'hyprshell/behavior.json'
+    if behavior.exists():
+        from behavior import validate as validate_behavior, render as render_behavior
+        data = validate_behavior(json.loads(behavior.read_text()))
+        destination = repo / 'config/hyprshell'
+        destination.mkdir(parents=True, exist_ok=True)
+        (destination / 'behavior.json').write_text(json.dumps(data, indent=2) + '\n')
+        (destination / 'behavior.lua').write_text(render_behavior(data))
     regional = config / 'hyprshell/regional.json'
     if regional.exists():
         from regional import validate as validate_regional

@@ -38,3 +38,6 @@ optional("overrides")
 hyprshellKeybindings.apply()
 -- Confirmed display preferences override the automatic monitor fallback.
 optional("displays")
+
+-- Hyprshell behavior rules
+optional("behavior")

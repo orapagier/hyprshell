@@ -25,6 +25,9 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | Wallpaper | `hypr/wallpaper-start.sh`, `wallpaper-cycle.sh`; awww; `$HOME/Pictures/Wallpapers` |
 | Locking | `quickshell/LockingController.qml`, `hypr/hyprlock.conf`; generated `hyprshell/hypridle.conf` belongs to Hyprshell |
 | Cleanup | `hyprshell/cleanup.json`, `quickshell/settings/cleanup.py`; user `hyprshell-cleanup.timer` / `.service`; state `hyprshell/cleanup-last.json` |
+| Workspaces / rules | `SettingsBehavior.qml`, `settings/behavior.py`, `hyprshell/behavior.{json,lua}`; literal app classes, validated compositor rules, backed-up apply/rollback; setup/sync regenerate Lua |
+| Clipboard / peripherals | `ClipboardController.qml`, `SettingsClipboard.qml`, `SettingsPeripherals.qml`, `settings/{clipboard,peripherals,optional_tools}.py`; capture off by default, local bounded cliphist history, manual printing/scanning tools, explicit optional installation and CUPS socket setup |
+| Full configuration / personal files | `SettingsConfigurationRecovery.qml`, `SettingsPersonalBackup.qml`, `settings/{configuration,personal_backup}.py`; local checkpoints/preview/restore, opt-in file snapshots/checksums and user backup timer; all backup/history state and personal paths excluded from sync |
 | Updates / recovery | `quickshell/SettingsRecovery.qml`, `quickshell/settings/recovery.py`; explicit checkupdates with a separate database, detached interactive full upgrade, validated settings checkpoints/restore; local state `hyprshell/{upgrade-last,personal-backup,recovery-preview}.json` |
 | Portals | `xdg-desktop-portal/hyprland-portals.conf` |
 | Launch helpers | `$HOME/.local/bin/{start-quickshell-bar,hyprshell-settings,app-launcher}` / checkout `bin/` |
@@ -34,7 +37,7 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | App autostart overrides | `autostart/*.desktop` / checkout `config/autostart/*.desktop`; installer copies managed entries individually; `nm-applet.desktop` hides the duplicate network tray icon |
 | Sync | `quickshell/settings/github_sync.py`; copies live configs **into** checkout, stages allowed project paths, commits and pushes |
 
-Quickshell owns the bar, menus, notification inbox, and optional Hypridle child. Notification popups default off; Settings → Notification delivery controls popups, Do Not Disturb, critical bypass, and per-app delivery. The bell inbox keeps history. Locking is managed while Quickshell runs, not by a separate Hyprshell lock service. Cleanup is separately scheduled with a systemd user timer. Sound device defaults and volumes use PipeWire/WirePlumber state; Settings → Sound provides device selection, an opt-in input meter, a test tone, and per-stream volumes. GitHub config sync does not export sound-system state. Sound device defaults and volumes use PipeWire/WirePlumber state; Settings → Sound provides device selection, an opt-in input meter, a test tone, and per-stream volumes. GitHub config sync does not export sound-system state. Audio uses PipeWire/PipeWire Pulse and WirePlumber; network uses NetworkManager; Bluetooth uses BlueZ; battery uses UPower. Session startup uses UWSM and hyprpolkitagent.
+Quickshell owns the bar, menus, notification inbox, and optional Hypridle child. Notification popups default off; Settings → Notification delivery controls popups, Do Not Disturb, critical bypass, and per-app delivery. The bell inbox keeps history. Locking is managed while Quickshell runs, not by a separate Hyprshell lock service. Cleanup is separately scheduled with a systemd user timer. Sound device defaults and volumes use PipeWire/WirePlumber state; Settings → Sound provides device selection, an opt-in input meter, a test tone, and per-stream volumes. GitHub config sync does not export sound-system state. Sound device defaults and volumes use PipeWire/WirePlumber state; Settings → Sound provides device selection, an opt-in input meter, a test tone, and per-stream volumes. GitHub config sync does not export sound-system state. Audio uses PipeWire/PipeWire Pulse and WirePlumber; network uses NetworkManager; Bluetooth uses BlueZ; battery uses UPower, also selecting optional AC/battery timer policies without extra polling. Session startup uses UWSM and hyprpolkitagent.
 
 Settings are version 1 JSON with defaults and inheritance. Inspect `backend.py`'s CLI before using `--save-json` / `--expected-json`; preserve its validation, backups, conflict detection, and rollback. Hyprland settings overrides are managed by this backend; avoid competing writes to generated blocks. Adding a preference requires checking defaults, backend validation, UI model, and consumers. Read `docs/settings.md` only for settings work.
 
@@ -60,13 +63,17 @@ share application-theme transactions; app-owned appearance preferences can win.
 
 ## Focused verification
 
-Settings recovery imports validated `settings.json` only; it does not restore
-manual Lua, display layouts, application choices/theme, or keybindings. Existing
-transactions provide undo backups and rollback. Personal-backup status is a user
-confirmation plus folder readability, not a backup engine or content verification.
-These records and recovery history stay outside GitHub sync. Use `tests/test_recovery.py`
-for isolated checks; never start a real upgrade or restore preferences just to
-validate the UI. Upgrades remain opt-in, interactive `sudo pacman -Syu` in Kitty.
+Settings-only recovery imports validated `settings.json`. Complete configuration
+checkpoints additionally cover personal desktop Lua, display/app/theme/shortcut
+preferences and application integration files; restoration parses Lua without
+executing it, regenerates GUI files and requires next-login activation. Personal
+backup status remains a self-report for external tools. The optional personal-file
+engine has manual/scheduled snapshots and checksum verification; it defaults off.
+All history, schedules, destinations and documents stay outside GitHub sync.
+Use `tests/test_{recovery,configuration,personal_backup,optional_daily_driver}.py`
+and native `test_daily_driver_ui.py`; never start real upgrades, restore laptop
+preferences or copy documents just to validate controls. Upgrades remain explicit
+interactive `sudo pacman -Syu` in Kitty.
 
 Run commands in the checkout (or use absolute paths), choosing checks for the change:
 
