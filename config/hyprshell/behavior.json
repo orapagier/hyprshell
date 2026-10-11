@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "general": {
+    "resizeOnBorder": true
+  },
+  "workspaces": [],
+  "rules": []
+}

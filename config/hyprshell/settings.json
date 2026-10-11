@@ -379,7 +379,12 @@
     "offMinutes": 15,
     "suspendMinutes": 0,
     "lidAction": "suspend",
-    "profile": "balanced"
+    "profile": "balanced",
+    "separateBatteryTimers": false,
+    "batteryDimMinutes": 0,
+    "batteryOffMinutes": 0,
+    "batterySuspendMinutes": 0,
+    "batteryDimPercent": 20
   },
   "notifications": {
     "popups": false,
@@ -387,5 +392,15 @@
     "criticalBypass": true,
     "popupSeconds": 5,
     "apps": {}
+  },
+  "accessibility": {
+    "textScale": 1,
+    "highContrast": false,
+    "reducedMotion": false
+  },
+  "clipboard": {
+    "enabled": false,
+    "maxItems": 50,
+    "includeImages": false
   }
 }
