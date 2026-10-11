@@ -19,13 +19,13 @@ Item {
         function test_globalSizingIncludesGlassGlyphsTrayAndSpectrum() {
             bar.settings = {bar:{height:32,iconSize:24}};
             compare(findChild(bar.moduleItems.audio,"pillIcon").font.pixelSize,24);
-            compare(bar.moduleItems.audio.content.font.pixelSize,12);
+            compare(bar.moduleItems.audio.content.font.pixelSize,18);
             compare(bar.moduleItems.wifi.content.font.pixelSize,24);
             compare(findChild(bar,"archGlassLogo").iconSize,24);
             compare(findChild(bar,"settingsGlassCog").iconSize,24);
             compare(findChild(bar,"trayIcon").width,24);
             compare(findChild(bar.moduleItems.battery,"pillIcon").font.pixelSize,24);
-            compare(bar.moduleItems.battery.content.font.pixelSize,12);
+            compare(bar.moduleItems.battery.content.font.pixelSize,18);
             compare(bar.moduleItems.battery.shownText,"86%");
             compare(bar.moduleItems.media.item.spectrumWidth,87);
         }

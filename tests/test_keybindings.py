@@ -108,7 +108,9 @@ class KeybindingTests(unittest.TestCase):
         fixture = ROOT / 'config/quickshell/tests'
         wrapper = self.config.parent / 'recording.qml'
         wrapper.write_text('import ' + json.dumps(fixture.as_uri()) + ' as Checks\nChecks.ShortcutRecording {}\n')
-        environment = dict(os.environ, QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
+        runtime = self.config.parent / 'runtime'
+        runtime.mkdir(mode=0o700)
+        environment = dict(os.environ, QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software', XDG_RUNTIME_DIR=str(runtime))
         result = subprocess.run(['quickshell', '-p', str(wrapper)], env=environment, capture_output=True, text=True, timeout=15)
         output = result.stdout + result.stderr
         self.assertIn('SHORTCUT_RECORDING_OK', output, output)
