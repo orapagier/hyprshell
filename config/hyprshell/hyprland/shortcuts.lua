@@ -87,7 +87,7 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { description
 hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { description = "Play / pause media", locked = true })
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true, description = "Previous track" })
 
-hl.bind("SUPER + B", hl.dsp.exec_cmd("uwsm app -- brave"), { description = "Open browser" })
+hl.bind("SUPER + B", hl.dsp.exec_cmd(programs.browser), { description = "Open browser" })
 
 -- Wallpapers: SUPER+W = next, SUPER+SHIFT+W = previous (cycles ~/Pictures/Wallpapers)
 hl.bind("SUPER + W", hl.dsp.exec_cmd('"${XDG_CONFIG_HOME:-$HOME/.config}/hypr/wallpaper-cycle.sh" next'), { description = "Next wallpaper" })

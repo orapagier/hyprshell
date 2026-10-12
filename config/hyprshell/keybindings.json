@@ -10,7 +10,7 @@
       "command": "quickshell ipc --path ~/.config/quickshell call bar reload"
     },
     {
-      "command": "uwsm app -- chromium",
+      "command": "uwsm app -- firefox",
       "description": "Open browser",
       "id": "e36985f80a4c4fa9a08518d5aa357fbf",
       "mode": "command",

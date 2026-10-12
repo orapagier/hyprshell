@@ -64,9 +64,6 @@ def snapshot_managed_files(repo, config, home):
     terminal = config / 'xdg-terminals.list'
     if terminal.is_file():
         mirror(terminal, repo / 'config/xdg-terminals.list')
-    chromium_flags = config / 'chromium-flags.conf'
-    if chromium_flags.is_file():
-        mirror(chromium_flags, repo / 'config/chromium-flags.conf')
     portal = config / 'xdg-desktop-portal'
     if portal.is_dir():
         # Other applications may own portal files; copy only our managed names.

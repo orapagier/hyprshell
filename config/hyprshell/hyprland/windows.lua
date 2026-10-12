@@ -47,10 +47,10 @@ hl.window_rule({
 })
 
 -- Popups must float at map time, before entering the tiling layout.
--- Hyprland detects app-provided modal/transient/type hints automatically.
--- Chromium uses XWayland (chromium-flags.conf) so website popups advertise
--- their native "pop-up" role, independent of their eventual page title.
--- Do not float on window.title: that causes a visible tile-then-float jump.
+-- Hyprland detects app-provided modal/transient/type hints automatically,
+-- so browser popups keep their native "pop-up" role independent of their
+-- eventual page title. Do not float on window.title: that causes a visible
+-- tile-then-float jump.
 
 -- Some Thunar dialogs do not advertise themselves as modal.
 hl.window_rule({
@@ -75,7 +75,7 @@ hl.window_rule({
 hl.window_rule({
     name  = "float-browser-dialogs",
     match = {
-        class = "(?i)^(brave-browser(-beta|-nightly)?|brave|chromium(-browser)?|google-chrome(-beta|-unstable)?|firefox(-esr)?|org\\.mozilla\\.firefox)$",
+        class = "(?i)^(brave-browser(-beta|-nightly)?|brave|google-chrome(-beta|-unstable)?|firefox(-esr)?|org\\.mozilla\\.firefox)$",
         title = "^(Open|Open File|Open Files|Save|Save As|Save File|Select File|Select Folder|Choose File|Choose Files|Choose Folder|Picture-in-Picture)$",
     },
     float = true,
