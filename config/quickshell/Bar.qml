@@ -290,7 +290,7 @@ Item {
     Grid {
         id: workspaceRow
         x: bar.itemX("workspaces")
-        y: bar.itemY("workspaces")
+        y: bar.itemY("workspaces") + (bar.vertical ? 0 : Math.max(0, (height - implicitHeight) / 2))
         opacity: Settings.item(bar.settings, "workspaces").opacity ?? 1
         visible: bar.itemEnabled("workspaces")
         objectName: "workspacesSlot"
