@@ -3,4 +3,5 @@ return {
     { id = "17345483cff94afba0fa6baa28a5f898", original = "", shortcut = "ALT + Q", description = "Reload Hypershell", mode = "command", command = "quickshell ipc --path ~/.config/quickshell call bar reload" },
     { command = "uwsm app -- firefox", description = "Open browser", id = "e36985f80a4c4fa9a08518d5aa357fbf", mode = "command", original = "SUPER + B", shortcut = "SUPER + B" },
     { command = "", description = "Open terminal", id = "72298b302c4e4208b58d6a6140c4039d", mode = "existing", original = "SUPER + T", shortcut = "SUPER + Z" },
+    { command = "", description = "Toggle floating window", id = "88c8a70fe05c4f10a10ebe95bceb5f2c", mode = "existing", original = "SUPER + V", shortcut = "SUPER + ALT + V" },
 }

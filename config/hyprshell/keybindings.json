@@ -24,6 +24,14 @@
       "mode": "existing",
       "original": "SUPER + T",
       "shortcut": "SUPER + Z"
+    },
+    {
+      "command": "",
+      "description": "Toggle floating window",
+      "id": "88c8a70fe05c4f10a10ebe95bceb5f2c",
+      "mode": "existing",
+      "original": "SUPER + V",
+      "shortcut": "SUPER + ALT + V"
     }
   ]
 }
