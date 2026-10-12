@@ -87,9 +87,9 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('Missing desktop packages: hyprland quickshell wpa_supplicant upower', result.stdout)
         targets = queries[2][1:]
         for required in ('hyprpolkitagent', 'qt6-wayland', 'gcc', 'libpulse', 'fftw',
-                         'pipewire-pulse', 'upower', 'wpa_supplicant', 'ttf-go-nerd', 'nautilus', 'plymouth'):
+                         'pipewire-pulse', 'upower', 'wpa_supplicant', 'ttf-go-nerd', 'nautilus', 'plymouth', 'firefox'):
             self.assertIn(required, targets)
-        for unrelated in ('brave-bin', 'firefox', 'chromium', 'yay', 'waybar', 'mako',
+        for unrelated in ('brave-bin', 'chromium', 'yay', 'waybar', 'mako',
                           'rofi', 'fuzzel', 'cosmic-greeter', 'base-devel',
                           'thunar', 'thunar-volman', 'thunar-archive-plugin'):
             self.assertNotIn(unrelated, targets)
@@ -125,27 +125,17 @@ class InstallerTests(unittest.TestCase):
         self.assertFalse(self.home.exists())
 
     def test_daily_driver_apps_are_included_and_shared_packages_are_unique(self):
-        calls = self.mock_package_database(('chromium', 'hypridle', 'wl-clipboard'))
+        calls = self.mock_package_database(('hypridle', 'wl-clipboard'))
         result = self.run_setup('--dry-run', '--extra')
         targets = json.loads(calls.read_text().splitlines()[-1])[1:]
-        for package in ('chromium', 'hyprlock', 'hypridle', 'cmatrix', 'man-db',
+        for package in ('distrobox', 'hyprlock', 'hypridle', 'cmatrix', 'man-db',
                         'man-pages', 'bash-completion', 'unzip', 'zip', '7zip',
                         'file-roller', 'pacman-contrib', 'wl-clipboard', 'playerctl',
                         'xdg-utils', 'gvfs-mtp',
                         'mpv', 'imv', 'evince', 'mousepad'):
             self.assertIn(package, targets)
         self.assertEqual(len(targets), len(set(targets)))
-        self.assertIn('Missing desktop packages: hypridle chromium wl-clipboard', result.stdout)
-        self.assertFalse(self.home.exists())
-
-    def test_skip_browser_excludes_chromium_in_either_option_order(self):
-        calls = self.mock_package_database()
-        for args in (('--extra', '--skip-browser'),
-                     ('--skip-browser', '--extra')):
-            self.run_setup('--dry-run', *args)
-            targets = json.loads(calls.read_text().splitlines()[-1])[1:]
-            self.assertNotIn('chromium', targets)
-            self.assertIn('hyprlock', targets)
+        self.assertIn('Missing desktop packages: hypridle wl-clipboard', result.stdout)
         self.assertFalse(self.home.exists())
 
     def test_config_only_with_apps_does_not_query_or_plan_packages(self):
@@ -227,8 +217,6 @@ class InstallerTests(unittest.TestCase):
 
     def test_installs_current_payload_without_legacy_configs(self):
         self.install()
-        self.assertIn('--ozone-platform=x11',
-                      (self.config / 'chromium-flags.conf').read_text())
         import importlib.util
         spec = importlib.util.spec_from_file_location('installed_settings', self.config / 'quickshell/settings/backend.py')
         installed = importlib.util.module_from_spec(spec)

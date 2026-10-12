@@ -1,6 +1,8 @@
 # Native Hyprshell desktop. Dependencies are resolved by pacman.
 # Session, Wayland, portals, authorization, and rendering
 hyprland
+# Hyprland GUI utilities for dialogs, run, and screen helpers
+hyprland-guiutils
 # Syntax validation for personal configuration recovery
 lua
 quickshell
@@ -37,6 +39,8 @@ nautilus
 gvfs
 gvfs-mtp
 xdg-user-dirs
+# Default web browser
+firefox
 # Networking, pairing, and battery data
 networkmanager
 nm-connection-editor

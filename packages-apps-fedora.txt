@@ -1,5 +1,4 @@
 # Opt-in daily-driver apps: ./setup.sh --extra on Fedora.
-chromium
 distrobox
 podman
 hyprlock

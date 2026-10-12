@@ -152,12 +152,13 @@ class FedoraInstallerTests(unittest.TestCase):
         return [json.loads(line) for line in self.calls.read_text().splitlines()]
 
     def test_preview_selects_fedora_packages_without_mutation(self):
-        result = self.run_setup('--dry-run', '--extra', '--skip-browser', '--copr', 'lionheartp/Hyprland')
+        result = self.run_setup('--dry-run', '--extra', '--copr', 'lionheartp/Hyprland')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Full Fedora upgrade', result.stdout)
         self.assertIn('NetworkManager-wifi', result.stdout); self.assertIn('tuned-ppd', result.stdout)
-        self.assertIn('hyprland-uwsm', result.stdout); self.assertNotIn('chromium', result.stdout)
-        self.assertNotIn('pacman-contrib', result.stdout); self.assertIn('dracut', result.stdout)
+        self.assertIn('hyprland-uwsm', result.stdout); self.assertIn('firefox', result.stdout)
+        self.assertNotIn('chromium', result.stdout); self.assertNotIn('pacman-contrib', result.stdout)
+        self.assertIn('dracut', result.stdout)
         self.assertFalse(self.home.exists())
         self.assertTrue(all(call[0] in ('rpm', 'systemctl') for call in self.read_calls()))
 

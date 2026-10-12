@@ -73,7 +73,6 @@ def install(repo):
         put(repo / 'config' / name, config / name, Path('config') / name)
 
     put(repo / 'config/xdg-terminals.list', config / 'xdg-terminals.list', Path('config/xdg-terminals.list'))
-    put(repo / 'config/chromium-flags.conf', config / 'chromium-flags.conf', Path('config/chromium-flags.conf'))
 
     # Install only managed entries; keep other applications' autostart files.
     for desktop in sorted((repo / 'config/autostart').glob('*.desktop')):

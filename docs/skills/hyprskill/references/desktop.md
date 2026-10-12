@@ -9,7 +9,6 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | --- | --- |
 | Desktop entry point | `hypr/hyprland.lua` / `config/hypr/hyprland.lua`; loads editable sections, then generated overrides |
 | Monitors, programs, appearance, layouts, input, shortcuts, window rules, startup | `hyprshell/hyprland/*.lua` / `config/hyprshell/hyprland/*.lua`; section filenames describe their purpose |
-| Chromium popup placement | `chromium-flags.conf` / `config/chromium-flags.conf`; XWayland exposes popup roles so Hyprland floats website popups at map time; fully exit and reopen Chromium after changing the backend |
 | GUI display/appearance overrides | `hypr/hyprland-gui.lua`, required at end of main Lua file |
 | Saved appearance, bar items, locking | `hyprshell/settings.json` / `config/hyprshell/settings.json` |
 | Shell composition and bar | `quickshell/shell.qml`, `Bar.qml`, `DesktopServices.qml` |

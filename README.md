@@ -97,6 +97,8 @@ The supported installation target is:
 - A normal user account with `sudo` access.
 - Internet access and working Arch package mirrors.
 - **Hyprland 0.56 or newer**, using its Lua configuration API.
+- Hyprland GUI utilities (`hyprland-guiutils`), installed by the setup script
+  if missing.
 - Quickshell and Qt 6, installed by the setup script if missing.
 - Graphics drivers suitable for a Wayland session.
 
@@ -158,8 +160,8 @@ The installer:
 9. Restores the saved Plymouth Hyprshell Glass splash on supported mkinitcpio boot
    setups, preserving the destination machine's disk and encryption settings.
 
-The base package list is in [packages.txt](packages.txt). It includes Kitty,
-Nautilus with Android USB file transfer support (`gvfs-mtp`), UWSM, portals,
+The base package list is in [packages.txt](packages.txt). It includes Firefox,
+Kitty, Nautilus with Android USB file transfer support (`gvfs-mtp`), UWSM, portals,
 the Polkit agent, fonts and icons, screenshot and
 brightness tools, NetworkManager, BlueZ, UPower, PipeWire, and WirePlumber.
 It also includes Plymouth. See [boot splash setup and portability](docs/boot-splash.md)
@@ -201,7 +203,6 @@ supported layouts, and recovery instructions.
 | `--dry-run` | Preview the plan without making changes. |
 | `--config-only` | Install configurations, utilities, and wallpapers, and compile the spectrum helper; skip package and service changes. |
 | `--extra` | Also install the optional application list in `packages-apps.txt`. |
-| `--skip-browser` | Omit Chromium from the `--extra` application list. |
 | `--skip-boot-splash` | Leave system boot configuration unchanged. |
 | `--skip-login-theme` | Leave the current login screen appearance unchanged. |
 | `--timezone ZONE` | Set an explicit timezone, such as `Europe/London`. |
@@ -213,7 +214,6 @@ Examples:
 ```bash
 ./setup.sh --extra --dry-run
 ./setup.sh --extra
-./setup.sh --extra --skip-browser
 ./setup.sh --timezone Europe/London
 ```
 
@@ -225,7 +225,7 @@ command. After creating a container, run `hyprshell_refresh_boxes` or open a new
 terminal. To load the shortcuts in an already open terminal, run `source ~/.bashrc`.
 These shortcuts are also installed by `--config-only`.
 
-The optional [application list](packages-apps.txt) includes Chromium, Distrobox,
+The optional [application list](packages-apps.txt) includes Distrobox,
 Podman, Hyprlock/Hypridle, archive tools, manuals and shell completion, clipboard and
 media utilities, Zenity for file picker dialogs,
 mpv, imv, Evince, Mousepad,
@@ -280,7 +280,7 @@ own hardware and preferences:
 | Display resolution, refresh rate, scale, and position | Settings → Displays; underlying rules in `~/.config/hyprshell/hyprland/monitors.lua` and `hypr/hyprland-gui.lua`. |
 | Keyboard layout | The `input.kb_layout` value in `~/.config/hyprshell/hyprland/input.lua`; bundled value is `us`. |
 | Terminal and file manager | The `terminal` and `fileManager` entries in `~/.config/hyprshell/hyprland/programs.lua`. |
-| Browser shortcut | The `Super+B` default binding in `hyprshell/hyprland/shortcuts.lua`; it currently invokes Brave, which the installer does not install. |
+| Browser shortcut | The `Super+B` default binding in `hyprshell/hyprland/shortcuts.lua`; it launches Firefox, which the base installer provides. |
 | Startup wallpaper | `~/.config/hypr/wallpaper-start.sh`. |
 | Clock display | Hyprshell Settings → Bar & layout. |
 | Holiday data | `~/.config/quickshell/Calendar.js`. |
@@ -375,7 +375,7 @@ keybindings changes the behavior described here.
 | `Alt+C` / `Alt+N` | Toggle calendar / notifications. |
 | `Alt+A` / `Alt+W` | Toggle audio / Wi-Fi. |
 | `Alt+V` / `Alt+B` / `Alt+P` | Toggle Bluetooth / battery / power options. |
-| `Super+B` | Launch Brave if separately installed; customize this binding for your browser. |
+| `Super+B` | Launch Firefox (the default browser); customize this binding for another browser. |
 | `Super+Q` | Close the focused window. |
 | `Super+M` | Toggle maximized mode. |
 | `Super+V` | Toggle floating mode. |

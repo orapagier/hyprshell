@@ -1,6 +1,7 @@
 # Fedora Everything (traditional DNF installation), x86_64.
 # Hyprland ecosystem packages may require an explicitly selected COPR.
 hyprland
+hyprland-guiutils
 hyprland-uwsm
 lua
 quickshell
@@ -36,10 +37,15 @@ nautilus
 gvfs
 gvfs-mtp
 xdg-user-dirs
+# Default web browser
+firefox
 NetworkManager
 NetworkManager-wifi
 nm-connection-editor-desktop
 wpa_supplicant
+# Intel Wi-Fi/Bluetooth firmware split out of linux-firmware on Fedora
+iwlwifi-mvm-firmware
+iwlbluetooth-firmware
 bluez
 upower
 pipewire

@@ -29,10 +29,10 @@ cd ~/repos/hyprshell
 
 Use the repository/fork containing this port until it is published upstream.
 Run setup as your desktop user, without `sudo ./setup.sh`. `--extra` adds
-the browser, containers, screen locker, clipboard tools, document viewers,
-media apps, and other daily-driver applications. `--skip-browser` omits
-Chromium. The base manifest installs the desktop, terminal, file manager,
-Wi-Fi support, Bluetooth, audio, fonts, and helper build dependencies.
+containers, screen locker, clipboard tools, document viewers, media apps,
+and other daily-driver applications. The base manifest installs the desktop,
+Firefox, terminal, file manager, Wi-Fi support, Bluetooth, audio, fonts, and
+helper build dependencies.
 Timezone is preserved unless `--timezone REGION/CITY` is supplied.
 
 `--copr` explicitly opts into the selected third-party repository. No COPR

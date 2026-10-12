@@ -7,7 +7,6 @@ REPO_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 MODE=install
 DRY_RUN=0
 INSTALL_APPS=0
-SKIP_BROWSER=0
 SKIP_BOOT_SPLASH=0
 SKIP_LOGIN_THEME=0
 TIMEZONE=
@@ -24,7 +23,6 @@ Run as your normal user, with sudo access, on Arch Linux or Fedora Everything.
   --distro NAME      auto (default), arch, or fedora; cross-distro previews allowed
   --copr OWNER/REPO  Explicitly enable a Fedora COPR (see docs/fedora.md)
   --extra            Also install daily-driver apps from the distro manifest
-  --skip-browser     Exclude Chromium from --extra
   --skip-boot-splash  Leave system boot configuration unchanged
   --skip-login-theme Leave the existing login screen appearance unchanged
   --timezone ZONE    Set the system timezone (default: preserve current timezone)
@@ -53,7 +51,6 @@ while (( $# )); do
       if [[ "$1" == --distro ]]; then DISTRO=$2; else COPR=$2; fi
       shift ;;
     --extra) INSTALL_APPS=1 ;;
-    --skip-browser) SKIP_BROWSER=1 ;;
     --skip-boot-splash) SKIP_BOOT_SPLASH=1 ;;
     --skip-login-theme) SKIP_LOGIN_THEME=1 ;;
     --keep-timezone) TIMEZONE= ;;
@@ -94,7 +91,6 @@ if (( INSTALL_APPS )); then
   [[ -f "$REPO_DIR/$APP_PACKAGE_FILE" ]] || die "Missing $APP_PACKAGE_FILE"
   mapfile -t APP_PACKAGES < <(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$REPO_DIR/$APP_PACKAGE_FILE")
   for package in "${APP_PACKAGES[@]}"; do
-    if (( SKIP_BROWSER )) && [[ "$package" == chromium ]]; then continue; fi
     PACKAGES+=("$package")
   done
 fi
