@@ -1,5 +1,6 @@
 """Exercise boot restoration in isolated filesystems, never touching real boot files."""
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -24,6 +25,20 @@ class BootSplashTests(unittest.TestCase):
         self.put('/etc/mkinitcpio.d/linux.preset', 'ALL_kver="/boot/vmlinuz-linux"\nPRESETS=(\'default\')\ndefault_uki="/boot/EFI/Linux/arch-linux.efi"\ndefault_options="--splash /usr/share/systemd/bootctl/splash-arch.bmp"\n')
         self.put('/etc/kernel/cmdline', 'root=UUID=this-machine rw cryptdevice=UUID=encrypted:root resume=UUID=swap loglevel=7\n')
         self.put('/boot/EFI/Linux/arch-linux.efi', 'existing image')
+
+    def test_cli_distinguishes_unsupported_layout_from_rebuild_failure(self):
+        with patch('sys.argv', ['install_boot_splash.py']), patch.object(Path, 'is_file', return_value=True), \
+             patch.object(boot, 'build_plan', side_effect=boot.UnsupportedBoot('custom layout')), \
+             patch('sys.stderr', io.StringIO()), self.assertRaises(SystemExit) as skipped:
+            boot.main()
+        self.assertEqual(skipped.exception.code, 10)
+        with patch('sys.argv', ['install_boot_splash.py']), patch.object(Path, 'is_file', return_value=True), \
+             patch.object(boot, 'build_plan', return_value=({}, [], set())), \
+             patch.object(boot.os, 'geteuid', return_value=0), \
+             patch.object(boot, 'apply_plan', side_effect=subprocess.CalledProcessError(1, ['mkinitcpio', '-P'])), \
+             patch('sys.stderr', io.StringIO()), self.assertRaises(SystemExit) as failed:
+            boot.main()
+        self.assertEqual(failed.exception.code, 1)
 
     def path(self, name):
         return self.root / name.lstrip('/')

@@ -59,6 +59,25 @@ class InstallerTests(unittest.TestCase):
         self.assertNotIn('Login appearance:', result.stdout)
         self.assertFalse(self.home.exists())
 
+    def test_disabled_login_manager_is_selected_without_installing_a_competitor(self):
+        self.mock_package_database()
+        mock_bin = Path(self.env['PATH'].split(os.pathsep)[0])
+        controller = mock_bin / 'systemctl'
+        controller.write_text('#!/bin/sh\nprintf "gdm.service disabled disabled\\n"\n')
+        controller.chmod(0o755)
+        repo = self.root / 'checkout'
+        repo.mkdir()
+        # Ignore the host's manager alias so the disabled-manager fixture wins.
+        text = (ROOT / 'setup.sh').read_text().replace('/etc/systemd/system/display-manager.service', str(self.root / 'absent-manager'))
+        (repo / 'setup.sh').write_text(text)
+        for name in ('config', 'packages.txt'):
+            (repo / name).symlink_to(ROOT / name)
+        result = subprocess.run(['bash', str(repo / 'setup.sh'), '--distro', 'arch', '--dry-run'], env=self.env, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('enable gdm.service', result.stdout)
+        self.assertNotIn('install and enable SDDM', result.stdout)
+        self.assertFalse(self.home.exists())
+
     def mock_package_database(self, missing=()):
         mock_bin = self.root / 'package commands'
         mock_bin.mkdir()
@@ -132,7 +151,7 @@ class InstallerTests(unittest.TestCase):
                         'man-pages', 'bash-completion', 'unzip', 'zip', '7zip',
                         'file-roller', 'pacman-contrib', 'wl-clipboard', 'playerctl',
                         'xdg-utils', 'gvfs-mtp',
-                        'mpv', 'imv', 'evince', 'mousepad'):
+                        'mpv', 'loupe', 'papers', 'mousepad'):
             self.assertIn(package, targets)
         self.assertEqual(len(targets), len(set(targets)))
         self.assertIn('Missing desktop packages: hypridle wl-clipboard', result.stdout)

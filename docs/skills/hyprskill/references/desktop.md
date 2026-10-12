@@ -30,7 +30,7 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | Updates / recovery | `quickshell/SettingsRecovery.qml`, `quickshell/settings/recovery.py`; explicit checkupdates with a separate database, detached interactive full upgrade, validated settings checkpoints/restore; local state `hyprshell/{upgrade-last,personal-backup,recovery-preview}.json` |
 | Portals | `xdg-desktop-portal/hyprland-portals.conf` |
 | Launch helpers | `$HOME/.local/bin/{start-quickshell-bar,hyprshell-settings,app-launcher}` / checkout `bin/` |
-| Install / package lists | checkout `setup.sh`, `tools/install_configs.py`, Arch `packages.txt` / `packages-apps.txt`, Fedora `packages-fedora.txt` / `packages-apps-fedora.txt`; `docs/fedora.md` covers the Fedora Everything port and validation limits |
+| Install / package lists | checkout `setup.sh`, `tools/install_configs.py`, Arch `packages.txt` / `packages-apps.txt`, Fedora `packages-fedora.txt` / `packages-apps-fedora.txt`; `docs/fedora.md` covers the Fedora Everything port and validation limits; `docs/daily-driver.md` covers base apps/firmware, system-service preservation, and `tools/check_daily_driver.py --after-login` |
 | Boot splash | checkout `config/boot/plymouth.json`, `config/boot/hyprshell/`, Arch `tools/install_boot_splash.py`, Fedora `tools/install_boot_splash_fedora.py`, `docs/boot-splash.md`; root-owned live Plymouth and initramfs settings; Fedora uses dracut with SELinux label restoration, preserving BLS/kernel parameters; `docs/boot-splash-preview.html` previews it without starting Plymouth |
 | Login appearance / early UKI splash | checkout `config/sddm/hyprshell-glass/`, `config/boot/uki-splash.bmp`, `tools/install_login_theme.py`, `docs/login-appearance.md`; root-owned `/etc/sddm.conf` and `/usr/share/sddm/themes/hyprshell-glass/`; installer `--with-boot-splash` includes the replacement for the preset's Arch BMP and rebuilds mkinitcpio, without changing systemd-boot; no greeter restart; use SDDM Qt 6 test mode for preview |
 | App autostart overrides | `autostart/*.desktop` / checkout `config/autostart/*.desktop`; installer copies managed entries individually; `nm-applet.desktop` hides the duplicate network tray icon |
@@ -95,3 +95,14 @@ In an accessible desktop session, query only relevant evidence: `hyprctl -j moni
 After validation, main Hyprland config changes use `hyprctl reload`; permissions marked restart-only in Lua require a new session. Quickshell watches QML changes. If a restart is actually needed, inspect and use `<config>/quickshell/install-and-activate.sh` (it can install Quickshell if missing). Do not kill every Quickshell process indiscriminately.
 
 Installer replacements are backed up under `<state>/hyprshell/backups/<timestamp>`. `setup.sh --config-only` still copies whole directories, compiles the audio helper, and restores saved repo preferences. Compare live files first. Full setup uses `pacman -Syu`; avoid Arch partial upgrades. GitHub sync includes `docs/`, so this skill travels with existing sync without changing its allowlist.
+
+Daily-driver installer update (2026-10-13): base manifests include media controls,
+Mousepad, archives, clipboard-history tools (capture remains off), printing/scanning,
+GNOME Keyring, firmware/microcode and Mesa drivers. Saved media defaults use mpv.
+Full setup enables an existing disabled login manager, or installs SDDM when none
+is installed; it prepares services before native/QML validation. Fedora defaults
+to the lionheartp/Hyprland COPR; --no-copr keeps existing repositories only.
+Time-sync/firewall alternatives and existing firewall zones are preserved;
+fstrim, CUPS socket and Avahi are enabled. The base monitor fallback is automatic.
+Readiness reports are local and redacted; neither a package test nor a sandbox
+service-access failure establishes real boot/hardware health.

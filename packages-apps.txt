@@ -1,21 +1,4 @@
-# Optional daily-driver apps: ./setup.sh --extra
-# Containers
+# Optional containers and terminal decoration: ./setup.sh --extra
 distrobox
 podman
-# Documentation, shell completion, package maintenance, and terminal fun
-man-db
-man-pages
-bash-completion
-pacman-contrib
 cmatrix
-# Archives
-unzip
-zip
-7zip
-# Optional clipboard history; capture stays disabled until enabled in Settings
-cliphist
-playerctl
-# Graphical file picker and dialogs for shell scripts
-zenity
-# Graphical text editor
-mousepad

@@ -124,6 +124,20 @@ class FedoraBootTests(unittest.TestCase):
         (self.root / 'boot/initramfs-6.20.img').unlink()
         with self.assertRaises(boot.UnsupportedBoot): fedora_boot.build_plan(self.root)
 
+    def test_boot_cli_distinguishes_unsupported_layout_from_rebuild_failure(self):
+        with patch('sys.argv', ['install_boot_splash_fedora.py']), \
+             patch.object(fedora_boot, 'build_plan', side_effect=boot.UnsupportedBoot('custom layout')), \
+             patch('sys.stderr', io.StringIO()), self.assertRaises(SystemExit) as skipped:
+            fedora_boot.main()
+        self.assertEqual(skipped.exception.code, 10)
+        with patch('sys.argv', ['install_boot_splash_fedora.py']), \
+             patch.object(fedora_boot, 'build_plan', return_value=({}, [], set())), \
+             patch.object(fedora_boot.os, 'geteuid', return_value=0), \
+             patch.object(fedora_boot, 'apply_plan', side_effect=subprocess.CalledProcessError(1, ['dracut'])), \
+             patch('sys.stderr', io.StringIO()), self.assertRaises(SystemExit) as failed:
+            fedora_boot.main()
+        self.assertEqual(failed.exception.code, 1)
+
 
 class FedoraInstallerTests(unittest.TestCase):
     def setUp(self):
@@ -195,8 +209,12 @@ os.execv({real_python!r}, [{real_python!r}, *sys.argv[1:]])''')
         if manager.exists() or manager.is_symlink():
             self.assertNotIn(['sudo', 'dnf', 'install', '-y', '--setopt=install_weak_deps=False', 'sddm', 'sddm-x11'], calls)
         else:
-            self.assertIn(['sudo', 'dnf', 'install', '-y', '--setopt=install_weak_deps=False', 'sddm', 'sddm-x11'], calls)
+            self.assertTrue(any(call[:3] == ['sudo', 'dnf', 'install'] and 'sddm' in call and 'sddm-x11' in call for call in calls))
         self.assertIn(['sudo', 'systemctl', 'enable', '--now', 'tuned.service', 'tuned-ppd.service'], calls)
+        self.assertIn(['sudo', 'python3', str(self.repo / 'tools/configure_daily_driver.py')], calls)
+        service_index = next(i for i, call in enumerate(calls) if call[:4] == ['sudo', 'systemctl', 'enable', '--now'])
+        validation_index = next(i for i, call in enumerate(calls) if call[0] == 'python3' and call[1].endswith('/check_runtime.py'))
+        self.assertLess(service_index, validation_index)
         self.assertIn(['sudo', 'python3', str(self.repo / 'tools/install_boot_splash_fedora.py')], calls)
         self.assertFalse(any('pacman' in call or 'mkinitcpio' in call for call in calls))
         self.assertTrue((self.home / 'data/fonts/hyprshell/GoMonoNerdFont-Regular.ttf').is_file())
@@ -206,6 +224,16 @@ os.execv({real_python!r}, [{real_python!r}, *sys.argv[1:]])''')
         for repo in ('../unsafe', 'owner/repo;command', '-owner/repo', 'missing-slash'):
             self.assertNotEqual(self.run_setup('--dry-run', '--copr', repo).returncode, 0)
         self.assertFalse(self.home.exists())
+
+    def test_default_repository_and_explicit_opt_out_are_preview_only(self):
+        default = self.run_setup('--dry-run')
+        self.assertEqual(default.returncode, 0, default.stderr)
+        self.assertIn('COPR: lionheartp/Hyprland', default.stdout)
+        opted_out = self.run_setup('--dry-run', '--no-copr')
+        self.assertEqual(opted_out.returncode, 0, opted_out.stderr)
+        self.assertIn('COPR: preserve enabled repositories', opted_out.stdout)
+        self.assertFalse(self.home.exists())
+        self.assertTrue(all(call[0] in ('rpm', 'systemctl') for call in self.read_calls()))
 
     @unittest.skipIf(os.geteuid() == 0, 'Installer correctly refuses root')
     def test_older_hyprland_is_rejected_before_config_replacement(self):

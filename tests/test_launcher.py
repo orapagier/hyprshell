@@ -11,21 +11,26 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class LauncherTests(unittest.TestCase):
-    def test_uwsm_resolves_vim_to_real_kitty_terminal_without_url_launcher(self):
+    @unittest.skipUnless(Path('/usr/share/uwsm/modules/uwsm/main.py').is_file() and shutil.which('kitty'),
+                         'Native UWSM and Kitty are required')
+    def test_uwsm_resolves_terminal_entry_to_real_kitty_without_url_launcher(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             shutil.copy2(ROOT / 'config/xdg-terminals.list', root / 'xdg-terminals.list')
+            apps = root / 'data/applications'; apps.mkdir(parents=True)
+            (apps / 'hyprshell-test-terminal.desktop').write_text(
+                '[Desktop Entry]\nType=Application\nName=Test terminal app\nExec=sh\nTerminal=true\n')
             code = '''import json, sys
 sys.path.insert(0, '/usr/share/uwsm/modules')
 from uwsm.main import app
-print(json.dumps(app(['vim.desktop'], terminal=False, slice_name='a', app_unit_type='service', app_name='', unit_name='', unit_description='', return_cmdline=True)))
+print(json.dumps(app(['hyprshell-test-terminal.desktop'], terminal=False, slice_name='a', app_unit_type='service', app_name='', unit_name='', unit_description='', return_cmdline=True)))
 '''
-            environment = dict(os.environ, XDG_CONFIG_HOME=str(root), XDG_CACHE_HOME=str(root / 'cache'))
+            environment = dict(os.environ, XDG_CONFIG_HOME=str(root), XDG_CACHE_HOME=str(root / 'cache'), XDG_DATA_HOME=str(root / 'data'))
             result = subprocess.run(['python3', '-c', code], env=environment, capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
             command = json.loads(result.stdout)
             self.assertIn('--property=Type=exec', command)
-            self.assertEqual(command[command.index('--') + 1:], ['kitty', '--', 'vim'])
+            self.assertEqual(command[command.index('--') + 1:], ['kitty', '--', 'sh'])
             self.assertNotIn('%F', command)
             self.assertNotIn('+open', command)
 

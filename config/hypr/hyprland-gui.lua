@@ -21,12 +21,5 @@ hl.config({
     },
 })
 
--- Monitors
-hl.monitor({
-    output = "eDP-1",
-    disabled = false,
-    mode = "1920x1080@60.01Hz",
-    position = "0x0",
-    scale = 1,
-    cm = "srgb",
-})
+-- Displays use the preferred/auto fallback in hyprshell/hyprland/monitors.lua.
+-- Confirmed per-machine settings belong in Settings → Displays.

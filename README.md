@@ -23,15 +23,17 @@ This repository includes the shell, a Hyprland configuration, an Arch/Fedora
 installer, desktop utilities, and wallpapers. Together they provide a common
 desktop setup that users can install and customize through the same workflow.
 It installs onto an existing system; it does not install the operating
-system, partition disks, install a bootloader, or install GPU drivers. It can
+system, partition disks, or install a bootloader. It installs common firmware, CPU
+microcode, and Mesa graphics drivers; vendor-specific drivers still need review. It can
 configure the animated Hyprshell Glass splash for a supported existing boot setup.
 Full setup also installs the matching animated SDDM login theme and restores
 the desktop preferences saved in this checkout.
 
 The **Fedora Everything port** has separate package manifests, DNF-backed
 Settings controls, and dracut boot splash support. See [Fedora installation
-and validation](docs/fedora.md) for the minimal-install workflow, explicit
-COPR selection, and current validation limits. The instructions below
+and validation](docs/fedora.md) for the minimal-install workflow, the default
+COPR and opt-out, and current validation limits. See [daily-driver setup](docs/daily-driver.md)
+for system services, firmware, application defaults, and hardware checks. The instructions below
 describe the established Arch installation unless stated otherwise.
 
 ## Contents
@@ -104,7 +106,7 @@ The supported installation target is:
 
 The installer uses official Arch repositories and pacman. It does not install
 an AUR helper. Other distributions may provide the underlying components, but
-the supplied installer supports Arch Linux only.
+the supplied installer supports Arch and traditional Fedora Everything 44 on x86_64.
 
 Some modules depend on hardware: Bluetooth needs a supported adapter, battery
 information needs a battery exposed by the system, and brightness controls need
@@ -131,8 +133,9 @@ installer records its location for GitHub sync.
 ./setup.sh --dry-run
 ```
 
-The preview reports package availability, installation destinations, services,
-and timezone behavior without changing files or installing packages. Review
+The preview reports missing installed packages, installation destinations, services,
+and timezone behavior without changing files or installing packages. It does not
+resolve remote package availability; full installation does. Review
 the machine-specific defaults described below before using the supplied
 Hyprland configuration.
 
@@ -147,18 +150,22 @@ for system operations when needed.
 
 The installer:
 
-1. Checks Hyprland, Quickshell, and the remaining package dependencies.
-2. Performs a full Arch system upgrade and installs missing desktop packages.
-3. Backs up changed destination files and installs the configurations,
-   utilities, application shortcut, and wallpapers.
-4. Builds the audio spectrum helper using GCC, libpulse, and FFTW.
-5. Checks the native runtime, QML components, and Hyprland configuration.
-6. Enables networking, Bluetooth, and user audio services, and starts UPower.
-7. Refreshes fonts and user directories.
-8. Installs and enables SDDM if no login manager is found, then restores the
-   matching animated Glass login theme when the login manager is SDDM.
-9. Restores the saved Plymouth Hyprshell Glass splash on supported mkinitcpio boot
-   setups, preserving the destination machine's disk and encryption settings.
+1. Selects the distro manifest and existing login manager, including SDDM in the
+   package transaction when no manager is installed.
+2. Upgrades the system and installs desktop, daily-driver and firmware packages.
+   Fedora first resolves/downloads the full transaction from compatible repositories.
+3. Backs up changed config files, builds the audio helper, and restores desktop
+   files, saved application defaults, utilities and wallpapers.
+4. Enables networking, Bluetooth, user audio and graphical login; starts UPower.
+5. Prepares printing/discovery, keyring login, time sync, firewall and SSD trim,
+   preserving configured time-service/firewall alternatives.
+6. Checks the native runtime, QML components and Hyprland configuration, then
+   refreshes fonts and user directories.
+7. Restores the Glass SDDM theme where applicable and the boot splash on supported
+   existing layouts. Unsupported boot layouts retain their current appearance;
+   actual initramfs rebuild failures stop setup.
+8. Saves a redacted readiness report and provides the command for hardware checks
+   after reboot/login.
 
 The base package list is in [packages.txt](packages.txt). It includes Chromium,
 Kitty, COSMIC Files with GVfs/MTP support (`gvfs-mtp`), UWSM, portals,
@@ -202,7 +209,8 @@ supported layouts, and recovery instructions.
 | --- | --- |
 | `--dry-run` | Preview the plan without making changes. |
 | `--config-only` | Install configurations, utilities, and wallpapers, and compile the spectrum helper; skip package and service changes. |
-| `--extra` | Also install the optional application list in `packages-apps.txt`. |
+| `--extra` | Also install Distrobox, Podman, and cmatrix from the optional distro manifest. |
+| `--no-copr` | On Fedora, use only enabled repositories instead of enabling the default desktop COPR. |
 | `--skip-boot-splash` | Leave system boot configuration unchanged. |
 | `--skip-login-theme` | Leave the current login screen appearance unchanged. |
 | `--timezone ZONE` | Set an explicit timezone, such as `Europe/London`. |
@@ -227,14 +235,14 @@ These shortcuts are also installed by `--config-only`.
 
 The main install includes Hyprlock, XDG and Wayland clipboard utilities,
 Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic, rclone,
-and yt-dlp. Installing Hyprlock does not enable automatic locking;
-configure it separately in Settings. Backup destinations and schedules also
-need to be configured after installation.
+and yt-dlp, plus Mousepad, media controls, archives, clipboard-history tools,
+printing/scanning, firmware, keyring support, time synchronization and firewall.
+This checkout enables Hyprlock after 60 idle minutes and before sleep.
+Clipboard capture stays disabled until enabled in Settings. Backup destinations
+and schedules need to be configured after installation.
 
-The optional [application list](packages-apps.txt) includes Distrobox,
-Podman, additional archive tools, manuals and shell completion, clipboard
-history and media controls, Zenity for file picker dialogs, Mousepad,
-and cmatrix. Review the list before installing it.
+The optional [application list](packages-apps.txt) includes Distrobox, Podman,
+and cmatrix. Everyday applications are included in the base installation.
 
 `--config-only` requires Python 3, a C compiler, and the libpulse/FFTW development
 files to be installed already. Use the full installer when dependencies are
@@ -268,9 +276,8 @@ starts with the same shell components, visual design, and desktop preferences.
 | Application integration | Saved application appearance, default-app and login-startup choices, portals, and managed autostart entries. |
 | Utilities and wallpapers | Launch helpers, Bash shortcuts, application shortcuts, and bundled wallpapers. |
 
-Use `./setup.sh --extra` to include the optional daily-driver applications and
-Hyprlock. The base installation keeps the desktop dependencies focused on the
-shell and its integrations. After installation, Settings lets users adjust
+Use `./setup.sh` for the desktop and everyday applications. Add `--extra` for
+containers and terminal decoration. After installation, Settings lets users adjust
 the experience through the same interface, while the configuration and
 installer remain available for further customization.
 
@@ -406,8 +413,7 @@ The saved shortcut customizations in this checkout also bind `Alt+Q` to reload
 Hyprshell. Use `Super+K` to inspect active shortcuts after customizations. The
 Alt menu shortcuts work while the topbar is hidden.
 
-Playback keybindings use `playerctl`, available through `--extra` or a separate
-package installation. Brightness bindings depend on the system's backlight
+Playback keybindings use `playerctl`, included in the base installation. Brightness bindings depend on the system's backlight
 support.
 
 ## Customizing Hyprshell
@@ -496,8 +502,8 @@ shows active bindings, including these edits.
 
 The component default for automatic locking is disabled, but this checkout's
 saved preferences enable Hyprlock after 60 idle minutes and before sleep.
-Setup restores those saved preferences. Install the locker through `--extra`
-or install the locker and idle manager separately:
+Setup restores those saved preferences and installs Hyprlock and Hypridle in
+the base manifest. To repair missing packages on an existing Arch installation:
 
 ```bash
 sudo pacman -Syu --needed hypridle hyprlock

@@ -12,6 +12,7 @@ SKIP_LOGIN_THEME=0
 TIMEZONE=
 DISTRO=auto
 COPR=
+COPR_SELECTED=0
 
 usage() {
   cat <<'HELP'
@@ -21,8 +22,9 @@ Run as your normal user, with sudo access, on Arch Linux or Fedora Everything.
   --dry-run          Check installed packages and show the plan; change nothing
   --config-only      Copy configs, compile helpers, and copy wallpapers only
   --distro NAME      auto (default), arch, or fedora; cross-distro previews allowed
-  --copr OWNER/REPO  Explicitly enable a Fedora COPR (see docs/fedora.md)
-  --extra            Also install daily-driver apps from the distro manifest
+  --copr OWNER/REPO  Fedora desktop repository (default: lionheartp/Hyprland)
+  --no-copr          Use only already enabled Fedora repositories
+  --extra            Also install optional containers and terminal decoration
   --skip-boot-splash  Leave system boot configuration unchanged
   --skip-login-theme Leave the existing login screen appearance unchanged
   --timezone ZONE    Set the system timezone (default: preserve current timezone)
@@ -30,8 +32,8 @@ Run as your normal user, with sudo access, on Arch Linux or Fedora Everything.
   -h, --help         Show this help
 
 Hyprland and Quickshell are checked first; missing desktop dependencies are
-installed through pacman or DNF. Fedora uses only enabled repositories unless
---copr is supplied. Daily-driver apps are opt-in; no AUR apps are installed.
+installed through pacman or DNF. Fedora enables lionheartp/Hyprland unless
+--no-copr is supplied. Everyday apps and firmware are included; no AUR apps are installed.
 --config-only skips all package installation.
 Existing configs are backed up under ~/.local/state/hyprshell/backups/.
 XDG_CONFIG_HOME and XDG_STATE_HOME are respected. A reboot is recommended.
@@ -48,8 +50,9 @@ while (( $# )); do
     --config-only) MODE=config-only ;;
     --distro|--copr)
       (( $# >= 2 )) || die "$1 requires a value"
-      if [[ "$1" == --distro ]]; then DISTRO=$2; else COPR=$2; fi
+      if [[ "$1" == --distro ]]; then DISTRO=$2; else COPR=$2; COPR_SELECTED=1; fi
       shift ;;
+    --no-copr) COPR=; COPR_SELECTED=1 ;;
     --extra) INSTALL_APPS=1 ;;
     --skip-boot-splash) SKIP_BOOT_SPLASH=1 ;;
     --skip-login-theme) SKIP_LOGIN_THEME=1 ;;
@@ -77,6 +80,7 @@ if [[ -f /etc/os-release ]]; then
 fi
 if [[ "$DISTRO" == auto ]]; then DISTRO=$OS_ID; fi
 [[ "$DISTRO" == arch || "$DISTRO" == fedora ]] || die 'Choose --distro arch or --distro fedora for a preview; installation supports Arch and Fedora'
+if [[ "$DISTRO" == fedora && "$COPR_SELECTED" == 0 ]]; then COPR=lionheartp/Hyprland; fi
 [[ -z "$COPR" || "$DISTRO" == fedora ]] || die '--copr is only supported on Fedora'
 [[ -z "$COPR" || "$COPR" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*/[A-Za-z0-9][A-Za-z0-9_-]*$ ]] || die 'COPR must be OWNER/REPO'
 PACKAGE_FILE=packages.txt
@@ -105,17 +109,36 @@ for package in "${PACKAGES[@]}"; do
 done
 PACKAGES=("${UNIQUE_PACKAGES[@]}")
 
-has_login_manager() {
-  # Preserve configured managers, including a broken alias needing repair.
-  [[ ! -e /etc/systemd/system/display-manager.service && ! -L /etc/systemd/system/display-manager.service ]] || return 0
-  # Installed but disabled managers also count; do not install a competing one.
+login_manager() {
+  local alias=/etc/systemd/system/display-manager.service
+  if [[ -L "$alias" ]]; then
+    [[ -e "$alias" ]] || die 'The display-manager.service alias is broken; repair it before running setup'
+    basename "$(readlink "$alias")"
+    return
+  elif [[ -e "$alias" ]]; then
+    printf '%s\n' display-manager.service
+    return
+  fi
+  # Prefer an enabled manager, otherwise enable one already installed.
   local manager_units
   manager_units=$(systemctl list-unit-files --type=service --no-legend) || die 'Could not detect installed login managers; leaving the login screen unchanged'
   awk '
-    $1 ~ /^(display-manager|sddm|gdm|lightdm|greetd|lxdm|ly|xdm|cosmic-greeter|entrance)\.service$/ { found = 1 }
-    END { exit !found }
+    $1 ~ /^(display-manager|sddm|gdm|lightdm|greetd|lxdm|ly|xdm|cosmic-greeter|entrance)\.service$/ {
+      if (!first) first = $1
+      if ($2 == "enabled") { print $1; found = 1; exit }
+    }
+    END { if (!found && first) print first }
   ' <<< "$manager_units"
 }
+
+LOGIN_UNIT=
+if [[ "$MODE" == install ]]; then
+  LOGIN_UNIT=$(login_manager)
+  if [[ -z "$LOGIN_UNIT" ]]; then
+    PACKAGES+=(sddm)
+    if [[ "$DISTRO" == fedora ]]; then PACKAGES+=(sddm-x11); fi
+  fi
+fi
 
 check_packages() {
   log 'Checking Hyprland and Quickshell'
@@ -163,8 +186,8 @@ if (( DRY_RUN )); then
       if command -v pacman >/dev/null; then check_packages; fi
       printf 'Full Arch upgrade; ensure desktop packages: %s\n' "${PACKAGES[*]}"
     fi
-    if has_login_manager; then
-      printf 'Login screen: preserve existing login manager\n'
+    if [[ -n "$LOGIN_UNIT" ]]; then
+      printf 'Login screen: preserve existing login manager; enable %s for graphical login\n' "$LOGIN_UNIT"
     else
       printf 'Login screen: install and enable SDDM (no login manager found)\n'
     fi
@@ -174,6 +197,8 @@ if (( DRY_RUN )); then
       printf 'Login appearance: restore Hyprshell Glass when SDDM is the login manager\n'
     fi
     printf 'Enable NetworkManager, Bluetooth, UPower, PipeWire, and WirePlumber; Quickshell owns the notification inbox\n'
+    printf 'Daily driver: enable printing/discovery and SSD trim; configure time sync and firewall while preserving configured alternatives\n'
+    printf 'Firmware: general wireless/GPU/audio firmware, SOF, CPU microcode, and Mesa graphics; NVIDIA needs hardware-specific review\n'
     printf 'Timezone: %s\n' "${TIMEZONE:-unchanged}"
     if (( SKIP_BOOT_SPLASH )); then
       printf 'Boot splash: leave boot configuration unchanged\n'
@@ -208,7 +233,7 @@ if [[ "$MODE" == install ]]; then
   sudo -v
   if [[ "$DISTRO" == fedora ]]; then
     if [[ -n "$COPR" ]]; then
-      log "Enabling the explicitly selected COPR: $COPR"
+      log "Enabling the Fedora desktop COPR: $COPR"
       sudo dnf install -y 'dnf5-command(copr)'
       sudo dnf copr enable -y "$COPR"
     fi
@@ -257,15 +282,6 @@ if [[ "$MODE" == config-only ]]; then
   exit 0
 fi
 
-log 'Validating the installed configuration and refreshing fonts'
-python3 "$REPO_DIR/tools/check_runtime.py" --native
-# Distribution paths differ; never accidentally select a Qt 5 runner.
-QML_TEST_RUNNER=$(python3 "$REPO_DIR/tools/check_runtime.py" --qmltestrunner)
-QT_QPA_PLATFORMTHEME= QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "$QML_TEST_RUNNER" -input "$CONFIG_DIR/quickshell/tests"
-Hyprland --verify-config --config "$CONFIG_DIR/hypr/hyprland.lua"
-fc-cache -f
-xdg-user-dirs-update
-
 log 'Enabling networking, Bluetooth, battery information, and audio'
 sudo systemctl enable --now NetworkManager.service bluetooth.service
 # UPower is D-Bus activated (a static unit), so start it rather than enable it.
@@ -285,16 +301,22 @@ else
   printf 'User services are enabled and will start at the next login.\n'
 fi
 
-if ! has_login_manager; then
-  log 'Installing SDDM because no login manager was found'
-  if [[ "$DISTRO" == fedora ]]; then
-    sudo dnf install -y --setopt=install_weak_deps=False sddm sddm-x11
-  else
-    sudo pacman -S --needed --noconfirm sddm
-  fi
-  sudo systemctl enable sddm.service
-  sudo systemctl set-default graphical.target
-fi
+if [[ -z "$LOGIN_UNIT" ]]; then LOGIN_UNIT=sddm.service; fi
+log "Preparing graphical login with $LOGIN_UNIT"
+sudo systemctl enable "$LOGIN_UNIT"
+sudo systemctl set-default graphical.target
+
+log 'Configuring printing, discovery, keyring login, time sync, firewall, and SSD maintenance'
+sudo python3 "$REPO_DIR/tools/configure_daily_driver.py"
+
+log 'Validating the installed configuration and refreshing fonts'
+python3 "$REPO_DIR/tools/check_runtime.py" --native
+# Distribution paths differ; never accidentally select a Qt 5 runner.
+QML_TEST_RUNNER=$(python3 "$REPO_DIR/tools/check_runtime.py" --qmltestrunner)
+QT_QPA_PLATFORMTHEME= QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "$QML_TEST_RUNNER" -input "$CONFIG_DIR/quickshell/tests"
+Hyprland --verify-config --config "$CONFIG_DIR/hypr/hyprland.lua"
+fc-cache -f
+xdg-user-dirs-update
 
 if (( ! SKIP_LOGIN_THEME )); then
   # Never replace another display manager just to apply an SDDM theme.
@@ -310,15 +332,26 @@ fi
 
 if (( ! SKIP_BOOT_SPLASH )); then
   log 'Restoring the saved Hyprshell Glass boot splash'
+  SPLASH_INSTALLER=install_boot_splash.py
   if [[ "$DISTRO" == fedora ]]; then
-    sudo python3 "$REPO_DIR/tools/install_boot_splash_fedora.py"
+    SPLASH_INSTALLER=install_boot_splash_fedora.py
+  fi
+  if sudo python3 "$REPO_DIR/tools/$SPLASH_INSTALLER"; then
+    :
   else
-    sudo python3 "$REPO_DIR/tools/install_boot_splash.py"
+    status=$?
+    # Unsupported layouts are detected before writing. Rebuild/write failures
+    # still stop setup so it cannot conceal a damaged boot image.
+    (( status == 10 )) || die 'Boot splash failed; resolve the rebuild error before rebooting'
+    printf 'Keeping the existing boot appearance on this unsupported layout.\n'
   fi
 fi
 
-log 'Setup complete'
+log 'Checking installation readiness'
+python3 "$REPO_DIR/tools/check_daily_driver.py" --output "$STATE_DIR/hyprshell/setup-readiness.json"
+log 'Setup complete; review hardware checks after login'
 printf 'Reboot, then select "Hyprland (uwsm-managed)" if you use a login screen.\n'
 printf 'From a TTY run: uwsm start -e -D Hyprland hyprland.desktop\n'
 printf 'SUPER+T opens Kitty; SUPER+E opens COSMIC Files; press and release SUPER for the launcher.\n'
 printf 'Existing config backups: %s/hyprshell/backups/\n' "$STATE_DIR"
+printf 'After login: python3 %q/tools/check_daily_driver.py --after-login\n' "$REPO_DIR"

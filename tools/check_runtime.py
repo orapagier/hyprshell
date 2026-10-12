@@ -21,7 +21,8 @@ def check_native():
     required = ('luac', 'Hyprland', 'hyprctl', 'awww', 'awww-daemon', 'nmcli', 'nm-connection-editor',
                 'bluetoothctl', 'pactl', 'paplay', 'wpctl', 'kitty', 'cosmic-files', 'uwsm',
                 'sqlite3', 'cc', 'busctl', 'systemctl', 'brightnessctl',
-                'hypridle', 'systemd-inhibit',
+                'hypridle', 'hyprlock', 'mpv', 'playerctl', 'mousepad', 'gnome-keyring-daemon',
+                'system-config-printer', 'simple-scan', 'systemd-inhibit',
                 'grim', 'slurp', 'swappy', 'fc-cache', 'xdg-user-dirs-update',
                 'sudo')
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'config/quickshell/settings'))

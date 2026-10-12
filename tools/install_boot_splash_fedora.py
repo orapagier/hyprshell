@@ -55,7 +55,9 @@ def main():
         apply_plan(plan, commands, outputs, Path('/var/lib/hyprshell/boot-backups'),
                    component='Fedora boot splash')
         print('Kernel parameters preserved. Plymouth graphics require rhgb; see docs/fedora.md.')
-    except (UnsupportedBoot, OSError, ValueError, subprocess.CalledProcessError) as exc:
+    except UnsupportedBoot as exc:
+        parser.exit(10, f'Fedora boot splash skipped: {exc}\nDesktop services are independent of boot appearance.\n')
+    except (OSError, ValueError, subprocess.CalledProcessError) as exc:
         parser.exit(1, f'Fedora boot splash not configured: {exc}\n'
                     'See docs/fedora.md; use --skip-boot-splash for custom boot layouts.\n')
 

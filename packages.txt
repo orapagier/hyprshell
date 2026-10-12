@@ -10,8 +10,6 @@ uwsm
 hyprpolkitagent
 xdg-desktop-portal
 xdg-desktop-portal-hyprland
-# Syntax validation for personal configuration recovery
-lua
 xdg-desktop-portal-gtk
 glib2
 gsettings-desktop-schemas
@@ -98,3 +96,34 @@ deja-dup
 restic
 rclone
 yt-dlp
+
+# Everyday applications, peripherals, credentials, maintenance, and firmware
+playerctl
+mousepad
+unzip
+zip
+7zip
+man-db
+man-pages
+bash-completion
+zenity
+cliphist
+cups
+system-config-printer
+simple-scan
+avahi
+nss-mdns
+gnome-keyring
+seahorse
+chrony
+firewalld
+linux-firmware
+sof-firmware
+alsa-firmware
+intel-ucode
+amd-ucode
+vulkan-intel
+vulkan-radeon
+sane
+# Mesa Vulkan on supported NVIDIA hardware using Nouveau
+vulkan-nouveau

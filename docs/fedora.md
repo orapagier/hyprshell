@@ -4,14 +4,16 @@ This port targets **Fedora Everything 44, x86_64, installed as a traditional
 DNF system**. Start with the Everything network installer and a minimal
 installation, a normal user with sudo access, and working networking.
 Hyprshell installs the desktop after Fedora is installed; it does not
-partition disks, install Fedora, or configure GPU drivers. Fedora Atomic,
+partition disks or install Fedora. It installs common firmware, microcode,
+Mesa graphics, and the full kernel driver modules. Proprietary NVIDIA drivers,
+Secure Boot signing, and unusual hardware still require device-specific checks. Fedora Atomic,
 Silverblue, Kinoite, bootc, and OSTree installations are outside this port.
 
 The desktop payload is shared with Arch: Hyprland Lua configuration,
 Quickshell bar and Settings, menus, notifications, wallpaper helpers,
 application preferences, and backup/sync workflows. Fedora has separate
 package manifests and DNF package operations. Existing display managers
-are preserved. SDDM is installed and enabled only if none is found.
+are preserved and enabled for graphical login. SDDM is installed only if none is found.
 
 ## Install from a Fedora TTY
 
@@ -23,23 +25,27 @@ sudo dnf install git python3 sudo
 mkdir -p ~/repos
 git clone https://github.com/orapagier/hyprshell.git ~/repos/hyprshell
 cd ~/repos/hyprshell
-./setup.sh --dry-run --copr lionheartp/Hyprland --extra
-./setup.sh --copr lionheartp/Hyprland --extra
+./setup.sh --dry-run
+./setup.sh
 ```
 
 Use the repository/fork containing this port until it is published upstream.
 Run setup as your desktop user, without `sudo ./setup.sh`. `--extra` adds
-containers, additional archive tools, clipboard history, media controls,
-a text editor, and other optional applications. The base manifest installs
+Distrobox, Podman and cmatrix. Everyday apps, archive tools, clipboard-history
+tools, media controls and a text editor are included without it. The base manifest installs
 the desktop, Chromium, terminal, file manager, Wi-Fi support, Bluetooth,
 audio, fonts, helper build dependencies, Hyprlock, XDG and Wayland clipboard
 utilities, Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic,
-rclone, and yt-dlp. Automatic locking and backup destinations/schedules
-must be configured separately after installation.
+rclone, and yt-dlp. Saved preferences enable Hyprlock after 60 idle minutes and before sleep.
+Backup destinations/schedules must be configured separately after installation.
+Clipboard capture remains disabled. [Daily-driver setup](daily-driver.md) covers
+printing, scanning, keyring login, time sync, firewall, firmware and readiness checks.
 Timezone is preserved unless `--timezone REGION/CITY` is supplied.
 
-`--copr` explicitly opts into the selected third-party repository. No COPR
-is enabled by default. [Hyprland's installation guide](https://wiki.hypr.land/Getting-Started/Installation/)
+Full Fedora setup enables the third-party `lionheartp/Hyprland` COPR by default
+to supply the compatible desktop ecosystem. Review this choice with `--dry-run`.
+Use `--copr OWNER/REPO` to choose a different repository, or `--no-copr` to
+preserve only the repositories already enabled. Config-only never changes repositories. [Hyprland's installation guide](https://wiki.hypr.land/Getting-Started/Installation/)
 lists `lionheartp/Hyprland` for Fedora. Its [Fedora 44 build](https://copr-be.cloud.fedoraproject.org/results/lionheartp/Hyprland/fedora-44-x86_64/10966333-hyprland/)
 provides Hyprland 0.56.2 and the separate `hyprland-uwsm` session package
 (checked 2026-10-12). Repository builds change; the installer requires
@@ -47,16 +53,18 @@ Hyprland **0.56 or newer**, because older releases cannot load this Lua
 configuration. Use compatible packages from one maintained ecosystem;
 review repository conflicts in DNF instead of forcing package erasure.
 
-If compatible repositories are already enabled, omit `--copr`:
+If compatible repositories are already enabled, disable automatic COPR enablement:
 
 ```bash
-./setup.sh --dry-run --extra
-./setup.sh --extra
+./setup.sh --dry-run --no-copr
+./setup.sh --no-copr
 ```
 
 The installer first resolves/downloads the complete package transaction,
 then upgrades Fedora and installs the desktop dependencies. Missing
-packages or dependency conflicts stop the installation. It never uses
+packages or dependency conflicts stop the installation. SDDM, when needed, is
+part of this preflight transaction. GPU/audio/wireless firmware is explicitly
+listed because DNF weak dependencies are disabled. It never uses
 `--allowerasing`, `--skip-unavailable`, disables signature checks, or turns
 off SELinux. A dry run only reads the installed RPM database and service
 list; it does not enable repositories, refresh DNF metadata, download
@@ -117,8 +125,9 @@ before using the custom SDDM theme or rebuilding Fedora's initramfs.
 Existing kernel arguments, disk/encryption IDs, and BLS entries are
 preserved. Fedora's graphical boot needs `rhgb`; if you intentionally
 removed it, review your kernel arguments and add it with Fedora's
-`grubby` tooling if desired. Custom UKI and bootloader layouts must use
-`--skip-boot-splash` and integrate Plymouth manually. This path does not
+`grubby` tooling if desired. Custom UKI and bootloader layouts keep their existing boot appearance
+when detected as unsupported; integrate Plymouth manually if desired.
+`--skip-boot-splash` skips all boot appearance work explicitly. This path does not
 install Arch's UKI bitmap or use mkinitcpio.
 
 Preview splash changes separately, once dependencies are installed:

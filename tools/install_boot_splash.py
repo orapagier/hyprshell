@@ -357,7 +357,9 @@ def main():
         if os.geteuid() != 0:
             parser.error('Run with sudo, or use --dry-run to preview')
         apply_plan(plan, commands, outputs, Path('/var/lib/hyprshell/boot-backups'))
-    except (UnsupportedBoot, OSError, ValueError, subprocess.CalledProcessError) as exc:
+    except UnsupportedBoot as exc:
+        parser.exit(10, f'Boot splash skipped: {exc}\nDesktop services are independent of boot appearance.\n')
+    except (OSError, ValueError, subprocess.CalledProcessError) as exc:
         parser.exit(1, f'Boot splash not configured: {exc}\nSee docs/boot-splash.md; '
                     'use setup.sh --skip-boot-splash to install only the desktop.\n')
 
