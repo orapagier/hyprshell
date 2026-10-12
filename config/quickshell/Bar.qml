@@ -180,7 +180,10 @@ Item {
             return Qt.rect(12, 2, 24, 20);
         // Read layout positions directly so the connector follows screen and
         // status-width changes, including movement of the containing row.
-        return Qt.rect(item.x, item.y, item.width, item.height);
+        // Anchor on the visible content, which asymmetric inside-pill padding
+        // shifts away from the item's geometric centre.
+        let contentShift = vertical ? 0 : (item.effectiveLeftPadding - item.effectiveRightPadding) / 2;
+        return Qt.rect(item.x + contentShift, item.y, item.width, item.height);
     }
     function menuAccent(name) {
         let item = menuTargets[name];
