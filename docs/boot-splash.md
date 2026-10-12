@@ -16,7 +16,7 @@ and the limits of the handoff.
 
 The theme matches the shell's dark glass menus: a translucent rounded card,
 lavender/cyan lighting, a fine reflective rim, gently floating and breathing
-Hyprshell lettering, and the description “A calm space. A fluid desktop.”
+Fedora lettering, and the description “A calm space. A fluid desktop.”
 The bar follows Plymouth's estimated boot progress with smooth interpolation
 and a moving highlight. It adds no artificial wait and displays no invented
 percentage. Passwords are masked; question prompts and boot messages remain

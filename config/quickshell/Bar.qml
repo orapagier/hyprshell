@@ -17,7 +17,7 @@ Item {
     function itemX(id) { return vertical ? (width - moduleItems[id].width) / 2 : itemPosition(id); }
     function itemY(id) { return vertical ? itemPosition(id) : (height - moduleItems[id].height) / 2; }
     readonly property var moduleItems: ({
-            launcher: arch,
+            launcher: distroLogo,
             settings: settingsCog,
             workspaces: workspaceRow,
             media: mediaSlot,
@@ -164,7 +164,7 @@ Item {
     signal menuHovered(string name)
     signal menuLeft(string name)
     readonly property var menuTargets: ({
-            launcher: arch,
+            launcher: distroLogo,
             settings: settingsCog,
             calendar: clock,
             notifications: bell,
@@ -225,7 +225,7 @@ Item {
         }
     }
     BarMenuButton {
-        id: arch
+        id: distroLogo
         bar: bar
         menu: "launcher"
         x: bar.itemX("launcher")
@@ -235,8 +235,8 @@ Item {
         settings: bar.appearance("launcher")
         opacity: Settings.item(bar.settings, "launcher").opacity ?? 1
         visible: bar.itemEnabled("launcher")
-        text: ""
-        foreground: "#1793d1"
+        text: ""
+        foreground: "#51a2da"
         family: "GoMono Nerd Font"
         pixelSize: 20
         bold: false
@@ -245,19 +245,19 @@ Item {
         leftPadding: 2
         rightPadding: 2
         backgroundVisible: false
-        content.opacity: arch.settings.text || arch.settings.icon ? 1 : 0
+        content.opacity: distroLogo.settings.text || distroLogo.settings.icon ? 1 : 0
         GlassLogo {
-            objectName: "archGlassLogo"
-            iconSize: arch.settings.iconSize || arch.settings.fontSize || 22
-            visible: !arch.settings.text && !arch.settings.icon && !arch.settings.hideText && !arch.settings.hideIcon
-            x: arch.content.x
-            width: arch.content.width
-            height: arch.height
-            accent: arch.settings.iconColor || arch.settings.textColor || arch.effectiveForeground
-            highlighted: arch.hovered || arch.selected
-            contrastEdge: arch.glyphHalo
-            edgeColor: arch.iconEdge
-            vivid: arch.bare
+            objectName: "distroGlassLogo"
+            iconSize: distroLogo.settings.iconSize || distroLogo.settings.fontSize || 22
+            visible: !distroLogo.settings.text && !distroLogo.settings.icon && !distroLogo.settings.hideText && !distroLogo.settings.hideIcon
+            x: distroLogo.content.x
+            width: distroLogo.content.width
+            height: distroLogo.height
+            accent: distroLogo.settings.iconColor || distroLogo.settings.textColor || distroLogo.effectiveForeground
+            highlighted: distroLogo.hovered || distroLogo.selected
+            contrastEdge: distroLogo.glyphHalo
+            edgeColor: distroLogo.iconEdge
+            vivid: distroLogo.bare
         }
     }
     BarMenuButton {

@@ -1,7 +1,7 @@
 # Hyprshell Glass login and startup appearance
 
 SDDM uses the same dark glass background, lavender/cyan lighting, gently floating
-Hyprshell lettering, and pulsing title glow as the Plymouth splash. The taller
+Fedora lettering, and pulsing title glow as the Plymouth splash. The taller
 card holds the user picker (also accepts a typed username), masked password,
 desktop session, keyboard layout, and power actions. Enter signs in; failed
 authentication clears the password and returns focus to its field. The theme
@@ -91,7 +91,7 @@ References: [SDDM theme API](https://github.com/sddm/sddm/wiki/Theming),
 
 ## Lock and logout
 
-Lock uses Hyprlock with the same background, glass card, and Hyprshell title as
+Lock uses Hyprlock with the same background, glass card, and Fedora title as
 the login theme. Enter your password and press Enter to resume your open apps.
 The password field highlights Caps Lock and failed authentication. Logout ends
 the session and returns to SDDM.
@@ -109,3 +109,17 @@ relative images work with custom XDG config roots. To launch this config directl
 run Hyprlock from that folder. Custom locker commands retain their working directory.
 Lock command edits require **Apply lock command**; typing does not change the
 active locker. A replacement executable must exist before it can be saved.
+
+## Fedora branding
+
+The saved bar logo is Fedora’s symbol, and the boot/login artwork says Fedora
+with a `HYPRSHELL / FEDORA LINUX` footer. These are saved artwork choices.
+On Fedora, apply the boot and login assets together from a normal terminal:
+
+```bash
+sudo python3 ~/repos/hyprshell/tools/install_login_theme.py --with-boot-splash
+```
+
+This restores SELinux labels and rebuilds Fedora initramfs images with dracut.
+Boot entries require root access even for a dry run. The bar QML can be applied
+in the user session; boot and SDDM assets require administrator access.
