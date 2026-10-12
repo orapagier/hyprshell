@@ -70,6 +70,8 @@ python-gobject
 sqlite
 util-linux
 procps-ng
+usbutils
+pciutils
 libnotify
 pacman-contrib
 sudo
