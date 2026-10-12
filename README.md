@@ -161,7 +161,7 @@ The installer:
    setups, preserving the destination machine's disk and encryption settings.
 
 The base package list is in [packages.txt](packages.txt). It includes Firefox,
-Kitty, Nautilus with Android USB file transfer support (`gvfs-mtp`), UWSM, portals,
+Kitty, COSMIC Files with GVfs/MTP support (`gvfs-mtp`), UWSM, portals,
 the Polkit agent, fonts and icons, screenshot and
 brightness tools, NetworkManager, BlueZ, UPower, PipeWire, and WirePlumber.
 It also includes Plymouth. See [boot splash setup and portability](docs/boot-splash.md)
@@ -368,7 +368,7 @@ keybindings changes the behavior described here.
 | --- | --- |
 | `Super+T` | Open Kitty. |
 | Press and release `Super` | Toggle the application launcher. |
-| `Super+E` | Open a Nautilus window. |
+| `Super+E` | Open a COSMIC Files window. |
 | `Super+K` | Toggle the searchable shortcut overlay. |
 | `Alt+T` | Show or hide the topbar. |
 | `Alt+S` | Open Hyprshell Settings. |
@@ -713,7 +713,7 @@ an installed desktop entry.
 
 ### An Android phone does not appear in Files
 
-Nautilus needs `gvfs-mtp` to browse Android phones over USB. It is included in
+Android USB file transfer uses `gvfs-mtp`. It is included in
 the base desktop setup; older installations may have installed it only with
 `--extra`. To add it to an existing Arch installation, run:
 
@@ -722,10 +722,10 @@ sudo pacman -Syu --needed gvfs-mtp
 ```
 
 Unlock the phone, select **File transfer / Android Auto** in its USB options,
-and accept any file-access prompt. After installation, close Nautilus with
-`nautilus --quit`, reconnect the phone, and open Files again (`Super+E`). The
-phone should appear in the sidebar. If it does not, log out and back in to
-refresh the session's GVfs volume monitors.
+and accept any file-access prompt. After installation, close COSMIC Files,
+reconnect the phone, and open it again (`Super+E`). Check its network/volume
+locations for the phone. If it remains absent, log out and back in to refresh
+the session's GVfs volume monitors.
 
 In a desktop terminal, `gio mount -li` shows detected volumes. If the phone is
 still absent, check that the cable supports data and try another USB port.

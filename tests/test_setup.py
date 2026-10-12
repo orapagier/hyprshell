@@ -87,7 +87,7 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('Missing desktop packages: hyprland quickshell wpa_supplicant upower', result.stdout)
         targets = queries[2][1:]
         for required in ('hyprpolkitagent', 'qt6-wayland', 'gcc', 'libpulse', 'fftw',
-                         'pipewire-pulse', 'upower', 'wpa_supplicant', 'ttf-go-nerd', 'nautilus', 'plymouth', 'firefox'):
+                         'pipewire-pulse', 'upower', 'wpa_supplicant', 'ttf-go-nerd', 'cosmic-files', 'plymouth', 'firefox'):
             self.assertIn(required, targets)
         for unrelated in ('brave-bin', 'chromium', 'yay', 'waybar', 'mako',
                           'rofi', 'fuzzel', 'cosmic-greeter', 'base-devel',
@@ -153,7 +153,7 @@ class InstallerTests(unittest.TestCase):
         mock_bin = Path(self.env['PATH'].split(os.pathsep)[0])
         calls = self.root / 'system-calls.jsonl'
         # Never execute privileged operations, start services, or alter font caches.
-        for name in ('sudo', 'systemctl', 'fc-cache', 'xdg-user-dirs-update', 'nautilus'):
+        for name in ('sudo', 'systemctl', 'fc-cache', 'xdg-user-dirs-update', 'cosmic-files'):
             program = mock_bin / name
             program.write_text(
                 '#!/usr/bin/env python3\nimport json, sys\n'
@@ -231,7 +231,7 @@ class InstallerTests(unittest.TestCase):
                              (ROOT / 'config/quickshell' / payload_file).read_bytes())
         self.assertEqual((self.config / 'autostart/nm-applet.desktop').read_bytes(),
                          (ROOT / 'config/autostart/nm-applet.desktop').read_bytes())
-        self.assertIn('uwsm app -- nautilus --new-window',
+        self.assertIn('uwsm app -- cosmic-files',
                       (self.config / 'hyprshell/hyprland/programs.lua').read_text())
         for section in (ROOT / 'config/hyprshell/hyprland').iterdir():
             self.assertEqual((self.config / 'hyprshell/hyprland' / section.name).read_bytes(),

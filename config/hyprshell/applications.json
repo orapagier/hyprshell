@@ -7,7 +7,8 @@
     "audio/mp4": "fedora-vlc.desktop",
     "video/mp4": "fedora-vlc.desktop",
     "video/webm": "fedora-vlc.desktop",
-    "video/x-matroska": "fedora-vlc.desktop"
+    "video/x-matroska": "fedora-vlc.desktop",
+    "inode/directory": "com.system76.CosmicFiles.desktop"
   },
   "startup": {}
 }

@@ -35,7 +35,7 @@ pop-icon-theme
 adwaita-cursors
 # Terminal, file manager, and Android USB file transfer
 kitty
-nautilus
+cosmic-files
 gvfs
 gvfs-mtp
 xdg-user-dirs

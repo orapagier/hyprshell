@@ -33,7 +33,7 @@ google-noto-emoji-color-fonts
 adwaita-fonts-all
 adwaita-icon-theme
 kitty
-nautilus
+cosmic-files
 gvfs
 gvfs-mtp
 xdg-user-dirs

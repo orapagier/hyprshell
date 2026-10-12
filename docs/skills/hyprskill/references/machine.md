@@ -18,3 +18,7 @@ Inspected 2026-10-09. These facts describe ramlej's machine, not every Hyprshell
 - Native dependency checker passed. This inspection could not access Hyprland IPC or system/user D-Bus from the agent sandbox; running service status, active display state, and actual locking behavior were not verified.
 
 Do not infer hostname, disk layout, active radios, service health, or current package versions from this profile. Use narrow live queries when needed. Keep serial numbers, MAC addresses, network names, tokens, and private history out of this file.
+
+- 2026-10-12: Current OS verified as Fedora 44. Repository and live Super+E command now use `uwsm app -- cosmic-files`; saved folder default is `com.system76.CosmicFiles.desktop`. COSMIC Files was not installed at this check; package installation and compositor reload require the user terminal because this agent cannot elevate or access Hyprland IPC. Earlier Arch observations above are historical.
+
+- 2026-10-12: Current OS verified as Fedora 44. Repository and live Super+E command now use `uwsm app -- cosmic-files`; saved folder default is `com.system76.CosmicFiles.desktop`. COSMIC Files was not installed at this check; package installation and compositor reload require the user terminal because this agent cannot elevate or access Hyprland IPC. Earlier Arch observations above are historical.

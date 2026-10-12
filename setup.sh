@@ -320,5 +320,5 @@ fi
 log 'Setup complete'
 printf 'Reboot, then select "Hyprland (uwsm-managed)" if you use a login screen.\n'
 printf 'From a TTY run: uwsm start -e -D Hyprland hyprland.desktop\n'
-printf 'SUPER+T opens Kitty; SUPER+E opens Nautilus; press and release SUPER for the launcher.\n'
+printf 'SUPER+T opens Kitty; SUPER+E opens COSMIC Files; press and release SUPER for the launcher.\n'
 printf 'Existing config backups: %s/hyprshell/backups/\n' "$STATE_DIR"
