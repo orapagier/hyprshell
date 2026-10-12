@@ -76,3 +76,19 @@ plymouth-plugin-script
 dracut
 git
 gh
+
+# Daily-driver integration, locking, viewers, archives, and monitoring
+xdg-utils
+wl-clipboard
+hyprlock
+loupe
+papers
+mpv
+file-roller
+rsync
+htop
+# Personal backups, cloud transfers, and media downloads
+deja-dup
+restic
+rclone
+yt-dlp

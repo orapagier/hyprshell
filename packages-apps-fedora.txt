@@ -1,7 +1,6 @@
 # Opt-in daily-driver apps: ./setup.sh --extra on Fedora.
 distrobox
 podman
-hyprlock
 man-db
 man-pages
 bash-completion
@@ -9,13 +8,8 @@ cmatrix
 unzip
 zip
 7zip
-file-roller
-xdg-utils
-wl-clipboard
 cliphist
 playerctl
 zenity
-mpv
-imv
-evince
+# Graphical text editor
 mousepad

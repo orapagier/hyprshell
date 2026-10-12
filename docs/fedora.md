@@ -29,10 +29,13 @@ cd ~/repos/hyprshell
 
 Use the repository/fork containing this port until it is published upstream.
 Run setup as your desktop user, without `sudo ./setup.sh`. `--extra` adds
-containers, screen locker, clipboard tools, document viewers, media apps,
-and other daily-driver applications. The base manifest installs the desktop,
-Firefox, terminal, file manager, Wi-Fi support, Bluetooth, audio, fonts, and
-helper build dependencies.
+containers, additional archive tools, clipboard history, media controls,
+a text editor, and other optional applications. The base manifest installs
+the desktop, Firefox, terminal, file manager, Wi-Fi support, Bluetooth,
+audio, fonts, helper build dependencies, Hyprlock, XDG and Wayland clipboard
+utilities, Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic,
+rclone, and yt-dlp. Automatic locking and backup destinations/schedules
+must be configured separately after installation.
 Timezone is preserved unless `--timezone REGION/CITY` is supplied.
 
 `--copr` explicitly opts into the selected third-party repository. No COPR

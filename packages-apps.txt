@@ -2,8 +2,6 @@
 # Containers
 distrobox
 podman
-# Screen locking; enable automatic locking separately in Hyprshell Settings
-hyprlock
 # Documentation, shell completion, package maintenance, and terminal fun
 man-db
 man-pages
@@ -14,17 +12,10 @@ cmatrix
 unzip
 zip
 7zip
-file-roller
-# Desktop integration, Wayland clipboard, media control
-xdg-utils
-wl-clipboard
 # Optional clipboard history; capture stays disabled until enabled in Settings
 cliphist
 playerctl
 # Graphical file picker and dialogs for shell scripts
 zenity
-# Video/audio, images, PDFs, and a graphical text editor
-mpv
-imv
-evince
+# Graphical text editor
 mousepad

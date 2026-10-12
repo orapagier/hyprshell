@@ -225,12 +225,16 @@ command. After creating a container, run `hyprshell_refresh_boxes` or open a new
 terminal. To load the shortcuts in an already open terminal, run `source ~/.bashrc`.
 These shortcuts are also installed by `--config-only`.
 
+The main install includes Hyprlock, XDG and Wayland clipboard utilities,
+Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic, rclone,
+and yt-dlp. Installing Hyprlock does not enable automatic locking;
+configure it separately in Settings. Backup destinations and schedules also
+need to be configured after installation.
+
 The optional [application list](packages-apps.txt) includes Distrobox,
-Podman, Hyprlock/Hypridle, archive tools, manuals and shell completion, clipboard and
-media utilities, Zenity for file picker dialogs,
-mpv, imv, Evince, Mousepad,
-and cmatrix. Review the list before installing it. Installing locking packages
-does not enable automatic locking.
+Podman, additional archive tools, manuals and shell completion, clipboard
+history and media controls, Zenity for file picker dialogs, Mousepad,
+and cmatrix. Review the list before installing it.
 
 `--config-only` requires Python 3, a C compiler, and the libpulse/FFTW development
 files to be installed already. Use the full installer when dependencies are
