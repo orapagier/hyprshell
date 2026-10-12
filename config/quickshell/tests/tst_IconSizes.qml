@@ -21,7 +21,7 @@ Item {
             compare(findChild(bar.moduleItems.audio,"pillIcon").font.pixelSize,24);
             compare(bar.moduleItems.audio.content.font.pixelSize,18);
             compare(bar.moduleItems.wifi.content.font.pixelSize,24);
-            compare(findChild(bar,"distroGlassLogo").iconSize,24);
+            compare(findChild(bar,"archGlassLogo").iconSize,24);
             compare(findChild(bar,"settingsGlassCog").iconSize,24);
             compare(findChild(bar,"trayIcon").width,24);
             compare(findChild(bar.moduleItems.battery,"pillIcon").font.pixelSize,24);
@@ -32,14 +32,14 @@ Item {
         function test_individualSizeWinsAndResetFollowsGlobal() {
             bar.settings = {bar:{height:32,iconSize:32},items:[{id:"wifi",iconSize:12},{id:"launcher",iconSize:40},{id:"tray",iconSize:20}]};
             compare(bar.moduleItems.wifi.content.font.pixelSize,12);
-            compare(findChild(bar,"distroGlassLogo").iconSize,40);
+            compare(findChild(bar,"archGlassLogo").iconSize,40);
             compare(findChild(bar,"trayIcon").width,20);
             compare(findChild(bar.moduleItems.audio,"pillIcon").font.pixelSize,32);
             bar.settings = {bar:{height:32,iconSize:32},items:[{id:"wifi",iconSize:0}]};
             compare(bar.moduleItems.wifi.content.font.pixelSize,32);
             bar.settings = {bar:{height:32,iconSize:0}};
             compare(bar.moduleItems.wifi.content.font.pixelSize,15);
-            compare(findChild(bar,"distroGlassLogo").iconSize,22);
+            compare(findChild(bar,"archGlassLogo").iconSize,22);
             compare(findChild(bar.moduleItems.audio,"pillIcon").font.pixelSize,16);
             compare(findChild(bar,"trayIcon").width,16);
         }
