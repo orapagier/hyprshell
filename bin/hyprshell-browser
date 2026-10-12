@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -eu
+for browser_command in chromium chromium-browser; do
+    if command -v "$browser_command" >/dev/null 2>&1; then
+        exec "$browser_command" "$@"
+    fi
+done
+printf 'Install the chromium package to use the browser shortcut.\n' >&2
+exit 1

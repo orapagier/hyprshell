@@ -2,6 +2,6 @@
 return {
     terminal = "kitty",
     fileManager = "uwsm app -- cosmic-files",
-    browser = "uwsm app -- firefox",
+    browser = "uwsm app -- hyprshell-browser",
     menu = [[uwsm app -- "$HOME/.local/bin/app-launcher"]],
 }

@@ -38,7 +38,7 @@ gvfs
 gvfs-mtp
 xdg-user-dirs
 # Default web browser
-firefox
+chromium
 NetworkManager
 NetworkManager-wifi
 nm-connection-editor-desktop

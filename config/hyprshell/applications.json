@@ -8,7 +8,12 @@
     "video/mp4": "fedora-vlc.desktop",
     "video/webm": "fedora-vlc.desktop",
     "video/x-matroska": "fedora-vlc.desktop",
-    "inode/directory": "com.system76.CosmicFiles.desktop"
+    "inode/directory": "com.system76.CosmicFiles.desktop",
+    "text/html": "chromium-browser.desktop",
+    "x-scheme-handler/http": "chromium-browser.desktop",
+    "x-scheme-handler/https": "chromium-browser.desktop",
+    "x-scheme-handler/about": "chromium-browser.desktop",
+    "x-scheme-handler/unknown": "chromium-browser.desktop"
   },
   "startup": {}
 }

@@ -53,6 +53,17 @@ class ApplicationsTests(unittest.TestCase):
         self.assertEqual(specific['Default Applications']['text/plain'], 'keep.desktop;')
         self.assertEqual(applications.saved()['defaults'], {'application/pdf': 'viewer.desktop'})
 
+    def test_chromium_default_restores_across_distributions(self):
+        for saved_id, installed_id in [('chromium-browser.desktop', 'chromium.desktop'),
+                                       ('chromium.desktop', 'chromium-browser.desktop')]:
+            with self.subTest(saved_id=saved_id):
+                data = {'version': 1, 'defaults': {'text/html': saved_id}, 'startup': {}}
+                changes, skipped = applications.changes_for(data, {installed_id: {}}, restoring=True)
+                result = applications.parser(changes[self.config / 'mimeapps.list'])
+                self.assertEqual(result['Default Applications']['text/html'], installed_id + ';')
+                self.assertEqual(skipped, [])
+                self.assertEqual(data['defaults']['text/html'], saved_id)
+
     def test_external_edit_and_invalid_input_leave_files_untouched(self):
         revision = applications.revision()
         path = self.write(self.config, 'mimeapps.list', '[Default Applications]\ntext/plain=keep.desktop;\n')

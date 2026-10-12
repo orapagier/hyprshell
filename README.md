@@ -160,7 +160,7 @@ The installer:
 9. Restores the saved Plymouth Hyprshell Glass splash on supported mkinitcpio boot
    setups, preserving the destination machine's disk and encryption settings.
 
-The base package list is in [packages.txt](packages.txt). It includes Firefox,
+The base package list is in [packages.txt](packages.txt). It includes Chromium,
 Kitty, COSMIC Files with GVfs/MTP support (`gvfs-mtp`), UWSM, portals,
 the Polkit agent, fonts and icons, screenshot and
 brightness tools, NetworkManager, BlueZ, UPower, PipeWire, and WirePlumber.
@@ -284,7 +284,7 @@ own hardware and preferences:
 | Display resolution, refresh rate, scale, and position | Settings → Displays; underlying rules in `~/.config/hyprshell/hyprland/monitors.lua` and `hypr/hyprland-gui.lua`. |
 | Keyboard layout | The `input.kb_layout` value in `~/.config/hyprshell/hyprland/input.lua`; bundled value is `us`. |
 | Terminal and file manager | The `terminal` and `fileManager` entries in `~/.config/hyprshell/hyprland/programs.lua`. |
-| Browser shortcut | The `Super+B` default binding in `hyprshell/hyprland/shortcuts.lua`; it launches Firefox, which the base installer provides. |
+| Browser shortcut | The `Super+B` default binding in `hyprshell/hyprland/shortcuts.lua`; it launches Chromium, which the base installer provides. |
 | Startup wallpaper | `~/.config/hypr/wallpaper-start.sh`. |
 | Clock display | Hyprshell Settings → Bar & layout. |
 | Holiday data | `~/.config/quickshell/Calendar.js`. |
@@ -379,7 +379,7 @@ keybindings changes the behavior described here.
 | `Alt+C` / `Alt+N` | Toggle calendar / notifications. |
 | `Alt+A` / `Alt+W` | Toggle audio / Wi-Fi. |
 | `Alt+V` / `Alt+B` / `Alt+P` | Toggle Bluetooth / battery / power options. |
-| `Super+B` | Launch Firefox (the default browser); customize this binding for another browser. |
+| `Super+B` | Launch Chromium (the default browser); customize this binding for another browser. |
 | `Super+Q` | Close the focused window. |
 | `Super+M` | Toggle maximized mode. |
 | `Super+V` | Toggle floating mode. |

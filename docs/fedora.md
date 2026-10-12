@@ -31,7 +31,7 @@ Use the repository/fork containing this port until it is published upstream.
 Run setup as your desktop user, without `sudo ./setup.sh`. `--extra` adds
 containers, additional archive tools, clipboard history, media controls,
 a text editor, and other optional applications. The base manifest installs
-the desktop, Firefox, terminal, file manager, Wi-Fi support, Bluetooth,
+the desktop, Chromium, terminal, file manager, Wi-Fi support, Bluetooth,
 audio, fonts, helper build dependencies, Hyprlock, XDG and Wayland clipboard
 utilities, Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic,
 rclone, and yt-dlp. Automatic locking and backup destinations/schedules

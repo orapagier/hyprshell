@@ -75,7 +75,7 @@ hl.window_rule({
 hl.window_rule({
     name  = "float-browser-dialogs",
     match = {
-        class = "(?i)^(brave-browser(-beta|-nightly)?|brave|google-chrome(-beta|-unstable)?|firefox(-esr)?|org\\.mozilla\\.firefox)$",
+        class = "(?i)^(brave-browser(-beta|-nightly)?|brave|chromium(-browser)?|google-chrome(-beta|-unstable)?|firefox(-esr)?|org\\.mozilla\\.firefox)$",
         title = "^(Open|Open File|Open Files|Save|Save As|Save File|Select File|Select Folder|Choose File|Choose Files|Choose Folder|Picture-in-Picture)$",
     },
     float = true,

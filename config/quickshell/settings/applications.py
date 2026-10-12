@@ -195,6 +195,12 @@ def changes_for(data, installed, restoring=False):
     config, _, _ = roots()
     changes = {}
     skipped = []
+    data = json.loads(json.dumps(data))
+    for mime, ident in data['defaults'].items():
+        if ident in ('chromium.desktop', 'chromium-browser.desktop') and ident not in installed:
+            alternative = 'chromium.desktop' if ident == 'chromium-browser.desktop' else 'chromium-browser.desktop'
+            if alternative in installed:
+                data['defaults'][mime] = alternative
     defaults = {mime: ident for mime, ident in data['defaults'].items() if ident in installed}
     skipped.extend(ident for ident in data['defaults'].values() if ident not in installed)
     if defaults:

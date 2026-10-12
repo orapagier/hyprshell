@@ -40,7 +40,7 @@ gvfs
 gvfs-mtp
 xdg-user-dirs
 # Default web browser
-firefox
+chromium
 # Networking, pairing, and battery data
 networkmanager
 nm-connection-editor
