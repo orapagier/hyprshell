@@ -56,9 +56,12 @@ class AutosaveTests(unittest.TestCase):
             root = Path(directory)
             payload = root / 'config/quickshell'
             shutil.copytree(ROOT / 'config/quickshell', payload, ignore=shutil.ignore_patterns('__pycache__', 'audio-spectrum'))
-            # Deterministic discovery: missing repo first, then newly created repo.
+            # Discovery finds the repo; sync returns only its acknowledgement.
             (payload / 'settings/github_sync.py').write_text(
-                'import json\nfrom pathlib import Path\n'
+                'import json, sys\nfrom pathlib import Path\n'
+                'if len(sys.argv) == 1:\n'
+                '    print(json.dumps({"ok": True, "message": "Synced to ramlej/hyprshell (main)."}))\n'
+                '    sys.exit(0)\n'
                 'counter = Path(__file__).with_name("checks")\n'
                 'ready = counter.exists()\ncounter.touch()\n'
                 'print(json.dumps({"ok": True, "ready": ready, "repository": "ramlej/hyprshell", '
@@ -70,7 +73,7 @@ class AutosaveTests(unittest.TestCase):
             runtime = root / 'runtime'
             runtime.mkdir(mode=0o700)
             env = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'), XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
-            result = subprocess.run(['quickshell', '-p', str(entry)], env=env, capture_output=True, text=True, timeout=20)
+            result = subprocess.run(['quickshell', '--log-rules', 'qml=true', '-p', str(entry)], env=env, capture_output=True, text=True, timeout=20)
             self.assertIn('GITHUB_SETUP_OK', result.stdout + result.stderr, result.stdout + result.stderr)
             self.assertNotIn('FAIL!', result.stdout + result.stderr)
 

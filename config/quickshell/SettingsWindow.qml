@@ -347,7 +347,9 @@ FloatingWindow {
                     window.syncSuccess = result.ok;
                     window.syncMessage = result.message;
                     window.syncReady = result.ok && result.ready === true;
-                    window.syncRepository = result.repository || "";
+                    // Sync acknowledgements omit repository; discovery owns it.
+                    if (githubSync.action === "--status" || githubSync.action === "--authenticate")
+                        window.syncRepository = result.repository || "";
                     window.syncForkUrl = result.forkUrl || "";
                     window.syncCreateUrl = result.createUrl || "";
                 } catch (e) {

@@ -33,7 +33,7 @@ ShellRoot {
                 if (!button) return;
                 button.clicked(); test.phase = 2; return;
             }
-            if ((test.phase === 2 || test.phase === 3) && editor.idle) {
+            if ((test.phase === 2 || test.phase === 3 || test.phase === 4) && editor.idle) {
                 let dialog = test.find(editor.contentItem, "githubSyncDialog", []);
                 let label = test.find(dialog, "githubRepositoryLabel", []);
                 let sync = test.find(dialog, "githubConfirmSync", []);
@@ -47,7 +47,11 @@ ShellRoot {
                     test.find(dialog, "githubCheckButton", []).clicked();
                     test.phase = 3; return;
                 }
-                if (!sync.enabled || fork.visible || create.visible) { test.fail("repository recheck did not enable sync"); return; }
+                if (test.phase === 3) {
+                    if (!sync.enabled || fork.visible || create.visible) { test.fail("repository recheck did not enable sync"); return; }
+                    sync.clicked(); test.phase = 4; return;
+                }
+                if (!editor.syncSuccess || editor.syncMessage !== "Synced to ramlej/hyprshell (main).") { test.fail("sync did not complete"); return; }
                 console.log("GITHUB_SETUP_OK"); Qt.quit();
             }
         }
