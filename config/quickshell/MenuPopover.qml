@@ -202,7 +202,9 @@ Item {
                 visible: popover.persistentSelected
                 sourceComponent: popover.persistentPage
             }
-            Loader { id: pageLoader; Layout.fillWidth: true; active: popover.rendering && !popover.persistentSelected; sourceComponent: popover.page }
+            // An inactive Loader retains its last height. Hide it so the layout
+            // does not count that stale size below the persistent launcher.
+            Loader { id: pageLoader; Layout.fillWidth: true; visible: active; active: popover.rendering && !popover.persistentSelected; sourceComponent: popover.page }
         }
     }
 }
