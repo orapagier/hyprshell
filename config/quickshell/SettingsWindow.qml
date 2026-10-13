@@ -48,7 +48,15 @@ FloatingWindow {
     }
     onDraftChanged: { Style.Theme.preferences = draft.accessibility || {}; if (editingSession) autoSave.restart(); }
     Component.onCompleted: Style.Theme.preferences = draft.accessibility || {}
-    onVisibleChanged: if (!visible && editingSession && dirty) apply()
+    onVisibleChanged: {
+        if (visible) Qt.callLater(focusSearch);
+        else if (editingSession && dirty) apply();
+    }
+    function focusSearch() {
+        if (!visible) return;
+        searchField.forceActiveFocus();
+        searchField.selectAll();
+    }
     property int section: -1
     property var scrollPositions: ({})
     property int previousSection: -1
@@ -150,6 +158,7 @@ FloatingWindow {
         minimized = false;
         if (visible) {
             focusRequested();
+            Qt.callLater(focusSearch);
             return;
         }
         if (editingSession && (dirty || saving || manualDirty)) {

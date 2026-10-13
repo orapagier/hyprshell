@@ -38,6 +38,7 @@ ShellRoot {
                 test.phase = 1;
             } else if (test.phase === 1) {
                 let search = test.control("settingsSearch");
+                if (!search.activeFocus) { test.fail("search did not receive focus on open"); return; }
                 search.text = "keyboard";
                 if (editor.searchResults.length !== 2) { test.fail("keyword search lost a destination"); return; }
                 search.accepted();
@@ -83,6 +84,22 @@ ShellRoot {
                 }
                 if (++test.sizeIndex < test.widths.length) { test.phase = 7; return; }
                 if (editor.dirty || editor.saving || JSON.stringify(editor.draft) !== JSON.stringify(editor.initial)) { test.fail("navigation changed saved preferences"); return; }
+                test.control("settingsSearch").text = "keyboard";
+                test.control("settingsSearchClear").forceActiveFocus();
+                editor.open();
+                test.phase = 9;
+            } else if (test.phase === 9) {
+                let search = test.control("settingsSearch");
+                if (!search.activeFocus || search.selectedText !== "keyboard") { test.fail("existing window did not focus and select search"); return; }
+                test.control("settingsSearchClear").forceActiveFocus();
+                editor.contentItem.Window.window.close();
+                test.phase = 10;
+            } else if (test.phase === 10) {
+                editor.open();
+                test.phase = 11;
+            } else if (test.phase === 11) {
+                let search = test.control("settingsSearch");
+                if (!search.activeFocus || search.selectedText !== "keyboard") { test.fail("reopened window did not focus and select search"); return; }
                 console.log("NAVIGATION_OK"); Qt.quit();
             }
         }
