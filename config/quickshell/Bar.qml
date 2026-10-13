@@ -547,6 +547,7 @@ Item {
         menu: "battery"
         visible: bar.itemEnabled("battery") && !!bar.statusData.battery.present
         readonly property string batteryLabel: bar.statusData.battery.text || ""
+        blink: bar.statusData.battery.low === true
         icon: batteryLabel.indexOf(" ") >= 0 ? batteryLabel.slice(0, batteryLabel.indexOf(" ")) : ""
         text: batteryLabel.indexOf(" ") >= 0 ? batteryLabel.slice(batteryLabel.indexOf(" ") + 1) : batteryLabel
         foreground: bar.statusData.battery.charging ? "#fab387" : bar.statusData.battery.warning ? "#f38ba8" : "#a6e3a1"

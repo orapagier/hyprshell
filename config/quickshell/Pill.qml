@@ -15,6 +15,16 @@ Item {
     }
     property string text: ""
     property string icon: ""
+    property bool blink: false
+    property real glyphOpacity: 1
+    onBlinkChanged: if (!blink) glyphOpacity = 1
+    SequentialAnimation on glyphOpacity {
+        running: pill.blink && pill.visible
+        loops: Animation.Infinite
+        NumberAnimation { to: 0.25; duration: 500 }
+        NumberAnimation { to: 1; duration: 500 }
+        onRunningChanged: if (!running) pill.glyphOpacity = 1
+    }
     property int iconSize: 16
     property color foreground: "#cdd6f4"
     property var colorSampler: null
@@ -101,6 +111,7 @@ Item {
         x: pill.vertical ? (parent.width - width) / 2 : pill.effectiveLeftPadding
         y: pill.vertical && pill.shownText.length ? 4 : (parent.height - height) / 2
         objectName: "pillIcon"
+        opacity: pill.glyphOpacity
         width: pill.effectiveIconSize
         visible: pill.shownIcon.length > 0
         text: pill.shownIcon
@@ -113,6 +124,7 @@ Item {
     }
     Text {
         id: label
+        opacity: pill.glyphOpacity
         x: pill.effectiveLeftPadding + (pill.vertical ? 0 : pill.iconWidth)
         y: (parent.height - height + (pill.vertical && pill.shownIcon.length ? pill.effectiveIconSize + 4 : 0)) / 2
         width: Math.max(1, parent.width - pill.effectiveLeftPadding - pill.effectiveRightPadding - (pill.vertical ? 0 : pill.iconWidth))

@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
 import Quickshell.Services.Mpris
@@ -57,6 +58,21 @@ Item {
         designMah: batteryCapacity.designMah,
         model: batteryDetails ? batteryDetails.model : ""
     })
+    BatteryAlert {
+        id: batteryAlert
+        info: services.batteryInfo
+        onTriggered: {
+            if (!batteryAlertSound.running) batteryAlertSound.running = true;
+        }
+    }
+    Process {
+        id: batteryAlertSound
+        command: ["paplay", "--volume=49152", "--client-name=Hyprshell", "--stream-name=Low battery alert",
+                  decodeURIComponent(Qt.resolvedUrl("sounds/test.wav").toString().replace(/^file:\/\//, ""))]
+        onExited: (code, status) => {
+            if (code !== 0) console.warn("Low battery alert sound could not be played.");
+        }
+    }
     readonly property var batteryIcons: ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
     readonly property var chargingIcons: ["󰢜", "󰂆", "󰂇", "󰂈", "󰢝", "󰂉", "󰢞", "󰂊", "󰂋", "󰂅"]
     readonly property var statusData: ({
@@ -64,7 +80,7 @@ Item {
         audio: {icon: audioIcon, text: sink && sink.audio ? sink.audio.muted ? "muted" : Math.round(sink.audio.volume * 100) + "%" : "--", tooltip: sink ? sink.description : "Audio unavailable"},
         network: {text: connectedWifi ? wifiIcon(connectedWifi.signalStrength) : wired ? "󰈀" : wifiEnabled ? "󰤮" : "󰤭", connected: !!(connectedWifi || wired), tooltip: connectedWifi ? connectedWifi.name + " · " + Math.round(connectedWifi.signalStrength * 100) + "%" : wired ? "Ethernet · " + wired.name : wifiEnabled ? "Offline" : "Wi-Fi turned off"},
         bluetooth: {text: connectedBluetooth.length ? "󰂱" : adapter && adapter.enabled ? "󰂯" : "󰂲", powered: !!(adapter && adapter.enabled), connected: connectedBluetooth.length > 0, tooltip: connectedBluetooth.length ? "Bluetooth · " + connectedBluetooth.length + " connected\n" + connectedBluetooth.map(d => d.name).join("\n") : adapter ? "Bluetooth · " + (adapter.enabled ? "on" : "off") : "Bluetooth is unavailable"},
-        battery: {present: !!(battery && battery.isPresent && battery.isLaptopBattery), text: (battery && battery.state === UPowerDeviceState.FullyCharged ? "󰂅" : (charging ? chargingIcons : batteryIcons)[Math.max(0, Math.min(9, Math.floor(capacity * 10 / 101)))]) + " " + capacity + "%", charging: charging, warning: capacity <= 30, tooltip: capacity + "% · " + (battery ? UPowerDeviceState.toString(battery.state) : "Unavailable")}
+        battery: {present: !!(battery && battery.isPresent && battery.isLaptopBattery), text: (battery && battery.state === UPowerDeviceState.FullyCharged ? "󰂅" : (charging ? chargingIcons : batteryIcons)[Math.max(0, Math.min(9, Math.floor(capacity * 10 / 101)))]) + " " + capacity + "%", charging: charging, low: batteryAlert.low, warning: capacity <= 30, tooltip: capacity + "% · " + (battery ? UPowerDeviceState.toString(battery.state) : "Unavailable")}
     })
     function wifiIcon(strength) { return ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"][Math.min(4, Math.floor(Math.max(0, strength) * 5))]; }
     function workspace(id) { let w = spaces.find(w => w.id === Number(id)); if (w) w.activate(); }

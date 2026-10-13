@@ -44,6 +44,14 @@ Clipboard history tooling is installed, but capture stays disabled until enabled
 in Settings. Notification popups retain the saved preference (disabled); the
 notification inbox remains available.
 
+When a present laptop battery reaches 25% or below while unplugged, its bar icon
+and percentage pulse and Hyprshell plays one short alert tone through the default
+audio output (respecting mute and output volume). Plugging in stops the pulse.
+The tone is armed again after connecting power or recovering above 30%; small
+percentage fluctuations do not repeat it. This uses existing UPower updates and
+does not control battery charging. Charge limits require firmware and kernel
+support for the particular laptop.
+
 ## Existing systems
 
 Setup preserves the selected login manager and enables it for graphical login.
