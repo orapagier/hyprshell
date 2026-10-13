@@ -138,3 +138,7 @@ iwlegacy-firmware
 # Driver modules omitted by some minimal Fedora installations
 kernel-modules
 kernel-modules-extra
+
+ffmpeg-free
+
+libva-utils

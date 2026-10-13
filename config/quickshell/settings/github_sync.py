@@ -71,6 +71,7 @@ def snapshot_managed_files(repo, config, home):
     else:
         groups = []
     groups.extend([
+        (repo / 'config/mpv', config / 'mpv'),
         (repo / 'config/autostart', config / 'autostart'),
         (repo / 'bin', home / '.local/bin'),
         (repo / 'assets/applications', home / '.local/share/applications'),

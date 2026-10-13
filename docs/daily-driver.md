@@ -93,10 +93,36 @@ Secure Boot. The readiness report flags NVIDIA for review against
 Unsupported Wi-Fi adapters, vendor drivers, custom kernels, firmware defects,
 and suspend quirks still require the target hardware to be tested.
 
-Fedora's repository multimedia codec coverage differs from Arch. mpv is the
-default player, but a format requiring codecs absent from your enabled Fedora
-repositories needs the appropriate multimedia repository/packages; setup does
-not add RPM Fusion or replace Fedora's FFmpeg libraries automatically.
+Full Fedora setup enables RPM Fusion free/nonfree and installs
+`libavcodec-freeworld`, the full Intel `intel-media-driver` (iHD), and
+`libva-utils`. It replaces installed restricted `libavcodec-free` and
+`libva-intel-media-driver` counterparts with targeted DNF swaps, without broad
+`--allowerasing`, and verifies FFmpeg exposes an HEVC decoder. Arch includes
+FFmpeg, Intel media-driver and libva-utils in its base manifest. mpv uses
+`hwdec=auto-safe` with automatic software fallback; no Intel driver environment
+variable is forced on other GPUs. Existing mpv config conflicts use the normal
+deployment review. GitHub sync captures the managed mpv file.
+
+To add only media support to an existing traditional Fedora desktop, run as
+your normal user from the checkout:
+
+```bash
+bash tools/install_media_fedora.sh
+vainfo
+```
+
+Restart media applications afterward. An installed driver or a software decoder
+does not prove a browser is using GPU decoding; check its own media diagnostics.
+Config-only updates do not install packages or enable repositories.
+
+The canonical personal setup locks after 10 idle minutes, dims after 5 minutes,
+turns the screen off after 15 minutes on AC / 10 on battery, and suspends after
+30 minutes on AC / 20 on battery. Existing preferences remain preserved during
+ordinary updates. Power-menu actions use `Alt+P`, then `L` (lock), `S` (sleep),
+`R` (reboot), `X` (shutdown), or `O` (logout); Alt may remain held. Action keys
+are enabled only while that menu is pinned open, including when a button has
+focus. `Super+L` locks directly. Lock-before-sleep remains enabled in the saved
+personal setup. Automatic personal-file backups remain opt-in.
 
 Setup saves a local, redacted report at
 `~/.local/state/hyprshell/setup-readiness.json` (respecting XDG_STATE_HOME).

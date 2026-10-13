@@ -184,6 +184,7 @@ if (( DRY_RUN )); then
       if command -v rpm >/dev/null; then check_packages; fi
       printf 'Full Fedora upgrade; ensure desktop packages: %s\n' "${PACKAGES[*]}"
       printf 'COPR: %s\n' "${COPR:-preserve enabled repositories}"
+      printf 'Media: enable RPM Fusion free/nonfree; install Intel iHD and Freeworld H.264/HEVC codecs (targeted replacements)\n'
       printf 'Fonts: install bundled GoMono Nerd Font for shell icons\n'
     else
       if command -v pacman >/dev/null; then check_packages; fi
@@ -240,6 +241,8 @@ if [[ "$MODE" == install ]]; then
   check_packages
   sudo -v
   if [[ "$DISTRO" == fedora ]]; then
+    log 'Preparing RPM Fusion repositories for complete media support'
+    bash "$REPO_DIR/tools/install_media_fedora.sh" --repositories-only
     if [[ -n "$COPR" ]]; then
       log "Enabling the Fedora desktop COPR: $COPR"
       sudo dnf install -y 'dnf5-command(copr)'
@@ -253,6 +256,8 @@ if [[ "$MODE" == install ]]; then
     log 'Upgrading Fedora and installing desktop dependencies'
     sudo dnf upgrade --refresh -y
     sudo dnf install -y --setopt=install_weak_deps=False "${PACKAGES[@]}"
+    log 'Installing full media codecs and Intel hardware video acceleration'
+    bash "$REPO_DIR/tools/install_media_fedora.sh" --install
   else
     log 'Upgrading Arch and installing missing desktop dependencies'
     # Always upgrade together with installation to avoid partial upgrades.

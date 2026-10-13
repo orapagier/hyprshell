@@ -377,24 +377,24 @@
   "locking": {
     "enabled": true,
     "command": "hyprlock",
-    "idleMinutes": 60,
+    "idleMinutes": 10,
     "beforeSleep": true
   },
   "power": {
     "dimMinutes": 5,
     "dimPercent": 20,
     "offMinutes": 15,
-    "suspendMinutes": 0,
+    "suspendMinutes": 30,
     "lidAction": "suspend",
     "profile": "balanced",
-    "separateBatteryTimers": false,
-    "batteryDimMinutes": 0,
-    "batteryOffMinutes": 0,
-    "batterySuspendMinutes": 0,
+    "separateBatteryTimers": true,
+    "batteryDimMinutes": 5,
+    "batteryOffMinutes": 10,
+    "batterySuspendMinutes": 20,
     "batteryDimPercent": 20
   },
   "notifications": {
-    "popups": false,
+    "popups": true,
     "doNotDisturb": false,
     "criticalBypass": true,
     "popupSeconds": 3,

@@ -50,11 +50,11 @@ PanelWindow {
         anchors.fill: parent
         focus: true
         Keys.onEscapePressed: dropdown.closeRequested()
-        Keys.onPressed: event => {
-            if (dropdown.displayedSection === "power" && dropdown.opened && !event.isAutoRepeat
-                    && !(event.modifiers & (Qt.ControlModifier | Qt.MetaModifier | Qt.ShiftModifier))
-                    && popover.pageItem && popover.pageItem.runShortcut(event.key))
-                event.accepted = true;
+        PowerShortcuts {
+            active: dropdown.section === "power" && dropdown.opened && dropdown.pinned
+            onTriggered: key => {
+                if (popover.pageItem) popover.pageItem.runShortcut(key);
+            }
         }
         MenuPopover {
             id: popover
@@ -109,6 +109,7 @@ PanelWindow {
         headerPointer.stop();
         if (opened && movePointerOnOpen) headerPointer.restart();
     }
+    onPinnedChanged: if (opened && pinned) focusScope.forceActiveFocus()
     Shortcut { sequence: "Escape"; enabled: dropdown.opened; onActivated: dropdown.closeRequested() }
     Component { id: launcherPage; LauncherMenu { active: dropdown.opened && dropdown.section === "launcher"; onLaunched: dropdown.closeRequested() } }
     Component { id: settingsPage; SettingsMenu { onOpenRequested: { dropdown.closeRequested(); dropdown.settingsRequested(); } } }

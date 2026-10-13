@@ -8,11 +8,11 @@ ColumnLayout {
     id: page
     property string error: ""
     property var actions: [
-        {key: Qt.Key_L, shortcut: "Alt + P + L", title: "󰌾  Lock", description: "Lock screen", command: ["python3", decodeURIComponent(Qt.resolvedUrl("settings/backend.py").toString().replace(/^file:\/\//, "")), "--lock"]},
-        {key: Qt.Key_X, shortcut: "Alt + P + X", title: "󰐥  Shutdown", description: "Shutdown", command: ["systemctl", "poweroff"]},
-        {key: Qt.Key_R, shortcut: "Alt + P + R", title: "󰜉  Reboot", description: "Reboot", command: ["systemctl", "reboot"]},
-        {key: Qt.Key_S, shortcut: "Alt + P + S", title: "󰒲  Sleep", description: "Sleep", command: ["systemctl", "suspend"]},
-        {key: Qt.Key_O, shortcut: "Alt + P + O", title: "󰗽  Logout", description: "Return to login", command: ["python3", decodeURIComponent(Qt.resolvedUrl("settings/session.py").toString().replace(/^file:\/\//, "")), "--logout"]}
+        {key: Qt.Key_L, shortcut: "Alt + P → L", title: "󰌾  Lock", description: "Lock screen", command: ["python3", decodeURIComponent(Qt.resolvedUrl("settings/backend.py").toString().replace(/^file:\/\//, "")), "--lock"]},
+        {key: Qt.Key_X, shortcut: "Alt + P → X", title: "󰐥  Shutdown", description: "Shutdown", command: ["systemctl", "poweroff"]},
+        {key: Qt.Key_R, shortcut: "Alt + P → R", title: "󰜉  Reboot", description: "Reboot", command: ["systemctl", "reboot"]},
+        {key: Qt.Key_S, shortcut: "Alt + P → S", title: "󰒲  Sleep", description: "Sleep", command: ["systemctl", "suspend"]},
+        {key: Qt.Key_O, shortcut: "Alt + P → O", title: "󰗽  Logout", description: "Return to login", command: ["python3", decodeURIComponent(Qt.resolvedUrl("settings/session.py").toString().replace(/^file:\/\//, "")), "--logout"]}
     ]
     function runShortcut(key) {
         let entry = actions.find(item => item.key === key);

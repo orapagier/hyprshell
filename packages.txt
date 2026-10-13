@@ -127,3 +127,9 @@ vulkan-radeon
 sane
 # Mesa Vulkan on supported NVIDIA hardware using Nouveau
 vulkan-nouveau
+
+intel-media-driver
+
+libva-utils
+
+ffmpeg

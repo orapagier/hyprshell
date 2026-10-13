@@ -38,6 +38,7 @@ hl.bind("ALT + W", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" wifi')
 hl.bind("ALT + V", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" bluetooth'), { description = "Toggle Bluetooth" })
 hl.bind("ALT + B", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" battery'), { description = "Toggle battery" })
 hl.bind("ALT + P", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" power'), { description = "Toggle power options" })
+hl.bind("SUPER + L", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/backend.py" --lock'), { description = "Lock screen" })
 
 -- Move focus with mainMod + arrow keys
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }), { description = "Focus left" })
