@@ -118,13 +118,14 @@ Config-only updates do not install packages or enable repositories.
 The canonical personal setup locks after 10 idle minutes, dims after 5 minutes,
 turns the screen off after 15 minutes on AC / 10 on battery, and suspends after
 30 minutes on AC / 20 on battery. Existing preferences remain preserved during
-ordinary updates. Power-menu actions use `Alt+P`, then `L` (lock), `S` (sleep),
-`R` (reboot), `X` (shutdown), or `O` (logout); Alt may remain held. Action keys
-are enabled only while that menu is pinned open, including when a button has
-focus. Release Alt before the action letter to avoid compositor shortcuts such
-as Alt+S (Settings). Keyboard-opened power menus stay pinned when the pointer
-leaves; Escape or an outside click dismisses them. Action handling includes raw
-overlay keys when Qt shortcut activation is unavailable. `Super+L` locks directly. Lock-before-sleep remains enabled in the saved
+ordinary updates. Direct power actions use `Super+Alt+L` (lock),
+`Super+Alt+S` (sleep), `Super+Alt+R` (reboot), `Super+Alt+X` (shutdown),
+and `Super+Alt+O` (logout). Hold both modifiers and press the action letter;
+no menu sequence or timed modifier release is required. The power menu shows
+these global bindings and remains available with `Alt+P` or the mouse.
+Keyboard-opened power menus stay pinned when the pointer leaves; Escape or an
+outside click dismisses them. `Super+L` also locks directly.
+Lock-before-sleep remains enabled in the saved
 personal setup. Automatic personal-file backups remain opt-in.
 
 Setup saves a local, redacted report at

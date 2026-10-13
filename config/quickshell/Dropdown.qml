@@ -50,14 +50,6 @@ PanelWindow {
         anchors.fill: parent
         focus: true
         Keys.onEscapePressed: dropdown.closeRequested()
-        Keys.onPressed: event => powerShortcuts.handleKey(event)
-        PowerShortcuts {
-            id: powerShortcuts
-            active: dropdown.section === "power" && dropdown.opened && dropdown.pinned
-            onTriggered: key => {
-                if (popover.pageItem) popover.pageItem.runShortcut(key);
-            }
-        }
         MenuPopover {
             id: popover
             anchors.fill: parent

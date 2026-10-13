@@ -39,6 +39,12 @@ hl.bind("ALT + V", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" blueto
 hl.bind("ALT + B", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" battery'), { description = "Toggle battery" })
 hl.bind("ALT + P", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" power'), { description = "Toggle power options" })
 hl.bind("SUPER + L", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/backend.py" --lock'), { description = "Lock screen" })
+-- Direct power actions: hold Super+Alt and press the action letter.
+hl.bind("SUPER + ALT + L", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/backend.py" --lock'), { description = "Lock screen" })
+hl.bind("SUPER + ALT + S", hl.dsp.exec_cmd("systemctl suspend"), { description = "Sleep" })
+hl.bind("SUPER + ALT + R", hl.dsp.exec_cmd("systemctl reboot"), { description = "Reboot" })
+hl.bind("SUPER + ALT + X", hl.dsp.exec_cmd("systemctl poweroff"), { description = "Shutdown" })
+hl.bind("SUPER + ALT + O", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/session.py" --logout'), { description = "Log out to login screen" })
 
 -- Move focus with mainMod + arrow keys
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }), { description = "Focus left" })
