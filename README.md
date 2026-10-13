@@ -41,6 +41,7 @@ describe the established Arch installation unless stated otherwise.
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Installing alongside KDE or another desktop](#installing-alongside-kde-or-another-desktop)
 - [Fedora Everything port](docs/fedora.md)
 - [A consistent desktop experience](#a-consistent-desktop-experience)
 - [First login and machine-specific configuration](#first-login-and-machine-specific-configuration)
@@ -185,6 +186,40 @@ The installer preserves your timezone and existing login manager. If no login
 manager is configured or detected as an installed service, it installs SDDM,
 enables it for the next boot, and selects the graphical boot target.
 It does not reboot the machine or restart the running desktop.
+
+### Installing alongside KDE or another desktop
+
+Hyprshell can be installed alongside an existing desktop such as KDE Plasma.
+The installer does not uninstall Plasma or replace its session. It preserves
+the existing login manager and installs SDDM only when none is found. At the
+login screen, select **Hyprland (uwsm-managed)** to use Hyprshell, or select
+**Plasma** to return to KDE. Log out before switching sessions. Hyprshell's bar,
+launcher, and desktop controls run in the Hyprland session; installing them
+does not add those controls to Plasma.
+
+This applies to Arch Linux with KDE and is expected to apply to traditional
+DNF-based Fedora KDE 44 on x86_64. The documented Fedora installation target
+remains Fedora Everything 44. These coexistence behaviors are confirmed by
+installer/configuration review, not by a completed fresh KDE installation
+test. Identical behavior across desktops and hardware is not yet certified;
+see [compatibility.json](compatibility.json) and [Fedora validation](docs/fedora.md).
+Fedora Kinoite and other Atomic/OSTree systems are unsupported.
+
+Full setup upgrades system packages, enables shared services, and applies the
+SDDM theme and supported boot splash by default. To keep the existing login
+and boot appearance, preview and install with:
+
+```bash
+./setup.sh --dry-run --skip-login-theme --skip-boot-splash
+./setup.sh --skip-login-theme --skip-boot-splash
+```
+
+Some user preferences are shared across desktop sessions. A fresh Hyprshell
+installation restores bundled default-app choices in `mimeapps.list` and can
+update an existing desktop-specific defaults file for the desktop running the
+installer. The managed `nm-applet.desktop` autostart override hides that applet
+across sessions. These appearance flags do not prevent shared preference or
+service changes; review application defaults and startup choices after setup.
 
 ### Boot and login appearance
 
