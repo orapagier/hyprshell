@@ -32,6 +32,22 @@ Item {
             keyClick(Qt.Key_L, Qt.AltModifier);
             tryCompare(root, "received", [Qt.Key_L]);
         }
+        function test_rawOverlayKeyFallback() {
+            let event = {key: Qt.Key_L, modifiers: Qt.NoModifier, isAutoRepeat: false, accepted: false};
+            shortcuts.handleKey(event);
+            compare(root.received, [Qt.Key_L]);
+            verify(event.accepted);
+            event.accepted = false;
+            event.isAutoRepeat = true;
+            shortcuts.handleKey(event);
+            compare(root.received.length, 1);
+            verify(!event.accepted);
+            event.isAutoRepeat = false;
+            shortcuts.active = false;
+            shortcuts.handleKey(event);
+            compare(root.received.length, 1);
+            verify(!event.accepted);
+        }
         function test_inactiveMenuDoesNotHandleKeys() {
             shortcuts.active = false;
             keyClick(Qt.Key_X);

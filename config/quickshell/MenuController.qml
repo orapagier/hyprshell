@@ -11,6 +11,7 @@ Item {
     property bool openedByShortcut: false
     property bool dismissPinnedOnLeave: false
     property bool pointerInMenu: false
+    readonly property bool keyboardPowerMenu: pinned && openedByShortcut && section === "power"
 
     function hover(name) {
         hoveredMenu = name;
@@ -25,7 +26,7 @@ Item {
     }
     function retain(inside) {
         pointerInMenu = inside;
-        if (inside || hoveredMenu.length || (pinned && !dismissPinnedOnLeave)) closeDelay.stop();
+        if (inside || hoveredMenu.length || keyboardPowerMenu || (pinned && !dismissPinnedOnLeave)) closeDelay.stop();
         else if (section.length) closeDelay.restart();
     }
     function activate(name, fromShortcut) {
@@ -61,7 +62,7 @@ Item {
         id: closeDelay
         interval: 320
         onTriggered: {
-            if (!controller.pointerInMenu && !controller.hoveredMenu.length && (!controller.pinned || controller.dismissPinnedOnLeave))
+            if (!controller.pointerInMenu && !controller.hoveredMenu.length && !controller.keyboardPowerMenu && (!controller.pinned || controller.dismissPinnedOnLeave))
                 controller.close();
         }
     }

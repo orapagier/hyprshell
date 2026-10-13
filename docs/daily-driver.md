@@ -121,7 +121,10 @@ turns the screen off after 15 minutes on AC / 10 on battery, and suspends after
 ordinary updates. Power-menu actions use `Alt+P`, then `L` (lock), `S` (sleep),
 `R` (reboot), `X` (shutdown), or `O` (logout); Alt may remain held. Action keys
 are enabled only while that menu is pinned open, including when a button has
-focus. `Super+L` locks directly. Lock-before-sleep remains enabled in the saved
+focus. Release Alt before the action letter to avoid compositor shortcuts such
+as Alt+S (Settings). Keyboard-opened power menus stay pinned when the pointer
+leaves; Escape or an outside click dismisses them. Action handling includes raw
+overlay keys when Qt shortcut activation is unavailable. `Super+L` locks directly. Lock-before-sleep remains enabled in the saved
 personal setup. Automatic personal-file backups remain opt-in.
 
 Setup saves a local, redacted report at

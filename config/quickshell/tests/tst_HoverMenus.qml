@@ -192,6 +192,17 @@ Item {
             compare(state.section, "");
             verify(!state.openedByShortcut);
         }
+        function test_keyboardPowerMenuWaitsForKeyboardDismissal() {
+            mouseMove(root, 5, 480);
+            state.activate("power", true);
+            state.retain(false);
+            wait(380);
+            compare(state.section, "power");
+            verify(state.pinned);
+            state.activate("power", true);
+            compare(state.section, "");
+            verify(!state.pinned);
+        }
         function test_hoverSwitchClearsShortcutMode() {
             state.activate("audio", true);
             hover("wifi");
