@@ -13,13 +13,20 @@ PanelWindow {
     anchors { top: true; right: true }
     margins { top: 52; right: 16 }
     implicitWidth: screen ? Math.min(380, screen.width - 32) : 380
-    implicitHeight: stack.implicitHeight
+    implicitHeight: Math.min(stack.implicitHeight, screen ? screen.height - 84 : 720)
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.namespace: "hyprshell-notifications"
-    NotificationPopupStack {
-        id: stack
-        anchors.left: parent.left; anchors.right: parent.right
-        inbox: window.inbox
+    ScrollView {
+        id: viewport
+        anchors.fill: parent
+        clip: true
+        contentWidth: availableWidth
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+        NotificationPopupStack {
+            id: stack
+            width: viewport.availableWidth
+            inbox: window.inbox
+        }
     }
 }

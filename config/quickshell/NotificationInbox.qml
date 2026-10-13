@@ -10,6 +10,7 @@ Item {
     id: inbox
     property var preferences: ({})
     property var popups: []
+    property var heldPopupIds: []
     readonly property var applications: Array.from(new Set(rows.map(r => r.appKey || r.app).filter(Boolean))).sort()
     property var rows: []
     onPreferencesChanged: popups = popups.filter(r => Policy.delivery(preferences, r.appKey, r.critical).popup)
@@ -129,7 +130,7 @@ Item {
             }
             property Timer expiry: Timer {
                 interval: tracked.modelData.expireTimeout > 0 ? tracked.modelData.expireTimeout : (inbox.preferences.popupSeconds || 5) * 1000
-                running: !tracked.modelData.resident && tracked.modelData.urgency !== NotificationUrgency.Critical && tracked.modelData.expireTimeout !== 0
+                running: !inbox.popups.some(row => row.sourceId === tracked.modelData.id && inbox.heldPopupIds.includes(row.id)) && !tracked.modelData.resident && tracked.modelData.urgency !== NotificationUrgency.Critical && tracked.modelData.expireTimeout !== 0
                 onTriggered: tracked.modelData.expire()
             }
         }

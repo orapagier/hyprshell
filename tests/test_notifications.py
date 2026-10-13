@@ -42,9 +42,10 @@ class NotificationSettingsTests(unittest.TestCase):
             runtime.mkdir(mode=0o700)
             env = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'),
                        XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORMTHEME='basic', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
-            result = subprocess.run(['quickshell', '-p', str(entry)], env=env,
+            result = subprocess.run(['quickshell', '--log-rules', 'qml.debug=true', '-p', str(entry)], env=env,
                                     capture_output=True, text=True, timeout=18)
             output = result.stdout + result.stderr
+            self.assertEqual(result.returncode, 0, output)
             self.assertIn('NOTIFICATIONS_OK', output, output)
             self.assertNotIn('NOTIFICATIONS_FAILED', output, output)
             self.assertNotIn('TypeError', output, output)
