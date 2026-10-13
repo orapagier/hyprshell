@@ -7,7 +7,15 @@ import Quickshell
 ColumnLayout {
     id: page
     signal launched()
-    readonly property var entries: DesktopEntries.applications.values.filter(a => (a.name + " " + a.genericName).toLowerCase().includes(search.text.toLowerCase())).sort((a,b) => a.name.localeCompare(b.name))
+    property bool active: true
+    function prepare() {
+        search.clear();
+        applications.currentIndex = 0;
+        Qt.callLater(() => { if (page.active) search.forceActiveFocus(); });
+    }
+    onActiveChanged: if (active) prepare()
+    readonly property var sortedEntries: DesktopEntries.applications.values.slice().sort((a,b) => a.name.localeCompare(b.name))
+    readonly property var entries: sortedEntries.filter(a => (a.name + " " + a.genericName).toLowerCase().includes(search.text.toLowerCase()))
     function launch(entry) {
         if (!entry || !entry.id) return;
         let desktopId = entry.id.endsWith(".desktop") ? entry.id : entry.id + ".desktop";
@@ -30,11 +38,12 @@ ColumnLayout {
     AppIcons { id: icons; visible: false }
     TextField {
         id: search
+        objectName: "launcherSearch"
         Layout.fillWidth: true
         placeholderText: "Search applications"; color: "#cdd6f4"; placeholderTextColor: "#a6adc8"
         font.family: "DejaVu Sans"; font.pixelSize: 13
         background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#1fffffff" }
-        Component.onCompleted: forceActiveFocus()
+        Component.onCompleted: if (page.active) page.prepare()
         onAccepted: { if (page.entries.length) { page.launch(page.entries[0]); } }
         Keys.onDownPressed: applications.forceActiveFocus()
     }

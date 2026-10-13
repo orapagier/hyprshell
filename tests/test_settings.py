@@ -16,6 +16,27 @@ spec.loader.exec_module(backend)
 
 
 class SettingsTests(unittest.TestCase):
+    def test_independent_window_edges_render_css_gaps_and_inherit_uniform_value(self):
+        data = copy.deepcopy(self.data)
+        data['hyprland'] = {'gapsOut': 17, 'gapsOutTop': 0, 'gapsOutBottom': 31}
+        data['bar']['paddingBottom'] = 19
+        validated = backend.validate(data)
+        lua = backend.render_hypr(validated['hyprland'], True)
+        for text in ('top = 0', 'right = 17', 'bottom = 31', 'left = 17'):
+            self.assertIn(text, lua)
+        self.assertNotIn('gapsOutTop', lua)
+        self.assertIn('general:gaps_out = 0,17,31,17', backend.render_hypr(validated['hyprland'], False))
+        data['hyprland'] = {'gapsOutLeft': 9}
+        self.assertIn('top = 10', backend.render_hypr(data['hyprland'], True))
+        for key in ('gapsOutTop', 'gapsOutRight', 'gapsOutBottom', 'gapsOutLeft'):
+            for value in (-1, 101, True, 1.5):
+                data['hyprland'] = {key: value}
+                with self.assertRaises(ValueError): backend.validate(data)
+        data['hyprland'] = {}
+        for value in (-1, 101, True, 1.5):
+            data['bar']['paddingBottom'] = value
+            with self.assertRaises(ValueError): backend.validate(data)
+
     def test_accessibility_migrates_old_settings_and_reduced_motion_restores_animation_choice(self):
         self.assertEqual(backend.validate({'version': 1})['accessibility'], {'textScale': 1, 'highContrast': False, 'reducedMotion': False})
         main = self.config / 'hypr/hyprland.lua'; main.parent.mkdir(parents=True); main.write_text('-- isolated\n')

@@ -1156,3 +1156,27 @@ Tests use temporary synthetic files, inert hardware/tool stubs, actual Lua parsi
 and native offscreen UI. They do not copy personal documents, install optional
 packages, enable CUPS, run upgrades, restore laptop preferences, or exercise real
 hardware/session IPC.
+
+## Window edge spacing and launcher responsiveness
+
+Windows → Window shape & spacing provides Top, Right, Bottom, and Left edge
+overrides (0–100 px). Unset sides follow All screen edges, or 10 px when that
+override is unset. Reset all four side controls to use only the uniform gap or
+personal Lua configuration again. Generated Lua uses Hyprland's CSS gap table;
+legacy configuration uses top,right,bottom,left order. Workspace rules can override
+these gaps.
+
+Bar & layout → Layout & spacing → Gap below bar / toward windows reserves
+0–100 additional pixels toward the desktop, without moving the visible bar. For
+a top bar this is bottom padding; for another edge it follows the bar inward.
+Hidden bars reserve no space. Edge margin continues to move the bar itself.
+
+Each screen keeps one prepared application launcher and icon catalog. Search
+resets and receives focus on opening, and launcher entry transitions are immediate.
+Other menu contents retain their lazy loading and animations. The Fedora launcher
+mark uses solid blue with a white symbol to retain detail at small icon sizes.
+
+Super+Alt+C and Super+Alt+V forward Copy and Paste to the focused application
+(Ctrl+C/V, or Ctrl+Shift+C/V for Kitty, Alacritty, Foot, WezTerm and Ptyxis).
+Super+V toggles floating windows. Application-specific shortcut preferences can
+override the conventional forwarded keys.

@@ -109,6 +109,7 @@ ColumnLayout {
                     {key: "groupSpacing", label: "Inside shared pills", min: 0, max: 30, fallback: 3},
                     {key: "spacing", label: "Between items / pills", min: 0, max: 30, fallback: 3},
                     {key: "marginTop", label: "Edge margin", min: 0, max: 100, fallback: 5},
+                    {key: "paddingBottom", label: "Gap below bar / toward windows", min: 0, max: 100, fallback: 0},
                     {key: "marginSide", label: "End margins", min: 0, max: 200, fallback: 10}
                 ]
                 delegate: SettingsSlider {

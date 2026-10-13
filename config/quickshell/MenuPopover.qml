@@ -22,7 +22,10 @@ Item {
     property string title: ""
     property string symbol: ""
     property Component page: null
-    readonly property alias pageItem: pageLoader.item
+    property Component persistentPage: null
+    property bool persistentSelected: false
+    property bool instant: false
+    readonly property var pageItem: persistentSelected ? persistentLoader.item : pageLoader.item
     property bool opened: false
     property bool cardClickable: false
     property bool connected: true
@@ -90,8 +93,8 @@ Item {
         }
         transitions: Transition {
             ParallelAnimation {
-                NumberAnimation { property: "opacity"; duration: 140; easing.type: Easing.OutCubic }
-                NumberAnimation { property: "y"; duration: 220; easing.type: Easing.OutCubic }
+                NumberAnimation { property: "opacity"; duration: popover.instant ? 0 : 140; easing.type: Easing.OutCubic }
+                NumberAnimation { property: "y"; duration: popover.instant ? 0 : 220; easing.type: Easing.OutCubic }
             }
         }
         Rectangle {
@@ -193,7 +196,13 @@ Item {
                 Rectangle { width: 5; height: 5; radius: 3; color: popover.accent; opacity: 0.7 }
             }
             Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Qt.rgba(popover.accent.r, popover.accent.g, popover.accent.b, 0.15) }
-            Loader { id: pageLoader; Layout.fillWidth: true; active: popover.rendering; sourceComponent: popover.page }
+            Loader {
+                id: persistentLoader
+                Layout.fillWidth: true
+                visible: popover.persistentSelected
+                sourceComponent: popover.persistentPage
+            }
+            Loader { id: pageLoader; Layout.fillWidth: true; active: popover.rendering && !popover.persistentSelected; sourceComponent: popover.page }
         }
     }
 }

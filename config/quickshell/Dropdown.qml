@@ -67,6 +67,9 @@ PanelWindow {
             edge: dropdown.barEdge
             accent: dropdown.accent
             opened: dropdown.opened
+            persistentPage: launcherPage
+            persistentSelected: dropdown.displayedSection === "launcher"
+            instant: persistentSelected
             cardClickable: dropdown.displayedSection === "settings"
             onCardClicked: {
                 dropdown.closeRequested();
@@ -107,7 +110,7 @@ PanelWindow {
         if (opened && movePointerOnOpen) headerPointer.restart();
     }
     Shortcut { sequence: "Escape"; enabled: dropdown.opened; onActivated: dropdown.closeRequested() }
-    Component { id: launcherPage; LauncherMenu { onLaunched: dropdown.closeRequested() } }
+    Component { id: launcherPage; LauncherMenu { active: dropdown.opened && dropdown.section === "launcher"; onLaunched: dropdown.closeRequested() } }
     Component { id: settingsPage; SettingsMenu { onOpenRequested: { dropdown.closeRequested(); dropdown.settingsRequested(); } } }
     Component { id: calendarPage; CalendarMenu {} }
     Component { id: audioPage; AudioMenu { services: dropdown.services } }

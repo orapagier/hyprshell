@@ -70,7 +70,8 @@ ShellRoot {
                 let ws = monitor && monitor.activeWorkspace;
                 return ws ? Settings.barVisible(preferences.config.bar, ws.id) : preferences.config.bar.visible !== false;
             }
-            exclusionMode: visible ? ExclusionMode.Auto : ExclusionMode.Ignore
+            exclusiveZone: (vertical ? width : height) + (preferences.config.bar.paddingBottom || 0)
+            exclusionMode: visible ? ExclusionMode.Normal : ExclusionMode.Ignore
             onVisibleChanged: if (!visible) menuState.close()
             readonly property string edge: preferences.config.bar.position || "top"
             readonly property bool vertical: edge === "left" || edge === "right"

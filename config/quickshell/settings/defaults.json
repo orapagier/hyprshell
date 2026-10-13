@@ -17,7 +17,8 @@
     "groupSpacing": 3,
     "popdownTranslucency": 0.06,
     "sharedBackground": "inherit",
-    "position": "top"
+    "position": "top",
+    "paddingBottom": 0
   },
   "items": [
     {

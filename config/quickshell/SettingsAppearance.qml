@@ -97,7 +97,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Window shape & spacing"
-        subtitle: "Balance soft corners, clean borders, and breathing room."
+        subtitle: "Adjust each screen edge separately. Unset edges follow All screen edges (10 px unless overridden). The bar reserves its own space."
         GridLayout {
             Layout.fillWidth: true
             columns: root.width >= 600 ? 2 : 1
@@ -109,7 +109,11 @@ ColumnLayout {
                     {key: "rounding", label: "Corner radius", max: 100, fallback: 10},
                     {key: "borderSize", label: "Border width", max: 20, fallback: 3},
                     {key: "gapsIn", label: "Between windows", max: 100, fallback: 5},
-                    {key: "gapsOut", label: "Screen edges", max: 100, fallback: 10}
+                    {key: "gapsOut", label: "All screen edges", max: 100, fallback: 10},
+                    {key: "gapsOutTop", label: "Top edge", max: 100, fallback: root.settings.gapsOut ?? 10},
+                    {key: "gapsOutRight", label: "Right edge", max: 100, fallback: root.settings.gapsOut ?? 10},
+                    {key: "gapsOutBottom", label: "Bottom edge", max: 100, fallback: root.settings.gapsOut ?? 10},
+                    {key: "gapsOutLeft", label: "Left edge", max: 100, fallback: root.settings.gapsOut ?? 10}
                 ]
                 delegate: SettingsSlider {
                     required property var modelData
