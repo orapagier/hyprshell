@@ -26,23 +26,27 @@ as needed, then apply the matching live change. Keep hardware-specific settings
 adaptable and credentials outside the repository. Do not promise identical
 hardware behavior on a different laptop.
 
-The user authorizes local Git commits as a standing preference. After each
-completed, validated Hyprshell change, commit the task's repository changes
-with a meaningful subject describing the result; add a body when the reason,
-behavior, or validation needs explanation. Stage only task-related changes,
-preserve unrelated work and staged files, and report the local commit. Include
-documentation and installer changes when needed to restore the setup. Apply
-matching live payload changes before committing so Settings sync does not
-replace them with older installed copies. Do not create empty commits.
+The user authorizes local Git commits after each successfully completed Hyprshell
+agent task. Commit only when the requested outcome is achieved, required checks
+pass, and no required implementation, validation, or follow-up remains. Questions,
+read-only investigations, unfinished work, blocked work, and tasks needing
+follow-up do not trigger commits. Never create an empty commit.
 
-Settings → Sync to GitHub pushes existing local commits with their original
-subjects and bodies. Keep that history intact: do not squash, amend, or replace
-agent commits with a generic sync message. Automatic local saving commits manual
-changes about every 30 seconds, without network access. Sync to GitHub only
-pushes existing commits and never snapshots or creates commits. Local
-commit authorization does not authorize a push; let the user trigger Settings
-sync unless they explicitly request a push. If committing fails, retain the
-changes and report the failure instead of claiming completion.
+Use a meaningful subject describing the result; add a body explaining the reason,
+behavior, and relevant validation when useful. Stage only task-related changes,
+preserve unrelated edits and existing staged work, apply matching authorized live
+changes before committing, and report the local commit. If committing fails,
+retain the changes and report the failure. Manual desktop edits remain live and
+uncommitted until the user chooses Sync to GitHub; there is no background saver.
+
+Settings → Sync to GitHub captures the live configuration, commits it locally,
+then pushes. Push completed agent commits with their original subjects and bodies
+intact; do not amend, squash, replace, or recommit them under a generic sync
+message. Create a new sync commit only for remaining uncommitted edits. A failed push
+retains the local commit for retry. Do not push without explicit authorization.
+Sync from GitHub previews conflicting files and lets the user choose Keep local
+or Use GitHub before updating. Retained unsynced edits remain uncommitted;
+merging already committed branch histories may create an update merge commit.
 
 Read only the reference needed:
 - [Desktop map](references/desktop.md): ownership, exact paths, settings workflow, checks, logs, and reloads.
@@ -50,4 +54,4 @@ Read only the reference needed:
 
 Use targeted reads and bounded logs; do not inventory packages or read the entire README on every request. Verify changing facts only when relevant. Session socket/D-Bus access failures in an agent sandbox do not establish that the desktop or services are broken. Report inaccessible checks precisely; do not guess socket paths or bypass sandbox restrictions.
 
-Do not run the full installer for a small edit: it upgrades packages and config-only deploys owned files and preserves preferences. Validate the affected component before reloading. Pushing, cleanup deletion, and ending the session require task authorization; local commits are authorized by the standing preference above. Keep credentials, notification contents, and unrelated personal files out of repository documentation. Update these references when a verified setup change makes them stale.
+Do not run the full installer for a small edit: it upgrades packages and config-only deploys owned files and preserves preferences. Validate the affected component before reloading. Pushing, cleanup deletion, and ending the session require task authorization; local commits are authorized only at the successful task boundary described above or by an explicit commit/Sync to GitHub request. Keep credentials, notification contents, and unrelated personal files out of repository documentation. Update these references when a verified setup change makes them stale.

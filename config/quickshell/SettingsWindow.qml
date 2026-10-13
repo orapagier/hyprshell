@@ -382,7 +382,7 @@ FloatingWindow {
         contentItem: ColumnLayout {
             spacing: 14
             Label { text: "Sync to GitHub"; color: Style.Theme.text; font.pixelSize: 20; font.bold: true }
-            Label { Layout.fillWidth: true; text: "Local edits are saved automatically. Sync pushes your saved commits."; wrapMode: Text.WordWrap; color: Style.Theme.muted }
+            Label { Layout.fillWidth: true; text: "Sync saves your current desktop to a local commit, then pushes it to GitHub."; wrapMode: Text.WordWrap; color: Style.Theme.muted }
             Label { objectName: "githubRepositoryLabel"; text: window.syncRepository || "Sign in to find your repository"; color: Style.Theme.accentText }
             Label { Layout.fillWidth: true; text: window.syncMessage; wrapMode: Text.WordWrap; color: window.syncSuccess ? Style.Theme.muted : Style.Theme.danger }
             RowLayout {

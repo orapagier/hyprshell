@@ -34,7 +34,7 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | Boot splash | checkout `config/boot/plymouth.json`, `config/boot/hyprshell/`, Arch `tools/install_boot_splash.py`, Fedora `tools/install_boot_splash_fedora.py`, `docs/boot-splash.md`; root-owned live Plymouth and initramfs settings; Fedora uses dracut with SELinux label restoration, preserving BLS/kernel parameters; `docs/boot-splash-preview.html` previews it without starting Plymouth |
 | Login appearance / early UKI splash | checkout `config/sddm/hyprshell-glass/`, `config/boot/uki-splash.bmp`, `tools/install_login_theme.py`, `docs/login-appearance.md`; root-owned `/etc/sddm.conf` and `/usr/share/sddm/themes/hyprshell-glass/`; installer `--with-boot-splash` includes the replacement for the preset's Arch BMP and rebuilds mkinitcpio, without changing systemd-boot; no greeter restart; use SDDM Qt 6 test mode for preview |
 | App autostart overrides | `autostart/*.desktop` / checkout `config/autostart/*.desktop`; installer copies managed entries individually; `nm-applet.desktop` hides the duplicate network tray icon |
-| Sync | `quickshell/settings/github_sync.py`; local saver reconciles desktop/checkout and commits; Sync to GitHub only pushes |
+| Sync | `quickshell/settings/github_sync.py`; Sync to GitHub captures desktop/checkout edits, commits locally, then pushes |
 
 Quickshell owns the bar, menus, notification inbox, and optional Hypridle child. Notification popups default off; Settings → Notification delivery controls popups, Do Not Disturb, critical bypass, and per-app delivery. The bell inbox keeps history. Locking is managed while Quickshell runs, not by a separate Hyprshell lock service. Cleanup is separately scheduled with a systemd user timer. Sound device defaults and volumes use PipeWire/WirePlumber state; Settings → Sound provides device selection, an opt-in input meter, a test tone, and per-stream volumes. GitHub config sync does not export sound-system state. Sound device defaults and volumes use PipeWire/WirePlumber state; Settings → Sound provides device selection, an opt-in input meter, a test tone, and per-stream volumes. GitHub config sync does not export sound-system state. Audio uses PipeWire/PipeWire Pulse and WirePlumber; network uses NetworkManager; Bluetooth uses BlueZ; battery uses UPower, also selecting optional AC/battery timer policies without extra polling. Session startup uses UWSM and hyprpolkitagent.
 
@@ -110,8 +110,12 @@ service-access failure establishes real boot/hardware health.
 
 Reviewed GitHub updates (2026-10-13): `SettingsGithubUpdate{,Review}.qml`,
 `settings/{github_update,compatibility,deployment}.py`, root `compatibility.json`.
-All preferences and code live in `config/`. `hyprshell-local-save.timer` commits
-local edits about every 30 seconds; Sync to GitHub only pushes existing commits. Sync from GitHub previews the tracking source and candidate
+All preferences and code live in `config/`. Successfully completed, validated
+agent tasks are committed locally with meaningful descriptions; unfinished tasks
+and questions do not trigger commits. Manual desktop edits remain uncommitted
+until Sync to GitHub captures them and creates a local commit. Sync pushes
+existing commits with their original subjects and bodies intact. There is no background
+Git saver. Sync from GitHub presents conflict choices before continuing. Sync from GitHub previews the tracking source and candidate
 before confirmation, preserves preferences/history, and runs a detached worker.
 See `docs/updates.md` and `docs/acceptance.md`. No public release or physical
 hardware certification should be inferred from isolated tests.

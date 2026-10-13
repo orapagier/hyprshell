@@ -27,21 +27,16 @@ def install(repo, native=False):
                                           capture_output=True, text=True, timeout=30)
                 if restored.returncode:
                     print(name.capitalize() + ' preferences will be retried at login.')
+    # Disable the retired saver, including installations from the earlier version.
     units = deployment.roots()['config'] / 'systemd/user'
-    timer = units / 'hyprshell-local-save.timer'
-    if timer.exists():
-        wants = units / 'timers.target.wants'
-        wants.mkdir(parents=True, exist_ok=True)
-        link = wants / timer.name
-        if not link.exists():
-            link.symlink_to('../' + timer.name)
-        # Setup in an isolated home must not start a service in the host session.
-        if (Path.home() == Path(pwd.getpwuid(os.getuid()).pw_dir)
-                and os.environ.get('XDG_RUNTIME_DIR') == '/run/user/' + str(os.getuid())):
-            subprocess.run(['systemctl', '--user', 'daemon-reload'], capture_output=True, timeout=15)
-            enabled = subprocess.run(['systemctl', '--user', 'start', timer.name], capture_output=True, timeout=15)
-            if enabled.returncode:
-                print('Local automatic saving will start at the next login.')
+    link = units / 'timers.target.wants/hyprshell-local-save.timer'
+    if link.is_symlink():
+        link.unlink()
+    if (Path.home() == Path(pwd.getpwuid(os.getuid()).pw_dir)
+            and os.environ.get('XDG_RUNTIME_DIR') == '/run/user/' + str(os.getuid())):
+        subprocess.run(['systemctl', '--user', 'stop', 'hyprshell-local-save.timer',
+                        'hyprshell-local-save.service'], capture_output=True, timeout=15)
+        subprocess.run(['systemctl', '--user', 'daemon-reload'], capture_output=True, timeout=15)
     for key in result['changed']:
         print('Installed:', key)
     if not result['changed']:

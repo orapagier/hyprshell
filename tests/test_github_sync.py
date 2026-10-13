@@ -15,7 +15,7 @@ spec.loader.exec_module(syncer)
 
 
 class SyncTests(unittest.TestCase):
-    def test_local_save_and_push_preserve_commits_and_reject_unsaved_edits(self):
+    def test_explicit_sync_commits_live_edits_and_preserves_history(self):
         import os
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -35,13 +35,14 @@ class SyncTests(unittest.TestCase):
                        XDG_STATE_HOME=str(root / 'state'), XDG_DATA_HOME=str(root / 'data'))
             with patch.dict(os.environ, env):
                 (config / 'hypr/current').write_text('Manual monitor adjustment')
-                with self.assertRaisesRegex(RuntimeError, 'Desktop edits are waiting'):
-                    syncer.sync(repo, config, str(remote), 'example/hyprshell')
-                self.assertTrue(syncer.save_local(repo, config))
+                previous = run('rev-parse', 'HEAD')
+                self.assertEqual((repo / 'config/hypr/current').read_text(), 'original')
+                syncer.sync(repo, config, str(remote), 'example/hyprshell')
                 first = run('rev-parse', 'HEAD')
+                self.assertNotEqual(first, previous)
                 self.assertEqual((repo / 'config/hypr/current').read_text(), 'Manual monitor adjustment')
                 self.assertEqual(syncer.sync(repo, config, str(remote), 'example/hyprshell'),
-                                 'Synced to example/hyprshell (main).')
+                                 'Nothing to sync now.')
                 self.assertEqual(first, run('rev-parse', 'HEAD'))
                 self.assertEqual(syncer.sync(repo, config, str(remote), 'example/hyprshell'), 'Nothing to sync now.')
                 (repo / 'config/hypr/current').write_text('Repo customization')
@@ -64,6 +65,27 @@ class SyncTests(unittest.TestCase):
                 self.assertEqual((config / 'hypr/current').read_text(), 'live edit')
                 self.assertEqual(run('rev-parse', 'HEAD'), head)
                 self.assertEqual(run('diff', '--cached', '--name-only'), '')
+
+    def test_failed_push_retains_the_locally_committed_live_snapshot(self):
+        import os
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); repo, config = root / 'repo', root / 'live'
+            subprocess.run(['git', 'init', '-b', 'main', str(repo)], check=True, capture_output=True)
+            syncer.git(repo, 'config', 'user.name', 'Test'); syncer.git(repo, 'config', 'user.email', 'test@example.com')
+            for name in ('hypr', 'quickshell'):
+                (repo / 'config' / name).mkdir(parents=True)
+                (config / name).mkdir(parents=True)
+                (repo / 'config' / name / 'current').write_text('original')
+                (config / name / 'current').write_text('original')
+            syncer.git(repo, 'add', '.'); syncer.git(repo, 'commit', '-m', 'initial')
+            before = syncer.git(repo, 'rev-parse', 'HEAD')
+            (config / 'hypr/current').write_text('approved live edit')
+            with patch.dict(os.environ, HOME=str(root / 'home'), XDG_CONFIG_HOME=str(config), XDG_STATE_HOME=str(root / 'state')):
+                with self.assertRaises(RuntimeError):
+                    syncer.sync(repo, config, str(root / 'missing-remote'), 'test/hyprshell')
+            self.assertNotEqual(syncer.git(repo, 'rev-parse', 'HEAD'), before)
+            self.assertEqual((repo / 'config/hypr/current').read_text(), 'approved live edit')
+            self.assertEqual(syncer.git(repo, 'status', '--porcelain'), '')
 
     def test_managed_payload_uses_live_files_without_importing_private_files(self):
         with tempfile.TemporaryDirectory() as directory:

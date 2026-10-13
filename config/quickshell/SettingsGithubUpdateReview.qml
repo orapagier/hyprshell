@@ -10,6 +10,7 @@ Popup {
     property real hostWidth: 1000
     property real hostHeight: 800
     property var review: ({})
+    property var conflictChoices: ({})
     property string message: ""
     property bool success: true
     property bool applying: false
@@ -29,12 +30,23 @@ Popup {
         action = args[0];
         if (action === "--preview") {
             review = ({});
+            conflictChoices = ({});
             acknowledgement.checked = false;
             message = "Fetching update details and checking this setup…";
         }
         success = true;
         requestAction(args);
     }
+    function choose(path, value) {
+        let next = Object.assign({}, conflictChoices);
+        next[path] = value;
+        conflictChoices = next;
+    }
+    readonly property bool choicesComplete: {
+        let rows = review.conflicts || [];
+        return rows.length > 0 && rows.every(row => conflictChoices[row.path] === "local" || conflictChoices[row.path] === "github");
+    }
+    readonly property bool choicesReviewed: (review.conflicts || []).every(row => row.choice && row.choice === conflictChoices[row.path])
     onOpened: run(["--preview"])
     contentItem: ColumnLayout {
         spacing: 12
@@ -52,11 +64,16 @@ Popup {
             color: dialog.success ? Style.Theme.muted : Style.Theme.danger
         }
         ScrollView {
+            id: reviewScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
             contentWidth: availableWidth
+            ColumnLayout {
+                width: reviewScroll.availableWidth
+                spacing: 14
             TextArea {
+                Layout.fillWidth: true
                 objectName: "githubUpdateReview"
                 readOnly: true
                 selectByMouse: true
@@ -79,16 +96,73 @@ Popup {
                     add("Packages no longer required (not automatically removed)", r.packagesRemoved);
                     add("Changed files", r.changes);
                     if (r.notes) sections.push("Release notes\n" + r.notes);
-                    sections.push("Your current settings, shortcuts and display preferences will be retained. Conflicting desktop code edits block the update. Log out and back in after completion.");
+                    sections.push("Local changes are preserved where they combine with the update. Choose the full file to keep for each conflict, then review your choices. Checking and updating do not commit your unsynced edits. Log out and back in after completion.");
                     return sections.join("\n\n");
                 }
+            }
+            Repeater {
+                model: dialog.review.conflicts || []
+                delegate: ColumnLayout {
+                    id: conflict
+                    required property var modelData
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Label { text: conflict.modelData.path; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: Style.Theme.accentText; Layout.fillWidth: true }
+                    Label { text: "This choice keeps the entire file, including a deletion."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Repeater {
+                            model: ["local", "github"]
+                            delegate: ColumnLayout {
+                                id: version
+                                required property string modelData
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: 1
+                                Label { text: version.modelData === "local" ? "Your local version" : "GitHub version"; color: Style.Theme.text }
+                                ScrollView {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 160
+                                    clip: true
+                                    TextArea {
+                                        text: conflict.modelData[version.modelData]
+                                        textFormat: TextEdit.PlainText
+                                        readOnly: true
+                                        selectByMouse: true
+                                        wrapMode: TextEdit.Wrap
+                                        color: Style.Theme.text
+                                        background: Rectangle { color: Style.Theme.field; radius: 6 }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    ComboBox {
+                        objectName: "githubConflictChoice"
+                        Layout.fillWidth: true
+                        enabled: !dialog.busy
+                        model: ["Choose a version…", "Keep local", "Use GitHub"]
+                        currentIndex: dialog.conflictChoices[conflict.modelData.path] === "local" ? 1 : dialog.conflictChoices[conflict.modelData.path] === "github" ? 2 : 0
+                        onActivated: index => { if (index > 0) dialog.choose(conflict.modelData.path, index === 1 ? "local" : "github"); }
+                    }
+                }
+            }
+            SettingsButton {
+                objectName: "githubConflictReview"
+                text: "Review choices"
+                visible: (dialog.review.conflicts || []).length > 0
+                enabled: !dialog.busy && dialog.choicesComplete
+                onClicked: {
+                    acknowledgement.checked = false;
+                    dialog.run(["--resolve", dialog.review.token, "--choices-json", JSON.stringify(dialog.conflictChoices)]);
+                }
+            }
             }
         }
         CheckBox {
             id: acknowledgement
             objectName: "githubUpdateAcknowledgement"
             Layout.fillWidth: true
-            visible: dialog.review.ready === true
+            visible: dialog.review.ready === true && dialog.choicesReviewed
             enabled: !dialog.busy
             text: "I reviewed the changes and hardware testing limitations."
             palette.windowText: Style.Theme.text
@@ -111,7 +185,7 @@ Popup {
                 objectName: "githubUpdateConfirm"
                 text: dialog.applying ? "Syncing…" : "Sync now"
                 highlighted: true
-                enabled: !dialog.busy && dialog.review.ready === true && acknowledgement.checked
+                enabled: !dialog.busy && dialog.review.ready === true && dialog.choicesReviewed && acknowledgement.checked
                 onClicked: dialog.run(["--apply", dialog.review.token, "--acknowledge"])
             }
             SettingsButton { text: "Close"; enabled: !dialog.busy; onClicked: dialog.close() }

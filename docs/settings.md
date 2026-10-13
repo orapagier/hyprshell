@@ -403,25 +403,31 @@ The account and repository are checked again on each sync, including after an
 account switch. The checkout's origin remote is preserved; the push explicitly
 targets the authenticated user's repository.
 
-The local automatic saver captures live `hypr/`, `quickshell/`, saved preferences
-and editable Lua into the single `config/` payload about every 30 seconds. It
-reconciles checkout and desktop edits and commits locally without network access.
+Manual changes remain live and uncommitted until **Sync to GitHub**. Completed,
+validated agent tasks are committed locally with meaningful descriptions;
+questions and unfinished tasks are not committed. The button captures
+live `hypr/`, `quickshell/`, preferences and editable Lua into `config/`, reconciles
+checkout edits, validates and commits locally before pushing. Existing commits
+and messages remain intact. A failed push retains the local commit for retry.
+There is no periodic Git saver. Staged changes or conflicting checkout/live
+copies require resolution first. Configure a Git identity on fresh clones.
+
 Managed portal files, autostart entries, utilities, application entries and only
-`default.jpg` are included. Other wallpapers, private backup paths, history,
-credentials, caches and logs are excluded. A repo/live conflict stops saving;
-inspect `$XDG_STATE_HOME/hyprshell/local-save-status.json` for the reason.
-
-Sync to GitHub pushes only existing commits. It does not capture files, stage or
-commit changes. Pending edits block publishing until automatic saving finishes.
-Existing commit messages and history are preserved. Failed pushes leave local
-commits available for retry. Resolve staged changes and ongoing merges first.
-Fresh clones require a configured Git commit identity.
-
-Setup records the checkout in `$XDG_STATE_HOME/hyprshell/repository` (default
-`~/.local/state/hyprshell/repository`). Fresh installations use the author's
-committed configuration; updates preserve existing preferences.
+`default.jpg` are included. Extra wallpapers, backup paths, history, credentials,
+caches and logs are excluded. Setup records the checkout under
+`$XDG_STATE_HOME/hyprshell/repository` (default `~/.local/state/hyprshell/repository`).
+Fresh installs use the author's committed configuration; updates preserve local
+customizations through a reviewed merge.
 
 ### Sync from GitHub
+
+Checking does not commit or change local edits. Each conflicting file shows its
+local and GitHub versions. Choose **Keep local** or **Use GitHub**, then **Review
+choices**, acknowledge the resulting review, and **Sync now**. Choosing a version
+keeps the whole file or its deletion. A changed choice requires another review;
+editing your files after preview requires a fresh check. Unsynced edits kept
+during updates remain uncommitted until Sync to GitHub.
+
 
 The right-hand GitHub button opens `SettingsGithubUpdateReview.qml`, with process
 coordination in `SettingsGithubUpdate.qml` and the backend in

@@ -1,6 +1,0 @@
-[Unit]
-Description=Save Hyprshell desktop changes as local Git commits
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/env python3 %E/quickshell/settings/local_save.py

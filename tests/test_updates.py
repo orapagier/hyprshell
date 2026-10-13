@@ -106,7 +106,7 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(extra.read_text(), '-- user module\n')
 
     def test_reviewed_update_merges_live_customization_and_new_code(self):
-        from github_sync import git, save_local
+        from github_sync import git
         subprocess.run(['git', 'init', '-b', 'main', str(self.repo)], check=True, capture_output=True)
         shutil.copy2(ROOT / '.gitignore', self.repo / '.gitignore')
         (self.repo / 'packages-fedora.txt').write_text('')
@@ -145,13 +145,31 @@ class DeploymentTests(unittest.TestCase):
             self.assertTrue(review['ready'], review['blockers'])
             local = git(self.repo, 'rev-parse', 'HEAD')
             github_update.apply(self.repo, review['token'])
-        self.assertEqual(git(self.repo, 'rev-parse', 'HEAD^1'), local)
+        self.assertEqual(git(self.repo, 'rev-parse', 'HEAD'), git(upstream, 'rev-parse', 'HEAD'))
+        self.assertEqual(local, git(self.repo, 'rev-parse', 'HEAD^'))
+        self.assertIn('SettingsButton.qml', git(self.repo, 'diff', '--name-only'))
         self.assertEqual(json.loads(settings.read_text())['bar']['height'], 47)
         self.assertIn('my local customization', local_code.read_text())
         self.assertIn('new upstream feature', (self.config / 'quickshell/SettingsWindow.qml').read_text())
         self.assertEqual(local_code.read_bytes(), (self.repo / 'config/quickshell/SettingsButton.qml').read_bytes())
         self.assertTrue(wallpaper.exists())
         self.assertNotIn('private.jpg', git(self.repo, 'ls-files'))
+
+    def test_reviewed_choice_can_replace_local_preferences_and_code(self):
+        self.install()
+        settings = self.config / 'hyprshell/settings.json'
+        local = json.loads(settings.read_text()); local['bar']['height'] = 47
+        settings.write_text(json.dumps(local))
+        chosen = json.loads((self.repo / 'config/hyprshell/settings.json').read_text()); chosen['bar']['height'] = 43
+        (self.repo / 'config/hyprshell/settings.json').write_text(json.dumps(chosen))
+        live = self.config / 'quickshell/SettingsButton.qml'
+        live.write_text(live.read_text() + '\n// local\n')
+        source = self.repo / 'config/quickshell/SettingsButton.qml'
+        source.write_text(source.read_text() + '\n// github version\n')
+        self.install(resolved=True)
+        self.assertEqual(json.loads(settings.read_text())['bar']['height'], 43)
+        self.assertEqual(live.read_bytes(), source.read_bytes())
+        self.assertNotIn('// local', live.read_text())
 
     def test_invalid_settings_or_failed_validation_never_replace_live_code(self):
         self.install()
@@ -291,6 +309,122 @@ class GitUpdateTests(unittest.TestCase):
         self.assertEqual(self.git('rev-parse', 'HEAD^1'), local)
         self.assertEqual(self.git('rev-parse', 'HEAD^2'), self.target)
         self.assertEqual((self.repo / 'local.txt').read_text(), 'work')
+
+    def test_conflict_choices_apply_without_committing_live_edits(self):
+        live = self.root / 'config/quickshell/shell.qml'
+        live.write_text('// my uncommitted desktop')
+        review = github_update.preview(self.repo)
+        self.assertFalse(review['ready'])
+        self.assertEqual(review['conflicts'][0]['path'], 'config/quickshell/shell.qml')
+        self.assertEqual(review['conflicts'][0]['local'], '// my uncommitted desktop')
+        self.assertEqual(review['conflicts'][0]['github'], '// new')
+        self.assertEqual(self.git('rev-parse', 'HEAD'), self.base)
+        self.assertEqual(self.git('status', '--porcelain'), '')
+        with self.assertRaisesRegex(ValueError, 'cannot be applied'):
+            github_update.apply(self.repo, review['token'])
+        for choice, expected in (('local', '// my uncommitted desktop'), ('github', '// new')):
+            selected = github_update.preview(self.repo, {'config/quickshell/shell.qml': choice}, review['token'])
+            self.assertTrue(selected['ready'], selected['blockers'])
+            with tempfile.TemporaryDirectory() as directory:
+                github_update.archive(self.repo, github_update.reviewed(self.repo, selected['token'])['tree'], Path(directory))
+                self.assertEqual((Path(directory) / 'config/quickshell/shell.qml').read_text(), expected)
+            review = selected
+        real_install = deployment.install
+        def minimal_install(candidate, **kwargs):
+            live.write_text((candidate / 'config/quickshell/shell.qml').read_text())
+            return {'backup': ''}
+        with patch.object(deployment, 'install', side_effect=minimal_install):
+            github_update.apply(self.repo, review['token'])
+        self.assertEqual(live.read_text(), '// new')
+        self.assertEqual(self.git('rev-parse', 'HEAD'), self.target)
+        self.assertEqual(self.git('status', '--porcelain'), '')
+
+    def test_keep_local_conflict_remains_uncommitted_after_update(self):
+        live = self.root / 'config/quickshell/shell.qml'; live.write_text('// local')
+        review = github_update.preview(self.repo)
+        selected = github_update.preview(self.repo, {'config/quickshell/shell.qml': 'local'}, review['token'])
+        with patch.object(deployment, 'install', return_value={'backup': ''}):
+            github_update.apply(self.repo, selected['token'])
+        self.assertEqual(self.git('rev-parse', 'HEAD'), self.target)
+        self.assertEqual((self.repo / 'config/quickshell/shell.qml').read_text(), '// local')
+        self.assertEqual(live.read_text(), '// local')
+        self.assertIn('shell.qml', self.git('diff', '--name-only'))
+        self.assertEqual(self.git('diff', '--cached', '--name-only'), '')
+
+    def test_choices_are_bound_to_review_and_reject_stale_or_unknown_paths(self):
+        live = self.root / 'config/quickshell/shell.qml'; live.write_text('// local')
+        review = github_update.preview(self.repo)
+        with self.assertRaisesRegex(ValueError, 'Invalid conflict choices'):
+            github_update.preview(self.repo, {'../../escape': 'github'}, review['token'])
+        live.write_text('// changed since preview')
+        with self.assertRaisesRegex(ValueError, 'changed after'):
+            github_update.preview(self.repo, {'config/quickshell/shell.qml': 'github'}, review['token'])
+        self.assertEqual(self.git('rev-parse', 'HEAD'), self.base)
+
+    def test_checkout_edit_during_validation_is_retained(self):
+        review = github_update.preview(self.repo)
+        path = self.repo / 'config/quickshell/shell.qml'
+        def changed_checkout(*args, **kwargs):
+            path.write_text('// concurrently edited')
+            return {'backup': ''}
+        with patch.object(deployment, 'install', side_effect=changed_checkout):
+            with self.assertRaisesRegex(ValueError, 'changed during validation'):
+                github_update.apply(self.repo, review['token'])
+        self.assertEqual(path.read_text(), '// concurrently edited')
+        self.assertEqual(self.git('rev-parse', 'HEAD'), self.base)
+
+    def test_failed_checkout_merge_restores_uncommitted_edits(self):
+        path = self.repo / 'config/quickshell/shell.qml'
+        path.write_text('// repo edit')
+        live = self.root / 'config/quickshell/shell.qml'; live.write_text('// old')
+        review = github_update.preview(self.repo)
+        selected = github_update.preview(self.repo, {'config/quickshell/shell.qml': 'local'}, review['token'])
+        real_git = github_update.git
+        def failed_merge(repo, *args):
+            if 'merge' in args and '--ff-only' in args: raise RuntimeError('merge failed')
+            return real_git(repo, *args)
+        with patch.object(deployment, 'install', return_value={'backup': ''}), patch.object(github_update, 'git', side_effect=failed_merge):
+            with self.assertRaisesRegex(RuntimeError, 'merge failed'):
+                github_update.apply(self.repo, selected['token'])
+        self.assertEqual(path.read_text(), '// repo edit')
+        self.assertEqual(self.git('rev-parse', 'HEAD'), self.base)
+        self.assertEqual(self.git('diff', '--cached', '--name-only'), '')
+
+    def test_delete_conflict_has_explicit_local_and_github_choices(self):
+        self.git('reset', '--hard', self.target)
+        (self.repo / 'config/quickshell/shell.qml').unlink()
+        self.git('add', '.'); self.git('commit', '-m', 'Remove shell fixture'); self.git('push')
+        removed = self.git('rev-parse', 'HEAD')
+        self.git('reset', '--hard', self.base)
+        live = self.root / 'config/quickshell/shell.qml'; live.write_text('// local')
+        review = github_update.preview(self.repo)
+        self.assertTrue(review['conflicts'][0]['githubDeleted'])
+        selected = github_update.preview(self.repo, {'config/quickshell/shell.qml': 'github'}, review['token'])
+        self.assertTrue(selected['ready'])
+        with tempfile.TemporaryDirectory() as directory:
+            github_update.archive(self.repo, github_update.reviewed(self.repo, selected['token'])['tree'], Path(directory))
+            self.assertFalse((Path(directory) / 'config/quickshell/shell.qml').exists())
+        self.assertEqual(live.read_text(), '// local')
+        self.assertEqual(self.git('rev-parse', 'HEAD'), self.base)
+
+    def test_failed_post_merge_overlay_restores_head_and_local_edits(self):
+        live = self.root / 'config/quickshell/shell.qml'; live.write_text('// local')
+        review = github_update.preview(self.repo)
+        selected = github_update.preview(self.repo, {'config/quickshell/shell.qml': 'local'}, review['token'])
+        real_overlay = github_update.update_merge.overlay
+        calls = 0
+        def fail_overlay(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 2: raise OSError('overlay failed')
+            return real_overlay(*args, **kwargs)
+        with patch.object(deployment, 'install', return_value={'backup': ''}), patch.object(github_update.update_merge, 'overlay', side_effect=fail_overlay):
+            with self.assertRaisesRegex(OSError, 'overlay failed'):
+                github_update.apply(self.repo, selected['token'])
+        self.assertEqual(self.git('rev-parse', 'HEAD'), self.base)
+        self.assertEqual((self.repo / 'config/quickshell/shell.qml').read_text(), '// old')
+        self.assertEqual(live.read_text(), '// local')
+        self.assertEqual(self.git('status', '--porcelain'), '')
 
     def test_missing_package_blocks_and_expired_preview_fails(self):
         result = github_update.preview(self.repo)

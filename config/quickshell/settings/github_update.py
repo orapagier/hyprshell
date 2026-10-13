@@ -19,6 +19,7 @@ import uuid
 
 import compatibility
 import deployment
+import update_merge
 from github_sync import git, friendly_error
 
 
@@ -83,7 +84,7 @@ def fingerprints(repo):
     result = {}
     files = deployment.payload(repo)
     # Include optional preferences and local Lua so preview becomes stale on edits.
-    for folder in ('hyprshell', 'hypr'):
+    for folder in ('hyprshell', 'hypr', 'quickshell'):
         for path in (locations['config'] / folder).rglob('*'):
             if path.is_file() and not deployment.ignored(path):
                 files['config/' + path.relative_to(locations['config']).as_posix()] = path
@@ -94,31 +95,32 @@ def fingerprints(repo):
     return hashlib.sha256(json.dumps(result, sort_keys=True).encode()).hexdigest()
 
 
-def preview(repo):
-    from github_sync import save_local
-    save_local(repo, deployment.roots()['config'])
+def preview(repo, choices=None, previous=None):
     with repository_lock(repo):
         selection = source(repo)
         base = git(repo, 'rev-parse', 'HEAD')
-        # Fetch only the selected branch. No checkout changes and no candidate code execution.
-        git(repo, 'fetch', '--no-tags', '--no-recurse-submodules', selection['remote'], selection['ref'])
-        target = git(repo, 'rev-parse', 'FETCH_HEAD^{commit}')
+        if previous:
+            review = reviewed(repo, previous, require_ready=False)
+            target = review['target']
+        else:
+            git(repo, 'fetch', '--no-tags', '--no-recurse-submodules', selection['remote'], selection['ref'])
+            target = git(repo, 'rev-parse', 'FETCH_HEAD^{commit}')
         blockers = []
-        if git(repo, 'status', '--porcelain'):
-            blockers.append('The checkout has uncommitted changes. Commit or save them before updating.')
+        if git(repo, 'diff', '--cached', '--name-only'):
+            blockers.append('Commit or unstage your staged changes before updating.')
+        changed = subprocess.run(['git', '-C', str(repo), 'diff', '--name-only', '-z', 'HEAD'],
+                                 capture_output=True, check=True, timeout=15).stdout
+        untracked = subprocess.run(['git', '-C', str(repo), 'ls-files', '--others', '--exclude-standard', '-z'],
+                                   capture_output=True, check=True, timeout=15).stdout
+        if any(name and not update_merge.allowed(name.decode()) for name in (changed + untracked).split(b'\0')):
+            blockers.append('Changes outside the desktop project must be saved or moved before updating.')
         forward = ancestor(repo, base, target)
         incoming = not ancestor(repo, target, base)
-        tree = target if incoming else base
-        merge_needed = incoming and not forward
-        if merge_needed:
-            # Compute the combined tree without touching the index/worktree or
-            # running candidate code. Both original histories stay intact.
-            merged = subprocess.run(['git', '-C', str(repo), 'merge-tree', '--write-tree', base, target],
-                                    capture_output=True, text=True, timeout=60)
-            if merged.returncode:
-                blockers.append('Local and GitHub edits have merge conflicts. Resolve them in Git before syncing.')
-            else:
-                tree = merged.stdout.splitlines()[0]
+        combined = update_merge.build(repo, base, target, choices or {})
+        tree = combined['tree']
+        history_tree = combined['history_tree']
+        merge_needed = incoming and (not forward or history_tree != git(repo, 'rev-parse', target + '^{tree}'))
+        unresolved = [c for c in combined['conflicts'] if not c['choice']]
         with tempfile.TemporaryDirectory(prefix='hyprshell-review-') as temp:
             candidate = Path(temp)
             archive(repo, tree, candidate)
@@ -137,8 +139,6 @@ def preview(repo):
             settings = deployment.roots()['config'] / 'hyprshell/settings.json'
             if settings.exists() and json.loads(settings.read_text()).get('version') != manifest['settings_schema']:
                 blockers.append('Your settings schema requires a migration that this updater does not support.')
-            if plan['conflicts']:
-                blockers.append('Local desktop code has conflicting edits: ' + ', '.join(plan['conflicts']))
             blockers += assessment['blockers']
             commits = git(repo, 'log', '--max-count=80', '--format=%h %s', f'{base}..{target}').splitlines()
             changes = git(repo, 'diff', '--name-status', base, tree).splitlines()
@@ -146,8 +146,9 @@ def preview(repo):
                                                 'tools/install_login', 'tools/configure_daily_driver')) for row in changes):
                 assessment['warnings'].append('This update also changes system installation files. Sync updates your desktop; use full setup separately to apply boot, login or system-service changes.')
             notes = candidate / 'CHANGELOG.md'
-            result = {'ok': True, 'ready': not blockers and incoming,
-                      'message': 'No incoming updates.' if not incoming else 'Review the changes and compatibility results before syncing.',
+            result = {'ok': True, 'ready': not blockers and not unresolved and incoming,
+                      'message': 'No incoming updates.' if not incoming else ('Choose which version to keep for each conflict.' if unresolved else 'Review the changes and compatibility results before syncing.'),
+                      'conflicts': combined['conflicts'],
                       'repository': selection['url'], 'branch': selection['branch'], 'base': base, 'target': target,
                       'commits': commits, 'changes': changes, 'notes': notes.read_text()[:12000] if notes.exists() else '',
                       'packagesAdded': sorted(set(wanted) - set(old)), 'packagesRemoved': sorted(set(old) - set(wanted)),
@@ -160,22 +161,27 @@ def preview(repo):
         state.mkdir(parents=True, exist_ok=True)
         deployment.atomic_json(state / 'update-preview.json', {'created': time.time(), 'token': token,
             'repo': str(repo), 'source': selection, 'base': base, 'target': target, 'tree': tree, 'merge': merge_needed,
+            'history_tree': history_tree, 'checkout_tree': combined['checkout_tree'],
+            'checkout_fingerprint': update_merge.checkout_fingerprint(repo), 'choices': choices or {},
             'fingerprint': fingerprints(repo), 'machine': info, 'result': result})
         # Keep reviewed objects alive even if another fetch moves FETCH_HEAD.
         git(repo, 'update-ref', 'refs/hyprshell/reviewed-update', target)
         git(repo, 'update-ref', 'refs/hyprshell/reviewed-tree', tree)
+        git(repo, 'update-ref', 'refs/hyprshell/reviewed-history', history_tree)
+        git(repo, 'update-ref', 'refs/hyprshell/reviewed-checkout', combined['checkout_tree'])
         return result
 
 
-def reviewed(repo, token):
+def reviewed(repo, token, require_ready=True):
     path = deployment.roots()['state'] / 'update-preview.json'
     if not path.exists():
         raise ValueError('Check for updates first.')
     review = json.loads(path.read_text())
     if (review['token'] != token or review['repo'] != str(repo) or
-            time.time() - review['created'] > 3600 or not review['result']['ready']):
+            time.time() - review['created'] > 3600 or require_ready and not review['result']['ready']):
         raise ValueError('This preview has expired or cannot be applied. Check for updates again.')
-    if (git(repo, 'rev-parse', 'HEAD') != review['base'] or git(repo, 'status', '--porcelain') or
+    if (git(repo, 'rev-parse', 'HEAD') != review['base'] or
+            update_merge.checkout_fingerprint(repo) != review['checkout_fingerprint'] or
             source(repo) != review['source'] or fingerprints(repo) != review['fingerprint']):
         raise ValueError('Your repository or desktop changed after the preview. Check for updates again.')
     return review
@@ -185,7 +191,7 @@ def apply(repo, token):
     with repository_lock(repo):
         review = reviewed(repo, token)
         with tempfile.TemporaryDirectory(prefix='hyprshell-apply-') as temp:
-            candidate = Path(temp)
+            candidate = Path(temp) / 'candidate'
             archive(repo, review['tree'], candidate)
             info = compatibility.machine()
             if info != review['machine']:
@@ -198,22 +204,42 @@ def apply(repo, token):
             revision = review['target']
             if review['merge']:
                 revision = git(repo, '-c', 'user.name=Hyprshell updater', '-c', 'user.email=hyprshell@localhost',
-                               'commit-tree', review['tree'], '-p', review['base'], '-p', review['target'],
+                               'commit-tree', review['history_tree'], '-p', review['base'], '-p', review['target'],
                                '-m', 'Merge reviewed Hyprshell update ' + review['target'][:12])
-            installed = deployment.install(candidate, native=True, base_repo=repo)
+            # Keep unsaved edits outside committed history. The reviewed tree
+            # applies to the desktop and becomes the checkout's unstaged content.
+            history, original, head = Path(temp) / 'history', Path(temp) / 'original', Path(temp) / 'head'
+            archive(repo, review['history_tree'], history)
+            archive(repo, review['checkout_tree'], original)
+            archive(repo, review['base'], head)
+            installed = deployment.install(candidate, native=True, base_repo=repo, resolved=True)
+            advanced = False
+            checkout_touched = False
             try:
                 if (git(repo, 'rev-parse', 'HEAD') != review['base'] or
-                        git(repo, 'status', '--porcelain') or source(repo) != review['source']):
+                        update_merge.checkout_fingerprint(repo) != review['checkout_fingerprint'] or source(repo) != review['source']):
                     raise ValueError('Your checkout changed during validation. The desktop update will be rolled back; check again.')
-                # Fast-forward to the reviewed SHA only; no reset, stash or rewritten commits.
+                # Original uncommitted contents are backed by the reviewed tree.
+                # Temporarily clear only captured project changes for the merge.
+                checkout_touched = True
+                update_merge.overlay(repo, original, head, verify=True)
                 git(repo, '-c', 'core.hooksPath=/dev/null', 'merge', '--ff-only', revision)
+                advanced = True
+                update_merge.overlay(repo, history, candidate, verify=True)
             except BaseException:
+                if advanced:
+                    git(repo, 'update-ref', 'HEAD', review['base'], revision)
+                    git(repo, 'read-tree', review['base'])
+                    update_merge.overlay(repo, candidate, head)
+                    update_merge.overlay(repo, history, head)
+                if checkout_touched:
+                    update_merge.overlay(repo, head, original)
                 if installed['backup']:
                     deployment.rollback(Path(installed['backup']))
                 raise
         deployment.atomic_json(deployment.roots()['state'] / 'installed-release.json',
                                {'revision': revision, 'source': review['source'], 'updated': time.time()})
-        return {'ok': True, 'message': 'Hyprshell updated. Your preferences were retained. Log out and back in to finish activation.',
+        return {'ok': True, 'message': 'Hyprshell updated using your choices. Unsynced local edits remain uncommitted. Log out and back in to finish activation.',
                 'backup': installed['backup'], 'revision': revision}
 
 
@@ -263,6 +289,8 @@ def main():
     actions = parser.add_mutually_exclusive_group(required=True)
     actions.add_argument('--preview', action='store_true')
     actions.add_argument('--apply', metavar='TOKEN')
+    actions.add_argument('--resolve', metavar='TOKEN')
+    parser.add_argument('--choices-json', default='{}')
     actions.add_argument('--status', action='store_true')
     actions.add_argument('--worker', metavar='TOKEN')
     parser.add_argument('--acknowledge', action='store_true')
@@ -273,6 +301,10 @@ def main():
             result = status()
         elif args.preview:
             result = preview(repository())
+        elif args.resolve:
+            choices = json.loads(args.choices_json)
+            if not isinstance(choices, dict): raise ValueError('Invalid conflict choices.')
+            result = preview(repository(), choices, args.resolve)
         elif args.apply:
             result = start(repository(), args.apply, args.acknowledge)
         else:

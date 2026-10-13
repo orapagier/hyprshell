@@ -547,7 +547,7 @@ Package-cache cleanup is separate; this page reports the existing system
 
 ## Saving your setup to GitHub
 
-The **Sync to GitHub** button in Settings pushes existing local commits
+The **Sync to GitHub** button in Settings snapshots your live desktop, commits locally, then pushes
 to a repository named `hyprshell` in your authenticated GitHub account.
 
 1. Open the sync popup and choose **Authenticate**.
@@ -559,7 +559,7 @@ to a repository named `hyprshell` in your authenticated GitHub account.
 5. Start the sync and check its result.
 
 There is one canonical configuration under `config/`, including personal preferences.
-The local automatic saver checks about every 30 seconds and captures live `hypr/` and `quickshell/` code, editable
+When you choose Sync to GitHub, it captures live `hypr/` and `quickshell/` code, editable
 Hyprland sections, and saved `hyprshell/settings.json`, cleanup preferences,
 shortcut and display customizations, application appearance, default apps,
 and login-startup choices.
@@ -583,19 +583,24 @@ from the live snapshot. Files outside the explicit project paths remain
 uncommitted. Review project and custom configuration content before syncing
 to a public repository.
 
-Agent changes are committed locally with meaningful descriptions. Manual desktop
-and project edits are saved as local commits by `hyprshell-local-save.timer`,
-without network access. The saver reconciles repo and live desktop files; if both
-changed the same file differently, it stops and reports the conflict in
-`~/.local/state/hyprshell/local-save-status.json` without overwriting either edit.
-Existing staged changes and merges also stop automatic saving.
+Manual desktop edits remain live and uncommitted until you choose **Sync to GitHub**.
+Agents commit successfully completed, validated tasks locally with meaningful
+descriptions; questions and tasks needing follow-up do not trigger commits.
+There is no background Git saver. Sync reconciles live and checkout changes,
+validates them, creates a local commit if needed, then pushes. Existing commits
+keep their original subjects and bodies, including completed agent task descriptions.
+Sync creates a new commit only for remaining uncommitted edits. A failed push leaves
+the local commit for retry.
+Staged changes, unfinished merges, or conflicting repo/live copies require
+resolution before publishing. Configure a Git commit identity on fresh clones.
 
-Settings sync pushes existing commits with their original messages intact. It
-never snapshots, stages, or creates a commit. Unsaved changes block publishing
-until local saving finishes. The checkout's `origin` remains unchanged; pushes
-never force or automatically merge remote changes. Failed pushes retain local
-commits for retry. Fresh clones need a Git commit identity; configure `user.name`
-and `user.email` locally or globally before automatic saving.
+**Sync from GitHub** checks and previews without committing local edits. Conflicts
+show both full-file versions with **Keep local** and **Use GitHub** choices,
+including deletions. Choose each version, click **Review choices**, acknowledge
+the updated review, then **Sync now**. Local edits kept during an update remain
+uncommitted until Sync to GitHub. Updates can add a merge commit for already
+committed branch history, without including your unsynced edits. Pushes never
+force or automatically merge remote changes.
 
 Setup records the checkout location in
 `~/.local/state/hyprshell/repository`. Re-running setup updates that pointer.

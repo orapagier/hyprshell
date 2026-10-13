@@ -37,6 +37,25 @@ Item {
             dialog.applying = false;
             acknowledgement.checked = false;
         }
+        function test_conflictChoicesRequireReviewBeforeApply() {
+            let confirm = find(dialog.contentItem, "githubUpdateConfirm");
+            let acknowledgement = find(dialog.contentItem, "githubUpdateAcknowledgement");
+            dialog.conflictChoices = ({});
+            dialog.review = {ready: false, token: "conflict", conflicts: [{path: "config/hyprshell/settings.json", local: "local value", github: "incoming value", choice: ""}]};
+            verify(!dialog.choicesComplete);
+            verify(!confirm.enabled);
+            dialog.choose("config/hyprshell/settings.json", "local");
+            verify(dialog.choicesComplete);
+            verify(!dialog.choicesReviewed);
+            dialog.review = {ready: true, token: "resolved", conflicts: [{path: "config/hyprshell/settings.json", local: "local value", github: "incoming value", choice: "local"}]};
+            acknowledgement.checked = true;
+            verify(confirm.enabled);
+            dialog.choose("config/hyprshell/settings.json", "github");
+            verify(!dialog.choicesReviewed);
+            verify(!confirm.enabled);
+            dialog.review = ({});
+            acknowledgement.checked = false;
+        }
         function test_githubButtonHasReadableLabelAndIcon() {
             compare(button.Accessible.name, "Sync from GitHub");
             compare(button.contentItem.children[0].text, "\uf09b");

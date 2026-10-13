@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Save local configuration independently; publish existing commits without rewriting history."""
+"""Commit the approved live configuration when publishing, without rewriting history."""
 import argparse
 import fnmatch
 import json
@@ -215,7 +215,7 @@ def save_local(repo, config, home=None):
         raise RuntimeError('Choose the root of the Hyprshell Git checkout.')
     with repository_lock(repo), deployment.lock(deployment.roots()):
         if git(repo, 'diff', '--cached', '--name-only'):
-            raise RuntimeError('Commit or unstage your staged changes before automatic saving.')
+            raise RuntimeError('Commit or unstage your staged changes before syncing.')
         baseline_path = deployment.roots()['state'] / 'local-config-baseline.json'
         saved = json.loads(baseline_path.read_text()) if baseline_path.exists() else {}
         baseline = saved.get('files', {}) if saved.get('repo') == str(repo) else {}
@@ -288,28 +288,14 @@ def save_local(repo, config, home=None):
 
 
 def sync(repo, config, target=None, slug=None):
-    """Push existing local commits, without snapshots, staging or new commits."""
+    """Explicitly save and commit the live configuration, then publish history."""
     from github_update import repository_lock
     repo = repo.resolve()
     if Path(git(repo, 'rev-parse', '--show-toplevel')).resolve() != repo:
         raise RuntimeError('Choose the root of the Hyprshell Git checkout.')
+    # Save before network discovery: offline/failed publishing retains the commit.
+    save_local(repo, config)
     with repository_lock(repo):
-        if git(repo, 'status', '--porcelain'):
-            raise RuntimeError('Local edits are waiting to be saved. Let automatic saving finish before syncing.')
-        # Read-only capture catches Settings edits awaiting the background saver.
-        import deployment
-        with tempfile.TemporaryDirectory(prefix='hyprshell-push-check-') as directory:
-            candidate = Path(directory)
-            for name in ('config', 'bin', 'assets'):
-                if (repo / name).exists():
-                    shutil.copytree(repo / name, candidate / name,
-                                    ignore=copy_exclusions)
-            snapshot(candidate, config, Path.home())
-            current, captured = deployment.payload(repo), deployment.payload(candidate)
-            for key in current.keys() | captured.keys():
-                if key == 'config/quickshell/settings/compatibility.json': continue
-                if (file_hash(current[key]) if key in current else None) != (file_hash(captured[key]) if key in captured else None):
-                    raise RuntimeError('Desktop edits are waiting to be saved. Let automatic saving finish before syncing.')
         branch = git(repo, 'symbolic-ref', '--quiet', '--short', 'HEAD')
         if target is None:
             account = discover()

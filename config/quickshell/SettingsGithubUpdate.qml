@@ -17,7 +17,7 @@ SettingsGithubUpdateReview {
                     let result = JSON.parse(text);
                     dialog.success = result.ok === true;
                     dialog.message = result.message || "";
-                    if (dialog.action === "--preview") dialog.review = result;
+                    if (dialog.action === "--preview" || dialog.action === "--resolve") dialog.review = result;
                     if (dialog.action === "--apply" || dialog.action === "--status") {
                         dialog.applying = result.running === true;
                         if (!dialog.applying) dialog.review = ({});

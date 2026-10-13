@@ -225,21 +225,26 @@ def restore(journal, backup, locations):
         manifest.unlink()
 
 
-def install(repo, *, native=False, base_repo=None, locations=None):
+def install(repo, *, native=False, base_repo=None, locations=None, resolved=False):
     locations = locations or roots()
     repo = repo.resolve()
     with lock(locations):
         plan = inspect(repo, locations, base_repo)
-        if plan['conflicts']:
+        if plan['conflicts'] and not resolved:
             raise RuntimeError('Local edits conflict with this update: ' + ', '.join(plan['conflicts']))
         files = payload(repo)
         # Preserve additional user Lua sections as well as the shipped sections.
         extra = locations['config'] / 'hyprshell/hyprland'
-        for source in extra.rglob('*'):
+        for source in ([] if resolved else extra.rglob('*')):
             if source.is_file() and not ignored(source):
                 key = 'config/' + source.relative_to(locations['config']).as_posix()
                 safe_target(source, locations['config'])
                 files.setdefault(key, source)
+        if resolved:
+            plan['removed'] = [key for key in load_manifest(locations)['files'] if key not in files and destination(key, locations).exists()
+                and key != 'config/quickshell/helpers/audio-spectrum'
+                and not (key.startswith('home/Pictures/Wallpapers/') and Path(key).name != 'default.jpg')]
+        removed_before = {key: digest(destination(key, locations)) for key in plan['removed']}
         state = locations['state']
         live_before = {key: digest(destination(key, locations)) for key in files}
         for name in PREFERENCES:
@@ -249,7 +254,7 @@ def install(repo, *, native=False, base_repo=None, locations=None):
             stage = Path(temp)
             for key, source in files.items():
                 live = destination(key, locations)
-                if protected(key) and live.exists():
+                if protected(key) and live.exists() and not resolved:
                     source = live
                 target = stage / key
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -259,7 +264,7 @@ def install(repo, *, native=False, base_repo=None, locations=None):
                 key = 'config/hyprshell/' + name
                 live = destination(key, locations)
                 safe_target(live, locations['config'])
-                if live.is_file() and not (stage / key).exists():
+                if live.is_file() and not (stage / key).exists() and not resolved:
                     (stage / key).parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(live, stage / key)
             helper = stage / 'config/quickshell/helpers/audio-spectrum'
@@ -277,7 +282,9 @@ def install(repo, *, native=False, base_repo=None, locations=None):
             before = {key: live_before.get(key, digest(destination(key, locations))) for key in staged}
             if any(digest(destination(key, locations)) != before[key] for key in staged):
                 raise RuntimeError('Settings changed during validation. Check again.')
-            if inspect(repo, locations, base_repo)['conflicts']:
+            if any(digest(destination(key, locations)) != value for key, value in removed_before.items()):
+                raise RuntimeError('Settings changed during validation. Check again.')
+            if inspect(repo, locations, base_repo)['conflicts'] and not resolved:
                 raise RuntimeError('Local desktop code changed during validation. Check again.')
             changed = [key for key, source in staged.items() if before[key] != digest(source)]
             backup = state / 'backups' / ('update-' + datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:8])
