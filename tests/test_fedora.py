@@ -189,13 +189,20 @@ class FedoraInstallerTests(unittest.TestCase):
         runner = self.bin / 'qmltestrunner-qt6'
         self.program('qmltestrunner-qt6', 'raise SystemExit(0)')
         self.program('python3', f'''if sys.argv[1].endswith('/compatibility.py'): raise SystemExit(0)
+if sys.argv[1].endswith('/hardware_plan.py'):
+    sys.path.insert(0, {str(ROOT / 'tools')!r})
+    import hardware_plan
+    hardware_plan.detect = lambda: {{'cpuVendors': ['GenuineIntel'], 'pci': [{{'vendor': '8086', 'device': '46a8', 'class': '030000', 'driver': 'i915'}}], 'usbVendors': [], 'battery': True, 'kernel': '6.20.0-1.fc44.x86_64'}}
+    sys.argv = sys.argv[1:]
+    hardware_plan.main()
+    raise SystemExit(0)
 if sys.argv[1].endswith('/check_runtime.py'):
     if '--qmltestrunner' in sys.argv: print({str(runner)!r})
     raise SystemExit(0)
 os.execv({real_python!r}, [{real_python!r}, *sys.argv[1:]])''')
         for name in ('sudo', 'dnf', 'fc-cache', 'xdg-user-dirs-update'):
             self.program(name, "raise SystemExit(1 if os.environ.get('FAIL_PREFLIGHT') and '--downloadonly' in sys.argv else 0)")
-        self.program('ffmpeg', "print(' VFS..D hevc HEVC decoder')")
+        self.program('ffmpeg', "print(' VFS..D h264 H264 decoder\\n VFS..D hevc HEVC decoder')")
         self.program('Hyprland', "print(json.dumps({'version': '0.56.2'}) if '--version-json' in sys.argv else 'config ok')")
         self.env['FAIL_PREFLIGHT'] = '1'
         result = self.run_setup('--copr', 'lionheartp/Hyprland')
@@ -207,6 +214,9 @@ os.execv({real_python!r}, [{real_python!r}, *sys.argv[1:]])''')
         calls = self.read_calls()
         self.assertIn(['sudo', 'dnf', 'copr', 'enable', '-y', 'lionheartp/Hyprland'], calls)
         self.assertIn(['sudo', 'dnf', 'upgrade', '--refresh', '-y'], calls)
+        upgrade_index = calls.index(['sudo', 'dnf', 'upgrade', '--refresh', '-y'])
+        self.assertTrue(any('--downloadonly' in call and 'intel-media-driver' in call
+                            for call in calls[:upgrade_index]))
         self.assertTrue(any(call[:3] == ['sudo', 'dnf', 'install'] and 'libavcodec-freeworld' in call and 'intel-media-driver' in call for call in calls))
         manager = Path('/etc/systemd/system/display-manager.service')
         if manager.exists() or manager.is_symlink():

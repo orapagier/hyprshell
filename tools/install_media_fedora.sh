@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Targeted media setup; run as the desktop user. No desktop config replacement.
+# Hardware-selected media setup; no desktop config replacement.
 set -Eeuo pipefail
 MODE=${1:---install}
-case "$MODE" in --install|--repositories-only) ;; *) printf 'Usage: bash tools/install_media_fedora.sh [--install|--repositories-only]\n' >&2; exit 2 ;; esac
+case "$MODE" in --install|--repositories-only|--download-only) ;; *) printf 'Usage: bash tools/install_media_fedora.sh [--install|--repositories-only|--download-only]\n' >&2; exit 2 ;; esac
 source /etc/os-release
 [[ "$ID" == fedora && "$VERSION_ID" =~ ^[0-9]+$ ]] || { printf 'This helper requires traditional Fedora.\n' >&2; exit 1; }
 [[ ! -e /run/ostree-booted ]] || { printf 'Fedora Atomic is not supported by this helper.\n' >&2; exit 1; }
+HELPER_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 sudo -v
 releases=()
 for channel in free nonfree; do
@@ -16,15 +17,45 @@ done
 if ((${#releases[@]})); then sudo dnf install -y "${releases[@]}"; fi
 [[ "$MODE" != --repositories-only ]] || exit 0
 
-# Freeworld complements libavcodec-free through its own library search path.
-# Keep Fedora's package: libavformat-free requires its exact version.
-# Only the Intel driver counterparts need replacement. No broad --allowerasing.
-if rpm -q libva-intel-media-driver >/dev/null 2>&1; then
-    sudo dnf swap -y libva-intel-media-driver intel-media-driver
-fi
-sudo dnf install -y --setopt=install_weak_deps=False ffmpeg-free libavcodec-freeworld intel-media-driver libva-utils
-if ! ffmpeg -hide_banner -decoders 2>/dev/null | awk '$2 == "hevc" { found=1 } END { exit !found }'; then
-    printf 'HEVC software decoder verification failed.\n' >&2
-    exit 1
-fi
-printf 'Media packages installed; restart media apps. Run vainfo in the desktop session to verify GPU decoding.\n'
+selection=$(python3 "$HELPER_DIR/hardware_plan.py" --distro fedora --format media)
+media=()
+if [[ -n "$selection" ]]; then mapfile -t media <<< "$selection"; fi
+python3 "$HELPER_DIR/hardware_plan.py" --distro fedora --format summary
+options=(-y --setopt=install_weak_deps=False)
+if [[ "$MODE" == --download-only ]]; then options+=(--downloadonly); fi
+
+# Freeworld complements libavcodec-free; libavformat-free still needs Fedora's
+# exact-version package. Swap only mutually exclusive acceleration drivers.
+packages=(ffmpeg-free libavcodec-freeworld libva-utils)
+if rpm -q ffmpeg >/dev/null 2>&1; then packages=(ffmpeg libavcodec-freeworld libva-utils); fi
+for package in "${media[@]}"; do
+    counterpart=
+    case "$package" in
+        intel-media-driver) counterpart=libva-intel-media-driver ;;
+        mesa-va-drivers-freeworld) counterpart=mesa-va-drivers ;;
+    esac
+    if [[ -n "$counterpart" ]] && rpm -q "$counterpart" >/dev/null 2>&1; then
+        sudo dnf swap "${options[@]}" "$counterpart" "$package"
+        # A download-only swap leaves the old driver installed; don't ask a
+        # second transaction to install its conflicting counterpart yet.
+        if [[ "$MODE" == --download-only ]]; then continue; fi
+    fi
+    packages+=("$package")
+done
+missing=()
+for package in "${packages[@]}"; do
+    if rpm -q --whatprovides "$package" >/dev/null 2>&1; then
+        printf 'Media package present: %s\n' "$package"
+    else
+        missing+=("$package")
+    fi
+done
+if ((${#missing[@]})); then sudo dnf install "${options[@]}" "${missing[@]}"; fi
+[[ "$MODE" != --download-only ]] || exit 0
+for codec in h264 hevc; do
+    if ! ffmpeg -hide_banner -decoders 2>/dev/null | awk -v codec="$codec" '$2 == codec { found=1 } END { exit !found }'; then
+        printf '%s software decoder verification failed.\n' "$codec" >&2
+        exit 1
+    fi
+done
+printf 'Media packages ready; restart media apps. Run vainfo in the desktop session to verify GPU decoding.\n'

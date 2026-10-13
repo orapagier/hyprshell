@@ -77,9 +77,11 @@ Previously saved display preferences still need review on different hardware.
 
 ## Hardware and first login
 
-Arch installs the default `linux-firmware` set, SOF/ALSA firmware, Intel and AMD
-microcode, and Mesa Vulkan drivers. Fedora explicitly installs the common split
-wireless/GPU/audio firmware and kernel modules: these cannot be left to weak
+Setup reads CPU and PCI/USB inventory to choose vendor microcode, graphics/video
+drivers and Fedora split firmware. Arch retains the default `linux-firmware` set
+and Mesa, selecting SOF for Intel audio and Vulkan for detected supported GPUs.
+Fedora explicitly installs selected split wireless/GPU/audio firmware and its
+kernel modules when a Fedora kernel is detected: these cannot be left to weak
 dependencies because setup disables weak-dependency installation. Firmware
 updates are files for kernel drivers, not BIOS flashing. Reboot to use updated
 kernel modules, firmware and early CPU microcode. Existing custom bootloader
@@ -94,12 +96,13 @@ Unsupported Wi-Fi adapters, vendor drivers, custom kernels, firmware defects,
 and suspend quirks still require the target hardware to be tested.
 
 Full Fedora setup enables RPM Fusion free/nonfree and installs
-`libavcodec-freeworld`, the full Intel `intel-media-driver` (iHD), and
+`libavcodec-freeworld`, hardware-selected Intel iHD/i965 or AMD Mesa VA-API, and
 `libva-utils`. The Freeworld codec coexists with Fedora's `libavcodec-free`,
 which its FFmpeg libraries still require. Only an installed restricted
 `libva-intel-media-driver` is replaced with a targeted DNF swap, without broad
-`--allowerasing`. Setup verifies FFmpeg exposes an HEVC decoder. Arch includes
-FFmpeg, Intel media-driver and libva-utils in its base manifest. mpv uses
+`--allowerasing`. AMD's conflicting Mesa counterpart is similarly swapped.
+Setup verifies FFmpeg exposes H.264 and HEVC decoders. Arch includes
+FFmpeg and libva-utils, selecting media drivers for detected GPUs. mpv uses
 `hwdec=auto-safe` with automatic software fallback; no Intel driver environment
 variable is forced on other GPUs. Existing mpv config conflicts use the normal
 deployment review. GitHub sync captures the managed mpv file.

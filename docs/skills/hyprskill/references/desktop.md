@@ -107,6 +107,18 @@ fstrim, CUPS socket and Avahi are enabled. The base monitor fallback is automati
 Readiness reports are local and redacted; neither a package test nor a sandbox
 service-access failure establishes real boot/hardware health.
 
+Hardware-aware installer (2026-10-14): `tools/hardware_plan.py` reads CPU,
+PCI/USB vendors, bound GPU drivers, battery presence and kernel identity. Package
+manifests remain supersets; `setup.sh` selects matching microcode, firmware and
+Arch GPU dependencies and preserves configured service alternatives. Fedora
+media setup selects Intel iHD/i965 or AMD Mesa Freeworld, keeps Fedora's codec
+package alongside Freeworld, and resolves driver transactions before upgrades.
+Installed providers are checked and Fedora rechecks after upgrading. Virtual CPUs,
+custom kernels, unknown GPUs and proprietary NVIDIA receive conservative handling
+and review notes. Config-only skips selection. See README's hardware/media section
+and `tests/test_hardware_plan.py`; no full installer or hardware certification is
+implied by the mocked checks.
+
 
 Reviewed GitHub updates (2026-10-13): `SettingsGithubUpdate{,Review}.qml`,
 `settings/{github_update,compatibility,deployment}.py`, root `compatibility.json`.

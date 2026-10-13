@@ -4,8 +4,9 @@ This port targets **Fedora Everything 44, x86_64, installed as a traditional
 DNF system**. Start with the Everything network installer and a minimal
 installation, a normal user with sudo access, and working networking.
 Hyprshell installs the desktop after Fedora is installed; it does not
-partition disks or install Fedora. It installs common firmware, microcode,
-Mesa graphics, and the full kernel driver modules. Proprietary NVIDIA drivers,
+partition disks or install Fedora. It detects hardware to select firmware,
+microcode, Mesa/Intel media support, and driver modules for a Fedora kernel.
+Custom kernels are preserved and flagged for module review. Proprietary NVIDIA drivers,
 Secure Boot signing, and unusual hardware still require device-specific checks. Fedora Atomic,
 Silverblue, Kinoite, bootc, and OSTree installations are outside this port.
 
@@ -66,8 +67,8 @@ packages or dependency conflicts stop the installation. SDDM, when needed, is
 part of this preflight transaction. GPU/audio/wireless firmware is explicitly
 listed because DNF weak dependencies are disabled. It never uses
 `--allowerasing`, `--skip-unavailable`, disables signature checks, or turns
-off SELinux. A dry run only reads the installed RPM database and service
-list; it does not enable repositories, refresh DNF metadata, download
+off SELinux. A dry run reads the installed RPM database, CPU/PCI/USB inventory and
+service state; it does not enable repositories, refresh DNF metadata, download
 packages, or copy files. From an Arch checkout, preview Fedora explicitly:
 
 ```bash

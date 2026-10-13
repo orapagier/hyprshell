@@ -101,6 +101,21 @@ if (( INSTALL_APPS )); then
     PACKAGES+=("$package")
   done
 fi
+MEDIA_PACKAGES=()
+# Package selection is read-only and uses kernel PCI/USB inventory, not the
+# author's laptop. Capture first so detection failures cannot be lost in a pipe.
+if [[ "$MODE" == install ]]; then
+  command -v python3 >/dev/null || die 'Python 3 is required for hardware detection'
+  PLAN_OPTIONS=(--distro "$DISTRO" --manifest "$REPO_DIR/$PACKAGE_FILE")
+  if (( INSTALL_APPS )); then PLAN_OPTIONS+=(--manifest "$REPO_DIR/$APP_PACKAGE_FILE"); fi
+  SELECTED_PACKAGES=$(python3 "$REPO_DIR/tools/hardware_plan.py" "${PLAN_OPTIONS[@]}" --format packages)
+  mapfile -t PACKAGES <<< "$SELECTED_PACKAGES"
+  if [[ "$DISTRO" == fedora ]]; then
+    MEDIA_SELECTION=$(python3 "$REPO_DIR/tools/hardware_plan.py" --distro fedora --format media)
+    if [[ -n "$MEDIA_SELECTION" ]]; then mapfile -t MEDIA_PACKAGES <<< "$MEDIA_SELECTION"; fi
+  fi
+  python3 "$REPO_DIR/tools/hardware_plan.py" "${PLAN_OPTIONS[@]}" --format summary
+fi
 # Optional lists may share packages (for example playerctl).
 declare -A SEEN_PACKAGES=()
 UNIQUE_PACKAGES=()
@@ -152,6 +167,11 @@ check_packages() {
       if ! rpm -q --whatprovides "$package" >/dev/null 2>&1; then MISSING_PACKAGES+=("$package"); fi
     done
     printf 'Missing desktop packages: %s\n' "${MISSING_PACKAGES[*]:-none}"
+    local -a missing_media=()
+    for package in "${MEDIA_PACKAGES[@]}"; do
+      if ! rpm -q --whatprovides "$package" >/dev/null 2>&1; then missing_media+=("$package"); fi
+    done
+    printf 'Missing selected media acceleration packages: %s\n' "${missing_media[*]:-none}"
     return
   fi
   for package in hyprland quickshell; do
@@ -184,7 +204,7 @@ if (( DRY_RUN )); then
       if command -v rpm >/dev/null; then check_packages; fi
       printf 'Full Fedora upgrade; ensure desktop packages: %s\n' "${PACKAGES[*]}"
       printf 'COPR: %s\n' "${COPR:-preserve enabled repositories}"
-      printf 'Media: enable RPM Fusion free/nonfree; install Intel iHD and Freeworld H.264/HEVC codecs (targeted replacements)\n'
+      printf 'Media: enable RPM Fusion free/nonfree; install Freeworld codecs and hardware-selected acceleration; retain Fedora codec dependencies\n'
       printf 'Fonts: install bundled GoMono Nerd Font for shell icons\n'
     else
       if command -v pacman >/dev/null; then check_packages; fi
@@ -202,7 +222,7 @@ if (( DRY_RUN )); then
     fi
     printf 'Enable NetworkManager, Bluetooth, UPower, PipeWire, and WirePlumber; Quickshell owns the notification inbox\n'
     printf 'Daily driver: enable printing/discovery and SSD trim; configure time sync and firewall while preserving configured alternatives\n'
-    printf 'Firmware: general wireless/GPU/audio firmware, SOF, CPU microcode, and Mesa graphics; NVIDIA needs hardware-specific review\n'
+    printf 'Firmware: retain general coverage; select vendor firmware, CPU microcode and graphics/video drivers from detected hardware; preserve proprietary NVIDIA drivers\n'
     printf 'Timezone: %s\n' "${TIMEZONE:-unchanged}"
     if (( SKIP_BOOT_SPLASH )); then
       printf 'Boot splash: leave boot configuration unchanged\n'
@@ -253,10 +273,16 @@ if [[ "$MODE" == install ]]; then
     # DNF --assumeno returns 1 when a valid transaction is declined; use downloadonly
     # instead so resolver failures are unambiguous and no RPMs are installed here.
     sudo dnf install -y --setopt=install_weak_deps=False --downloadonly "${PACKAGES[@]}"
+    log 'Resolving hardware-selected media drivers before upgrading'
+    bash "$REPO_DIR/tools/install_media_fedora.sh" --download-only
     log 'Upgrading Fedora and installing desktop dependencies'
     sudo dnf upgrade --refresh -y
-    sudo dnf install -y --setopt=install_weak_deps=False "${PACKAGES[@]}"
-    log 'Installing full media codecs and Intel hardware video acceleration'
+    # Recheck after the upgrade: dependencies may have become satisfied.
+    check_packages
+    if ((${#MISSING_PACKAGES[@]})); then
+      sudo dnf install -y --setopt=install_weak_deps=False "${MISSING_PACKAGES[@]}"
+    fi
+    log 'Installing full media codecs and hardware-selected video acceleration'
     bash "$REPO_DIR/tools/install_media_fedora.sh" --install
   else
     log 'Upgrading Arch and installing missing desktop dependencies'

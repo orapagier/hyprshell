@@ -122,7 +122,7 @@ a controllable backlight. Media information depends on application support.
 Run the following as your normal desktop user:
 
 ```bash
-sudo pacman -Syu --needed git
+sudo pacman -Syu --needed git python
 git clone https://github.com/orapagier/hyprshell.git
 cd hyprshell
 ```
@@ -136,8 +136,9 @@ installer records its location for GitHub sync.
 ./setup.sh --dry-run
 ```
 
-The preview reports missing installed packages, installation destinations, services,
-and timezone behavior without changing files or installing packages. It does not
+The preview reports detected hardware, selected drivers, missing installed packages,
+installation destinations, services, and timezone behavior without changing files
+or installing packages. Python 3 is required for the read-only hardware checks. It does not
 resolve remote package availability; full installation does. Review
 the machine-specific defaults described below before using the supplied
 Hyprland configuration.
@@ -153,8 +154,10 @@ for system operations when needed.
 
 The installer:
 
-1. Selects the distro manifest and existing login manager, including SDDM in the
-   package transaction when no manager is installed.
+1. Checks the operating system, architecture, CPU, PCI/USB hardware and installed
+   packages, then selects the distro manifest and suitable hardware dependencies.
+   Preserves the existing login manager, including SDDM in the package transaction
+   only when no manager is installed.
 2. Upgrades the system and installs desktop, daily-driver and firmware packages.
    Fedora first resolves/downloads the full transaction from compatible repositories.
 3. Stages and validates desktop files, builds the audio helper, retains current
@@ -169,6 +172,52 @@ The installer:
    actual initramfs rebuild failures stop setup.
 8. Saves a redacted readiness report and provides the command for hardware checks
    after reboot/login.
+
+### Hardware-aware packages and media support
+
+Full setup includes media codecs and chooses acceleration packages from the
+detected GPU, independently of the CPU vendor. It supports desktops, laptops
+and hybrid graphics; it does not copy the author's Intel driver choice to every
+machine. [Hardware selection](tools/hardware_plan.py) reads kernel PCI/USB data
+without collecting serial numbers, network names or device addresses.
+
+| Detected hardware | Automatic selection |
+| --- | --- |
+| Intel CPU / AMD CPU | Matching microcode package; virtual CPUs leave microcode to the host |
+| Known Broadwell-or-newer Intel GPU families | Intel iHD media driver; Intel Vulkan on Arch |
+| Known older Intel GPU families | Legacy i965 media driver; software fallback for unsupported codecs |
+| AMD GPU | Mesa graphics; Radeon Vulkan on Arch, Freeworld Mesa VA-API on Fedora |
+| NVIDIA GPU | Preserve the current driver; Nouveau Vulkan on Arch only when Nouveau is detected; report proprietary-driver/Secure Boot review |
+| Other, virtual or unidentified GPU | Keep Mesa and software codecs; report that acceleration needs review |
+
+The general firmware package remains installed. Fedora's split firmware packages
+are selected by detected PCI/USB vendors, with SOF firmware for Intel audio.
+If the inventory is inaccessible, setup retains broad firmware coverage and reports
+the limitation. Fedora kernel modules are selected for a detected Fedora kernel;
+custom kernels retain their existing module setup and receive a review note.
+Existing configured time-sync/firewall alternatives and an installed full Fedora
+FFmpeg are preserved.
+
+Fedora setup enables RPM Fusion free/nonfree, installs `libavcodec-freeworld`
+**alongside** Fedora's codec package, and resolves selected media-driver
+transactions before the system upgrade. Only conflicting Intel/Mesa acceleration
+counterparts are swapped. Arch uses its distribution FFmpeg and GPU packages.
+mpv defaults to `hwdec=auto-safe`, with software fallback. Both H.264 and HEVC
+software decoders are checked by the Fedora media helper.
+
+Installed packages/providers are checked first. Arch uses `--needed` with a full
+system upgrade; Fedora rechecks after upgrading and installs missing dependencies.
+Rerunning setup does not force reinstall already satisfied packages or remove
+drivers belonging to other hardware. `--config-only` and `--update` skip package
+and hardware selection. Full setup still upgrades the system even when every
+desktop package is present.
+
+Automatic selection follows supported driver families, not a universal performance
+ranking. New/unknown GPU IDs, proprietary NVIDIA branches, Secure Boot, vendor
+Wi-Fi drivers and printer drivers need review. Package installation does not prove
+hardware decoding or suspend works: run `vainfo` in the desktop session and check
+actual mpv/browser playback. See [Fedora's acceleration guidance](https://fedoraproject.org/wiki/Hardware_Video_Acceleration)
+and [daily-driver checks](docs/daily-driver.md).
 
 The base package list is in [packages.txt](packages.txt). It includes Chromium,
 Kitty, COSMIC Files with GVfs/MTP support (`gvfs-mtp`), UWSM, portals,

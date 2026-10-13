@@ -20,11 +20,13 @@ class MediaSetupTests(unittest.TestCase):
         self.helper.write_text((ROOT / 'tools/install_media_fedora.sh').read_text()
                                .replace('/etc/os-release', str(release))
                                .replace('/run/ostree-booted', str(self.root / 'ostree')))
+        (self.root / 'hardware_plan.py').write_text('import os,sys\n'
+            'print(os.environ.get("MEDIA_PACKAGES", "intel-media-driver") if sys.argv[-1] == "media" else "Hardware fixture")\n')
         self.env = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.environ['PATH'],
-                        INSTALLED='libavcodec-free,libva-intel-media-driver', DECODER='hevc')
+                        INSTALLED='libavcodec-free,libva-intel-media-driver', DECODER='h264,hevc')
         self.program('sudo', "raise SystemExit(1 if os.environ.get('FAIL_SWAP') and 'swap' in sys.argv else 0)")
         self.program('rpm', "raise SystemExit(0 if sys.argv[-1] in os.environ['INSTALLED'].split(',') else 1)")
-        self.program('ffmpeg', "print(' VFS..D ' + os.environ['DECODER'] + ' decoder')")
+        self.program('ffmpeg', "print('\\n'.join(' VFS..D ' + codec + ' decoder' for codec in os.environ['DECODER'].split(',')))")
 
     def program(self, name, body):
         p = self.bin / name
@@ -42,8 +44,9 @@ class MediaSetupTests(unittest.TestCase):
         result = self.run_helper(); self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.calls()
         self.assertIn(['sudo', 'dnf', 'install', '-y', '--setopt=install_weak_deps=False',
-                       'ffmpeg-free', 'libavcodec-freeworld', 'intel-media-driver', 'libva-utils'], calls)
-        self.assertIn(['sudo', 'dnf', 'swap', '-y', 'libva-intel-media-driver', 'intel-media-driver'], calls)
+                       'ffmpeg-free', 'libavcodec-freeworld', 'libva-utils', 'intel-media-driver'], calls)
+        self.assertIn(['sudo', 'dnf', 'swap', '-y', '--setopt=install_weak_deps=False',
+                       'libva-intel-media-driver', 'intel-media-driver'], calls)
         self.assertTrue(any('https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-44.noarch.rpm' in c for c in calls))
         self.assertFalse(any('--allowerasing' in c for c in calls))
 
@@ -69,7 +72,45 @@ class MediaSetupTests(unittest.TestCase):
         self.env['DECODER'] = 'vp9'
         result = self.run_helper()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('HEVC software decoder verification failed', result.stderr)
+        self.assertIn('h264 software decoder verification failed', result.stderr)
+
+    def test_missing_hevc_is_rejected_after_h264_passes(self):
+        self.env['DECODER'] = 'h264'
+        result = self.run_helper()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('hevc software decoder verification failed', result.stderr)
+
+    def test_amd_uses_mesa_and_never_installs_intel_driver(self):
+        self.env.update(MEDIA_PACKAGES='mesa-va-drivers-freeworld', INSTALLED='mesa-va-drivers')
+        self.assertEqual(self.run_helper().returncode, 0)
+        calls = self.calls()
+        self.assertTrue(any('swap' in c and 'mesa-va-drivers-freeworld' in c for c in calls))
+        self.assertFalse(any('intel-media-driver' in c for c in calls))
+
+    def test_installed_media_packages_do_not_trigger_install(self):
+        self.env['INSTALLED'] = 'rpmfusion-free-release,rpmfusion-nonfree-release,ffmpeg-free,libavcodec-freeworld,libva-utils,intel-media-driver'
+        self.assertEqual(self.run_helper().returncode, 0)
+        self.assertFalse(any(c[:3] == ['sudo', 'dnf', 'install'] for c in self.calls()))
+
+    def test_download_only_resolves_swaps_without_repeating_conflicting_install(self):
+        self.env['INSTALLED'] = 'rpmfusion-free-release,rpmfusion-nonfree-release,libva-intel-media-driver'
+        self.assertEqual(self.run_helper('--download-only').returncode, 0)
+        calls = self.calls()
+        self.assertTrue(any('swap' in c and '--downloadonly' in c for c in calls))
+        installs = [c for c in calls if c[:3] == ['sudo', 'dnf', 'install']]
+        self.assertTrue(installs)
+        self.assertTrue(all('--downloadonly' in c and 'intel-media-driver' not in c for c in installs))
+        self.assertFalse(any(c[0] == 'ffmpeg' for c in calls))
+
+    def test_unknown_gpu_only_installs_software_codecs(self):
+        self.env['MEDIA_PACKAGES'] = ''
+        self.assertEqual(self.run_helper().returncode, 0)
+        self.assertFalse(any('intel-media-driver' in c or 'mesa-va-drivers-freeworld' in c for c in self.calls()))
+
+    def test_existing_full_ffmpeg_is_not_replaced(self):
+        self.env['INSTALLED'] = 'rpmfusion-free-release,rpmfusion-nonfree-release,ffmpeg'
+        self.assertEqual(self.run_helper().returncode, 0)
+        self.assertFalse(any(c[:3] == ['sudo', 'dnf', 'install'] and 'ffmpeg-free' in c for c in self.calls()))
 
     def test_invalid_mode_changes_nothing(self):
         self.assertEqual(self.run_helper('--unknown').returncode, 2)

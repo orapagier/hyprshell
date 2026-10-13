@@ -1,4 +1,6 @@
 # Native Hyprshell desktop. Dependencies are resolved by pacman.
+# Hardware entries form a superset; setup.sh uses tools/hardware_plan.py to
+# select CPU microcode and GPU/audio packages for the current machine.
 # Session, Wayland, portals, authorization, and rendering
 hyprland
 # Hyprland GUI utilities for dialogs, run, and screen helpers

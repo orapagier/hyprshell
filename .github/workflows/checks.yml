@@ -60,6 +60,7 @@ jobs:
       - name: Install the Fedora desktop manifests
         shell: bash
         run: |
+          dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-44.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-44.noarch.rpm
           mapfile -t packages < <(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' packages-fedora.txt packages-apps-fedora.txt)
           dnf upgrade --refresh -y
           dnf install -y --setopt=install_weak_deps=False wayland-devel "${packages[@]}"

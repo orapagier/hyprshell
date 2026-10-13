@@ -71,7 +71,7 @@ class InstallerTests(unittest.TestCase):
         # Ignore the host's manager alias so the disabled-manager fixture wins.
         text = (ROOT / 'setup.sh').read_text().replace('/etc/systemd/system/display-manager.service', str(self.root / 'absent-manager'))
         (repo / 'setup.sh').write_text(text)
-        for name in ('config', 'packages.txt'):
+        for name in ('config', 'tools', 'packages.txt'):
             (repo / name).symlink_to(ROOT / name)
         result = subprocess.run(['bash', str(repo / 'setup.sh'), '--distro', 'arch', '--dry-run'], env=self.env, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
