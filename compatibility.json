@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "release": "2026.10",
+  "architectures": [
+    "x86_64"
+  ],
+  "distributions": {
+    "fedora": [
+      "44"
+    ],
+    "arch": [
+      "rolling"
+    ]
+  },
+  "minimum": {
+    "hyprland": "0.56.0",
+    "quickshell": "0.3.2",
+    "uwsm": "0.27.0"
+  },
+  "tested": {
+    "hyprland": [
+      "0.56.2"
+    ],
+    "quickshell": [
+      "0.3.2"
+    ],
+    "uwsm": [
+      "0.27.0"
+    ]
+  },
+  "observed_packages": {
+    "fedora44": [
+      "hyprland-0.56.2-3.fc44.x86_64",
+      "quickshell-0.3.2-1.git.20261008.4f508be.fc44.x86_64",
+      "uwsm-0.27.0-1.fc44.noarch"
+    ]
+  },
+  "settings_schema": 1,
+  "acceptance": "Native dependencies checked; fresh VM and physical acceptance pending."
+}

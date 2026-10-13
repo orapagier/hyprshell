@@ -404,7 +404,9 @@ account switch. The checkout's origin remote is preserved; the push explicitly
 targets the authenticated user's repository.
 
 Sync snapshots live `hypr/` and `quickshell/` config directories and saved
-`hyprshell/settings.json` into the local checkout first, then commits the snapshot
+`hyprshell/settings.json` into the local checkout first. Personal preferences
+and editable Lua sections go to `profiles/personal/config/`, keeping public
+defaults separate. It then commits the snapshot
 and pushes the current branch. It also captures saved cleanup preferences and
 the live versions of installer-managed portal files, autostart entries, launcher
 scripts, application entries, and bundled wallpapers. Only names already managed
@@ -418,10 +420,23 @@ and Git errors.
 
 Setup records the checkout in `$XDG_STATE_HOME/hyprshell/repository` (default
 `~/.local/state/hyprshell/repository`); older installations fall back to
-`~/repos/hyprshell`. Re-running setup restores synced settings with the configs.
+`~/repos/hyprshell`. Re-running setup retains existing settings. Restore a
+saved personal profile explicitly with `--profile personal`.
 Resolve existing staged changes or an ongoing merge/rebase first. Pushes never
 force or automatically merge remote changes. A failed push keeps the local
 commit for retry after resolving authentication or remote divergence.
+
+### Sync from GitHub
+
+The right-hand GitHub button opens `SettingsGithubUpdateReview.qml`, with process
+coordination in `SettingsGithubUpdate.qml` and the backend in
+`settings/github_update.py`. Preview fetches the tracking branch and shows commits,
+file changes, package requirements, compatibility and hardware limitations.
+The confirmation is disabled until blockers are resolved and the user acknowledges
+the review. A token binds apply to the reviewed Git objects and live fingerprint.
+The detached worker validates staged payloads with `settings/deployment.py`,
+preserves preferences and history, and records recovery files. See
+[updates.md](updates.md) for source selection, merges and recovery.
 
 ## Shared bar pills
 

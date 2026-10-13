@@ -72,7 +72,7 @@ All history, schedules, destinations and documents stay outside GitHub sync.
 Use `tests/test_{recovery,configuration,personal_backup,optional_daily_driver}.py`
 and native `test_daily_driver_ui.py`; never start real upgrades, restore laptop
 preferences or copy documents just to validate controls. Upgrades remain explicit
-interactive `sudo pacman -Syu` in Kitty on this Arch laptop. Fedora uses
+interactive `sudo pacman -Syu` in Kitty on Arch. Fedora uses
 `sudo dnf upgrade --refresh`; `settings/system_packages.py` owns package
 commands and update-help links. Fedora power profile controls call tuned-ppd's
 D-Bus API directly; Arch retains powerprofilesctl. Runtime checks discover the
@@ -94,7 +94,7 @@ In an accessible desktop session, query only relevant evidence: `hyprctl -j moni
 
 After validation, main Hyprland config changes use `hyprctl reload`; permissions marked restart-only in Lua require a new session. Quickshell watches QML changes. If a restart is actually needed, inspect and use `<config>/quickshell/install-and-activate.sh` (it can install Quickshell if missing). Do not kill every Quickshell process indiscriminately.
 
-Installer replacements are backed up under `<state>/hyprshell/backups/<timestamp>`. `setup.sh --config-only` still copies whole directories, compiles the audio helper, and restores saved repo preferences. Compare live files first. Full setup uses `pacman -Syu`; avoid Arch partial upgrades. GitHub sync includes `docs/`, so this skill travels with existing sync without changing its allowlist.
+Installer replacements are backed up under `<state>/hyprshell/backups/<timestamp>`. `setup.sh --config-only` stages owned files, compiles the helper, validates preferences and retains existing settings. `--profile personal` explicitly restores the personal snapshot. `--update` adds compatibility and native validation. Compare live files first. Full setup uses `pacman -Syu`; avoid Arch partial upgrades. GitHub sync includes `docs/`, so this skill travels with existing sync without changing its allowlist.
 
 Daily-driver installer update (2026-10-13): base manifests include media controls,
 Mousepad, archives, clipboard-history tools (capture remains off), printing/scanning,
@@ -106,3 +106,12 @@ Time-sync/firewall alternatives and existing firewall zones are preserved;
 fstrim, CUPS socket and Avahi are enabled. The base monitor fallback is automatic.
 Readiness reports are local and redacted; neither a package test nor a sandbox
 service-access failure establishes real boot/hardware health.
+
+
+Reviewed GitHub updates (2026-10-13): `SettingsGithubUpdate{,Review}.qml`,
+`settings/{github_update,compatibility,deployment}.py`, root `compatibility.json`.
+Sync to GitHub stores preferences in `profiles/personal/config/`; shared code
+stays in `config/`. Sync from GitHub previews the tracking source and candidate
+before confirmation, preserves preferences/history, and runs a detached worker.
+See `docs/updates.md` and `docs/acceptance.md`. No public release or physical
+hardware certification should be inferred from isolated tests.

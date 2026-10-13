@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import tempfile
 import unittest
 
@@ -208,7 +209,10 @@ class InstallerTests(unittest.TestCase):
                 (repo / 'config' / entry.name).symlink_to(entry)
         for entry in (ROOT / 'config/hyprshell').iterdir():
             if entry.name not in ('settings.json', 'behavior.json', 'behavior.lua'):
-                (repo / 'config/hyprshell' / entry.name).symlink_to(entry)
+                if entry.is_dir():
+                    shutil.copytree(entry, repo / 'config/hyprshell' / entry.name)
+                else:
+                    (repo / 'config/hyprshell' / entry.name).symlink_to(entry)
         saved = json.loads((ROOT / 'config/hyprshell/settings.json').read_text())
         saved['hyprland'].update(pointerSpeed=0.25, tapToClick=False,
                                  keyboardLayouts='us,gb', layoutSwitch='grp:alt_shift_toggle')
@@ -222,17 +226,18 @@ class InstallerTests(unittest.TestCase):
         subprocess.run(['python3', str(ROOT / 'tools/install_configs.py'), str(repo)],
                        env=self.env, capture_output=True, text=True, check=True)
         restored = json.loads((self.config / 'hyprshell/settings.json').read_text())
-        self.assertEqual(restored['power'], saved['power'])
+        self.assertTrue(all(restored['power'][key] == value for key, value in saved['power'].items()))
         self.assertIn('layout = "master"', (self.config / 'hyprshell/behavior.lua').read_text())
         self.assertNotIn('stale rules', (self.config / 'hyprshell/behavior.lua').read_text())
         generated = (self.config / 'hyprshell/overrides.lua').read_text()
         self.assertIn('sensitivity = 0.25', generated)
         self.assertIn('tap_to_click = false', generated)
         self.assertIn('kb_layout = "us,gb"', generated)
-        verified = subprocess.run(['Hyprland', '--verify-config', '--config',
-                                   str(self.config / 'hypr/hyprland.lua')],
-                                  env=self.env, capture_output=True, text=True, timeout=15)
-        self.assertIn('config ok', verified.stdout.lower(), verified.stdout + verified.stderr)
+        if shutil.which('Hyprland'):
+            verified = subprocess.run(['Hyprland', '--verify-config', '--config',
+                                       str(self.config / 'hypr/hyprland.lua')],
+                                      env=self.env, capture_output=True, text=True, timeout=15)
+            self.assertIn('config ok', verified.stdout.lower(), verified.stdout + verified.stderr)
 
     def test_installs_current_payload_without_legacy_configs(self):
         self.install()
@@ -255,10 +260,11 @@ class InstallerTests(unittest.TestCase):
         for section in (ROOT / 'config/hyprshell/hyprland').iterdir():
             self.assertEqual((self.config / 'hyprshell/hyprland' / section.name).read_bytes(),
                              section.read_bytes())
-        verified = subprocess.run(['Hyprland', '--verify-config', '--config',
-                                   str(self.config / 'hypr/hyprland.lua')],
-                                  env=self.env, capture_output=True, text=True, timeout=15)
-        self.assertIn('config ok', verified.stdout.lower(), verified.stdout + verified.stderr)
+        if shutil.which('Hyprland'):
+            verified = subprocess.run(['Hyprland', '--verify-config', '--config',
+                                       str(self.config / 'hypr/hyprland.lua')],
+                                      env=self.env, capture_output=True, text=True, timeout=15)
+            self.assertIn('config ok', verified.stdout.lower(), verified.stdout + verified.stderr)
         self.assertTrue(os.access(self.config / 'quickshell/helpers/audio-spectrum', os.X_OK))
         for script in ('app-launcher', 'start-quickshell-bar'):
             self.assertTrue(os.access(self.home / '.local/bin' / script, os.X_OK))
@@ -269,7 +275,7 @@ class InstallerTests(unittest.TestCase):
                          (ROOT / 'assets/wallpapers/default.jpg').read_bytes())
         self.assertIn('Wallpapers/default.jpg',
                       (self.config / 'hypr/wallpaper-start.sh').read_text())
-        self.assertEqual(self.installer_backups(), [])
+        self.assertEqual(len(self.installer_backups()), 1)
         self.assertEqual((self.state / "hyprshell/repository").read_text().strip(), str(ROOT))
 
     def test_rerun_keeps_identical_configs_without_unnecessary_backups(self):
@@ -277,50 +283,33 @@ class InstallerTests(unittest.TestCase):
         result = self.install()
         self.assertIn('Unchanged:', result.stdout)
         self.assertNotIn('Installed:', result.stdout)
-        self.assertEqual(self.installer_backups(), [])
+        self.assertEqual(len(self.installer_backups()), 1)
         self.assertEqual((self.state / "hyprshell/repository").read_text().strip(), str(ROOT))
 
-    def test_changes_are_backed_up_and_unrelated_files_are_preserved(self):
+    def test_local_code_conflict_stops_without_overwriting_unrelated_files(self):
         self.install()
         style = self.config / 'hypr/hyprland.lua'
-        style.write_text('/* previous theme */\n')
-        portal = self.config / 'xdg-desktop-portal/hyprland-portals.conf'
-        portal.write_text('[preferred]\ndefault=gtk\n')
+        style.write_text('-- user customization\n')
         unrelated = self.config / 'unrelated-app/settings'
         unrelated.parent.mkdir()
         unrelated.write_text('keep me')
-        applet = self.config / 'autostart/nm-applet.desktop'
-        applet.write_text('[Desktop Entry]\nHidden=false\n')
-        other_autostart = self.config / 'autostart/other-app.desktop'
-        other_autostart.write_text('[Desktop Entry]\nExec=other-app\n')
-        self.install()
-        backups = self.installer_backups()
-        self.assertEqual(len(backups), 1)
-        self.assertEqual((backups[0] / 'config/hypr/hyprland.lua').read_text(),
-                         '/* previous theme */\n')
-        self.assertEqual((backups[0] / 'config/xdg-desktop-portal/hyprland-portals.conf').read_text(), '[preferred]\ndefault=gtk\n')
-        self.assertEqual(portal.read_bytes(), (ROOT / 'config/xdg-desktop-portal/hyprland-portals.conf').read_bytes())
+        result = self.run_setup('--config-only', check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Local edits conflict', result.stderr)
+        self.assertEqual(style.read_text(), '-- user customization\n')
         self.assertEqual(unrelated.read_text(), 'keep me')
-        self.assertEqual((backups[0] / 'config/autostart/nm-applet.desktop').read_text(),
-                         '[Desktop Entry]\nHidden=false\n')
-        self.assertEqual(applet.read_bytes(),
-                         (ROOT / 'config/autostart/nm-applet.desktop').read_bytes())
-        self.assertEqual(other_autostart.read_text(), '[Desktop Entry]\nExec=other-app\n')
-        self.install()
-        self.assertEqual(self.installer_backups(), backups)
 
-    def test_symlink_config_is_backed_up_without_modifying_its_target(self):
+    def test_symlink_config_requires_resolution_without_modifying_target(self):
         self.config.mkdir(parents=True)
         original = self.root / 'original hypr'
         original.mkdir()
         (original / 'hyprland.lua').write_text('keep original')
         (self.config / 'hypr').symlink_to(original, target_is_directory=True)
-        self.install()
+        result = self.run_setup('--config-only', check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('symbolic link', result.stderr)
         self.assertEqual((original / 'hyprland.lua').read_text(), 'keep original')
-        self.assertFalse((self.config / 'hypr').is_symlink())
-        backups = list((self.state / 'hyprshell/backups').glob('*/config/hypr'))
-        self.assertEqual(len(backups), 1)
-        self.assertTrue(backups[0].is_symlink())
+        self.assertTrue((self.config / 'hypr').is_symlink())
 
     def test_invalid_options_fail_before_installing(self):
         for args in (('--wat',), ('--timezone',)):

@@ -126,8 +126,8 @@ class KeybindingTests(unittest.TestCase):
         repo = self.config.parent / 'saved repo'
         with patch.object(sys, 'path', [str(HELPERS)] + sys.path):
             syncer.snapshot_managed_files(repo, self.config, self.config.parent)
-        self.assertEqual(json.loads((repo / 'config/hyprshell/keybindings.json').read_text())['entries'], [entry()])
-        self.assertEqual((repo / 'config/hyprshell/keybindings.lua').read_text(), backend.render([entry()]))
+        self.assertEqual(json.loads((repo / 'profiles/personal/config/hyprshell/keybindings.json').read_text())['entries'], [entry()])
+        self.assertEqual((repo / 'profiles/personal/config/hyprshell/keybindings.lua').read_text(), backend.render([entry()]))
 
     def test_lua_remap_preserves_callbacks_flags_and_safely_quotes_commands(self):
         callback = entry(original='SUPER + H', shortcut='SUPER + SHIFT + H', mode='existing', command='', description='Hide active window')

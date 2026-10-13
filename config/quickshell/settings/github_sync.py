@@ -60,10 +60,11 @@ def snapshot_managed_files(repo, config, home):
     """Capture installer-owned files without importing unrelated user files."""
     sections = config / 'hyprshell/hyprland'
     if sections.is_dir():
-        mirror(sections, repo / 'config/hyprshell/hyprland')
+        mirror(sections, repo / 'profiles/personal/config/hyprshell/hyprland')
     terminal = config / 'xdg-terminals.list'
     if terminal.is_file():
-        mirror(terminal, repo / 'config/xdg-terminals.list')
+        (repo / 'profiles/personal/config').mkdir(parents=True, exist_ok=True)
+        mirror(terminal, repo / 'profiles/personal/config/xdg-terminals.list')
     portal = config / 'xdg-desktop-portal'
     if portal.is_dir():
         # Other applications may own portal files; copy only our managed names.
@@ -91,7 +92,7 @@ def snapshot_managed_files(repo, config, home):
         if data.get('version') != 1:
             raise ValueError('Unsupported keybindings version')
         entries = validate_keybindings(data['entries'])
-        destination = repo / 'config/hyprshell'
+        destination = repo / 'profiles/personal/config/hyprshell'
         destination.mkdir(parents=True, exist_ok=True)
         (destination / 'keybindings.json').write_text(json.dumps({'version': 1, 'entries': entries}, indent=2) + '\n')
         (destination / 'keybindings.lua').write_text(render_keybindings(entries))
@@ -99,7 +100,7 @@ def snapshot_managed_files(repo, config, home):
     if behavior.exists():
         from behavior import validate as validate_behavior, render as render_behavior
         data = validate_behavior(json.loads(behavior.read_text()))
-        destination = repo / 'config/hyprshell'
+        destination = repo / 'profiles/personal/config/hyprshell'
         destination.mkdir(parents=True, exist_ok=True)
         (destination / 'behavior.json').write_text(json.dumps(data, indent=2) + '\n')
         (destination / 'behavior.lua').write_text(render_behavior(data))
@@ -107,28 +108,28 @@ def snapshot_managed_files(repo, config, home):
     if regional.exists():
         from regional import validate as validate_regional
         data = validate_regional(json.loads(regional.read_text()))
-        destination = repo / 'config/hyprshell/regional.json'
+        destination = repo / 'profiles/personal/config/hyprshell/regional.json'
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(data, indent=2) + '\n')
     applications = config / 'hyprshell/applications.json'
     if applications.exists():
         from applications import validate as validate_applications
         data = validate_applications(json.loads(applications.read_text()))
-        destination = repo / 'config/hyprshell/applications.json'
+        destination = repo / 'profiles/personal/config/hyprshell/applications.json'
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(data, indent=2) + '\n')
     theme = config / 'hyprshell/theme.json'
     if theme.exists():
         from theme import validate as validate_theme
         data = validate_theme(json.loads(theme.read_text()))
-        destination = repo / 'config/hyprshell/theme.json'
+        destination = repo / 'profiles/personal/config/hyprshell/theme.json'
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(data, indent=2) + '\n')
     displays = config / 'hyprshell/displays.json'
     if displays.exists():
         from displays import validate as validate_displays, render as render_displays
         data = validate_displays(json.loads(displays.read_text()))
-        destination = repo / 'config/hyprshell'
+        destination = repo / 'profiles/personal/config/hyprshell'
         destination.mkdir(parents=True, exist_ok=True)
         (destination / 'displays.json').write_text(json.dumps(data, indent=2) + '\n')
         (destination / 'displays.lua').write_text(render_displays(data))
@@ -136,7 +137,7 @@ def snapshot_managed_files(repo, config, home):
     if cleanup.exists():
         from cleanup import validate as validate_cleanup
         data = validate_cleanup(json.loads(cleanup.read_text()))
-        destination = repo / 'config/hyprshell/cleanup.json'
+        destination = repo / 'profiles/personal/config/hyprshell/cleanup.json'
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(data, indent=2) + '\n')
 
@@ -159,14 +160,28 @@ def sync(repo, config, target=None, slug=None):
         for name in ('hypr', 'quickshell'):
             if not (config / name).is_dir():
                 raise RuntimeError(f'Missing live config: {config / name}')
+        public_gui = repo / 'config/hypr/hyprland-gui.lua'
+        generic_gui = public_gui.read_bytes() if public_gui.exists() else None
         for name in ('hypr', 'quickshell'):
             mirror(config / name, repo / 'config' / name)
+        if public_gui.exists():
+            personal_gui = repo / 'profiles/personal/config/hypr/hyprland-gui.lua'
+            personal_gui.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(public_gui, personal_gui)
+            if generic_gui is not None:
+                public_gui.write_bytes(generic_gui)
+            else:
+                public_gui.unlink()
+        # Compatibility is deployed from the one project manifest, not duplicated.
+        installed_manifest = repo / 'config/quickshell/settings/compatibility.json'
+        if (repo / 'compatibility.json').exists() and installed_manifest.exists():
+            installed_manifest.unlink()
         paths = ['config/hypr', 'config/quickshell']
         settings = config / 'hyprshell/settings.json'
         if settings.exists():
             from backend import validate
             data = validate(json.loads(settings.read_text()))
-            settings_target = repo / 'config/hyprshell/settings.json'
+            settings_target = repo / 'profiles/personal/config/hyprshell/settings.json'
             settings_target.parent.mkdir(parents=True, exist_ok=True)
             settings_target.write_text(json.dumps(data, indent=2) + '\n')
             paths.append('config/hyprshell/settings.json')
@@ -187,7 +202,8 @@ def sync(repo, config, target=None, slug=None):
         project_paths = ('config', 'bin', 'assets', 'tools', 'tests', 'docs',
                          '.github', '.gitignore', 'README.md', 'setup.sh',
                          'packages.txt', 'packages-apps.txt', 'packages-fallback.txt',
-                         'packages-fedora.txt', 'packages-apps-fedora.txt')
+                         'packages-fedora.txt', 'packages-apps-fedora.txt',
+                         'profiles/personal', 'compatibility.json', 'CHANGELOG.md')
         tracked = git(repo, 'ls-files', '-z').split('\0')
         paths = [path for path in project_paths
                  if (repo / path).exists() or any(

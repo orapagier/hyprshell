@@ -28,7 +28,7 @@ FloatingWindow {
     property var submitted: Model.copy(store.defaults)
     property bool editingSession: false
     readonly property bool saving: writer.running
-    readonly property bool idle: !writer.running && !autoSave.running && !displayPage.busy && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && !networkPage.busy && !regionalPage.busy && !helpPage.busy && !behaviorPage.busy && !clipboardPage.busy && !peripheralsPage.busy
+    readonly property bool idle: !writer.running && !autoSave.running && !displayPage.busy && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !githubUpdate.busy && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && !networkPage.busy && !regionalPage.busy && !helpPage.busy && !behaviorPage.busy && !clipboardPage.busy && !peripheralsPage.busy
     readonly property bool manualDirty: lockPage.dirty || themePage.dirty || displayPage.dirty || keybindingsPage.dirty || cleanupPage.dirty || regionalPage.dirty || behaviorPage.dirty || recoveryPage.dirty
     readonly property bool pageDirty: section === -3 ? lockPage.dirty : section === -8 ? themePage.dirty : section === -7 ? displayPage.dirty : section === -6 ? keybindingsPage.dirty : section === -4 ? cleanupPage.dirty : section === -17 ? regionalPage.dirty : section === -19 ? behaviorPage.dirty : section === -14 ? recoveryPage.dirty : false
     function savingPolicy() {
@@ -369,6 +369,7 @@ FloatingWindow {
         duration: window.draft.hyprland.animations === false ? 0 : 140
         easing.type: Easing.OutCubic
     }
+    SettingsGithubUpdate { id: githubUpdate; hostWidth: window.width; hostHeight: window.height }
     Popup {
         id: githubDialog
         objectName: "githubSyncDialog"
@@ -488,7 +489,7 @@ FloatingWindow {
                 Item {
                     Layout.fillWidth: true
                 }
-                SettingsButton {
+                SettingsGithubButton {
                     objectName: "githubSyncButton"
                     text: githubSync.running ? "Syncing…" : "Sync to GitHub"
                     enabled: window.idle && !window.dirty && !window.manualDirty && window.success && window.store.loaded
@@ -498,6 +499,14 @@ FloatingWindow {
                         githubDialog.open();
                         githubSync.request("--status", []);
                     }
+                }
+                SettingsGithubButton {
+                    objectName: "githubUpdateButton"
+                    text: "Sync from GitHub"
+                    enabled: window.idle && !window.dirty && !window.manualDirty && window.success && window.store.loaded
+                    ToolTip.visible: hovered
+                    ToolTip.text: "Review incoming changes and compatibility before updating Hyprshell"
+                    onClicked: githubUpdate.open()
                 }
                 SettingsButton {
                     text: "Reset unsaved changes"
@@ -513,7 +522,7 @@ FloatingWindow {
             }
             Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Style.Theme.separator }
             RowLayout {
-                enabled: !githubSync.running && !recoveryPage.busy
+                enabled: !githubSync.running && !githubUpdate.busy && !recoveryPage.busy
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 0

@@ -139,7 +139,7 @@ class ApplicationsTests(unittest.TestCase):
         self.apply(operation='default', types=['application/pdf'], application='viewer.desktop')
         repo = self.root / 'repo'
         github_sync.snapshot_managed_files(repo, self.config, self.root)
-        snapshot = (repo / 'config/hyprshell/applications.json').read_text()
+        snapshot = (repo / 'profiles/personal/config/hyprshell/applications.json').read_text()
         self.assertNotIn('private-command', snapshot)
         self.assertFalse((repo / 'config/autostart/custom.desktop').exists())
         self.assertEqual(json.loads(snapshot), applications.saved())
@@ -168,7 +168,10 @@ class ApplicationsIntegrationTests(unittest.TestCase):
                     (repo / 'config' / entry.name).symlink_to(entry)
             for entry in (ROOT / 'config/hyprshell').iterdir():
                 if entry.name != 'applications.json':
-                    (repo / 'config/hyprshell' / entry.name).symlink_to(entry)
+                    if entry.is_dir():
+                        shutil.copytree(entry, repo / 'config/hyprshell' / entry.name)
+                    else:
+                        (repo / 'config/hyprshell' / entry.name).symlink_to(entry)
             data = {'version': 1, 'defaults': {'application/pdf': 'example.desktop'}, 'startup': {'hyprshell-example.desktop': {'enabled': True, 'application': 'example.desktop'}}}
             (repo / 'config/hyprshell/applications.json').write_text(json.dumps(data))
             for name in ('bin', 'assets'):

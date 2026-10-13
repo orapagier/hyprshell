@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "output": "eDP-1",
+      "mode": "1920x1080@60.008",
+      "scale": 1,
+      "transform": 0,
+      "position": "0x0"
+    }
+  ]
+}

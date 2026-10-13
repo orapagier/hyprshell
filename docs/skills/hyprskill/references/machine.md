@@ -1,9 +1,9 @@
 # Observed local machine
 
-Inspected 2026-10-09. These facts describe ramlej's machine, not every Hyprshell installation. Versions and preferences are snapshots; verify only those relevant to the request.
+Current OS/version check: 2026-10-13. Older observations below are historical. These facts describe ramlej's machine, not every Hyprshell installation. Versions and preferences are snapshots; verify only those relevant to the request.
 
 - User home `/home/ramlej`; checkout `/home/ramlej/repos/hyprshell`; state repository pointer confirms it. Default XDG paths currently contain the installed files.
-- Arch Linux x86_64; kernel `7.2.9-arch1-1`; installed Hyprland `0.56.2-4`, Quickshell `0.3.2-1`, UWSM `0.27.0-1`.
+- Current: Fedora 44 x86_64; Hyprland `0.56.2-3.fc44`, Quickshell `0.3.2-1.git.20261008.4f508be.fc44`, UWSM `0.27.0-1.fc44`. Native dependencies pass; Intel graphics detected. Earlier Arch kernel/boot observations below are historical and require fresh verification before use.
 - Intel Core i5-1235U (10 cores, 12 threads); integrated Alder Lake Iris Xe; about 16 GiB RAM and 4 GiB swap. Intel CNVi Wi-Fi and Intel PCH audio.
 - Main monitor config uses preferred/auto; `hyprland-gui.lua` overrides eDP-1 to 1920×1080 at 60.01 Hz, scale 1, position 0x0, sRGB. This was verified in files, not via live monitor IPC.
 - `/etc/systemd/system/display-manager.service` points to SDDM. Hyprland startup launches the bar through UWSM, hyprpolkitagent, and the wallpaper helper.
@@ -18,7 +18,5 @@ Inspected 2026-10-09. These facts describe ramlej's machine, not every Hyprshell
 - Native dependency checker passed. This inspection could not access Hyprland IPC or system/user D-Bus from the agent sandbox; running service status, active display state, and actual locking behavior were not verified.
 
 Do not infer hostname, disk layout, active radios, service health, or current package versions from this profile. Use narrow live queries when needed. Keep serial numbers, MAC addresses, network names, tokens, and private history out of this file.
-
-- 2026-10-12: Current OS verified as Fedora 44. Repository and live Super+E command now use `uwsm app -- cosmic-files`; saved folder default is `com.system76.CosmicFiles.desktop`. COSMIC Files was not installed at this check; package installation and compositor reload require the user terminal because this agent cannot elevate or access Hyprland IPC. Earlier Arch observations above are historical.
 
 - 2026-10-12: Current OS verified as Fedora 44. Repository and live Super+E command now use `uwsm app -- cosmic-files`; saved folder default is `com.system76.CosmicFiles.desktop`. COSMIC Files was not installed at this check; package installation and compositor reload require the user terminal because this agent cannot elevate or access Hyprland IPC. Earlier Arch observations above are historical.

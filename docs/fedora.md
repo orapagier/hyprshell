@@ -151,12 +151,11 @@ Package installation and upgrades ask for the user's password in Kitty.
 Fedora release upgrades remain a separate workflow; review COPR support
 for the new release before performing one.
 
-The port is validated with isolated config installs, mocked Fedora
-package/service transactions, boot-plan and rollback tests, and the
-existing Arch runtime and offscreen QML checks. A Fedora 44 CI job installs
-the native manifest and checks the Lua/QML payload. **A real Fedora
-Everything boot/login and hardware test remains required**; the local
-development machine is Arch, and the CI job has not been run locally.
+The development machine is Fedora 44. Validation includes isolated config
+installs, mocked Fedora transactions, recovery tests and offscreen Qt checks.
+The Fedora 44 CI job installs the native manifest and checks Lua/QML; this is
+not a boot test. **A fresh Fedora Everything VM installation and physical
+acceptance remain pending.** See [acceptance.md](acceptance.md).
 
 On the target Fedora system:
 
@@ -172,3 +171,13 @@ Then verify an actual UWSM login, the bar/launcher, authorization prompts,
 Wi-Fi, Bluetooth, output/input audio, brightness, lock/unlock, suspend,
 portals, and SDDM/Plymouth on the target hardware. Configure GPU drivers
 using Fedora and Hyprland's instructions for that device.
+
+## Preserved settings and GitHub updates
+
+Ordinary setup/update keeps existing preferences. Fresh users receive public
+defaults; `--profile personal` explicitly restores this checkout's saved profile.
+Use the Settings header's **Sync from GitHub** to review incoming changes and
+compatibility before applying. [Updates and recovery](updates.md) documents
+tracking branches, dependency checks, local conflicts, backups and rollback.
+`compatibility.json` is the support record; versions newer than its recorded
+baseline need validation rather than an assumption of compatibility.

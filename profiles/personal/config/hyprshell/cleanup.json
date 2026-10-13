@@ -1,0 +1,8 @@
+{
+  "schedule": "monthly",
+  "days": 30,
+  "keep": 3,
+  "thumbnails": true,
+  "temporary": true,
+  "backups": true
+}

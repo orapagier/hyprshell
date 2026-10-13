@@ -26,8 +26,9 @@ It installs onto an existing system; it does not install the operating
 system, partition disks, or install a bootloader. It installs common firmware, CPU
 microcode, and Mesa graphics drivers; vendor-specific drivers still need review. It can
 configure the animated Hyprshell Glass splash for a supported existing boot setup.
-Full setup also installs the matching animated SDDM login theme and restores
-the desktop preferences saved in this checkout.
+Full setup also installs the matching animated SDDM login theme. Fresh installs
+use public defaults; existing user preferences are retained. Saved personal
+profiles are restored only with `--profile personal`.
 
 The **Fedora Everything port** has separate package manifests, DNF-backed
 Settings controls, and dracut boot splash support. See [Fedora installation
@@ -88,8 +89,8 @@ Wi-Fi menu uses NetworkManager directly. Other apps' autostart entries are
 preserved.
 
 Desktop configuration and its installation steps live together in this
-repository. `setup.sh` installs the shell, themes, utilities, and saved
-preferences as one coordinated desktop setup.
+repository. `setup.sh` installs the shell, themes and utilities, initializing
+preferences only for new users. See [reviewed updates and profiles](docs/updates.md).
 
 ## Requirements
 
@@ -101,7 +102,9 @@ The supported installation target is:
 - **Hyprland 0.56 or newer**, using its Lua configuration API.
 - Hyprland GUI utilities (`hyprland-guiutils`), installed by the setup script
   if missing.
-- Quickshell and Qt 6, installed by the setup script if missing.
+- Quickshell 0.3.2+, UWSM 0.27.0+ and Qt 6, installed if missing.
+- See [compatibility.json](compatibility.json) for supported systems, minimums
+  and recorded baseline versions; newer versions are not automatically certified.
 - Graphics drivers suitable for a Wayland session.
 
 The installer uses official Arch repositories and pacman. It does not install
@@ -154,8 +157,8 @@ The installer:
    package transaction when no manager is installed.
 2. Upgrades the system and installs desktop, daily-driver and firmware packages.
    Fedora first resolves/downloads the full transaction from compatible repositories.
-3. Backs up changed config files, builds the audio helper, and restores desktop
-   files, saved application defaults, utilities and wallpapers.
+3. Stages and validates desktop files, builds the audio helper, retains current
+   preferences, and backs up changed managed files before deployment.
 4. Enables networking, Bluetooth, user audio and graphical login; starts UPower.
 5. Prepares printing/discovery, keyring login, time sync, firewall and SSD trim,
    preserving configured time-service/firewall alternatives.
@@ -177,8 +180,8 @@ The static UKI splash replaces the embedded Arch logo; systemd-boot's text menu
 stays unchanged. See [login appearance](docs/login-appearance.md) for the matching
 SDDM theme and a combined installer for an already configured machine.
 
-Existing configurations at the managed destinations can be replaced. Backups
-are created before replacement; see [backups and restoration](#backups-and-restoration).
+Changed shared files are backed up. Conflicting local code edits stop deployment;
+current preferences and unrelated files are retained. See [updates](docs/updates.md).
 The installer preserves your timezone and existing login manager. If no login
 manager is configured or detected as an installed service, it installs SDDM,
 enables it for the next boot, and selects the graphical boot target.
@@ -556,7 +559,8 @@ to a repository named `hyprshell` in your authenticated GitHub account.
 4. Select **Check again** and verify the displayed account and target.
 5. Start the sync and check its result.
 
-The tool snapshots live `hypr/` and `quickshell/` configurations, editable
+Personal preferences are saved under `profiles/personal/config/`; shared code
+remains in `config/`. The tool snapshots live `hypr/` and `quickshell/` code, editable
 Hyprland sections, and saved `hyprshell/settings.json`, cleanup preferences,
 shortcut and display customizations, application appearance, default apps,
 and login-startup choices.
@@ -598,73 +602,34 @@ Setup records the checkout location in
 
 ### Updating
 
-First review local checkout changes:
+Use **Sync from GitHub**, to the right of **Sync to GitHub** in Settings. Review
+incoming commits, files, package requirements and compatibility findings. Once
+blocking issues are resolved, acknowledge the hardware limitations and click
+**Sync now**. The preview shows the exact source repository and branch.
+
+The update preserves preferences and original Git history, stages and validates
+the candidate, and retains recovery files. Log out and back in after completion.
+For an already updated local checkout, `./setup.sh --update` applies and validates
+its desktop files without upgrading system packages. Use full setup when new
+system dependencies or root-owned integration changes require it.
+
+To restore saved preferences explicitly, use:
 
 ```bash
-git status
+./setup.sh --config-only --profile personal
 ```
 
-Commit or otherwise preserve your changes before pulling updates. Once your
-checkout is ready:
-
-```bash
-git pull --ff-only
-./setup.sh --dry-run
-./setup.sh
-```
-
-`git pull` follows your current branch's configured remote; after forking,
-configure the upstream relationship according to your workflow. The installer
-uses the contents of your checkout, including any local modifications.
-
-Use `./setup.sh --config-only` when dependencies are already installed and you
-only want to reinstall configuration files and helpers. It does not enable
-services or install newly required packages.
-
-Installation replaces the managed `hypr`, `quickshell`, and
-`xdg-desktop-portal` directories and installs the checkout's saved Hyprshell
-settings, cleanup, and keybinding files when present. It also installs utilities
-from `bin/`, application shortcuts, and bundled wallpapers. **Reinstallation can replace edits made
-only in your live configuration, including saved settings.** Keep changes in
-your checkout or preserve them separately before updating.
-
-Quickshell watches QML changes and reloads automatically. Run `hyprctl reload`
-in your desktop session after changing Hyprland configuration. To explicitly
-restart Hyprshell after installation:
-
-```bash
-"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/install-and-activate.sh"
-```
+See [updates, profiles, forks and recovery](docs/updates.md) and the
+[fresh-install/hardware checklist](docs/acceptance.md).
 
 ### Backups and restoration
 
-Changed installed paths are backed up under:
-
-```text
-~/.local/state/hyprshell/backups/<timestamp>/
-```
-
-Identical payloads are skipped. Unrelated application configurations and
-wallpapers with other filenames are preserved. A backup contains the paths
-changed by that installation, not a complete copy of your home directory.
-
-To restore an installer backup, inspect its contents, move the current target
-aside, and copy the corresponding saved file or directory back to its original
-location. For example, with your chosen timestamp substituted:
-
-```bash
-backup="$HOME/.local/state/hyprshell/backups/<timestamp>"
-mv "$HOME/.config/hypr" "$HOME/.config/hypr.before-restore"
-cp -a "$backup/config/hypr" "$HOME/.config/hypr"
-```
-
-Choose an unused destination name for the moved directory and confirm the
-backup contains `config/hypr` before running the example. Validate the restored
-configuration and reload Hyprland from the desktop session.
-
-Settings saves use separate `settings-<timestamp>` backup sets. Their
-`manifest.json` maps saved files to original paths and records newly created
-files; consult that manifest when restoring settings changes.
+Deployment backups use `~/.local/state/hyprshell/backups/update-<timestamp>-<id>/`.
+They contain changed files and a transaction journal, not whole configuration
+directories or personal documents. Use the documented rollback command in
+[updates.md](docs/updates.md#recovery); do not replace a complete configuration
+directory with a partial deployment backup. Settings transactions retain their
+own separate backup sets.
 
 ### Configuration and state paths
 

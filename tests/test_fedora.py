@@ -181,14 +181,15 @@ class FedoraInstallerTests(unittest.TestCase):
         # Distro detection uses an isolated os-release fixture. The actual
         # config installer builds its helper and copies payload into a temp home.
         self.repo = self.root / 'checkout'; self.repo.mkdir()
-        release = self.root / 'os-release'; release.write_text('ID=fedora\n')
+        release = self.root / 'os-release'; release.write_text('ID=fedora\nVERSION_ID=44\n')
         (self.repo / 'setup.sh').write_text((ROOT / 'setup.sh').read_text().replace('/etc/os-release', str(release)))
-        for name in ('config', 'tools', 'bin', 'assets', 'packages.txt', 'packages-fedora.txt', 'packages-apps-fedora.txt'):
+        for name in ('config', 'tools', 'bin', 'assets', 'packages.txt', 'packages-fedora.txt', 'packages-apps-fedora.txt', 'compatibility.json'):
             (self.repo / name).symlink_to(ROOT / name)
         real_python = sys.executable
         runner = self.bin / 'qmltestrunner-qt6'
         self.program('qmltestrunner-qt6', 'raise SystemExit(0)')
-        self.program('python3', f'''if sys.argv[1].endswith('/check_runtime.py'):
+        self.program('python3', f'''if sys.argv[1].endswith('/compatibility.py'): raise SystemExit(0)
+if sys.argv[1].endswith('/check_runtime.py'):
     if '--qmltestrunner' in sys.argv: print({str(runner)!r})
     raise SystemExit(0)
 os.execv({real_python!r}, [{real_python!r}, *sys.argv[1:]])''')

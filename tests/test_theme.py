@@ -104,7 +104,7 @@ class ThemeTests(unittest.TestCase):
             theme.apply('dark')
             repo = self.root / 'repo'
             github_sync.snapshot_managed_files(repo, self.config, self.root)
-        self.assertEqual(json.loads((repo / 'config/hyprshell/theme.json').read_text()), {'version': 1, 'mode': 'dark'})
+        self.assertEqual(json.loads((repo / 'profiles/personal/config/hyprshell/theme.json').read_text()), {'version': 1, 'mode': 'dark'})
         self.assertFalse((repo / 'config/gtk-3.0').exists())
 
     def test_status_without_saved_theme_uses_desktop(self):
@@ -125,7 +125,7 @@ class ThemeTests(unittest.TestCase):
             self.assertIn('gtk-cursor-theme-size = 32', text)
         self.assertIn('export XCURSOR_SIZE=32', (self.config / 'uwsm/env-hyprland').read_text())
         github_sync.snapshot_managed_files(self.root / 'repo', self.config, self.root)
-        self.assertEqual(json.loads((self.root / 'repo/config/hyprshell/theme.json').read_text()), theme.saved())
+        self.assertEqual(json.loads((self.root / 'repo/profiles/personal/config/hyprshell/theme.json').read_text()), theme.saved())
 
     def test_font_cursor_failure_rolls_back_and_external_edit_is_rejected(self):
         original = self.values.copy()

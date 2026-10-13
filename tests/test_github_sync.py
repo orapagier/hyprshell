@@ -48,12 +48,12 @@ class SyncTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'Live desktop saved.*offline'):
                     syncer.sync(repo, config)
             self.assertEqual((repo / 'config/hypr/current').read_text(), 'live')
-            self.assertTrue((repo / 'config/hyprshell/settings.json').exists())
+            self.assertTrue((repo / 'profiles/personal/config/hyprshell/settings.json').exists())
             self.assertEqual(run('diff', '--cached', '--name-only'), '')
             with patch.object(sys, 'path', [str(ROOT / 'config/quickshell/settings')] + sys.path):
                 message = syncer.sync(repo, config, str(remote), 'example/hyprshell')
                 self.assertEqual(message, 'Synced to example/hyprshell (main).')
-            self.assertTrue((repo / 'config/hyprshell/settings.json').exists())
+            self.assertTrue((repo / 'profiles/personal/config/hyprshell/settings.json').exists())
             first = run('rev-parse', 'HEAD')
             self.assertTrue(run('log', '-1', '--format=%s').startswith('Sync Hyprshell desktop '))
             self.assertIn('README.md', run('ls-files'))
@@ -113,7 +113,7 @@ class SyncTests(unittest.TestCase):
             sections.mkdir(parents=True)
             (sections / 'programs.lua').write_text('return {terminal = \"kitty\"}\n')
             syncer.snapshot_managed_files(repo, config, home)
-            self.assertEqual((repo / 'config/hyprshell/hyprland/programs.lua').read_bytes(),
+            self.assertEqual((repo / 'profiles/personal/config/hyprshell/hyprland/programs.lua').read_bytes(),
                              (sections / 'programs.lua').read_bytes())
             for payload in ('config/xdg-desktop-portal', 'config/autostart', 'bin',
                             'assets/applications', 'assets/wallpapers'):
@@ -130,10 +130,10 @@ class SyncTests(unittest.TestCase):
             (config / 'hyprshell/behavior.lua').write_text('error("stale generated Lua")')
             (config / 'hyprshell/personal-files.json').write_text('private destination')
             syncer.snapshot_managed_files(repo, config, home)
-            self.assertEqual(json.loads((repo / 'config/hyprshell/behavior.json').read_text()), data)
-            generated = (repo / 'config/hyprshell/behavior.lua').read_text()
+            self.assertEqual(json.loads((repo / 'profiles/personal/config/hyprshell/behavior.json').read_text()), data)
+            generated = (repo / 'profiles/personal/config/hyprshell/behavior.lua').read_text()
             self.assertIn('layout = "master"', generated); self.assertNotIn('stale', generated)
-            self.assertFalse((repo / 'config/hyprshell/personal-files.json').exists())
+            self.assertFalse((repo / 'profiles/personal/config/hyprshell/personal-files.json').exists())
 
     def test_identity_is_local_and_validated(self):
         with tempfile.TemporaryDirectory() as directory:

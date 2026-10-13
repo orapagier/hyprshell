@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "defaults": {
+    "audio/mpeg": "mpv.desktop",
+    "audio/flac": "mpv.desktop",
+    "audio/ogg": "mpv.desktop",
+    "audio/mp4": "mpv.desktop",
+    "video/mp4": "mpv.desktop",
+    "video/webm": "mpv.desktop",
+    "video/x-matroska": "mpv.desktop",
+    "inode/directory": "com.system76.CosmicFiles.desktop",
+    "text/html": "chromium-browser.desktop",
+    "x-scheme-handler/http": "chromium-browser.desktop",
+    "x-scheme-handler/https": "chromium-browser.desktop",
+    "x-scheme-handler/about": "chromium-browser.desktop",
+    "x-scheme-handler/unknown": "chromium-browser.desktop",
+    "audio/x-wav": "mpv.desktop",
+    "audio/aac": "mpv.desktop",
+    "audio/opus": "mpv.desktop",
+    "video/quicktime": "mpv.desktop",
+    "video/x-msvideo": "mpv.desktop",
+    "application/ogg": "mpv.desktop",
+    "application/pdf": "org.gnome.Papers.desktop",
+    "image/jpeg": "org.gnome.Loupe.desktop",
+    "image/png": "org.gnome.Loupe.desktop",
+    "image/webp": "org.gnome.Loupe.desktop",
+    "text/plain": "org.xfce.mousepad.desktop"
+  },
+  "startup": {}
+}

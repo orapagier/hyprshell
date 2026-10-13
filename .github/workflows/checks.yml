@@ -34,6 +34,7 @@ jobs:
       - name: Validate native runtime and Hyprland configuration
         run: |
           runuser -u hyprshell-test -- python3 tools/check_runtime.py --native
+          runuser -u hyprshell-test -- python3 config/quickshell/settings/compatibility.py compatibility.json
           runuser -u hyprshell-test -- Hyprland --verify-config --config "$PWD/config/hypr/hyprland.lua"
       - name: Exercise the installer as a normal user with system changes mocked
         run: runuser -u hyprshell-test -- python3 -m unittest discover -s tests -v
@@ -67,6 +68,7 @@ jobs:
       - name: Check Fedora runtime and Lua configuration
         run: |
           runuser -u hyprshell-test -- python3 tools/check_runtime.py --native
+          runuser -u hyprshell-test -- python3 config/quickshell/settings/compatibility.py compatibility.json
           runuser -u hyprshell-test -- Hyprland --verify-config --config "$PWD/config/hypr/hyprland.lua"
       - name: Test isolated installers and Settings helpers
         run: runuser -u hyprshell-test -- python3 -m unittest discover -s tests -v
