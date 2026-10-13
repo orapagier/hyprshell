@@ -41,7 +41,7 @@ describe the established Arch installation unless stated otherwise.
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
-- [Installing alongside KDE or another desktop](#installing-alongside-kde-or-another-desktop)
+- [Installing alongside an existing desktop](#installing-alongside-an-existing-desktop)
 - [Fedora Everything port](docs/fedora.md)
 - [A consistent desktop experience](#a-consistent-desktop-experience)
 - [First login and machine-specific configuration](#first-login-and-machine-specific-configuration)
@@ -187,23 +187,33 @@ manager is configured or detected as an installed service, it installs SDDM,
 enables it for the next boot, and selects the graphical boot target.
 It does not reboot the machine or restart the running desktop.
 
-### Installing alongside KDE or another desktop
+### Installing alongside an existing desktop
 
-Hyprshell can be installed alongside an existing desktop such as KDE Plasma.
-The installer does not uninstall Plasma or replace its session. It preserves
-the existing login manager and installs SDDM only when none is found. At the
-login screen, select **Hyprland (uwsm-managed)** to use Hyprshell, or select
-**Plasma** to return to KDE. Log out before switching sessions. Hyprshell's bar,
+Hyprshell is designed to coexist with an existing desktop, including KDE
+Plasma, GNOME, Xfce, Cinnamon, MATE, LXQt, or COSMIC, on a supported system.
+The installer has no step that uninstalls the existing desktop or replaces its
+session. It preserves the existing login manager and installs SDDM only when
+none is found. At a login screen that supports Hyprland's Wayland session,
+select **Hyprland (uwsm-managed)** to use Hyprshell, or select your existing
+desktop to return to it. Log out before switching sessions. Hyprshell's bar,
 launcher, and desktop controls run in the Hyprland session; installing them
-does not add those controls to Plasma.
+does not add those controls to your other desktop.
 
-This applies to Arch Linux with KDE and is expected to apply to traditional
-DNF-based Fedora KDE 44 on x86_64. The documented Fedora installation target
-remains Fedora Everything 44. These coexistence behaviors are confirmed by
-installer/configuration review, not by a completed fresh KDE installation
-test. Identical behavior across desktops and hardware is not yet certified;
+The installation limits remain x86_64 Arch Linux and traditional DNF-based
+Fedora 44, with Fedora Everything 44 as the documented Fedora target. Having
+one of these desktops installed does not extend support to other distributions.
+Preservation of existing desktops is confirmed by installer/configuration
+review; fresh coexistence tests for the desktops listed above are pending.
+Identical behavior across desktops and hardware is not yet certified;
 see [compatibility.json](compatibility.json) and [Fedora validation](docs/fedora.md).
-Fedora Kinoite and other Atomic/OSTree systems are unsupported.
+Fedora Kinoite, Silverblue, and other Atomic/OSTree systems are unsupported.
+
+Preserving a login manager does not guarantee that its greeter can list or
+launch the Hyprland session. Check the upstream [Hyprland launch guidance](https://wiki.hypr.land/getting-started/master-tutorial/#launching-hyprland)
+for current manager-specific limitations. If it cannot launch Hyprland, use the
+TTY command under [Start a session](#4-start-a-session). The installer does not
+replace that manager automatically to resolve launch compatibility. The Glass
+login theme is applied only to SDDM; other login managers retain their appearance.
 
 Full setup upgrades system packages, enables shared services, and applies the
 SDDM theme and supported boot splash by default. To keep the existing login
@@ -220,6 +230,9 @@ update an existing desktop-specific defaults file for the desktop running the
 installer. The managed `nm-applet.desktop` autostart override hides that applet
 across sessions. These appearance flags do not prevent shared preference or
 service changes; review application defaults and startup choices after setup.
+In desktops that rely on `nm-applet` for their network tray, that override also
+hides their network icon. Hyprshell's network menu is available only in its own
+session.
 
 ### Boot and login appearance
 
