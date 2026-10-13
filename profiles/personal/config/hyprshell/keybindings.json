@@ -32,6 +32,14 @@
       "mode": "existing",
       "original": "SUPER + V",
       "shortcut": "SUPER + ALT + V"
+    },
+    {
+      "command": "",
+      "description": "Toggle hyprbar on current workspace",
+      "id": "9d4a8c9adf4d4021acf973369d9bbe51",
+      "mode": "existing",
+      "original": "ALT + T",
+      "shortcut": "ALT + X"
     }
   ]
 }
