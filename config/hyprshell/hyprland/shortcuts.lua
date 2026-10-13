@@ -9,7 +9,7 @@ local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close(), { desc
 hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/session.py\" --logout"), { description = "Log out to login screen" })
 hl.bind(mainMod .. " + M", hl.dsp.window.fullscreen({ mode = "maximized" }), { description = "Maximize window" })
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(programs.fileManager), { description = "Open file manager" })
-hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }), { description = "Toggle floating window" })
+hl.bind(mainMod .. " + ALT + V", hl.dsp.window.float({ action = "toggle" }), { description = "Toggle floating window" })
 local function clipboardShortcut(key)
     return function()
         local window = hl.get_active_window()
@@ -18,8 +18,8 @@ local function clipboardShortcut(key)
         hl.dispatch(hl.dsp.send_shortcut({ mods = terminal and "CTRL SHIFT" or "CTRL", key = key }))
     end
 end
-hl.bind("SUPER + ALT + C", clipboardShortcut("C"), { description = "Copy" })
-hl.bind("SUPER + ALT + V", clipboardShortcut("V"), { description = "Paste" })
+hl.bind("SUPER + C", clipboardShortcut("C"), { description = "Copy" })
+hl.bind("SUPER + V", clipboardShortcut("V"), { description = "Paste" })
 
 -- Quickshell handles launcher toggling and outside clicks natively.
 hl.bind("SUPER + Super_L", hl.dsp.exec_cmd(programs.menu), { release = true, description = "Toggle application launcher" })

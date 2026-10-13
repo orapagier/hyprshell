@@ -1176,7 +1176,7 @@ resets and receives focus on opening, and launcher entry transitions are immedia
 Other menu contents retain their lazy loading and animations. The Fedora launcher
 mark uses solid blue with a white symbol to retain detail at small icon sizes.
 
-Super+Alt+C and Super+Alt+V forward Copy and Paste to the focused application
+Super+C and Super+V forward Copy and Paste to the focused application
 (Ctrl+C/V, or Ctrl+Shift+C/V for Kitty, Alacritty, Foot, WezTerm and Ptyxis).
-Super+V toggles floating windows. Application-specific shortcut preferences can
+Super+Alt+V toggles floating windows. Application-specific shortcut preferences can
 override the conventional forwarded keys.
