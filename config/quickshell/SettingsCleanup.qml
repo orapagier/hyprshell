@@ -113,6 +113,7 @@ ColumnLayout {
                 selectByMouse: true
                 wrapMode: TextEdit.WrapAnywhere
                 color: Style.Theme.text
+                background: Rectangle { radius: Style.Theme.controlRadius; color: Style.Theme.field; border.color: Style.Theme.controlBorder }
                 text: page.preview ? page.preview.entries.map(e => e.category + " · " + e.size + " bytes\n" + e.path).join("\n\n") || "No eligible files." : ""
             }
         }

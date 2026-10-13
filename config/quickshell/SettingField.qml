@@ -45,7 +45,7 @@ ColumnLayout {
             background: Rectangle {
                 radius: 8
                 color: Style.Theme.field
-                border.color: input.activeFocus ? Style.Theme.accentText : Style.Theme.controlBorder
+                border.color: Style.Theme.controlBorder
                 Behavior on color {
                     ColorAnimation {
                         duration: Style.Theme.duration(field, 130)

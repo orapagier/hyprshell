@@ -93,7 +93,7 @@ ColumnLayout {
             selectByMouse: true
             background: Rectangle {
                 radius: 10; color: Style.Theme.field
-                border.color: filter.activeFocus ? Style.Theme.accentText : Style.Theme.border
+                border.color: Style.Theme.border
                 Behavior on border.color { ColorAnimation { duration: Style.Theme.duration(filter, 140) } }
             }
         }

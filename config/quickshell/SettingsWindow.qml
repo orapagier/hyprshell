@@ -487,13 +487,13 @@ FloatingWindow {
                 ColumnLayout {
                     spacing: 2
                     Label {
-                        text: "Settings"
+                        text: "Hyprshell"
                         font.pixelSize: 18
                         font.bold: true
                         color: Style.Theme.text
                     }
                     Label {
-                        text: "Hyprshell"
+                        text: "Settings"
                         font.pixelSize: Style.Theme.captionSize
                         color: Style.Theme.muted
                     }
@@ -574,8 +574,8 @@ FloatingWindow {
                             background: Rectangle {
                                 radius: Style.Theme.controlRadius
                                 color: Style.Theme.field
-                                border.width: searchField.activeFocus ? 2 : 1
-                                border.color: searchField.activeFocus ? Style.Theme.accentText : Style.Theme.border
+                                border.width: 1
+                                border.color: Style.Theme.border
                             }
                             ToolButton {
                                 id: searchClear

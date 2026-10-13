@@ -83,7 +83,7 @@ ColumnLayout {
         ScrollView {
             visible: page.updates !== null && page.updates.packages.length > 0
             Layout.fillWidth: true; Layout.preferredHeight: 130; clip: true
-            TextArea { text: page.updates ? page.updates.packages.join("\n") : ""; readOnly: true; selectByMouse: true; wrapMode: Text.Wrap; color: Style.Theme.text; font.pixelSize: Style.Theme.captionSize }
+            TextArea { text: page.updates ? page.updates.packages.join("\n") : ""; readOnly: true; selectByMouse: true; wrapMode: Text.Wrap; color: Style.Theme.text; font.pixelSize: Style.Theme.captionSize; background: Rectangle { radius: Style.Theme.controlRadius; color: Style.Theme.field; border.color: Style.Theme.controlBorder } }
         }
         SettingsButton { objectName: "startSystemUpgrade"; text: page.upgrading ? "Upgrade window open" : "Open full system upgrade…"; enabled: page.loaded && !page.busy && !page.upgrading; onClicked: page.request({operation: "upgrade"}) }
         Label { text: page.upgrade.message; color: ["failed", "unknown"].indexOf(page.upgrade.status) >= 0 ? Style.Theme.danger : Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }

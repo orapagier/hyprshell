@@ -70,7 +70,7 @@ ColumnLayout {
         background: Rectangle {
             radius: 12
             color: Qt.rgba(theme.base.r, theme.base.g, theme.base.b, 0.65)
-            border.color: search.activeFocus ? Qt.rgba(theme.highlight.r, theme.highlight.g, theme.highlight.b, 0.55) : Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.12)
+            border.color: Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.12)
             Behavior on border.color { ColorAnimation { duration: 140 } }
         }
         Component.onCompleted: forceActiveFocus()

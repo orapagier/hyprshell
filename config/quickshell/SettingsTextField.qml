@@ -16,7 +16,7 @@ TextField {
     background: Rectangle {
         radius: Style.Theme.controlRadius
         color: Style.Theme.field
-        border.width: control.activeFocus ? 2 : 1
-        border.color: control.activeFocus ? Style.Theme.accentText : Style.Theme.controlBorder
+        border.width: 1
+        border.color: Style.Theme.controlBorder
     }
 }
