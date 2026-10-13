@@ -139,7 +139,7 @@ class ApplicationsTests(unittest.TestCase):
         self.apply(operation='default', types=['application/pdf'], application='viewer.desktop')
         repo = self.root / 'repo'
         github_sync.snapshot_managed_files(repo, self.config, self.root)
-        snapshot = (repo / 'profiles/personal/config/hyprshell/applications.json').read_text()
+        snapshot = (repo / 'config/hyprshell/applications.json').read_text()
         self.assertNotIn('private-command', snapshot)
         self.assertFalse((repo / 'config/autostart/custom.desktop').exists())
         self.assertEqual(json.loads(snapshot), applications.saved())

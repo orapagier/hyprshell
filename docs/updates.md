@@ -1,4 +1,4 @@
-# Installation, profiles and reviewed updates
+# Installation and reviewed updates
 
 Hyprshell remains an installable desktop project. Fedora/Arch own OS updates;
 Hyprshell owns the shell and its user configuration.
@@ -10,20 +10,30 @@ Hyprshell owns the shell and its user configuration.
 | `./setup.sh` | Install/upgrade system dependencies and integration; deploy desktop files; preserve existing user preferences |
 | `./setup.sh --config-only` | Deploy desktop files and compile the helper; validate saved JSON/Python/Lua; no package or service changes |
 | `./setup.sh --update` | As above, with compatibility, staged Hyprland and offscreen Qt checks |
-| `./setup.sh --config-only --profile personal` | Explicitly restore the saved personal profile over current preferences |
-| Settings → Sync to GitHub | Save the live portable profile and shared code changes; commit and push to your authenticated account |
+| Settings → Sync to GitHub | Push existing local commits to your authenticated account |
 | Settings → Sync from GitHub | Fetch, review, validate and apply an incoming update to this checkout and the installed desktop |
 
-Fresh installations use the public preferences in `config/hyprshell/` and the
-schema defaults in `config/quickshell/settings/defaults.json`. Saved personal
-preferences live under `profiles/personal/config/`. They are opt-in, including
-saved display settings; review them before restoring onto different hardware.
-The public monitor fallback uses preferred mode and automatic positioning/scaling.
+Fresh installations use the single configuration in `config/`, including the
+author's personal preferences. There is no separate public/personal profile.
+The monitor fallback uses preferred mode and automatic positioning/scaling;
+confirmed display choices still depend on the available hardware.
+
+`hyprshell-local-save.timer` checks about every 30 seconds, reconciles live desktop
+and checkout edits, and commits changes locally without network access. Only
+`assets/wallpapers/default.jpg` is tracked and installed; other wallpapers stay
+local. Local save failures are recorded in `local-save-status.json` under the
+state directory. Repo/live conflicts and staged changes stop saving without
+overwriting them. Configure a Git commit identity on fresh clones.
+
+Sync to GitHub only pushes committed history. Sync from GitHub saves local edits
+before review, then merges local and incoming commits while preserving history.
+Conflicting edits block the update for manual resolution. Preferences remain
+protected during deployment. No automatic saver pushes to GitHub.
 
 Existing settings, user Lua sections, the optional GUI Lua overrides, terminal
 preferences, shortcuts, display, theme, application, cleanup and regional
 preferences survive ordinary updates. Optional preferences absent from the
-public payload survive too. Current JSON schemas fill in newly introduced
+repository payload survive too. Current JSON schemas fill in newly introduced
 optional defaults and reject unsupported versions; the updater blocks a schema
 change without a supported migration. It never resets malformed settings.
 
@@ -96,7 +106,7 @@ cannot be automatically combined.
 Local records are under `${XDG_STATE_HOME:-$HOME/.local/state}/hyprshell/`:
 `deployed.json`, `installed-release.json`, `update-preview.json`,
 `update-status.json`, `update-worker.log` and `last-deployment.json`.
-These are excluded from GitHub profile sync. They contain no credentials or
+These are excluded from GitHub sync. They contain no credentials or
 notification/clipboard history.
 
 Changed files are saved in `backups/update-<timestamp>-<id>/`, with a transaction
@@ -112,8 +122,7 @@ python3 tools/install_configs.py "$PWD" --rollback /absolute/path/to/the/update-
 Rollback refuses to overwrite files edited after the update. Resolve those files
 manually using the saved copies. Keep the checkout at the new revision or choose
 an appropriate recovery branch yourself; rollback does not reset commits.
-Preferences changed by external application integration on an explicit profile
-restore use those helpers' own backups. Normal updates do not reapply MIME
+Preferences changed by external application integration on first installation use those helpers' own backups. Normal updates do not reapply MIME
 associations or regional settings.
 
 ## Release discipline

@@ -403,28 +403,23 @@ The account and repository are checked again on each sync, including after an
 account switch. The checkout's origin remote is preserved; the push explicitly
 targets the authenticated user's repository.
 
-Sync snapshots live `hypr/` and `quickshell/` config directories and saved
-`hyprshell/settings.json` into the local checkout first. Personal preferences
-and editable Lua sections go to `profiles/personal/config/`, keeping public
-defaults separate. It then commits the snapshot
-and pushes the current branch. It also captures saved cleanup preferences and
-the live versions of installer-managed portal files, autostart entries, launcher
-scripts, application entries, and bundled wallpapers. Only names already managed
-by the checkout are copied from these shared directories; missing optional files
-keep their installer payload. Unrelated application files are never imported.
-Deleted config files are reflected in the snapshot. Backups, Python caches,
-logs, and the compiled audio helper are excluded. Project configurations, utilities, assets, tools, tests, documentation,
-workflows, package manifests, README, and installer changes are included. Files
-outside these explicit project paths are left uncommitted. The button waits for settings autosave and displays progress
-and Git errors.
+The local automatic saver captures live `hypr/`, `quickshell/`, saved preferences
+and editable Lua into the single `config/` payload about every 30 seconds. It
+reconciles checkout and desktop edits and commits locally without network access.
+Managed portal files, autostart entries, utilities, application entries and only
+`default.jpg` are included. Other wallpapers, private backup paths, history,
+credentials, caches and logs are excluded. A repo/live conflict stops saving;
+inspect `$XDG_STATE_HOME/hyprshell/local-save-status.json` for the reason.
+
+Sync to GitHub pushes only existing commits. It does not capture files, stage or
+commit changes. Pending edits block publishing until automatic saving finishes.
+Existing commit messages and history are preserved. Failed pushes leave local
+commits available for retry. Resolve staged changes and ongoing merges first.
+Fresh clones require a configured Git commit identity.
 
 Setup records the checkout in `$XDG_STATE_HOME/hyprshell/repository` (default
-`~/.local/state/hyprshell/repository`); older installations fall back to
-`~/repos/hyprshell`. Re-running setup retains existing settings. Restore a
-saved personal profile explicitly with `--profile personal`.
-Resolve existing staged changes or an ongoing merge/rebase first. Pushes never
-force or automatically merge remote changes. A failed push keeps the local
-commit for retry after resolving authentication or remote divergence.
+`~/.local/state/hyprshell/repository`). Fresh installations use the author's
+committed configuration; updates preserve existing preferences.
 
 ### Sync from GitHub
 

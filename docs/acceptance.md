@@ -19,8 +19,8 @@ fresh-install substitute.
    Confirm an authorization prompt works.
 5. Change a bar preference and shortcut. Run `./setup.sh --update`. Log out/in;
    confirm both preferences remain. A second run should have no file changes.
-6. Repeat from the clean VM snapshot with `--profile personal` only when testing
-   profile restoration. Verify personal settings are opt-in.
+6. Repeat from the clean VM snapshot. Verify fresh installs receive the committed
+   personal configuration and only the bundled default wallpaper.
 7. In a disposable checkout, exercise a previous compatible release → candidate
    update with the GitHub preview. Confirm the shown changes, missing-package
    blocking, settings preservation and rollback. Use a test repository, not a

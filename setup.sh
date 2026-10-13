@@ -13,7 +13,6 @@ TIMEZONE=
 DISTRO=auto
 COPR=
 COPR_SELECTED=0
-PROFILE=
 UPDATE_ONLY=0
 
 usage() {
@@ -24,7 +23,6 @@ Run as your normal user, with sudo access, on Arch Linux or Fedora Everything.
   --dry-run          Check installed packages and show the plan; change nothing
   --config-only      Update desktop files while preserving existing preferences
   --update           Update desktop files and validate them; no system upgrade
-  --profile personal Explicitly restore the saved personal preferences
   --distro NAME      auto (default), arch, or fedora; cross-distro previews allowed
   --copr OWNER/REPO  Fedora desktop repository (default: lionheartp/Hyprland)
   --no-copr          Use only already enabled Fedora repositories
@@ -53,10 +51,6 @@ while (( $# )); do
     --dry-run) DRY_RUN=1 ;;
     --config-only) MODE=config-only ;;
     --update) MODE=config-only; UPDATE_ONLY=1 ;;
-    --profile)
-      (( $# >= 2 )) || die "--profile requires personal"
-      [[ "$2" == personal ]] || die "Only --profile personal is supported"
-      PROFILE=$2; shift ;;
     --distro|--copr)
       (( $# >= 2 )) || die "$1 requires a value"
       if [[ "$1" == --distro ]]; then DISTRO=$2; else COPR=$2; COPR_SELECTED=1; fi
@@ -217,7 +211,7 @@ if (( DRY_RUN )); then
       printf 'Boot splash: restore saved Hyprshell Glass Plymouth theme for supported mkinitcpio boot layouts; preserve local disk/encryption options\n'
     fi
   fi
-  printf 'Preferences: %s\n' "${PROFILE:-public defaults for new users; preserve existing settings}"
+  printf 'Preferences: %s\n' "personal defaults for new users; preserve existing settings"
   printf 'Config destination: %s\nWallpaper destination: %s\n' "$CONFIG_DIR" "$HOME/Pictures/Wallpapers"
   printf 'Backups: %s/hyprshell/backups/\n' "$STATE_DIR"
   printf 'Bash shortcuts: pcm, fedora, ubuntu, and existing Distrobox names\n'
@@ -290,7 +284,6 @@ fi
 [[ -f "$REPO_DIR/assets/wallpapers/default.jpg" ]] || die 'Missing bundled default wallpaper'
 log 'Installing configs and wallpapers, with backups for changed files'
 INSTALL_OPTIONS=()
-if [[ -n "$PROFILE" ]]; then INSTALL_OPTIONS+=(--profile "$PROFILE"); fi
 if (( UPDATE_ONLY )); then
   python3 "$REPO_DIR/config/quickshell/settings/compatibility.py" "$REPO_DIR/compatibility.json"
   INSTALL_OPTIONS+=(--validate-native)

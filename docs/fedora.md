@@ -174,8 +174,8 @@ using Fedora and Hyprland's instructions for that device.
 
 ## Preserved settings and GitHub updates
 
-Ordinary setup/update keeps existing preferences. Fresh users receive public
-defaults; `--profile personal` explicitly restores this checkout's saved profile.
+Ordinary setup/update keeps existing preferences. Fresh users receive the
+author’s personal configuration from the single `config/` payload.
 Use the Settings header's **Sync from GitHub** to review incoming changes and
 compatibility before applying. [Updates and recovery](updates.md) documents
 tracking branches, dependency checks, local conflicts, backups and rollback.

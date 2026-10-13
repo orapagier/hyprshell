@@ -15,81 +15,55 @@ spec.loader.exec_module(syncer)
 
 
 class SyncTests(unittest.TestCase):
-    def test_snapshot_commit_push_deletions_and_retry(self):
+    def test_local_save_and_push_preserve_commits_and_reject_unsaved_edits(self):
+        import os
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo, remote, config = root / 'repo', root / 'remote', root / 'live'
             subprocess.run(['git', 'init', '--bare', str(remote)], check=True, capture_output=True)
             subprocess.run(['git', 'init', '-b', 'main', str(repo)], check=True, capture_output=True)
             run = lambda *args: syncer.git(repo, *args)
-            run('config', 'user.name', 'Test')
-            run('config', 'user.email', 'test@example.com')
+            run('config', 'user.name', 'Test'); run('config', 'user.email', 'test@example.com')
             run('remote', 'add', 'origin', str(remote))
             for name in ('hypr', 'quickshell'):
                 (repo / 'config' / name).mkdir(parents=True)
-                (repo / 'config' / name / 'old').write_text('old')
+                (repo / 'config' / name / 'current').write_text('original')
                 (config / name).mkdir(parents=True)
-                (config / name / 'current').write_text('live')
-                (config / name / 'secret.bak').write_text('backup')
-            (repo / 'config/waybar').mkdir()
-            legacy = repo / 'config/waybar/config.jsonc'
-            legacy.write_text('{}')
-            run('add', '.')
-            run('commit', '-m', 'initial')
-            legacy.unlink()
-            (repo / 'README.md').write_text('Updated user guide')
-            (repo / 'setup.sh').write_text('# Current installer')
-            (repo / 'private-notes.txt').write_text('do not publish')
-            (config / 'hyprshell').mkdir()
-            defaults = json.loads((ROOT / 'config/quickshell/settings/defaults.json').read_text())
-            (config / 'hyprshell/settings.json').write_text(json.dumps(defaults))
-            with patch.object(sys, 'path', [str(ROOT / 'config/quickshell/settings')] + sys.path), \
-                 patch.object(syncer, 'discover', side_effect=RuntimeError('offline')):
-                with self.assertRaisesRegex(RuntimeError, 'Live desktop saved.*offline'):
-                    syncer.sync(repo, config)
-            self.assertEqual((repo / 'config/hypr/current').read_text(), 'live')
-            self.assertTrue((repo / 'profiles/personal/config/hyprshell/settings.json').exists())
-            self.assertEqual(run('diff', '--cached', '--name-only'), '')
-            with patch.object(sys, 'path', [str(ROOT / 'config/quickshell/settings')] + sys.path):
-                message = syncer.sync(repo, config, str(remote), 'example/hyprshell')
-                self.assertEqual(message, 'Synced to example/hyprshell (main).')
-            self.assertTrue((repo / 'profiles/personal/config/hyprshell/settings.json').exists())
-            first = run('rev-parse', 'HEAD')
-            self.assertTrue(run('log', '-1', '--format=%s').startswith('Sync Hyprshell desktop '))
-            self.assertIn('README.md', run('ls-files'))
-            self.assertIn('setup.sh', run('ls-files'))
-            self.assertNotIn('private-notes.txt', run('ls-files'))
-            message = syncer.sync(repo, config, str(remote), 'example/hyprshell')
-            self.assertEqual(message, 'Nothing to sync now.')
-            self.assertEqual(first, run('rev-parse', 'HEAD'))
-            self.assertEqual(run('remote', 'get-url', 'origin'), str(remote))
-            self.assertNotIn('config/waybar/config.jsonc', run('ls-files'))
-            self.assertFalse((repo / 'config/hypr/old').exists())
-            self.assertFalse((repo / 'config/hypr/secret.bak').exists())
-            self.assertEqual((repo / 'config/quickshell/current').read_text(), 'live')
-            self.assertEqual(first, subprocess.check_output(['git', '--git-dir', str(remote), 'rev-parse', 'main'], text=True).strip())
-            # A clean working tree can still have a commit waiting to be pushed.
-            (repo / 'README.md').write_text('Committed but not pushed')
-            run('add', 'README.md')
-            description = 'Clarify desktop setup instructions\n\nExplain the saved configuration and how to restore it.'
-            run('commit', '-m', description)
-            agent_commit = run('rev-parse', 'HEAD')
-            message = syncer.sync(repo, config, str(remote), 'example/hyprshell')
-            self.assertEqual(message, 'Synced to example/hyprshell (main).')
-            self.assertEqual(run('rev-parse', 'HEAD'), subprocess.check_output(
-                ['git', '--git-dir', str(remote), 'rev-parse', 'main'], text=True).strip())
-            self.assertEqual(run('rev-parse', 'HEAD'), agent_commit)
-            self.assertEqual(subprocess.check_output(
-                ['git', '--git-dir', str(remote), 'log', '-1', '--format=%B', 'main'],
-                text=True).strip(), description)
-            # Manual edits get their own generic commit without rewriting the agent commit.
-            (config / 'hypr/current').write_text('Manual monitor adjustment')
-            syncer.sync(repo, config, str(remote), 'example/hyprshell')
-            self.assertEqual(run('rev-parse', 'HEAD^'), agent_commit)
-            self.assertTrue(run('log', '-1', '--format=%s').startswith('Sync Hyprshell desktop '))
-            self.assertEqual(subprocess.check_output(
-                ['git', '--git-dir', str(remote), 'log', '-1', '--format=%B', 'main^'],
-                text=True).strip(), description)
+                (config / name / 'current').write_text('original')
+            run('add', '.'); run('commit', '-m', 'initial')
+            env = dict(HOME=str(root / 'home'), XDG_CONFIG_HOME=str(config),
+                       XDG_STATE_HOME=str(root / 'state'), XDG_DATA_HOME=str(root / 'data'))
+            with patch.dict(os.environ, env):
+                (config / 'hypr/current').write_text('Manual monitor adjustment')
+                with self.assertRaisesRegex(RuntimeError, 'Desktop edits are waiting'):
+                    syncer.sync(repo, config, str(remote), 'example/hyprshell')
+                self.assertTrue(syncer.save_local(repo, config))
+                first = run('rev-parse', 'HEAD')
+                self.assertEqual((repo / 'config/hypr/current').read_text(), 'Manual monitor adjustment')
+                self.assertEqual(syncer.sync(repo, config, str(remote), 'example/hyprshell'),
+                                 'Synced to example/hyprshell (main).')
+                self.assertEqual(first, run('rev-parse', 'HEAD'))
+                self.assertEqual(syncer.sync(repo, config, str(remote), 'example/hyprshell'), 'Nothing to sync now.')
+                (repo / 'config/hypr/current').write_text('Repo customization')
+                self.assertTrue(syncer.save_local(repo, config))
+                self.assertEqual((config / 'hypr/current').read_text(), 'Repo customization')
+                (repo / 'README.md').write_text('Committed guide')
+                run('add', 'README.md')
+                description = 'Clarify setup instructions\n\nKeep this description intact.'
+                run('commit', '-m', description)
+                head = run('rev-parse', 'HEAD')
+                syncer.sync(repo, config, str(remote), 'example/hyprshell')
+                self.assertEqual(head, run('rev-parse', 'HEAD'))
+                self.assertEqual(subprocess.check_output(['git', '--git-dir', str(remote),
+                    'log', '-1', '--format=%B', 'main'], text=True).strip(), description)
+                (repo / 'config/hypr/current').write_text('repo edit')
+                (config / 'hypr/current').write_text('live edit')
+                with self.assertRaisesRegex(RuntimeError, 'both changed'):
+                    syncer.save_local(repo, config)
+                self.assertEqual((repo / 'config/hypr/current').read_text(), 'repo edit')
+                self.assertEqual((config / 'hypr/current').read_text(), 'live edit')
+                self.assertEqual(run('rev-parse', 'HEAD'), head)
+                self.assertEqual(run('diff', '--cached', '--name-only'), '')
 
     def test_managed_payload_uses_live_files_without_importing_private_files(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -105,19 +79,19 @@ class SyncTests(unittest.TestCase):
                 destination, source = repo / payload, root / installed
                 destination.mkdir(parents=True)
                 source.mkdir(parents=True)
-                (destination / 'managed').write_text('repo')
+                (destination / ('default.jpg' if payload == 'assets/wallpapers' else 'managed')).write_text('repo')
                 (destination / 'missing').write_text('installer fallback')
-                (source / 'managed').write_text('live')
+                (source / ('default.jpg' if payload == 'assets/wallpapers' else 'managed')).write_text('live')
                 (source / 'private').write_text('private')
             sections = config / 'hyprshell/hyprland'
             sections.mkdir(parents=True)
             (sections / 'programs.lua').write_text('return {terminal = \"kitty\"}\n')
             syncer.snapshot_managed_files(repo, config, home)
-            self.assertEqual((repo / 'profiles/personal/config/hyprshell/hyprland/programs.lua').read_bytes(),
+            self.assertEqual((repo / 'config/hyprshell/hyprland/programs.lua').read_bytes(),
                              (sections / 'programs.lua').read_bytes())
             for payload in ('config/xdg-desktop-portal', 'config/autostart', 'bin',
                             'assets/applications', 'assets/wallpapers'):
-                self.assertEqual((repo / payload / 'managed').read_text(), 'live')
+                self.assertEqual((repo / payload / ('default.jpg' if payload == 'assets/wallpapers' else 'managed')).read_text(), 'live')
                 self.assertFalse((repo / payload / 'private').exists())
                 self.assertEqual((repo / payload / 'missing').read_text(), 'installer fallback')
 
@@ -130,10 +104,10 @@ class SyncTests(unittest.TestCase):
             (config / 'hyprshell/behavior.lua').write_text('error("stale generated Lua")')
             (config / 'hyprshell/personal-files.json').write_text('private destination')
             syncer.snapshot_managed_files(repo, config, home)
-            self.assertEqual(json.loads((repo / 'profiles/personal/config/hyprshell/behavior.json').read_text()), data)
-            generated = (repo / 'profiles/personal/config/hyprshell/behavior.lua').read_text()
+            self.assertEqual(json.loads((repo / 'config/hyprshell/behavior.json').read_text()), data)
+            generated = (repo / 'config/hyprshell/behavior.lua').read_text()
             self.assertIn('layout = "master"', generated); self.assertNotIn('stale', generated)
-            self.assertFalse((repo / 'profiles/personal/config/hyprshell/personal-files.json').exists())
+            self.assertFalse((repo / 'config/hyprshell/personal-files.json').exists())
 
     def test_identity_is_local_and_validated(self):
         with tempfile.TemporaryDirectory() as directory:

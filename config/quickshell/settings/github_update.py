@@ -95,6 +95,8 @@ def fingerprints(repo):
 
 
 def preview(repo):
+    from github_sync import save_local
+    save_local(repo, deployment.roots()['config'])
     with repository_lock(repo):
         selection = source(repo)
         base = git(repo, 'rev-parse', 'HEAD')

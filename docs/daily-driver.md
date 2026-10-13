@@ -18,8 +18,8 @@ and installs in one pacman transaction. Neither path forces package erasure.
 
 `--extra` adds only Distrobox, Podman and cmatrix. `--config-only` updates
 desktop files while retaining current preferences. `--update` additionally runs
-compatibility and staged native checks. `--profile personal` explicitly restores
-saved preferences; fresh installs otherwise receive public defaults. See
+compatibility and staged native checks. Fresh installs receive the author’s
+personal configuration; updates preserve existing preferences. See
 [updates.md](updates.md) and [acceptance.md](acceptance.md).
 
 ## Included without extra flags
@@ -31,7 +31,7 @@ saved preferences; fresh installs otherwise receive public defaults. See
 | Network | NetworkManager, Wi-Fi backend, connection editor, wireless firmware and BlueZ |
 | Apps | Chromium, COSMIC Files/GVfs/MTP, Kitty, mpv, Loupe, Papers, Mousepad, File Roller |
 | Integration | Browser/folder/media/image/PDF/text defaults, media keys, Wayland clipboard, archive tools, manuals and shell completion |
-| Lock/power | Hyprlock artwork, Hypridle, brightness and power profiles; public defaults or retained user locking preferences |
+| Lock/power | Hyprlock artwork, Hypridle, brightness and power profiles; personal defaults or retained user locking preferences |
 | Peripherals | CUPS socket, Avahi discovery, printer configuration, SANE and Simple Scan |
 | Credentials | GNOME Keyring and Seahorse; optional SDDM PAM unlock where missing |
 | Maintenance | CPU microcode, Chrony unless another time service is configured, firewalld unless another firewall service is configured, weekly fstrim |

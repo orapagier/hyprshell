@@ -74,7 +74,7 @@ class DeploymentTests(unittest.TestCase):
         self.root = Path(temp.name)
         self.repo = self.root / 'repo'
         self.repo.mkdir()
-        for name in ('config', 'assets', 'bin', 'profiles'):
+        for name in ('config', 'assets', 'bin'):
             shutil.copytree(ROOT / name, self.repo / name, ignore=shutil.ignore_patterns('__pycache__', 'audio-spectrum'))
         shutil.copy2(ROOT / 'compatibility.json', self.repo / 'compatibility.json')
         self.env = patch.dict(os.environ, HOME=str(self.root / 'home'), XDG_CONFIG_HOME=str(self.root / 'config'),
@@ -85,11 +85,11 @@ class DeploymentTests(unittest.TestCase):
     def install(self, **kwargs):
         return deployment.install(self.repo, **kwargs)
 
-    def test_generic_install_rerun_personal_restore_and_preserving_update(self):
+    def test_unified_install_rerun_and_preserving_update(self):
         first = self.install()
         settings = self.config / 'hyprshell/settings.json'
         defaults = json.loads(settings.read_text())
-        self.assertEqual(defaults['bar']['workspaceScope'], 'all')
+        self.assertEqual(defaults, json.loads((self.repo / 'config/hyprshell/settings.json').read_text()))
         self.assertTrue(first['backup'])
         self.assertEqual(self.install()['changed'], [])
         customized = json.loads(settings.read_text()); customized['bar']['height'] = 47
@@ -104,8 +104,54 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(json.loads(settings.read_text())['bar']['height'], 47)
         self.assertIn('-- custom input', lua.read_text())
         self.assertEqual(extra.read_text(), '-- user module\n')
-        self.install(profile='personal')
-        self.assertEqual(json.loads(settings.read_text())['bar']['workspaceScope'], 'selected')
+
+    def test_reviewed_update_merges_live_customization_and_new_code(self):
+        from github_sync import git, save_local
+        subprocess.run(['git', 'init', '-b', 'main', str(self.repo)], check=True, capture_output=True)
+        shutil.copy2(ROOT / '.gitignore', self.repo / '.gitignore')
+        (self.repo / 'packages-fedora.txt').write_text('')
+        git(self.repo, 'config', 'user.name', 'Test')
+        git(self.repo, 'config', 'user.email', 'test@example.com')
+        git(self.repo, 'add', '.'); git(self.repo, 'commit', '-m', 'initial')
+        remote = self.root / 'remote'
+        subprocess.run(['git', 'init', '--bare', str(remote)], check=True, capture_output=True)
+        git(self.repo, 'remote', 'add', 'origin', str(remote))
+        git(self.repo, 'push', '-u', 'origin', 'main')
+        self.install()
+        upstream = self.root / 'upstream'
+        subprocess.run(['git', 'clone', str(remote), str(upstream)], check=True, capture_output=True)
+        # Bare fixtures may default to master despite publishing main.
+        git(upstream, 'checkout', 'main')
+        git(upstream, 'config', 'user.name', 'Upstream')
+        git(upstream, 'config', 'user.email', 'upstream@example.com')
+        new = upstream / 'config/quickshell/SettingsWindow.qml'
+        new.write_text(new.read_text() + '\n// new upstream feature\n')
+        git(upstream, 'add', '.'); git(upstream, 'commit', '-m', 'Add upstream feature')
+        git(upstream, 'push', 'origin', 'main')
+        settings = self.config / 'hyprshell/settings.json'
+        data = json.loads(settings.read_text()); data['bar']['height'] = 47
+        settings.write_text(json.dumps(data))
+        local_code = self.config / 'quickshell/SettingsButton.qml'
+        local_code.write_text(local_code.read_text() + '\n// my local customization\n')
+        wallpaper = Path.home() / 'Pictures/Wallpapers/private.jpg'
+        wallpaper.write_bytes(b'private wallpaper')
+        selection = {'remote': 'origin', 'ref': 'refs/heads/main',
+                     'url': 'https://github.com/example/hyprshell.git', 'branch': 'main'}
+        validator = deployment.validate_staged
+        with patch.object(github_update, 'source', return_value=selection), \
+             patch.object(compatibility, 'machine', return_value=copy.deepcopy(INFO)), \
+             patch.object(deployment, 'validate_staged', side_effect=lambda stage, native=False: validator(stage, False)):
+            review = github_update.preview(self.repo)
+            self.assertTrue(review['ready'], review['blockers'])
+            local = git(self.repo, 'rev-parse', 'HEAD')
+            github_update.apply(self.repo, review['token'])
+        self.assertEqual(git(self.repo, 'rev-parse', 'HEAD^1'), local)
+        self.assertEqual(json.loads(settings.read_text())['bar']['height'], 47)
+        self.assertIn('my local customization', local_code.read_text())
+        self.assertIn('new upstream feature', (self.config / 'quickshell/SettingsWindow.qml').read_text())
+        self.assertEqual(local_code.read_bytes(), (self.repo / 'config/quickshell/SettingsButton.qml').read_bytes())
+        self.assertTrue(wallpaper.exists())
+        self.assertNotIn('private.jpg', git(self.repo, 'ls-files'))
 
     def test_invalid_settings_or_failed_validation_never_replace_live_code(self):
         self.install()
@@ -208,6 +254,9 @@ class GitUpdateTests(unittest.TestCase):
         env = patch.dict(os.environ, HOME=str(self.root / 'home'), XDG_CONFIG_HOME=str(self.root / 'config'),
                          XDG_STATE_HOME=str(self.root / 'state'), XDG_DATA_HOME=str(self.root / 'data'))
         env.start(); self.addCleanup(env.stop)
+        for name in ('hypr', 'quickshell'):
+            (self.root / 'config' / name).mkdir(parents=True, exist_ok=True)
+        (self.root / 'config/quickshell/shell.qml').write_text('// old')
         src = patch.object(github_update, 'source', return_value={'remote': 'origin', 'ref': 'refs/heads/main',
                           'url': 'https://github.com/example/hyprshell.git', 'branch': 'main'})
         src.start(); self.addCleanup(src.stop)

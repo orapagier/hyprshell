@@ -27,8 +27,7 @@ system, partition disks, or install a bootloader. It installs common firmware, C
 microcode, and Mesa graphics drivers; vendor-specific drivers still need review. It can
 configure the animated Hyprshell Glass splash for a supported existing boot setup.
 Full setup also installs the matching animated SDDM login theme. Fresh installs
-use public defaults; existing user preferences are retained. Saved personal
-profiles are restored only with `--profile personal`.
+use the author’s personal configuration; existing user preferences are retained.
 
 The **Fedora Everything port** has separate package manifests, DNF-backed
 Settings controls, and dracut boot splash support. See [Fedora installation
@@ -548,7 +547,7 @@ Package-cache cleanup is separate; this page reports the existing system
 
 ## Saving your setup to GitHub
 
-The **Sync to GitHub** button in Settings saves a snapshot of the live desktop
+The **Sync to GitHub** button in Settings pushes existing local commits
 to a repository named `hyprshell` in your authenticated GitHub account.
 
 1. Open the sync popup and choose **Authenticate**.
@@ -559,14 +558,15 @@ to a repository named `hyprshell` in your authenticated GitHub account.
 4. Select **Check again** and verify the displayed account and target.
 5. Start the sync and check its result.
 
-Personal preferences are saved under `profiles/personal/config/`; shared code
-remains in `config/`. The tool snapshots live `hypr/` and `quickshell/` code, editable
+There is one canonical configuration under `config/`, including personal preferences.
+The local automatic saver checks about every 30 seconds and captures live `hypr/` and `quickshell/` code, editable
 Hyprland sections, and saved `hyprshell/settings.json`, cleanup preferences,
 shortcut and display customizations, application appearance, default apps,
 and login-startup choices.
 It also captures installed copies of files already managed by the checkout:
 portal preferences, autostart overrides, utilities, application shortcuts, and
-bundled wallpaper filenames. Additional personal files in those locations are
+the bundled `default.jpg` wallpaper. Other wallpapers stay local and are ignored
+by Git. Additional personal files in those locations are
 not imported automatically. It also commits project files: configuration,
 utilities, assets, tools, tests, documentation, workflows, package manifests,
 the installer, and README. This keeps the installation guide and installer in
@@ -583,17 +583,19 @@ from the live snapshot. Files outside the explicit project paths remain
 uncommitted. Review project and custom configuration content before syncing
 to a public repository.
 
-Agent changes are committed locally with meaningful descriptions under the
-Hyprskill workflow. Settings sync pushes those commits with their original
-messages intact. A generic `Sync Hyprshell desktop <timestamp>` commit is
-created only when the snapshot or project still has uncommitted edits, such as
-manual changes made since the last local commit.
+Agent changes are committed locally with meaningful descriptions. Manual desktop
+and project edits are saved as local commits by `hyprshell-local-save.timer`,
+without network access. The saver reconciles repo and live desktop files; if both
+changed the same file differently, it stops and reports the conflict in
+`~/.local/state/hyprshell/local-save-status.json` without overwriting either edit.
+Existing staged changes and merges also stop automatic saving.
 
-The tool preserves the checkout's `origin` remote and sets the commit identity
-locally using the authenticated account's GitHub noreply email. It does not
-force-push or automatically merge remote changes. Finish staged changes or an
-ongoing merge/rebase before syncing. If a push fails, the local commit remains
-available for retry after you resolve the reported problem.
+Settings sync pushes existing commits with their original messages intact. It
+never snapshots, stages, or creates a commit. Unsaved changes block publishing
+until local saving finishes. The checkout's `origin` remains unchanged; pushes
+never force or automatically merge remote changes. Failed pushes retain local
+commits for retry. Fresh clones need a Git commit identity; configure `user.name`
+and `user.email` locally or globally before automatic saving.
 
 Setup records the checkout location in
 `~/.local/state/hyprshell/repository`. Re-running setup updates that pointer.
@@ -613,14 +615,10 @@ For an already updated local checkout, `./setup.sh --update` applies and validat
 its desktop files without upgrading system packages. Use full setup when new
 system dependencies or root-owned integration changes require it.
 
-To restore saved preferences explicitly, use:
-
-```bash
-./setup.sh --config-only --profile personal
-```
-
-See [updates, profiles, forks and recovery](docs/updates.md) and the
-[fresh-install/hardware checklist](docs/acceptance.md).
+Fresh installations use the same committed configuration as this desktop.
+Existing installations retain customized preferences. Fork the project to keep
+your own taste and commits. See [updates, forks and recovery](docs/updates.md)
+and the [fresh-install/hardware checklist](docs/acceptance.md).
 
 ### Backups and restoration
 

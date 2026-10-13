@@ -268,9 +268,9 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue(os.access(self.config / 'quickshell/helpers/audio-spectrum', os.X_OK))
         for script in ('app-launcher', 'start-quickshell-bar'):
             self.assertTrue(os.access(self.home / '.local/bin' / script, os.X_OK))
-        for name in ('waybar', 'mako', 'rofi', 'fuzzel', 'systemd'):
+        for name in ('waybar', 'mako', 'rofi', 'fuzzel'):
             self.assertFalse((self.config / name).exists())
-        self.assertEqual(len(list((self.home / 'Pictures/Wallpapers').glob('*.jpg'))), 8)
+        self.assertEqual(len(list((self.home / 'Pictures/Wallpapers').glob('*.jpg'))), 1)
         self.assertEqual((self.home / 'Pictures/Wallpapers/default.jpg').read_bytes(),
                          (ROOT / 'assets/wallpapers/default.jpg').read_bytes())
         self.assertIn('Wallpapers/default.jpg',

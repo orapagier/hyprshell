@@ -154,8 +154,8 @@ class DisplaysTests(unittest.TestCase):
         repo = Path(self.temp.name) / 'repo'
         (repo / 'config').mkdir(parents=True)
         github_sync.snapshot_managed_files(repo, self.config, Path(self.temp.name))
-        self.assertEqual(json.loads((repo / 'profiles/personal/config/hyprshell/displays.json').read_text()), data)
-        self.assertEqual((repo / 'profiles/personal/config/hyprshell/displays.lua').read_text(), displays.render(data))
+        self.assertEqual(json.loads((repo / 'config/hyprshell/displays.json').read_text()), data)
+        self.assertEqual((repo / 'config/hyprshell/displays.lua').read_text(), displays.render(data))
 
 
 class DisplaysNativeTests(unittest.TestCase):

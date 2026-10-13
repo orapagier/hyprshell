@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-"""Snapshot the live desktop into its checkout and push without rewriting history."""
+"""Save local configuration independently; publish existing commits without rewriting history."""
 import argparse
-from datetime import datetime
-import fcntl
 import fnmatch
 import json
+import hashlib
+import tempfile
 import os
 import re
 from pathlib import Path
 import shutil
 import subprocess
 import sys
-import system_packages
 
 FORK_URL = 'https://github.com/orapagier/hyprshell/fork'
 
@@ -60,11 +59,11 @@ def snapshot_managed_files(repo, config, home):
     """Capture installer-owned files without importing unrelated user files."""
     sections = config / 'hyprshell/hyprland'
     if sections.is_dir():
-        mirror(sections, repo / 'profiles/personal/config/hyprshell/hyprland')
+        mirror(sections, repo / 'config/hyprshell/hyprland')
     terminal = config / 'xdg-terminals.list'
     if terminal.is_file():
-        (repo / 'profiles/personal/config').mkdir(parents=True, exist_ok=True)
-        mirror(terminal, repo / 'profiles/personal/config/xdg-terminals.list')
+        (repo / 'config').mkdir(parents=True, exist_ok=True)
+        mirror(terminal, repo / 'config/xdg-terminals.list')
     portal = config / 'xdg-desktop-portal'
     if portal.is_dir():
         # Other applications may own portal files; copy only our managed names.
@@ -76,12 +75,14 @@ def snapshot_managed_files(repo, config, home):
         (repo / 'bin', home / '.local/bin'),
         (repo / 'assets/applications', home / '.local/share/applications'),
         (repo / 'assets/wallpapers', home / 'Pictures/Wallpapers'),
+        (repo / 'config/systemd/user', config / 'systemd/user'),
+        (repo / 'assets/fonts', home / '.local/share/fonts/hyprshell'),
     ])
     for destination, source in groups:
         if not destination.is_dir():
             continue
         for managed in sorted(destination.iterdir()):
-            if managed.is_file() and not excluded(managed.name):
+            if managed.is_file() and not excluded(managed.name) and (destination.name != 'wallpapers' or managed.name == 'default.jpg'):
                 live = source / managed.name
                 if live.exists() or live.is_symlink():
                     mirror(live, managed)
@@ -92,7 +93,7 @@ def snapshot_managed_files(repo, config, home):
         if data.get('version') != 1:
             raise ValueError('Unsupported keybindings version')
         entries = validate_keybindings(data['entries'])
-        destination = repo / 'profiles/personal/config/hyprshell'
+        destination = repo / 'config/hyprshell'
         destination.mkdir(parents=True, exist_ok=True)
         (destination / 'keybindings.json').write_text(json.dumps({'version': 1, 'entries': entries}, indent=2) + '\n')
         (destination / 'keybindings.lua').write_text(render_keybindings(entries))
@@ -100,7 +101,7 @@ def snapshot_managed_files(repo, config, home):
     if behavior.exists():
         from behavior import validate as validate_behavior, render as render_behavior
         data = validate_behavior(json.loads(behavior.read_text()))
-        destination = repo / 'profiles/personal/config/hyprshell'
+        destination = repo / 'config/hyprshell'
         destination.mkdir(parents=True, exist_ok=True)
         (destination / 'behavior.json').write_text(json.dumps(data, indent=2) + '\n')
         (destination / 'behavior.lua').write_text(render_behavior(data))
@@ -108,28 +109,28 @@ def snapshot_managed_files(repo, config, home):
     if regional.exists():
         from regional import validate as validate_regional
         data = validate_regional(json.loads(regional.read_text()))
-        destination = repo / 'profiles/personal/config/hyprshell/regional.json'
+        destination = repo / 'config/hyprshell/regional.json'
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(data, indent=2) + '\n')
     applications = config / 'hyprshell/applications.json'
     if applications.exists():
         from applications import validate as validate_applications
         data = validate_applications(json.loads(applications.read_text()))
-        destination = repo / 'profiles/personal/config/hyprshell/applications.json'
+        destination = repo / 'config/hyprshell/applications.json'
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(data, indent=2) + '\n')
     theme = config / 'hyprshell/theme.json'
     if theme.exists():
         from theme import validate as validate_theme
         data = validate_theme(json.loads(theme.read_text()))
-        destination = repo / 'profiles/personal/config/hyprshell/theme.json'
+        destination = repo / 'config/hyprshell/theme.json'
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(data, indent=2) + '\n')
     displays = config / 'hyprshell/displays.json'
     if displays.exists():
         from displays import validate as validate_displays, render as render_displays
         data = validate_displays(json.loads(displays.read_text()))
-        destination = repo / 'profiles/personal/config/hyprshell'
+        destination = repo / 'config/hyprshell'
         destination.mkdir(parents=True, exist_ok=True)
         (destination / 'displays.json').write_text(json.dumps(data, indent=2) + '\n')
         (destination / 'displays.lua').write_text(render_displays(data))
@@ -137,80 +138,184 @@ def snapshot_managed_files(repo, config, home):
     if cleanup.exists():
         from cleanup import validate as validate_cleanup
         data = validate_cleanup(json.loads(cleanup.read_text()))
-        destination = repo / 'profiles/personal/config/hyprshell/cleanup.json'
+        destination = repo / 'config/hyprshell/cleanup.json'
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(data, indent=2) + '\n')
 
 
-def sync(repo, config, target=None, slug=None):
+PROJECT_PATHS = ('config', 'bin', 'assets', 'tools', 'tests', 'docs', '.github',
+                 '.gitignore', 'README.md', 'setup.sh', 'packages.txt',
+                 'packages-apps.txt', 'packages-fallback.txt', 'packages-fedora.txt',
+                 'packages-apps-fedora.txt', 'compatibility.json', 'CHANGELOG.md')
+
+
+def snapshot(repo, config, home):
+    for name in ('hypr', 'quickshell'):
+        if not (config / name).is_dir():
+            raise RuntimeError(f'Missing live config: {config / name}')
+        mirror(config / name, repo / 'config' / name)
+    installed = repo / 'config/quickshell/settings/compatibility.json'
+    if installed.exists():
+        installed.unlink()
+    import deployment
+    for name in deployment.PREFERENCES:
+        target = repo / 'config/hyprshell' / name
+        if not (config / 'hyprshell' / name).exists() and target.is_file():
+            target.unlink()
+    settings = config / 'hyprshell/settings.json'
+    if settings.exists():
+        from backend import validate
+        data = validate(json.loads(settings.read_text()))
+        target = repo / 'config/hyprshell/settings.json'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(data, indent=2) + '\n')
+    snapshot_managed_files(repo, config, home)
+    overrides = config / 'hyprshell/overrides.lua'
+    if overrides.is_file():
+        mirror(overrides, repo / 'config/hyprshell/overrides.lua')
+
+
+def copy_exclusions(directory, names):
+    return [name for name in names if excluded(name) or
+            (Path(directory).name == 'wallpapers' and name != 'default.jpg')]
+
+
+def validate_local_edits(changes):
+    """Check edited source before applying repo edits to the running desktop."""
+    for _, source, _ in changes:
+        if source is None: continue
+        if source.suffix == '.py':
+            compile(source.read_bytes(), str(source), 'exec')
+        elif source.suffix == '.lua' and shutil.which('luac'):
+            subprocess.run(['luac', '-p', str(source)], check=True, capture_output=True, timeout=10)
+        elif source.suffix == '.json' and source.parent.name == 'hyprshell':
+            data = json.loads(source.read_text())
+            if source.stem == 'settings':
+                from backend import validate
+                validate(data)
+            elif source.stem in ('cleanup', 'displays', 'theme', 'applications', 'regional', 'behavior'):
+                __import__(source.stem).validate(data)
+            elif source.stem == 'keybindings':
+                from keybindings import validate
+                if data.get('version') != 1: raise ValueError('Unsupported keybindings schema')
+                validate(data['entries'])
+
+
+def file_hash(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+
+
+def save_local(repo, config, home=None):
+    """Reconcile live/repo edits, then commit locally. Never contact GitHub."""
+    from github_update import repository_lock
+    import deployment
+    home = home or Path.home()
     repo = repo.resolve()
     if Path(git(repo, 'rev-parse', '--show-toplevel')).resolve() != repo:
         raise RuntimeError('Choose the root of the Hyprshell Git checkout.')
-    branch = git(repo, 'symbolic-ref', '--quiet', '--short', 'HEAD')
-    gitdir = Path(git(repo, 'rev-parse', '--absolute-git-dir'))
-    with (gitdir / 'hyprshell-sync.lock').open('w') as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            raise RuntimeError('Another GitHub sync is already running.')
-        if any((gitdir / name).exists() for name in ('MERGE_HEAD', 'CHERRY_PICK_HEAD', 'rebase-merge', 'rebase-apply')):
-            raise RuntimeError('Finish the current Git merge or rebase before syncing.')
+    with repository_lock(repo), deployment.lock(deployment.roots()):
         if git(repo, 'diff', '--cached', '--name-only'):
-            raise RuntimeError('Commit or unstage your staged changes before syncing.')
-        for name in ('hypr', 'quickshell'):
-            if not (config / name).is_dir():
-                raise RuntimeError(f'Missing live config: {config / name}')
-        public_gui = repo / 'config/hypr/hyprland-gui.lua'
-        generic_gui = public_gui.read_bytes() if public_gui.exists() else None
-        for name in ('hypr', 'quickshell'):
-            mirror(config / name, repo / 'config' / name)
-        if public_gui.exists():
-            personal_gui = repo / 'profiles/personal/config/hypr/hyprland-gui.lua'
-            personal_gui.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(public_gui, personal_gui)
-            if generic_gui is not None:
-                public_gui.write_bytes(generic_gui)
-            else:
-                public_gui.unlink()
-        # Compatibility is deployed from the one project manifest, not duplicated.
-        installed_manifest = repo / 'config/quickshell/settings/compatibility.json'
-        if (repo / 'compatibility.json').exists() and installed_manifest.exists():
-            installed_manifest.unlink()
-        paths = ['config/hypr', 'config/quickshell']
-        settings = config / 'hyprshell/settings.json'
-        if settings.exists():
-            from backend import validate
-            data = validate(json.loads(settings.read_text()))
-            settings_target = repo / 'profiles/personal/config/hyprshell/settings.json'
-            settings_target.parent.mkdir(parents=True, exist_ok=True)
-            settings_target.write_text(json.dumps(data, indent=2) + '\n')
-            paths.append('config/hyprshell/settings.json')
-        snapshot_managed_files(repo, config, Path.home())
+            raise RuntimeError('Commit or unstage your staged changes before automatic saving.')
+        baseline_path = deployment.roots()['state'] / 'local-config-baseline.json'
+        saved = json.loads(baseline_path.read_text()) if baseline_path.exists() else {}
+        baseline = saved.get('files', {}) if saved.get('repo') == str(repo) else {}
+        with tempfile.TemporaryDirectory(prefix='hyprshell-local-') as directory:
+            candidate = Path(directory)
+            # Managed ancillary filenames come from the checkout, never private files.
+            for name in ('config', 'bin', 'assets'):
+                if (repo / name).exists():
+                    shutil.copytree(repo / name, candidate / name,
+                                    ignore=copy_exclusions)
+            snapshot(candidate, config, home)
+            repo_payload = deployment.payload(repo)
+            live_payload = deployment.payload(candidate)
+            # The installed compatibility manifest is generated from the root manifest.
+            pairs = {}
+            for key in repo_payload.keys() | live_payload.keys():
+                source = repo_payload.get(key) or repo / live_payload[key].relative_to(candidate)
+                relative = source.relative_to(repo).as_posix()
+                if relative == 'compatibility.json':
+                    continue
+                live = deployment.destination(key, dict(deployment.roots(), config=config, home=home,
+                                                       data=home / '.local/share'))
+                deployment.safe_target(live, config if key.startswith('config/') else home)
+                pairs[relative] = (source, live_payload.get(key), live)
+            changes = []
+            conflicts = []
+            for relative, (source, captured, live) in pairs.items():
+                current = file_hash(source)
+                incoming = file_hash(captured) if captured else None
+                if current == incoming:
+                    continue
+                if relative in baseline:
+                    previous = baseline[relative]
+                else:
+                    result = subprocess.run(['git', '-C', str(repo), 'show', 'HEAD:' + relative],
+                                            capture_output=True, timeout=10)
+                    previous = hashlib.sha256(result.stdout).hexdigest() if result.returncode == 0 else None
+                if current != previous and incoming != previous:
+                    conflicts.append(relative)
+                elif incoming != previous:
+                    changes.append((source, captured, file_hash(source)))
+                else:
+                    changes.append((live, source if source.exists() else None, file_hash(live)))
+            if conflicts:
+                raise RuntimeError('Repo and desktop both changed; resolve before saving: ' + ', '.join(conflicts))
+            validate_local_edits(changes)
+            # Plan all changes before writing, so a conflict never overwrites an edit.
+            if any(file_hash(target) != expected for target, _, expected in changes):
+                raise RuntimeError('Configuration changed during local saving. Try again.')
+            for target, source, _ in changes:
+                if source is None:
+                    if target.exists(): target.unlink()
+                else:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source, target)
+            tracked = git(repo, 'ls-files', '-z').split('\0')
+            paths = [p for p in PROJECT_PATHS if (repo / p).exists() or any(
+                n == p or n.startswith(p + '/') for n in tracked)]
+            git(repo, 'add', '-A', '--', *paths)
+            committed = bool(git(repo, 'diff', '--cached', '--name-only'))
+            if committed:
+                try:
+                    git(repo, 'commit', '-m', 'Save local Hyprshell changes')
+                except Exception:
+                    git(repo, 'restore', '--staged', '--', *paths)
+                    raise
+            deployment.atomic_json(baseline_path, {'repo': str(repo), 'files': {
+                relative: file_hash(source) for relative, (source, _, _) in pairs.items()}})
+            return committed
+
+
+def sync(repo, config, target=None, slug=None):
+    """Push existing local commits, without snapshots, staging or new commits."""
+    from github_update import repository_lock
+    repo = repo.resolve()
+    if Path(git(repo, 'rev-parse', '--show-toplevel')).resolve() != repo:
+        raise RuntimeError('Choose the root of the Hyprshell Git checkout.')
+    with repository_lock(repo):
+        if git(repo, 'status', '--porcelain'):
+            raise RuntimeError('Local edits are waiting to be saved. Let automatic saving finish before syncing.')
+        # Read-only capture catches Settings edits awaiting the background saver.
+        import deployment
+        with tempfile.TemporaryDirectory(prefix='hyprshell-push-check-') as directory:
+            candidate = Path(directory)
+            for name in ('config', 'bin', 'assets'):
+                if (repo / name).exists():
+                    shutil.copytree(repo / name, candidate / name,
+                                    ignore=copy_exclusions)
+            snapshot(candidate, config, Path.home())
+            current, captured = deployment.payload(repo), deployment.payload(candidate)
+            for key in current.keys() | captured.keys():
+                if key == 'config/quickshell/settings/compatibility.json': continue
+                if (file_hash(current[key]) if key in current else None) != (file_hash(captured[key]) if key in captured else None):
+                    raise RuntimeError('Desktop edits are waiting to be saved. Let automatic saving finish before syncing.')
+        branch = git(repo, 'symbolic-ref', '--quiet', '--short', 'HEAD')
         if target is None:
-            try:
-                account = discover()
-                if not account['ready']:
-                    raise RuntimeError(account['message'])
-                identity(repo, account['name'], account['email'])
-                target, slug = account['target'], account['repository']
-            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
-                raise RuntimeError(f'Live desktop saved to {repo}. GitHub sync failed: {error}') from error
-        git(repo, 'var', 'GIT_AUTHOR_IDENT')
-        git(repo, 'var', 'GIT_COMMITTER_IDENT')
-        # Publish the project that installs the snapshot as well as live configs.
-        # Keep this explicit so unrelated files in the checkout stay private.
-        project_paths = ('config', 'bin', 'assets', 'tools', 'tests', 'docs',
-                         '.github', '.gitignore', 'README.md', 'setup.sh',
-                         'packages.txt', 'packages-apps.txt', 'packages-fallback.txt',
-                         'packages-fedora.txt', 'packages-apps-fedora.txt',
-                         'profiles/personal', 'compatibility.json', 'CHANGELOG.md')
-        tracked = git(repo, 'ls-files', '-z').split('\0')
-        paths = [path for path in project_paths
-                 if (repo / path).exists() or any(
-                     name == path or name.startswith(path + '/') for name in tracked)]
-        git(repo, 'add', '-A', '--', *paths)
-        if git(repo, 'diff', '--cached', '--name-only'):
-            git(repo, 'commit', '-m', 'Sync Hyprshell desktop ' + datetime.now().isoformat(timespec='seconds'))
+            account = discover()
+            if not account['ready']:
+                raise RuntimeError(account['message'])
+            target, slug = account['target'], account['repository']
         pushed = git(repo, 'push', '--porcelain', target, f'HEAD:refs/heads/{branch}')
         if any(line.startswith('=\t') for line in pushed.splitlines()):
             return 'Nothing to sync now.'
@@ -283,6 +388,7 @@ def discover():
 
 
 def login_terminal():
+    import system_packages
     try:
         if not shutil.which('gh'):
             print('GitHub CLI is needed for browser authentication.')

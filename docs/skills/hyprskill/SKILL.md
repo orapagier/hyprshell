@@ -18,9 +18,10 @@ Resolve paths independently of the working directory:
 For a machine request, start with the relevant installed config and focused runtime evidence. For a project implementation, inspect the checkout and `git status --short`. Installed configs are **copies**, not symlinks: compare the relevant live and repo files before editing. A desktop change should normally be preserved in the checkout and applied to the matching live file when authorized by the request; reconcile differing edits rather than overwriting either copy. State which copies changed.
 
 The user's standing preference is to preserve desktop and machine setup in
-Hyprshell. Public setup initializes generic defaults and preserves existing
-preferences; `setup.sh --profile personal` on a fresh supported laptop restores
-the saved personal desktop. Personal snapshots live in `profiles/personal/`. For future customizations, update the repository payload and installer
+Hyprshell. One canonical payload in `config/` includes the user’s personal taste.
+Fresh setup restores it; ordinary updates preserve existing preferences. Extra
+wallpapers are ignored; only `assets/wallpapers/default.jpg` is tracked.
+For future customizations, update the repository payload and installer
 as needed, then apply the matching live change. Keep hardware-specific settings
 adaptable and credentials outside the repository. Do not promise identical
 hardware behavior on a different laptop.
@@ -36,8 +37,9 @@ replace them with older installed copies. Do not create empty commits.
 
 Settings → Sync to GitHub pushes existing local commits with their original
 subjects and bodies. Keep that history intact: do not squash, amend, or replace
-agent commits with a generic sync message. Its generic timestamped commit is
-for remaining uncommitted manual edits captured by the live snapshot. Local
+agent commits with a generic sync message. Automatic local saving commits manual
+changes about every 30 seconds, without network access. Sync to GitHub only
+pushes existing commits and never snapshots or creates commits. Local
 commit authorization does not authorize a push; let the user trigger Settings
 sync unless they explicitly request a push. If committing fails, retain the
 changes and report the failure instead of claiming completion.
@@ -48,4 +50,4 @@ Read only the reference needed:
 
 Use targeted reads and bounded logs; do not inventory packages or read the entire README on every request. Verify changing facts only when relevant. Session socket/D-Bus access failures in an agent sandbox do not establish that the desktop or services are broken. Report inaccessible checks precisely; do not guess socket paths or bypass sandbox restrictions.
 
-Do not run the full installer for a small edit: it upgrades packages and config-only deploys owned files and preserves preferences; explicit profile restoration replaces saved preferences. Validate the affected component before reloading. Pushing, cleanup deletion, and ending the session require task authorization; local commits are authorized by the standing preference above. Keep credentials, notification contents, and unrelated personal files out of repository documentation. Update these references when a verified setup change makes them stale.
+Do not run the full installer for a small edit: it upgrades packages and config-only deploys owned files and preserves preferences. Validate the affected component before reloading. Pushing, cleanup deletion, and ending the session require task authorization; local commits are authorized by the standing preference above. Keep credentials, notification contents, and unrelated personal files out of repository documentation. Update these references when a verified setup change makes them stale.

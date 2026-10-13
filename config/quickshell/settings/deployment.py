@@ -34,12 +34,12 @@ def protected(key):
 
 
 def ignored(path):
-    return any(p in ('__pycache__', '.git') for p in path.parts) or path.suffix in ('.pyc', '.pyo') or path.name == 'audio-spectrum'
+    return any(p in ('__pycache__', '.git') for p in path.parts) or path.suffix in ('.pyc', '.pyo') or path.name == 'audio-spectrum' or ('wallpapers' in path.parts and path.name != 'default.jpg')
 
 
 def payload(repo):
     files = {}
-    groups = [('config/hypr', 'config/hypr'), ('config/quickshell', 'config/quickshell'),
+    groups = [('config/systemd/user', 'config/systemd/user'), ('config/hypr', 'config/hypr'), ('config/quickshell', 'config/quickshell'),
               ('config/hyprshell', 'config/hyprshell'), ('config/xdg-desktop-portal', 'config/xdg-desktop-portal'),
               ('config/autostart', 'config/autostart'), ('bin', 'home/.local/bin'),
               ('assets/applications', 'data/applications'), ('assets/fonts', 'data/fonts/hyprshell'),
@@ -113,7 +113,8 @@ def inspect(repo, locations=None, base_repo=None):
         changes.append(key)
     removed = []
     for key, record in old.items():
-        if key not in files and not protected(key) and key != 'config/quickshell/helpers/audio-spectrum':
+        if (key not in files and not protected(key) and key != 'config/quickshell/helpers/audio-spectrum'
+                and not (key.startswith('home/Pictures/Wallpapers/') and Path(key).name != 'default.jpg')):
             target = destination(key, locations)
             safe_target(target, locations[key.split('/')[0]])
             if target.exists():
@@ -224,7 +225,7 @@ def restore(journal, backup, locations):
         manifest.unlink()
 
 
-def install(repo, *, profile=None, native=False, base_repo=None, locations=None):
+def install(repo, *, native=False, base_repo=None, locations=None):
     locations = locations or roots()
     repo = repo.resolve()
     with lock(locations):
@@ -239,15 +240,6 @@ def install(repo, *, profile=None, native=False, base_repo=None, locations=None)
                 key = 'config/' + source.relative_to(locations['config']).as_posix()
                 safe_target(source, locations['config'])
                 files.setdefault(key, source)
-        if profile:
-            if profile != 'personal':
-                raise ValueError('Unknown profile')
-            profile_root = repo / 'profiles/personal'
-            if not profile_root.is_dir():
-                raise ValueError('This repository has no personal profile')
-            for key, source in payload(profile_root).items():
-                if protected(key):
-                    files[key] = source
         state = locations['state']
         live_before = {key: digest(destination(key, locations)) for key in files}
         for name in PREFERENCES:
@@ -257,12 +249,12 @@ def install(repo, *, profile=None, native=False, base_repo=None, locations=None)
             stage = Path(temp)
             for key, source in files.items():
                 live = destination(key, locations)
-                if protected(key) and live.exists() and not profile:
+                if protected(key) and live.exists():
                     source = live
                 target = stage / key
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, target)
-            # Retain optional preferences absent from public defaults.
+            # Retain optional preferences absent from the repository.
             for name in PREFERENCES:
                 key = 'config/hyprshell/' + name
                 live = destination(key, locations)
