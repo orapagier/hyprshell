@@ -16,10 +16,9 @@ done
 if ((${#releases[@]})); then sudo dnf install -y "${releases[@]}"; fi
 [[ "$MODE" != --repositories-only ]] || exit 0
 
-# Replace only the restricted counterparts. Do not use broad --allowerasing.
-if rpm -q libavcodec-free >/dev/null 2>&1; then
-    sudo dnf swap -y libavcodec-free libavcodec-freeworld
-fi
+# Freeworld complements libavcodec-free through its own library search path.
+# Keep Fedora's package: libavformat-free requires its exact version.
+# Only the Intel driver counterparts need replacement. No broad --allowerasing.
 if rpm -q libva-intel-media-driver >/dev/null 2>&1; then
     sudo dnf swap -y libva-intel-media-driver intel-media-driver
 fi

@@ -41,10 +41,19 @@ class MediaSetupTests(unittest.TestCase):
     def test_repositories_and_targeted_replacements(self):
         result = self.run_helper(); self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.calls()
-        self.assertIn(['sudo', 'dnf', 'swap', '-y', 'libavcodec-free', 'libavcodec-freeworld'], calls)
+        self.assertIn(['sudo', 'dnf', 'install', '-y', '--setopt=install_weak_deps=False',
+                       'ffmpeg-free', 'libavcodec-freeworld', 'intel-media-driver', 'libva-utils'], calls)
         self.assertIn(['sudo', 'dnf', 'swap', '-y', 'libva-intel-media-driver', 'intel-media-driver'], calls)
         self.assertTrue(any('https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-44.noarch.rpm' in c for c in calls))
         self.assertFalse(any('--allowerasing' in c for c in calls))
+
+    def test_fedora_codec_dependency_is_preserved(self):
+        # Model libavformat-free's exact dependency: removing its codec fails.
+        self.program('sudo', "raise SystemExit(1 if 'swap' in sys.argv and 'libavcodec-free' in sys.argv else 0)")
+        result = self.run_helper()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(any('libavcodec-free' in c and ('swap' in c or 'remove' in c)
+                             for c in self.calls()))
 
     def test_existing_repositories_are_preserved(self):
         self.env['INSTALLED'] = 'rpmfusion-free-release,rpmfusion-nonfree-release'

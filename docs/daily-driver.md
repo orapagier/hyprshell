@@ -95,9 +95,10 @@ and suspend quirks still require the target hardware to be tested.
 
 Full Fedora setup enables RPM Fusion free/nonfree and installs
 `libavcodec-freeworld`, the full Intel `intel-media-driver` (iHD), and
-`libva-utils`. It replaces installed restricted `libavcodec-free` and
-`libva-intel-media-driver` counterparts with targeted DNF swaps, without broad
-`--allowerasing`, and verifies FFmpeg exposes an HEVC decoder. Arch includes
+`libva-utils`. The Freeworld codec coexists with Fedora's `libavcodec-free`,
+which its FFmpeg libraries still require. Only an installed restricted
+`libva-intel-media-driver` is replaced with a targeted DNF swap, without broad
+`--allowerasing`. Setup verifies FFmpeg exposes an HEVC decoder. Arch includes
 FFmpeg, Intel media-driver and libva-utils in its base manifest. mpv uses
 `hwdec=auto-safe` with automatic software fallback; no Intel driver environment
 variable is forced on other GPUs. Existing mpv config conflicts use the normal
