@@ -29,7 +29,7 @@ Item {
         let entry = record(notification);
         if (notification.lastGeneration) return;
         popups = popups.filter(r => r.id !== entry.id);
-        if (policy.popup) popups = popups.concat([Object.assign({}, entry, {popupDeadline: Date.now() + (preferences.popupSeconds || 5) * 1000})]).slice(-3);
+        if (policy.popup) popups = popups.concat([Object.assign({}, entry, {popupDeadline: Date.now() + (preferences.popupSeconds || 3) * 1000})]).slice(-3);
     }
     property bool initialized: false
     readonly property int unread: rows.filter(r => r.unread).length
@@ -129,7 +129,7 @@ Item {
                 }
             }
             property Timer expiry: Timer {
-                interval: tracked.modelData.expireTimeout > 0 ? tracked.modelData.expireTimeout : (inbox.preferences.popupSeconds || 5) * 1000
+                interval: tracked.modelData.expireTimeout > 0 ? tracked.modelData.expireTimeout : (inbox.preferences.popupSeconds || 3) * 1000
                 running: !inbox.popups.some(row => row.sourceId === tracked.modelData.id && inbox.heldPopupIds.includes(row.id)) && !tracked.modelData.resident && tracked.modelData.urgency !== NotificationUrgency.Critical && tracked.modelData.expireTimeout !== 0
                 onTriggered: tracked.modelData.expire()
             }

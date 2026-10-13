@@ -382,7 +382,7 @@
     "popups": false,
     "doNotDisturb": false,
     "criticalBypass": true,
-    "popupSeconds": 5,
+    "popupSeconds": 3,
     "apps": {}
   },
   "accessibility": {
