@@ -10,16 +10,8 @@ hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("python3 \"${XDG_CONFIG_HOME:
 hl.bind(mainMod .. " + M", hl.dsp.window.fullscreen({ mode = "maximized" }), { description = "Maximize window" })
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(programs.fileManager), { description = "Open file manager" })
 hl.bind(mainMod .. " + ALT + V", hl.dsp.window.float({ action = "toggle" }), { description = "Toggle floating window" })
-local function clipboardShortcut(key)
-    return function()
-        local window = hl.get_active_window()
-        local class = window and window.class or ""
-        local terminal = class:lower():match("kitty") or class:lower():match("alacritty") or class:lower():match("foot") or class:lower():match("wezterm") or class:lower():match("org.gnome.ptyxis")
-        hl.dispatch(hl.dsp.send_shortcut({ mods = terminal and "CTRL SHIFT" or "CTRL", key = key }))
-    end
-end
-hl.bind("SUPER + C", clipboardShortcut("C"), { description = "Copy" })
-hl.bind("SUPER + V", clipboardShortcut("V"), { description = "Paste" })
+-- Copy/paste use native application shortcuts. Kitty maps Ctrl+C/Ctrl+V
+-- directly, avoiding stuck synthetic keys from send_shortcut forwarding.
 
 -- Quickshell handles launcher toggling and outside clicks natively.
 hl.bind("SUPER + Super_L", hl.dsp.exec_cmd(programs.menu), { release = true, description = "Toggle application launcher" })

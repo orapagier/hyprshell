@@ -39,7 +39,7 @@ def ignored(path):
 
 def payload(repo):
     files = {}
-    groups = [('config/mpv', 'config/mpv'), ('config/systemd/user', 'config/systemd/user'), ('config/hypr', 'config/hypr'), ('config/quickshell', 'config/quickshell'),
+    groups = [('config/kitty', 'config/kitty'), ('config/mpv', 'config/mpv'), ('config/systemd/user', 'config/systemd/user'), ('config/hypr', 'config/hypr'), ('config/quickshell', 'config/quickshell'),
               ('config/hyprshell', 'config/hyprshell'), ('config/xdg-desktop-portal', 'config/xdg-desktop-portal'),
               ('config/autostart', 'config/autostart'), ('bin', 'home/.local/bin'),
               ('assets/applications', 'data/applications'), ('assets/fonts', 'data/fonts/hyprshell'),
