@@ -332,6 +332,15 @@ command. After creating a container, run `hyprshell_refresh_boxes` or open a new
 terminal. To load the shortcuts in an already open terminal, run `source ~/.bashrc`.
 These shortcuts are also installed by `--config-only`.
 
+The main setup and `--config-only` install Kitty's one-handed clipboard defaults:
+Ctrl+V pastes, and Ctrl+C copies selected text or interrupts the running command
+when nothing is selected. Editors retain their native Ctrl+C/V/X shortcuts.
+Super+C/V clipboard forwarding is omitted to avoid stuck synthetic keys.
+Tab completion remains available. Bash's default Emacs editing shortcuts remain
+Ctrl+U to remove text before the cursor, Ctrl+K to remove text after it, and
+Ctrl+Y to restore removed text; these use Bash's own buffer, not the desktop
+clipboard. Terminal output can be copied, but cannot be cut.
+
 The main install includes Hyprlock, XDG and Wayland clipboard utilities,
 Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic, rclone,
 and yt-dlp, plus Mousepad, media controls, archives, clipboard-history tools,

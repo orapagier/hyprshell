@@ -250,6 +250,8 @@ class InstallerTests(unittest.TestCase):
                          installed.render_hypr(saved['hyprland'], True))
         self.assertTrue(os.access(self.config / 'hypr/wallpaper-start.sh', os.X_OK))
         self.assertTrue((self.config / 'quickshell/shell.qml').is_file())
+        self.assertEqual((self.config / 'kitty/kitty.conf').read_bytes(),
+                         (ROOT / 'config/kitty/kitty.conf').read_bytes())
         for payload_file in ('SettingsSound.qml', 'SoundVolume.qml', 'SoundTest.qml', 'AudioInputMeter.qml', 'AudioSpectrumBars.qml', 'helpers/audio-spectrum.c', 'sounds/test.wav', 'SettingsRecovery.qml', 'settings/recovery.py'):
             self.assertEqual((self.config / 'quickshell' / payload_file).read_bytes(),
                              (ROOT / 'config/quickshell' / payload_file).read_bytes())

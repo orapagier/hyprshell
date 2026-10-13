@@ -92,6 +92,7 @@ class SyncTests(unittest.TestCase):
             root = Path(directory)
             repo, config, home = root / 'repo', root / 'live', root / 'home'
             for payload, installed in [
+                ('config/kitty', 'live/kitty'),
                 ('config/mpv', 'live/mpv'),
                 ('config/xdg-desktop-portal', 'live/xdg-desktop-portal'),
                 ('config/autostart', 'live/autostart'),
@@ -112,7 +113,7 @@ class SyncTests(unittest.TestCase):
             syncer.snapshot_managed_files(repo, config, home)
             self.assertEqual((repo / 'config/hyprshell/hyprland/programs.lua').read_bytes(),
                              (sections / 'programs.lua').read_bytes())
-            for payload in ('config/mpv', 'config/xdg-desktop-portal', 'config/autostart', 'bin',
+            for payload in ('config/kitty', 'config/mpv', 'config/xdg-desktop-portal', 'config/autostart', 'bin',
                             'assets/applications', 'assets/wallpapers'):
                 self.assertEqual((repo / payload / ('default.jpg' if payload == 'assets/wallpapers' else 'managed')).read_text(), 'live')
                 self.assertFalse((repo / payload / 'private').exists())
