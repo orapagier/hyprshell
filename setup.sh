@@ -37,6 +37,8 @@ Hyprland and Quickshell are checked first; missing desktop dependencies are
 installed through pacman or DNF. Fedora enables lionheartp/Hyprland unless
 --no-copr is supplied. Everyday apps and firmware are included; no AUR apps are installed.
 --config-only skips all package installation.
+Full setup previews every subsystem and preserves existing compatible policies.
+Conflicting network/audio backends need review before any privileged changes.
 Existing configs are backed up under ~/.local/state/hyprshell/backups/.
 XDG_CONFIG_HOME and XDG_STATE_HOME are respected. A reboot is recommended.
 HELP
@@ -101,21 +103,6 @@ if (( INSTALL_APPS )); then
     PACKAGES+=("$package")
   done
 fi
-MEDIA_PACKAGES=()
-# Package selection is read-only and uses kernel PCI/USB inventory, not the
-# author's laptop. Capture first so detection failures cannot be lost in a pipe.
-if [[ "$MODE" == install ]]; then
-  command -v python3 >/dev/null || die 'Python 3 is required for hardware detection'
-  PLAN_OPTIONS=(--distro "$DISTRO" --manifest "$REPO_DIR/$PACKAGE_FILE")
-  if (( INSTALL_APPS )); then PLAN_OPTIONS+=(--manifest "$REPO_DIR/$APP_PACKAGE_FILE"); fi
-  SELECTED_PACKAGES=$(python3 "$REPO_DIR/tools/hardware_plan.py" "${PLAN_OPTIONS[@]}" --format packages)
-  mapfile -t PACKAGES <<< "$SELECTED_PACKAGES"
-  if [[ "$DISTRO" == fedora ]]; then
-    MEDIA_SELECTION=$(python3 "$REPO_DIR/tools/hardware_plan.py" --distro fedora --format media)
-    if [[ -n "$MEDIA_SELECTION" ]]; then mapfile -t MEDIA_PACKAGES <<< "$MEDIA_SELECTION"; fi
-  fi
-  python3 "$REPO_DIR/tools/hardware_plan.py" "${PLAN_OPTIONS[@]}" --format summary
-fi
 # Optional lists may share packages (for example playerctl).
 declare -A SEEN_PACKAGES=()
 UNIQUE_PACKAGES=()
@@ -156,6 +143,26 @@ if [[ "$MODE" == install ]]; then
     PACKAGES+=(sddm)
     if [[ "$DISTRO" == fedora ]]; then PACKAGES+=(sddm-x11); fi
   fi
+fi
+
+MEDIA_PACKAGES=()
+SYSTEM_PLAN=
+plan_output() {
+  python3 "$REPO_DIR/tools/system_plan.py" --read-plan --format "$1" <<< "$SYSTEM_PLAN"
+}
+if [[ "$MODE" == install ]]; then
+  command -v python3 >/dev/null || die 'Python 3 is required for system planning'
+  PLAN_OPTIONS=(--distro "$DISTRO" --manifest "$REPO_DIR/$PACKAGE_FILE" --login-unit "$LOGIN_UNIT")
+  if (( INSTALL_APPS )); then PLAN_OPTIONS+=(--manifest "$REPO_DIR/$APP_PACKAGE_FILE"); fi
+  if (( SKIP_BOOT_SPLASH )); then PLAN_OPTIONS+=(--skip-boot); fi
+  if (( SKIP_LOGIN_THEME )); then PLAN_OPTIONS+=(--skip-login); fi
+  # One read-only snapshot supplies package and service choices for every stage.
+  SYSTEM_PLAN=$(python3 "$REPO_DIR/tools/system_plan.py" "${PLAN_OPTIONS[@]}")
+  SELECTED_PACKAGES=$(plan_output packages)
+  mapfile -t PACKAGES <<< "$SELECTED_PACKAGES"
+  MEDIA_SELECTION=$(plan_output media)
+  if [[ -n "$MEDIA_SELECTION" ]]; then mapfile -t MEDIA_PACKAGES <<< "$MEDIA_SELECTION"; fi
+  plan_output summary
 fi
 
 check_packages() {
@@ -220,8 +227,8 @@ if (( DRY_RUN )); then
     else
       printf 'Login appearance: restore Hyprshell Glass when SDDM is the login manager\n'
     fi
-    printf 'Enable NetworkManager, Bluetooth, UPower, PipeWire, and WirePlumber; Quickshell owns the notification inbox\n'
-    printf 'Daily driver: enable printing/discovery and SSD trim; configure time sync and firewall while preserving configured alternatives\n'
+    printf 'Services follow the system plan; user PipeWire/WirePlumber sockets are prepared for login; Quickshell owns notifications\n'
+    printf 'Daily driver: socket-activated printing/discovery; trim when supported; preserve existing power/time/firewall policies\n'
     printf 'Firmware: retain general coverage; select vendor firmware, CPU microcode and graphics/video drivers from detected hardware; preserve proprietary NVIDIA drivers\n'
     printf 'Timezone: %s\n' "${TIMEZONE:-unchanged}"
     if (( SKIP_BOOT_SPLASH )); then
@@ -259,6 +266,7 @@ if [[ "$MODE" == install ]]; then
     [[ "$TIMEZONE" != /* && "$TIMEZONE" != *..* && -f "/usr/share/zoneinfo/$TIMEZONE" ]] || die "Unknown timezone: $TIMEZONE"
   fi
   check_packages
+  python3 "$REPO_DIR/tools/system_plan.py" --read-plan --require-safe --format safety <<< "$SYSTEM_PLAN"
   sudo -v
   if [[ "$DISTRO" == fedora ]]; then
     log 'Preparing RPM Fusion repositories for complete media support'
@@ -274,7 +282,7 @@ if [[ "$MODE" == install ]]; then
     # instead so resolver failures are unambiguous and no RPMs are installed here.
     sudo dnf install -y --setopt=install_weak_deps=False --downloadonly "${PACKAGES[@]}"
     log 'Resolving hardware-selected media drivers before upgrading'
-    bash "$REPO_DIR/tools/install_media_fedora.sh" --download-only
+    printf '%s\n' "$SYSTEM_PLAN" | bash "$REPO_DIR/tools/install_media_fedora.sh" --download-only --plan-stdin
     log 'Upgrading Fedora and installing desktop dependencies'
     sudo dnf upgrade --refresh -y
     # Recheck after the upgrade: dependencies may have become satisfied.
@@ -283,7 +291,7 @@ if [[ "$MODE" == install ]]; then
       sudo dnf install -y --setopt=install_weak_deps=False "${MISSING_PACKAGES[@]}"
     fi
     log 'Installing full media codecs and hardware-selected video acceleration'
-    bash "$REPO_DIR/tools/install_media_fedora.sh" --install
+    printf '%s\n' "$SYSTEM_PLAN" | bash "$REPO_DIR/tools/install_media_fedora.sh" --install --plan-stdin
   else
     log 'Upgrading Arch and installing missing desktop dependencies'
     # Always upgrade together with installation to avoid partial upgrades.
@@ -327,12 +335,18 @@ if [[ "$MODE" == config-only ]]; then
   exit 0
 fi
 
-log 'Enabling networking, Bluetooth, battery information, and audio'
-sudo systemctl enable --now NetworkManager.service bluetooth.service
+log 'Applying the planned network, Bluetooth, battery and power services'
+ENABLE_SELECTION=$(plan_output enable)
+if [[ -n "$ENABLE_SELECTION" ]]; then
+  mapfile -t ENABLE_UNITS <<< "$ENABLE_SELECTION"
+  sudo systemctl enable --now "${ENABLE_UNITS[@]}"
+fi
 # UPower is D-Bus activated (a static unit), so start it rather than enable it.
 sudo systemctl start upower.service
-if [[ "$DISTRO" == fedora ]]; then
-  sudo systemctl enable --now tuned.service tuned-ppd.service
+POWER_SELECTION=$(plan_output power)
+if [[ -n "$POWER_SELECTION" ]]; then
+  mapfile -t POWER_UNITS <<< "$POWER_SELECTION"
+  sudo systemctl enable --now "${POWER_UNITS[@]}"
 fi
 if [[ -n "$TIMEZONE" ]]; then
   sudo timedatectl set-timezone "$TIMEZONE"
@@ -352,7 +366,7 @@ sudo systemctl enable "$LOGIN_UNIT"
 sudo systemctl set-default graphical.target
 
 log 'Configuring printing, discovery, keyring login, time sync, firewall, and SSD maintenance'
-sudo python3 "$REPO_DIR/tools/configure_daily_driver.py"
+printf '%s\n' "$SYSTEM_PLAN" | sudo python3 "$REPO_DIR/tools/configure_daily_driver.py" --plan-stdin
 
 log 'Validating the installed configuration and refreshing fonts'
 python3 "$REPO_DIR/tools/check_runtime.py" --native

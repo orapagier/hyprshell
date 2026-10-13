@@ -119,6 +119,18 @@ and review notes. Config-only skips selection. See README's hardware/media secti
 and `tests/test_hardware_plan.py`; no full installer or hardware certification is
 implied by the mocked checks.
 
+Whole-system preflight (2026-10-14): `tools/system_plan.py` wraps hardware
+selection with provider-aware package inventory and service-policy decisions for
+every dependency group. Main setup consumes one plan for packages, media and
+service activation. Existing power backends and configured network/audio
+migrations are reviewed before sudo; Bluetooth starts when detected, trim runs
+only for detected discard support, and TTY user-audio activation stays supported.
+`check_runtime.py` treats power controls as optional when an external policy owns
+them. `configure_daily_driver.py --plan-stdin` applies planned trim without
+changing encryption/discard options. See `tests/test_system_plan.py` and README's
+whole-system table. Apps/runtime dependencies follow saved desktop choices,
+not an inferred hardware performance ranking.
+
 
 Reviewed GitHub updates (2026-10-13): `SettingsGithubUpdate{,Review}.qml`,
 `settings/{github_update,compatibility,deployment}.py`, root `compatibility.json`.

@@ -173,6 +173,39 @@ The installer:
 8. Saves a redacted readiness report and provides the command for hardware checks
    after reboot/login.
 
+### Whole-system planning
+
+`setup.sh` builds one read-only [system plan](tools/system_plan.py) before any
+sudo operation. `--dry-run` shows installed/missing dependencies for every
+subsystem, plus the choices to install, preserve or review. Fedora reads installed
+RPM packages and provider capabilities in one query; Arch checks dependency
+providers with pacman. The package and service stages consume the same plan.
+
+| Subsystem | What setup checks and decides |
+| --- | --- |
+| Session, portals and native libraries | Keep Hyprshell's required runtime and build dependencies; install missing providers and validate supported versions |
+| CPU, graphics, audio and wireless firmware | Detect hardware and choose matching firmware/microcode/video packages; preserve custom kernels and proprietary drivers |
+| Networking and audio services | Use NetworkManager and PipeWire/WirePlumber; stop before privileged changes if an exclusive network manager or legacy PulseAudio needs migration |
+| Power and battery | Preserve configured or installed tuned, PPD, TLP, auto-cpufreq or System76 policies; use the distro default only when no existing power provider is found |
+| Bluetooth and brightness | Detect adapters/backlights; retain hotplug tools, start Bluetooth only when an adapter is detected |
+| Storage, time sync and firewall | Enable trim only for detected discard support; keep existing trim policy otherwise; preserve configured time/firewall alternatives and rules |
+| Login, boot and security | Keep the login manager, bootloader, encryption options and authentication stack; install SDDM only if missing and honor appearance opt-outs |
+| Apps, file integration, fonts and utilities | Use the shared desktop configuration and saved user choices; keep existing desktops and install the dependencies needed for those desktop functions |
+| Printing, scanning and backups | Retain tools for local/network/hotplug peripherals; CUPS is socket-activated; backup schedules and clipboard capture remain opt-in |
+
+This is dependency and compatibility planning across the whole installer.
+Hardware cannot determine a user's preferred browser, file manager or font,
+so those follow the desktop configuration rather than a guessed performance
+ranking. Optional tools are not started just because their packages are present.
+Conflicting backends are reported for deliberate migration; setup does not stop
+the user's network, remove another desktop or replace an audio/power policy to
+force installation. See [TLP's guidance on competing power daemons](https://linrunner.de/tlp/faq/conflicts.html).
+
+Inaccessible system-service/package checks are shown as unavailable and full
+setup must be rerun from a normal system session. A TTY without a user D-Bus
+session remains supported: installed audio packages are checked and user audio
+services are enabled for the next login. Config-only updates skip system planning.
+
 ### Hardware-aware packages and media support
 
 Full setup includes media codecs and chooses acceleration packages from the

@@ -59,10 +59,17 @@ If none is installed, SDDM is included in the package transaction. A broken
 display-manager alias stops setup before package/config changes instead of
 silently leaving graphical login unusable. It does not restart a live greeter.
 
-An enabled or active time-sync/firewall alternative is retained. Existing
+Full setup first builds a read-only system plan for every dependency group,
+including service policies. An enabled or active time-sync/firewall alternative is retained. Existing
 firewalld zones are never reset or reloaded. A newly enabled firewalld without
 administrator zone files gets mDNS discovery enabled in its default zone for
 network printers. CUPS is socket-activated; printer sharing is not enabled.
+Bluetooth is started only when an adapter is detected. Weekly trim is enabled
+only when a block device exposes discard support; otherwise existing trim policy
+is retained. Existing power providers (including installed disabled alternatives)
+are preserved instead of adding a competing daemon. Exclusive networking
+alternatives and legacy PulseAudio are reported before privileged changes, for
+deliberate migration to the backends Hyprshell needs.
 Manufacturer-specific printer/scanner drivers may still be required.
 
 Optional GNOME Keyring PAM lines are added only to SDDM, without replacing its

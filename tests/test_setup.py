@@ -88,6 +88,7 @@ class InstallerTests(unittest.TestCase):
             '#!/usr/bin/env python3\nimport json, sys\n'
             f'with open({str(calls)!r}, "a") as log:\n'
             '    log.write(json.dumps(sys.argv[1:]) + "\\n")\n'
+            'if sys.argv[1] == "-Q": raise SystemExit(1)\n'
             'if sys.argv[1] != "-T": raise SystemExit("unexpected mutation")\n'
             f'missing = set({list(missing)!r})\n'
             'result = [p for p in sys.argv[2:] if p in missing]\n'
@@ -101,11 +102,12 @@ class InstallerTests(unittest.TestCase):
         calls = self.mock_package_database(('hyprland', 'quickshell', 'upower', 'wpa_supplicant'))
         result = self.run_setup('--dry-run')
         queries = [json.loads(line) for line in calls.read_text().splitlines()]
-        self.assertEqual(queries[:2], [['-T', 'hyprland'], ['-T', 'quickshell']])
+        self.assertIn(['-T', 'hyprland'], queries)
+        self.assertIn(['-T', 'quickshell'], queries)
         self.assertIn('hyprland: missing', result.stdout)
         self.assertIn('quickshell: missing', result.stdout)
         self.assertIn('Missing desktop packages: hyprland quickshell wpa_supplicant upower', result.stdout)
-        targets = queries[2][1:]
+        targets = queries[-1][1:]
         for required in ('hyprpolkitagent', 'qt6-wayland', 'gcc', 'libpulse', 'fftw',
                          'pipewire-pulse', 'upower', 'wpa_supplicant', 'ttf-go-nerd', 'cosmic-files', 'plymouth', 'chromium'):
             self.assertIn(required, targets)

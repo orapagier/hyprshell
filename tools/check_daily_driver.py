@@ -34,6 +34,14 @@ def check(after_login=False, root=Path('/'), runner=invoke):
         ('Time synchronization', ('chronyd.service', 'systemd-timesyncd.service', 'ntpd.service', 'ntp.service', 'openntpd.service')),
         ('Firewall', ('firewalld.service', 'ufw.service', 'nftables.service', 'iptables.service', 'ip6tables.service')),
     ):
+        if title == 'SSD maintenance':
+            from system_plan import environment
+            discard = environment(root)['discard']
+            if discard is not True:
+                add(title, 'ok' if discard is False else 'unavailable',
+                    'Discard is unsupported; existing trim policy preserved.' if discard is False else
+                    'Discard capability unavailable; check storage from a normal system session.')
+                continue
         states = [runner(['systemctl', 'is-active', unit])[0] for unit in units]
         add(title, 'ok' if 0 in states else 'unavailable' if None in states else 'attention',
             'Running.' if 0 in states else 'Check the service from a normal system session.')

@@ -6,9 +6,11 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import sys
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'tools'))
 
 
 def module(name):
@@ -29,6 +31,9 @@ class DailyDriverSetupTests(unittest.TestCase):
         self.root = Path(temporary.name)
         self.calls = []
         self.existing = set()
+        queue = self.root / 'sys/class/block/disk/queue'
+        queue.mkdir(parents=True)
+        (queue / 'discard_max_bytes').write_text('1048576')
 
     def runner(self, arguments):
         self.calls.append(arguments)
@@ -51,6 +56,16 @@ class DailyDriverSetupTests(unittest.TestCase):
         self.apply()
         self.assertFalse(any('enable' in call and ('chronyd.service' in call or 'firewalld.service' in call) for call in self.calls))
         self.assertFalse(any(call[0] == 'firewall-cmd' for call in self.calls))
+
+    def test_hdd_or_unknown_storage_does_not_change_trim_policy(self):
+        (self.root / 'sys/class/block/disk/queue/discard_max_bytes').write_text('0')
+        self.apply()
+        self.assertFalse(any('fstrim.timer' in call for call in self.calls))
+
+    def test_planned_trim_decision_is_applied_without_forcing_discard(self):
+        with patch('sys.stdout', io.StringIO()):
+            system.configure(self.root, self.runner, policy={'trim': False})
+        self.assertFalse(any('fstrim.timer' in call for call in self.calls))
 
     def test_existing_firewalld_or_admin_zone_keeps_rules(self):
         self.existing.add('firewalld.service')

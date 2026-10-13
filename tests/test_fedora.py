@@ -149,8 +149,8 @@ class FedoraInstallerTests(unittest.TestCase):
                         XDG_STATE_HOME=str(self.home / 'state'), XDG_DATA_HOME=str(self.home / 'data'),
                         PATH=str(self.bin) + os.pathsep + os.environ['PATH'])
         self.repo = ROOT
-        self.program('systemctl', 'raise SystemExit(0)')
-        self.program('rpm', 'raise SystemExit(1)')
+        self.program('systemctl', "raise SystemExit(1 if 'is-enabled' in sys.argv or 'is-active' in sys.argv else 0)")
+        self.program('rpm', "raise SystemExit(0 if '-qa' in sys.argv else 1)")
 
     def program(self, name, body):
         target = self.bin / name
@@ -189,12 +189,18 @@ class FedoraInstallerTests(unittest.TestCase):
         runner = self.bin / 'qmltestrunner-qt6'
         self.program('qmltestrunner-qt6', 'raise SystemExit(0)')
         self.program('python3', f'''if sys.argv[1].endswith('/compatibility.py'): raise SystemExit(0)
-if sys.argv[1].endswith('/hardware_plan.py'):
+if sys.argv[1].endswith(('/hardware_plan.py', '/system_plan.py')):
     sys.path.insert(0, {str(ROOT / 'tools')!r})
     import hardware_plan
-    hardware_plan.detect = lambda: {{'cpuVendors': ['GenuineIntel'], 'pci': [{{'vendor': '8086', 'device': '46a8', 'class': '030000', 'driver': 'i915'}}], 'usbVendors': [], 'battery': True, 'kernel': '6.20.0-1.fc44.x86_64'}}
+    hardware_plan.detect = lambda *args: {{'cpuVendors': ['GenuineIntel'], 'pci': [{{'vendor': '8086', 'device': '46a8', 'class': '030000', 'driver': 'i915'}}], 'usbVendors': [], 'battery': True, 'kernel': '6.20.0-1.fc44.x86_64'}}
+    if sys.argv[1].endswith('/system_plan.py'):
+        import system_plan
+        system_plan.environment = lambda root: {{'discard': True, 'bluetooth': True, 'backlight': True, 'memoryKnown': True}}
+        entry = system_plan.main
+    else:
+        entry = hardware_plan.main
     sys.argv = sys.argv[1:]
-    hardware_plan.main()
+    entry()
     raise SystemExit(0)
 if sys.argv[1].endswith('/check_runtime.py'):
     if '--qmltestrunner' in sys.argv: print({str(runner)!r})
@@ -224,7 +230,7 @@ os.execv({real_python!r}, [{real_python!r}, *sys.argv[1:]])''')
         else:
             self.assertTrue(any(call[:3] == ['sudo', 'dnf', 'install'] and 'sddm' in call and 'sddm-x11' in call for call in calls))
         self.assertIn(['sudo', 'systemctl', 'enable', '--now', 'tuned.service', 'tuned-ppd.service'], calls)
-        self.assertIn(['sudo', 'python3', str(self.repo / 'tools/configure_daily_driver.py')], calls)
+        self.assertIn(['sudo', 'python3', str(self.repo / 'tools/configure_daily_driver.py'), '--plan-stdin'], calls)
         service_index = next(i for i, call in enumerate(calls) if call[:4] == ['sudo', 'systemctl', 'enable', '--now'])
         validation_index = next(i for i, call in enumerate(calls) if call[0] == 'python3' and call[1].endswith('/check_runtime.py'))
         self.assertLess(service_index, validation_index)
@@ -232,6 +238,13 @@ os.execv({real_python!r}, [{real_python!r}, *sys.argv[1:]])''')
         self.assertFalse(any('pacman' in call or 'mkinitcpio' in call for call in calls))
         self.assertTrue((self.home / 'data/fonts/hyprshell/GoMonoNerdFont-Regular.ttf').is_file())
         self.assertTrue((self.home / 'config/quickshell/helpers/audio-spectrum').is_file())
+        # Backend migration is caught before even repository/sudo operations.
+        self.calls.unlink()
+        self.program('systemctl', "raise SystemExit(0 if sys.argv[-1] == 'systemd-networkd.service' else 1 if 'is-enabled' in sys.argv or 'is-active' in sys.argv else 0)")
+        result = self.run_setup('--copr', 'lionheartp/Hyprland')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Networking uses another configured manager', result.stdout)
+        self.assertFalse(any(call[0] == 'sudo' for call in self.read_calls()))
 
     def test_invalid_repository_names_fail_without_files(self):
         for repo in ('../unsafe', 'owner/repo;command', '-owner/repo', 'missing-slash'):

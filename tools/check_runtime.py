@@ -27,7 +27,9 @@ def check_native():
                 'sudo')
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'config/quickshell/settings'))
     from system_packages import distribution
-    required += ('dnf', 'rpm', 'tuned-ppd') if distribution() == 'fedora' else ('pacman', 'checkupdates', 'powerprofilesctl')
+    # Power management can belong to an existing PPD/TLP/tuned policy. Its
+    # optional Settings controls already report unavailable providers gracefully.
+    required += ('dnf', 'rpm') if distribution() == 'fedora' else ('pacman', 'checkupdates')
     missing = [name for name in required if not shutil.which(name)]
     if not (shutil.which('quickshell') or shutil.which('qs')):
         missing.append('quickshell')

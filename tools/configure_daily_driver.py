@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Configure daily-driver system services without replacing existing policies."""
 import argparse
+import json
 from datetime import datetime
 import os
 from pathlib import Path
@@ -8,6 +9,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import sys
 
 
 def invoke(arguments):
@@ -40,9 +42,15 @@ def pam_keyring(text):
     return '\n'.join(lines) + '\n'
 
 
-def configure(root=Path('/'), runner=invoke):
+def configure(root=Path('/'), runner=invoke, policy=None):
+    if policy is None:
+        from system_plan import environment
+        policy = {'trim': environment(root)['discard'] is True}
     checked(['systemctl', 'enable', '--now', 'cups.socket', 'avahi-daemon.service'], runner)
-    checked(['systemctl', 'enable', '--now', 'fstrim.timer'], runner)
+    if policy['trim']:
+        checked(['systemctl', 'enable', '--now', 'fstrim.timer'], runner)
+    else:
+        print('Keeping the current trim policy: no discard support was detected.')
     alternatives = ('systemd-timesyncd.service', 'ntpd.service', 'ntp.service', 'openntpd.service')
     if any(configured(unit, runner) for unit in alternatives):
         print('Keeping the configured time synchronization service.')
@@ -85,12 +93,20 @@ def configure(root=Path('/'), runner=invoke):
 
 
 def main():
-    argparse.ArgumentParser(description=__doc__).parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--plan-stdin', action='store_true')
+    args = parser.parse_args()
     if os.geteuid() != 0:
         raise SystemExit('Run through setup.sh, or with sudo after installing dependencies.')
     try:
-        configure()
-    except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+        policy = None
+        if args.plan_stdin:
+            plan = json.load(sys.stdin)
+            policy = plan['services']
+            if plan.get('version') != 2 or not isinstance(policy.get('trim'), bool):
+                raise ValueError('Invalid system service plan')
+        configure(policy=policy)
+    except (OSError, RuntimeError, ValueError, KeyError, subprocess.SubprocessError) as error:
         raise SystemExit(str(error))
 
 

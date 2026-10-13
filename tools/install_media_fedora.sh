@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 MODE=${1:---install}
 case "$MODE" in --install|--repositories-only|--download-only) ;; *) printf 'Usage: bash tools/install_media_fedora.sh [--install|--repositories-only|--download-only]\n' >&2; exit 2 ;; esac
+[[ $# -le 2 && ( -z "${2:-}" || "$2" == --plan-stdin ) ]] || { printf 'Invalid media setup arguments\n' >&2; exit 2; }
 source /etc/os-release
 [[ "$ID" == fedora && "$VERSION_ID" =~ ^[0-9]+$ ]] || { printf 'This helper requires traditional Fedora.\n' >&2; exit 1; }
 [[ ! -e /run/ostree-booted ]] || { printf 'Fedora Atomic is not supported by this helper.\n' >&2; exit 1; }
@@ -17,10 +18,14 @@ done
 if ((${#releases[@]})); then sudo dnf install -y "${releases[@]}"; fi
 [[ "$MODE" != --repositories-only ]] || exit 0
 
-selection=$(python3 "$HELPER_DIR/hardware_plan.py" --distro fedora --format media)
+if [[ "${2:-}" == --plan-stdin ]]; then
+    selection=$(python3 "$HELPER_DIR/system_plan.py" --read-plan --format media)
+else
+    selection=$(python3 "$HELPER_DIR/hardware_plan.py" --distro fedora --format media)
+    python3 "$HELPER_DIR/hardware_plan.py" --distro fedora --format summary
+fi
 media=()
 if [[ -n "$selection" ]]; then mapfile -t media <<< "$selection"; fi
-python3 "$HELPER_DIR/hardware_plan.py" --distro fedora --format summary
 options=(-y --setopt=install_weak_deps=False)
 if [[ "$MODE" == --download-only ]]; then options+=(--downloadonly); fi
 
