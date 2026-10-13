@@ -69,6 +69,23 @@ hl.window_rule({
     match = { class = "^(xdg-desktop-portal-(gtk|gnome|kde)|org\\.freedesktop\\.impl\\.portal\\.desktop\\.(gtk|gnome|kde))$" },
     float = true,
     center = true,
+    size = { "min(860,monitor_w*0.9)", "min(560,monitor_h*0.8)" },
+})
+
+-- Keep app-owned file pickers compact too; ordinary settings dialogs keep their size.
+local filePickerTitles = {
+    "Open", "Open File", "Open Files", "Open Folder", "Open Directory",
+    "Save", "Save As", "Save File", "Save a File",
+    "Select File", "Select Files", "Select Folder", "Select Directory",
+    "Choose File", "Choose Files", "Choose Folder", "Choose Directory",
+    "Export File", "Import File",
+}
+hl.window_rule({
+    name = "compact-file-pickers",
+    match = { initial_title = "(?i)^(" .. table.concat(filePickerTitles, "|") .. ")$" },
+    float = true,
+    center = true,
+    size = { "min(860,monitor_w*0.9)", "min(560,monitor_h*0.8)" },
 })
 
 -- Match browser dialog titles exactly, so regular browser windows stay tiled.

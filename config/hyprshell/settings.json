@@ -8,8 +8,10 @@
     ],
     "workspaceOverrides": {
       "1": true,
-      "2": true,
-      "3": false
+      "2": false,
+      "3": false,
+      "4": false,
+      "5": false
     },
     "adaptiveColors": true,
     "randomVibrantColors": true,
@@ -366,7 +368,11 @@
   ],
   "hyprland": {
     "touchpadNaturalScroll": true,
-    "tapToClick": true
+    "tapToClick": true,
+    "gapsOutTop": 5,
+    "gapsOutBottom": 5,
+    "gapsOutLeft": 5,
+    "gapsOutRight": 5
   },
   "locking": {
     "enabled": true,
