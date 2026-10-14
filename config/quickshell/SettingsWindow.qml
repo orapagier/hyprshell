@@ -48,7 +48,7 @@ FloatingWindow {
         return "Changes save automatically";
     }
     onDraftChanged: { Style.Theme.preferences = draft.accessibility || {}; if (editingSession) autoSave.restart(); }
-    Component.onCompleted: Style.Theme.preferences = draft.accessibility || {}
+    Component.onCompleted: { Style.Theme.preferences = draft.accessibility || {}; searchIndexer.running = true; }
     onVisibleChanged: {
         if (visible) Qt.callLater(focusSearch);
         else if (editingSession && dirty) apply();
@@ -62,6 +62,8 @@ FloatingWindow {
     property var scrollPositions: ({})
     property int previousSection: -1
     property string searchQuery: ""
+    property var searchCaptions: ({})
+    property bool searchIndexLoaded: false
     property int searchResultIndex: -1
     onSearchResultsChanged: {
         searchResultIndex = searchResults.length ? 0 : -1;
@@ -127,8 +129,21 @@ FloatingWindow {
     readonly property var barNavigation: draft.items.map((item, index) => ({section: index, title: names[item.id] || item.id, symbol: symbols[item.id] || "󰒓", keywords: "bar item " + item.id, itemEnabled: item.enabled}))
     readonly property var searchResults: navigation.reduce((pages, group) => pages.concat(matchingPages(group.pages)), []).concat(matchingPages(barNavigation))
     function matchingPages(pages) {
-        let query = searchQuery.trim().toLowerCase();
-        return pages.filter(page => !query || (page.title + " " + page.keywords).toLowerCase().includes(query));
+        let query = searchQuery.toLowerCase().replace(/\s+/g, " ").trim();
+        return pages.filter(page => {
+            let captions = searchCaptions[page.section >= 0 ? "*" : String(page.section)] || [];
+            let text = [page.title, page.keywords].concat(captions).join(" ").toLowerCase().replace(/\s+/g, " ");
+            return !query || text.includes(query);
+        });
+    }
+    Process {
+        id: searchIndexer
+        command: ["python3", decodeURIComponent(Qt.resolvedUrl("settings/search.py").toString().replace(/^file:\/\//, ""))]
+        stdout: StdioCollector { onStreamFinished: {
+            try { window.searchCaptions = JSON.parse(text); window.searchIndexLoaded = true; }
+            catch (error) { console.warn("Settings caption search index could not be loaded; page names and keywords remain searchable."); }
+        } }
+        stderr: StdioCollector {}
     }
     onSectionChanged: {
         if (editorScroll.contentItem) scrollPositions[previousSection] = editorScroll.contentItem.contentY;

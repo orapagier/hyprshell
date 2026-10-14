@@ -45,7 +45,7 @@ ShellRoot {
                 let search = test.control("settingsSearch");
                 if (!search.activeFocus) { test.fail("search did not receive focus on open"); return; }
                 search.text = "keyboard";
-                if (editor.searchResults.length !== 2) { test.fail("keyword search lost a destination"); return; }
+                if (editor.searchResults.length < 2 || !editor.searchResults.some(page => page.section === -9) || !editor.searchResults.some(page => page.section === -6)) { test.fail("keyword search lost a destination"); return; }
                 if (editor.searchResultIndex !== 0 || !test.control("settingsNav-9").keyboardSelected) { test.fail("first match was not automatically selected"); return; }
                 keyboard.keyClick(Qt.Key_Down, Qt.NoModifier, 0);
                 if (editor.searchResultIndex !== 1 || !search.activeFocus) { test.fail("Down did not select next match while retaining search focus"); return; }
@@ -80,7 +80,7 @@ ShellRoot {
                 editor.section = editor.draft.items.findIndex(item => item.id === "audio");
                 if (!editor.barItemsExpanded) { test.fail("selecting preview item did not reveal navigation"); return; }
                 test.control("settingsSearch").text = "bluetooth";
-                if (editor.searchResults.length !== 1 || editor.searchResults[0].section < 0) { test.fail("bar items missing from search"); return; }
+                if (!editor.searchResults.some(page => page.section >= 0 && page.title === "Bluetooth")) { test.fail("bar items missing from search"); return; }
                 test.control("settingsSearchClear").clicked();
                 editor.section = -2;
                 test.phase = 7;

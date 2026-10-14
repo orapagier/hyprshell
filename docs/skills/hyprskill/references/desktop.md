@@ -16,7 +16,7 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | Menus | `quickshell/*Menu.qml`, `MenuController.qml`, `MenuPopover.qml` |
 | Shortcut guide / Super+K | `quickshell/KeybindingsMenu.qml`, `KeybindingsGuide.js`; preserves every runtime binding, with submap/trigger labels plus scoped shell controls and configured Kitty copy/paste; independent of the narrower Settings editor; `tests/test_keybindings_guide.py` audits Lua registration/remaps without executing actions |
 | Notifications | `quickshell/NotificationInbox.qml`, `NotificationCard.qml`; Quickshell owns `org.freedesktop.Notifications`; inbox history uses `Quickshell.statePath("notifications.json")` |
-| Settings UI | `quickshell/Settings*.qml`, `SettingsModel.js`, `SettingsStore.qml` |
+| Settings UI / search | `quickshell/Settings*.qml`, `SettingsModel.js`, `SettingsStore.qml`; `settings/search.py` indexes static headings/subheadings/control captions from page/component sources and helper metadata without loading pages; source-map coverage and native matching/navigation in `test_settings_search*.py` |
 | Settings transactions and schema | `quickshell/settings/backend.py`, `defaults.json`; checkout `docs/settings.md` explains inheritance and extension points |
 | Application colors, font, cursor | `SettingsTheme.qml`, `quickshell/settings/theme.py`, `hyprshell/theme.json`; GTK 3/4, GSettings, UWSM environment, and live cursor update |
 | Default apps and login startup | `SettingsApplications.qml`, `quickshell/settings/applications.py`, `hyprshell/applications.json`; GIO discovery, MIME associations, XDG autostart overrides; setup restores saved IDs and skips missing apps |

@@ -23,12 +23,27 @@ sidebar labels **Appearance**, **Windows**, **Applications**, **Keyboard shortcu
 and **Cleanup** lead to the existing application theme, Hyprland, default apps,
 keybindings, and system cleanup controls. **Bar items** expands individual module
 editors and opens automatically when a preview item is selected. Search matches
-page labels and related terms (for example, "touchpad" or "backup"), including
-collapsed bar items. **Ctrl+F** focuses search; **Enter** opens the first match;
+page labels, related terms, card headings/subheadings and control captions,
+including collapsed bar items and pages that have never been opened.
+For example, **System updates** finds Updates & recovery, and **Popdown glass**
+finds Bar & layout and individual bar-item editors. Matching ignores case and
+repeated whitespace. **Ctrl+F** focuses search; **Up/Down** select a result;
+**Enter** opens the selected match;
 **Escape** or the clear button clears the query. Browsing and searching do not
 write preferences. Each page keeps its scroll position within the current window.
 The bar preview appears within bar and item pages. Control feedback and the short
 page fade honor an explicit disabled Hyprland animation preference.
+
+`settings/search.py` reads captions from installed QML source and static helper
+metadata once when Settings is created. It follows nested component sources,
+including model-defined labels, without evaluating QML or importing/executing
+page helpers. No matched page is instantiated merely by typing, and indexing
+does not request administrator access, probe devices or read saved preference
+values. Caption edits are picked up when Settings is recreated. Page names and
+keywords remain available if indexing fails. The source ownership map covers
+every navigation page and is checked by `test_settings_search.py`; native
+`test_settings_search_ui.py` verifies both example searches, Enter navigation,
+case/spacing normalization and unopened-page matches without preference writes.
 
 **Devices → Network** manages NetworkManager's saved connections. It shows
 active profiles and cached internet connectivity, filters by name/type, opens
