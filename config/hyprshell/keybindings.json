@@ -5,7 +5,7 @@
       "id": "17345483cff94afba0fa6baa28a5f898",
       "original": "",
       "shortcut": "ALT + Q",
-      "description": "Reload Hypershell",
+      "description": "Reload Hyprland and Quickshell",
       "mode": "command",
       "command": "quickshell ipc --path ~/.config/quickshell call bar reload"
     },

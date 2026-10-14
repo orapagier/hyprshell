@@ -617,7 +617,8 @@ keybindings changes the behavior described here.
 | `Super+Shift+M` | End the Hyprland session. |
 
 The saved shortcut customizations in this checkout also bind `Alt+Q` to reload
-Hyprshell. Use `Super+K` to inspect active shortcuts after customizations. The
+Hyprland, then Quickshell, so saved shortcuts and shell changes activate together.
+Use `Super+K` to inspect active shortcuts after customizations. The
 Alt menu shortcuts work while the topbar is hidden.
 
 Playback keybindings use `playerctl`, included in the base installation. Brightness bindings depend on the system's backlight

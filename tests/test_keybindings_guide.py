@@ -16,13 +16,15 @@ local rows = {}
 local function normalize(keys)
     return keys:upper():gsub('%s+', '')
 end
-local proxy = setmetatable({}, {
-    __index = function(self) return self end,
-    __call = function() return {} end
-})
-hl = {dsp = proxy}
+local function dispatcher(path)
+    return setmetatable({}, {
+        __index = function(_, key) return dispatcher(path == '' and key or path .. '.' .. key) end,
+        __call = function(_, arguments) return {dispatcher = path, arguments = arguments} end
+    })
+end
+hl = {dsp = dispatcher('')}
 hl.bind = function(keys, action, options)
-    local row = {keys = keys, options = options or {}, enabled = true}
+    local row = {keys = keys, action = action, options = options or {}, enabled = true}
     row.set_enabled = function(self, enabled) self.enabled = enabled end
     table.insert(rows, row)
     return row
@@ -40,9 +42,11 @@ bindings.apply()
 for _, row in ipairs(rows) do
     if row.enabled then
         local options = row.options
+        local action = type(row.action) == 'table' and row.action or {dispatcher = 'lua callback'}
         io.write(row.keys, '\t', options.description or '', '\t',
             tostring(options.release or false), '\t', tostring(options.repeating or false), '\t',
-            tostring(options.mouse or false), '\t', tostring(options.locked or false), '\n')
+            tostring(options.mouse or false), '\t', tostring(options.locked or false), '\t',
+            action.dispatcher, '\t', type(action.arguments) == 'string' and action.arguments or '', '\n')
     end
 end
 '''
@@ -54,16 +58,26 @@ def configured_bindings(config):
                             text=True, capture_output=True, check=True, timeout=10)
     rows = []
     for line in result.stdout.splitlines():
-        keys, description, release, repeat, mouse, locked = line.split('\t')
+        keys, description, release, repeat, mouse, locked, dispatcher, argument = line.split('\t')
         parts = [p.strip() for p in keys.split('+')]
         mask = sum({'SUPER': 64, 'CTRL': 4, 'ALT': 8, 'SHIFT': 1}[p] for p in parts[:-1])
         rows.append(dict(key=parts[-1], modmask=mask, description=description,
                          release=release == 'true', repeat=repeat == 'true',
-                         mouse=mouse == 'true', locked=locked == 'true'))
+                         mouse=mouse == 'true', locked=locked == 'true',
+                         dispatcher=dispatcher, arg=argument))
     return rows
 
 
 class KeybindingsGuideTests(unittest.TestCase):
+    def test_projection_and_pseudotiling_invoke_the_correct_actions(self):
+        rows = configured_bindings(ROOT / 'config')
+        by_key = {(r['modmask'], r['key'].upper()): r for r in rows}
+        projection = by_key[(64, 'P')]
+        self.assertEqual(projection['dispatcher'], 'exec_cmd')
+        self.assertEqual(projection['arg'], '"$HOME/.local/bin/hyprshell-shortcut" displays')
+        self.assertEqual(by_key[(65, 'P')]['dispatcher'], 'window.pseudo')
+        self.assertEqual(by_key[(8, 'S')]['arg'], '"$HOME/.local/bin/hyprshell-shortcut" settings')
+
     def test_every_configured_binding_survives_guide_and_remaps_are_respected(self):
         rows = configured_bindings(ROOT / 'config')
         combinations = [(r['modmask'], r['key'].upper()) for r in rows]

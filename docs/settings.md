@@ -517,6 +517,14 @@ An IPC error stays visible even when local entries or a previous desktop list
 remain available. No configured shortcuts are filtered through the narrower
 Settings shortcut editor's remapping rules.
 
+**Alt+Q** reloads Hyprland first, then Quickshell through the existing
+`bar.reload` IPC action. This activates saved compositor shortcuts as well as
+shell changes. Repeated requests while the compositor reload is running are
+ignored. The compositor command has a 15-second limit; if it fails, the shell
+still reloads and the failure is logged. The existing shortcut command remains
+valid, so an older active Alt+Q binding gains the combined action once Quickshell
+loads the updated shell code.
+
 Preferences live in `hyprshell/keybindings.json`; the backend generates
 `hyprshell/keybindings.lua`. The bundled `hypr/keybindings.lua` captures original
 binding actions while loading the main Lua config, then applies overrides at

@@ -198,6 +198,18 @@ ShellRoot {
             barVisibilityWriter.running = true;
         }
     }
+    Process {
+        id: desktopReloader
+        command: ["timeout", "15", "hyprctl", "reload"]
+        stderr: StdioCollector {
+            onStreamFinished: if (text.trim()) console.warn("Hyprland reload: " + text.trim())
+        }
+        onExited: (code, status) => {
+            if (code !== 0) console.warn("Hyprland reload failed (exit " + code + "); reloading Quickshell.");
+            // Reload Quickshell after Hyprland has loaded the saved shortcuts.
+            Quickshell.reload(true);
+        }
+    }
     IpcHandler {
         target: "bar"
         function ready(): bool {
@@ -205,7 +217,9 @@ ShellRoot {
             for (let panel of panels.instances) if (panel.visible && !panel.backingWindowVisible) return false;
             return true;
         }
-        function reload(): void { Quickshell.reload(true); }
+        function reload(): void {
+            if (!desktopReloader.running) desktopReloader.running = true;
+        }
         function settings(): void {
             for (let panel of panels.instances) panel.closeMenu();
             settingsController.open();
