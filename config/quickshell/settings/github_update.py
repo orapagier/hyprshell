@@ -129,7 +129,7 @@ def preview(repo, choices=None, previous=None):
             old = compatibility.packages(repo / package_file)
             assessment = compatibility.assess(manifest, info, wanted)
             missing = assessment['missingPackages']
-            install_command = system_packages.install_command(missing, distro=info['distribution']) if missing and info['distribution'] in ('arch', 'fedora') else []
+            install_command = system_packages.background_install_command(missing, distro=info['distribution']) if missing and info['distribution'] in ('arch', 'fedora') else []
             platform_manifest = {**manifest, 'minimum': {}, 'required_major': {}, 'incompatible': {}}
             platform_ok = compatibility.assess(platform_manifest, info)['compatible']
             if merge_needed and not blockers:
@@ -187,7 +187,7 @@ def reviewed(repo, token, require_ready=True):
             time.time() - review['created'] > 3600 or require_ready and not review['result']['ready']):
         raise ValueError('This preview has expired or cannot be applied. Check for updates again.')
     if review.get('dependenciesRequested'):
-        raise ValueError('Dependency installation was requested. Check again after the terminal finishes.')
+        raise ValueError('Dependency installation was requested. Check again after dependency installation finishes.')
     if (git(repo, 'rev-parse', 'HEAD') != review['base'] or
             update_merge.checkout_fingerprint(repo) != review['checkout_fingerprint'] or
             source(repo) != review['source'] or fingerprints(repo) != review['fingerprint']):
@@ -195,40 +195,98 @@ def reviewed(repo, token, require_ready=True):
     return review
 
 
+def dependency_request(repo, token):
+    review = reviewed(repo, token, require_ready=False)
+    if not review['result'].get('canInstallDependencies'):
+        raise ValueError('Resolve the update review before installing dependencies.')
+    info = compatibility.machine()
+    if info != review['machine']:
+        raise ValueError('Your system changed after the preview. Check again before installing dependencies.')
+    # Read only package data from the exact reviewed tree; no candidate code.
+    with tempfile.TemporaryDirectory(prefix='hyprshell-dependencies-') as temp:
+        candidate = Path(temp)
+        archive(repo, review['tree'], candidate)
+        package_file = 'packages-fedora.txt' if info['distribution'] == 'fedora' else 'packages.txt'
+        wanted = compatibility.packages(candidate / package_file)
+        missing = compatibility.missing_packages(wanted, info['distribution'])
+    if missing != review['result']['missingPackages'] or not missing or not set(missing) <= set(wanted):
+        raise ValueError('The missing dependencies changed. Check again to review the current requirements.')
+    command = system_packages.background_install_command(missing, distro=info['distribution'])
+    if not all(shutil.which(executable) for executable in command[:2]):
+        raise ValueError('Desktop administrator authentication or the system package manager is unavailable. Check polkit and your desktop authorization agent.')
+    return review, wanted, missing, command
+
+
 def install_dependencies(repo, token, acknowledged=False):
     if not acknowledged:
         raise ValueError('Review the missing dependencies and confirm installation first.')
+    state = deployment.roots()['state']
+    worker = state / 'dependency-worker'
+    with (state / 'update-job.lock').open('a') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise ValueError('An update or dependency installation is already running.') from error
+        with repository_lock(repo):
+            review, _, missing, _ = dependency_request(repo, token)
+            if worker.exists():
+                shutil.rmtree(worker)
+            shutil.copytree(Path(__file__).parent, worker, ignore=shutil.ignore_patterns('__pycache__'))
+            result = {'ok': True, 'operation': 'dependencies', 'running': True,
+                      'dependenciesStarted': True, 'packages': missing, 'output': '',
+                      'dependencyFullUpgrade': review['machine']['distribution'] == 'arch',
+                      'message': 'Waiting for desktop administrator authorization…'}
+            deployment.atomic_json(state / 'update-status.json', result)
+        # Release the repository lock before the child revalidates its preview.
+        fd = lock.fileno()
+        try:
+            with (state / 'dependency-worker.log').open('w') as log:
+                subprocess.Popen([sys.executable, str(worker / 'github_update.py'), '--dependency-worker', token,
+                                  '--lock-fd', str(fd)], start_new_session=True, pass_fds=(fd,),
+                                 stdin=subprocess.DEVNULL, stdout=log, stderr=log)
+        except BaseException:
+            deployment.atomic_json(state / 'update-status.json', {**result, 'ok': False, 'running': False,
+                                   'message': 'Could not start dependency installation. Check again to retry.'})
+            raise
+    return result
+
+
+def run_dependencies(repo, token):
     with repository_lock(repo):
-        review = reviewed(repo, token, require_ready=False)
-        if not review['result'].get('canInstallDependencies'):
-            raise ValueError('Resolve the update review before installing dependencies.')
-        info = compatibility.machine()
-        if info != review['machine']:
-            raise ValueError('Your system changed after the preview. Check again before installing dependencies.')
-        # Read package names as data from the exact reviewed tree. Never run
-        # installer code from an incoming revision to install its dependencies.
-        with tempfile.TemporaryDirectory(prefix='hyprshell-dependencies-') as temp:
-            candidate = Path(temp)
-            archive(repo, review['tree'], candidate)
-            package_file = 'packages-fedora.txt' if info['distribution'] == 'fedora' else 'packages.txt'
-            wanted = compatibility.packages(candidate / package_file)
-            missing = compatibility.missing_packages(wanted, info['distribution'])
-        if missing != review['result']['missingPackages'] or not missing or not set(missing) <= set(wanted):
-            raise ValueError('The missing dependencies changed. Check again to review the current requirements.')
-        command = system_packages.install_command(missing, distro=info['distribution'])
-        if not shutil.which('kitty') or not shutil.which(command[1]) or not shutil.which('sudo'):
-            raise ValueError('Open a terminal and run: ' + shlex.join(command) + '. Then check for updates again.')
-        # No shell, automatic yes, new repositories, or desktop deployment.
-        # sudo and the package manager keep their normal interactive prompts.
-        result = subprocess.run(['kitty', '--detach', '--hold', '--title', 'Hyprshell update dependencies', *command],
-                                capture_output=True, text=True, timeout=15)
-        if result.returncode:
-            raise ValueError('Could not open the installation terminal. Run: ' + shlex.join(command) + '. Then check again.')
+        review, wanted, missing, command = dependency_request(repo, token)
         review['dependenciesRequested'] = True
         review['result']['ready'] = False
         deployment.atomic_json(deployment.roots()['state'] / 'update-preview.json', review)
-    return {'ok': True, 'dependenciesStarted': True,
-            'message': 'Installation terminal opened. Review the package transaction and authenticate there. When it finishes or is cancelled, choose Check again; the desktop update has not been applied.'}
+    state = deployment.roots()['state']
+    result = {'ok': True, 'operation': 'dependencies', 'running': True, 'packages': missing,
+              'dependencyFullUpgrade': review['machine']['distribution'] == 'arch', 'output': '',
+              'message': 'Waiting for desktop administrator authorization…'}
+    deployment.atomic_json(state / 'update-status.json', result)
+    lines, last_write = [], 0.0
+    # pkexec opens the existing desktop password popup. Hyprshell never reads
+    # passwords. Confirmation in Settings authorizes this noninteractive job.
+    with subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, text=True, errors='replace', bufsize=1,
+                          env=dict(os.environ, LC_ALL='C')) as process:
+        for line in process.stdout:
+            print(line, end='', flush=True)
+            lines.append(line[-2000:].rstrip()); lines = lines[-60:]
+            result.update(output='\n'.join(lines), message='Installing update dependencies…')
+            if time.monotonic() - last_write >= 0.25:
+                deployment.atomic_json(state / 'update-status.json', result)
+                last_write = time.monotonic()
+        code = process.wait()
+    remaining = compatibility.missing_packages(wanted, review['machine']['distribution']) if code == 0 else missing
+    result.update(running=False, ok=code == 0 and not remaining, exitCode=code, remainingPackages=remaining)
+    if result['ok']:
+        result['message'] = 'Dependencies installed. Rechecking update compatibility…'
+    elif code in (126, 127):
+        result['message'] = 'Administrator authorization was cancelled or denied. The desktop update was not applied. Check again to retry.'
+    elif code == 0:
+        result['message'] = 'Some dependencies are still missing: ' + ', '.join(remaining) + '. Check again before syncing.'
+    else:
+        result['message'] = 'Dependency installation failed. Review the output below, then check again. The desktop update was not applied.'
+    return result
 
 
 def apply(repo, token):
@@ -326,7 +384,10 @@ def status():
         with (state / 'update-job.lock').open('a') as handle:
             try:
                 fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                result = {'ok': False, 'running': False, 'message': 'The update was interrupted. Inspect the local update log and backup before retrying.'}
+                message = ('Dependency installation was interrupted. Review its output and check again before retrying.'
+                           if result.get('operation') == 'dependencies' else
+                           'The update was interrupted. Inspect the local update log and backup before retrying.')
+                result = {**result, 'ok': False, 'running': False, 'message': message}
             except BlockingIOError:
                 pass
     return result
@@ -342,6 +403,7 @@ def main():
     parser.add_argument('--choices-json', default='{}')
     actions.add_argument('--status', action='store_true')
     actions.add_argument('--worker', metavar='TOKEN')
+    actions.add_argument('--dependency-worker', metavar='TOKEN')
     parser.add_argument('--acknowledge', action='store_true')
     parser.add_argument('--lock-fd', type=int)
     args = parser.parse_args()
@@ -358,6 +420,8 @@ def main():
             result = start(repository(), args.apply, args.acknowledge)
         elif args.install_dependencies:
             result = install_dependencies(repository(), args.install_dependencies, args.acknowledge)
+        elif args.dependency_worker:
+            result = run_dependencies(repository(), args.dependency_worker)
         else:
             result = apply(repository(), args.worker)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError, KeyError) as error:
@@ -368,7 +432,11 @@ def main():
         else:
             message = friendly_error(error) if isinstance(error, (OSError, subprocess.SubprocessError)) else str(error)
         result = {'ok': False, 'message': message}
-    if args.worker:
+    if args.dependency_worker:
+        path = deployment.roots()['state'] / 'update-status.json'
+        previous = json.loads(path.read_text()) if path.exists() else {}
+        result = {**previous, **result, 'operation': 'dependencies'}
+    if args.worker or args.dependency_worker:
         result['running'] = False
         deployment.atomic_json(deployment.roots()['state'] / 'update-status.json', result)
     print(json.dumps(result))

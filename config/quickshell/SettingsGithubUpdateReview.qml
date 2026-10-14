@@ -16,7 +16,10 @@ Popup {
     property bool applying: false
     property bool requesting: false
     property bool dependenciesStarted: false
-    readonly property bool busy: requesting || applying
+    property bool installingDependencies: false
+    property string dependencyOutput: ""
+    property bool checkAfterStatus: false
+    readonly property bool busy: requesting || applying || installingDependencies
     signal requestAction(var args)
     property string action: ""
     anchors.centerIn: parent
@@ -24,7 +27,7 @@ Popup {
     height: Math.min(700, hostHeight - 50)
     padding: 22
     modal: true
-    closePolicy: busy ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    closePolicy: requesting || applying ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
     background: Rectangle { color: Style.Theme.surface; radius: 14; border.color: Style.Theme.controlBorder }
     function run(args) {
         if (requesting) return;
@@ -32,6 +35,7 @@ Popup {
         if (action === "--preview" || action === "--resolve") {
             dependencyApproval.checked = false;
             dependenciesStarted = false;
+            dependencyOutput = "";
         }
         if (action === "--preview") {
             review = ({});
@@ -52,7 +56,7 @@ Popup {
         return rows.length > 0 && rows.every(row => conflictChoices[row.path] === "local" || conflictChoices[row.path] === "github");
     }
     readonly property bool choicesReviewed: (review.conflicts || []).every(row => row.choice && row.choice === conflictChoices[row.path])
-    onOpened: run(["--preview"])
+    onOpened: { checkAfterStatus = true; run(["--status"]); }
     contentItem: ColumnLayout {
         spacing: 12
         Label { text: "Sync from GitHub"; font.pixelSize: 20; font.bold: true; color: Style.Theme.text }
@@ -109,9 +113,9 @@ Popup {
             }
             SettingsCard {
                 Layout.fillWidth: true
-                visible: (dialog.review.missingPackages || []).length > 0
+                visible: (dialog.review.missingPackages || []).length > 0 || dialog.dependenciesStarted
                 title: "Install missing dependencies"
-                subtitle: (dialog.review.dependencyNote || "") + " The package manager will show the complete transaction, including additional dependencies, before you confirm it."
+                subtitle: (dialog.review.dependencyNote || "") + " Your confirmation allows installation of these packages and their required dependencies. Administrator authorization uses the desktop password prompt."
                 Label {
                     Layout.fillWidth: true; wrapMode: Text.Wrap
                     text: (dialog.review.missingPackages || []).join(", ")
@@ -128,7 +132,7 @@ Popup {
                 }
                 Label {
                     Layout.fillWidth: true; wrapMode: Text.Wrap
-                    text: dialog.dependenciesStarted ? "Finish or cancel the terminal transaction, then choose Check again to recheck compatibility before syncing." : dialog.review.canInstallDependencies ? "Install here, or run the command in your terminal. Then choose Check again. Installing dependencies does not apply the desktop update." : "Resolve the other update review issues and review your conflict choices before installing here. You can also use the command above manually."
+                    text: dialog.installingDependencies ? "Installation runs in the background and continues if you close this window. Compatibility is checked again after success." : dialog.dependenciesStarted ? "Review the result above and the output below. Choose Check again before retrying or syncing." : dialog.review.canInstallDependencies ? "Confirm below to install in the background. The desktop update is applied only after a new compatibility review." : "Resolve the other update review issues and review your conflict choices before installing here."
                     color: Style.Theme.muted
                 }
                 CheckBox {
@@ -141,9 +145,22 @@ Popup {
                 }
                 SettingsButton {
                     objectName: "githubDependencyInstall"
-                    text: "Install in terminal"
+                    text: dialog.installingDependencies ? "Installing…" : "Install dependencies"
                     enabled: !dialog.busy && !dialog.dependenciesStarted && dialog.review.canInstallDependencies === true && dependencyApproval.checked
                     onClicked: dialog.run(["--install-dependencies", dialog.review.token, "--acknowledge"])
+                }
+                BusyIndicator { running: dialog.installingDependencies; visible: running }
+                ScrollView {
+                    Layout.fillWidth: true; Layout.preferredHeight: 160
+                    visible: dialog.dependencyOutput !== ""
+                    clip: true
+                    TextArea {
+                        objectName: "githubDependencyOutput"
+                        text: dialog.dependencyOutput; textFormat: TextEdit.PlainText
+                        readOnly: true; selectByMouse: true; wrapMode: TextEdit.Wrap
+                        color: Style.Theme.text; font.family: "monospace"
+                        background: Rectangle { color: Style.Theme.field; radius: 6 }
+                    }
                 }
             }
             Repeater {
@@ -254,7 +271,7 @@ Popup {
                 enabled: !dialog.busy && !dialog.dependenciesStarted && dialog.review.ready === true && dialog.choicesReviewed && acknowledgement.checked
                 onClicked: dialog.run(["--apply", dialog.review.token, "--acknowledge"])
             }
-            SettingsButton { text: "Close"; enabled: !dialog.busy; onClicked: dialog.close() }
+            SettingsButton { objectName: "githubUpdateClose"; text: "Close"; enabled: !dialog.requesting && !dialog.applying; onClicked: dialog.close() }
         }
     }
 }

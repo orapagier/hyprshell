@@ -30,6 +30,15 @@ def install_command(packages, *, distro=None):
     return ['sudo', 'pacman', '-Syu', '--needed', *packages]
 
 
+def background_install_command(packages, *, distro):
+    # Only the system package manager runs with privileges, never user Python.
+    command = install_command(packages, distro=distro)[1:]
+    command[0] = '/usr/bin/' + command[0]
+    command.insert(2 if distro == 'fedora' else 3,
+                   '--assumeyes' if distro == 'fedora' else '--noconfirm')
+    return ['/usr/bin/pkexec', *command]
+
+
 def metadata():
     if distribution() == 'fedora':
         return {'name': 'Fedora', 'news': 'https://fedoramagazine.org/',

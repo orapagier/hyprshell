@@ -60,13 +60,13 @@ Item {
         function test_dependencyInstallationNeedsSeparateConsentAndRecheck() {
             dialog.dependenciesStarted = false;
             dialog.review = {ready: false, token: "dependencies", base: "000000000000", target: "111111111111",
-                             missingPackages: ["new-library"], dependencyCommand: "sudo pacman -Syu --needed new-library",
+                             missingPackages: ["new-library"], dependencyCommand: "/usr/bin/pkexec /usr/bin/pacman -Syu --needed --noconfirm new-library",
                              dependencyFullUpgrade: true, canInstallDependencies: true};
             let install = find(dialog.contentItem, "githubDependencyInstall");
             let approval = find(dialog.contentItem, "githubDependencyApproval");
             let command = find(dialog.contentItem, "githubDependencyCommand");
             verify(install !== null); verify(approval !== null);
-            compare(command.text, "sudo pacman -Syu --needed new-library");
+            compare(command.text, "/usr/bin/pkexec /usr/bin/pacman -Syu --needed --noconfirm new-library");
             verify(approval.text.indexOf("full system upgrade") !== -1);
             verify(!install.enabled);
             approval.checked = true;
@@ -77,8 +77,14 @@ Item {
             compare(requests.signalArguments[0][0][1], "dependencies");
             compare(requests.signalArguments[0][0][2], "--acknowledge");
             dialog.dependenciesStarted = true;
+            dialog.installingDependencies = true;
+            verify(dialog.busy);
+            verify(find(dialog.contentItem, "githubUpdateClose").enabled);
+            dialog.dependencyOutput = "Downloading packages";
+            compare(find(dialog.contentItem, "githubDependencyOutput").text, "Downloading packages");
             verify(!install.enabled);
             verify(!find(dialog.contentItem, "githubUpdateConfirm").enabled);
+            dialog.installingDependencies = false;
             dialog.run(["--preview"]);
             verify(!approval.checked);
             verify(!dialog.dependenciesStarted);

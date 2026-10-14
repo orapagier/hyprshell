@@ -75,21 +75,33 @@ separate from this user-level update.
 
 When required packages are missing, the preview lists them and shows a copyable
 installation command. After resolving file conflicts and other review issues,
-select the separate package-installation consent and choose **Install in terminal**.
-Hyprshell opens Kitty with `sudo dnf install …` on Fedora or
-`sudo pacman -Syu --needed …` on Arch. Arch consent explicitly includes a full
-system upgrade, avoiding partial upgrades. Normal authentication and package-manager
-confirmation remain interactive; the terminal shows the complete transaction,
-including transitive dependencies and any additional changes. No automatic yes
-flag is used and no repositories are enabled by this action.
+select the separate package-installation consent and choose **Install dependencies**.
+A detached worker invokes the system package manager through `pkexec`, using
+the existing desktop password popup when authorization is needed. No terminal
+opens and Hyprshell never reads or stores the password. Only the system package
+manager runs with privileges; incoming Python or shell scripts do not.
 
-Opening the terminal does not mean installation succeeded and never applies the
-desktop update. Finish or cancel the transaction, then choose **Check again**.
-The old preview becomes unusable after launching installation; the new preview
-checks current packages and runtime versions before offering **Sync now**.
-If installation fails, is cancelled or the enabled repositories cannot supply a
-package, the missing requirements remain visible and the desktop update stays
-blocked. If Kitty is unavailable, run the displayed command manually and recheck.
+Confirmation authorizes the listed packages and their required dependencies.
+Arch consent explicitly includes a full system upgrade, avoiding partial
+upgrades. Fedora runs `dnf install --assumeyes`; Arch runs
+`pacman -Syu --needed --noconfirm`. These automatic confirmation flags let the
+approved operation finish in the background. The list shows requested missing
+requirements, not a complete resolver transaction; an Arch full upgrade can
+update additional system packages. This action does not enable new repositories.
+
+Progress and recent package-manager output appear in the dialog. You can close
+Settings while installation continues and reopen Sync from GitHub to see its
+status. A shared job lock prevents overlapping dependency and desktop update
+jobs. The worker log is local at `hyprshell/dependency-worker.log` under the state
+root and is excluded from sync. Cancellation of the authorization popup,
+package-manager failure and interrupted workers are reported as unsuccessful;
+starting the worker is never reported as a completed installation.
+
+On success Hyprshell verifies the required packages and automatically runs a new
+compatibility preview before offering **Sync now**. It does not apply the desktop
+update automatically. On failure, review the output and choose **Check again**
+before retrying. The old preview becomes unusable when the package worker begins.
+If authorization is unavailable, check polkit and the desktop authorization agent.
 
 Preview reads candidate data without running its Python, Lua or QML. At apply,
 the backend verifies the preview token, checkout, developer source and live file

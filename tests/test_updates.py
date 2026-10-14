@@ -8,7 +8,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+import io
+import fcntl
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'config/quickshell/settings'))
@@ -356,8 +358,8 @@ class GitUpdateTests(unittest.TestCase):
         self.git('reset', '--hard', self.base)
 
     def test_dependency_preview_commands_for_both_distros(self):
-        for distro, command in [('fedora', 'sudo dnf install new-library'),
-                                ('arch', 'sudo pacman -Syu --needed new-library')]:
+        for distro, command in [('fedora', '/usr/bin/pkexec /usr/bin/dnf install --assumeyes new-library'),
+                                ('arch', '/usr/bin/pkexec /usr/bin/pacman -Syu --needed --noconfirm new-library')]:
             self.dependency_candidate(distro)
             info = copy.deepcopy(INFO); info['distribution'] = distro
             info['release'] = 'rolling' if distro == 'arch' else '44'
@@ -371,33 +373,47 @@ class GitUpdateTests(unittest.TestCase):
 
     def test_dependency_install_requires_confirmation_and_fresh_review(self):
         self.dependency_candidate()
-        launches = []
-        actual_run = subprocess.run
-        def run(args, **kwargs):
-            if args[0] == 'kitty':
+        launches, installed = [], False
+        actual_popen = subprocess.Popen
+        def popen(args, **kwargs):
+            nonlocal installed
+            if '--dependency-worker' in args:
                 launches.append(args)
-                return subprocess.CompletedProcess(args, 0, '', '')
-            return actual_run(args, **kwargs)
-        with patch.object(compatibility, 'missing_packages', side_effect=lambda names, distro: list(names)), \
+                # The child must be able to revalidate immediately on startup.
+                with github_update.repository_lock(self.repo):
+                    pass
+                self.assertTrue(kwargs['start_new_session'])
+                self.assertTrue(kwargs['pass_fds'])
+                return MagicMock()
+            if args[0] == '/usr/bin/pkexec':
+                launches.append(args)
+                installed = True
+                process = MagicMock()
+                process.__enter__.return_value = process
+                process.stdout = io.StringIO('Resolving packages\nInstalled new-library\n')
+                process.wait.return_value = 0
+                return process
+            return actual_popen(args, **kwargs)
+        with patch.object(compatibility, 'missing_packages', side_effect=lambda names, distro: [] if installed else list(names)), \
              patch.object(github_update.shutil, 'which', return_value='/usr/bin/tool'), \
-             patch.object(github_update.subprocess, 'run', side_effect=run):
+             patch.object(github_update.subprocess, 'Popen', side_effect=popen):
             review = github_update.preview(self.repo)
             with self.assertRaisesRegex(ValueError, 'confirm installation'):
                 github_update.install_dependencies(self.repo, review['token'])
             self.assertEqual(launches, [])
             result = github_update.install_dependencies(self.repo, review['token'], True)
-            self.assertTrue(result['dependenciesStarted'])
-            self.assertEqual(launches, [['kitty', '--detach', '--hold', '--title', 'Hyprshell update dependencies',
-                                         'sudo', 'dnf', 'install', 'new-library']])
+            self.assertTrue(result['running'])
+            self.assertEqual(result['operation'], 'dependencies')
+            self.assertIn('--dependency-worker', launches[0])
+            finished = github_update.run_dependencies(self.repo, review['token'])
+            self.assertTrue(finished['ok'])
+            self.assertFalse(finished['running'])
+            self.assertIn('Installed new-library', finished['output'])
+            self.assertEqual(launches[1], ['/usr/bin/pkexec', '/usr/bin/dnf', 'install', '--assumeyes', 'new-library'])
             self.assertEqual(self.git('rev-parse', 'HEAD'), self.base)
             self.assertEqual((self.root / 'config/quickshell/shell.qml').read_text(), '// old')
             with self.assertRaisesRegex(ValueError, 'Check again'):
                 github_update.install_dependencies(self.repo, review['token'], True)
-            with self.assertRaisesRegex(ValueError, 'expired|Check again'):
-                github_update.reviewed(self.repo, review['token'])
-            # Cancellation/failure leaves the update blocked on a fresh check.
-            self.assertFalse(github_update.preview(self.repo)['ready'])
-        with patch.object(compatibility, 'missing_packages', return_value=[]):
             self.assertTrue(github_update.preview(self.repo)['ready'])
 
     def test_dependency_install_refuses_stale_unsupported_or_changed_requirements(self):
@@ -419,20 +435,67 @@ class GitUpdateTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'dependencies changed'):
                 github_update.install_dependencies(self.repo, review['token'], True)
 
-    def test_dependency_terminal_failure_preserves_review_for_retry(self):
+    def test_dependency_background_denial_failure_and_missing_authentication(self):
         self.dependency_candidate()
-        actual_run = subprocess.run
-        def run(args, **kwargs):
-            if args[0] == 'kitty':
-                return subprocess.CompletedProcess(args, 1, '', 'not available')
-            return actual_run(args, **kwargs)
+        actual_popen = subprocess.Popen
+        with patch.object(compatibility, 'missing_packages', side_effect=lambda names, distro: list(names)):
+            review = github_update.preview(self.repo)
+            with patch.object(github_update.shutil, 'which', return_value=None):
+                with self.assertRaisesRegex(ValueError, 'authentication.*unavailable'):
+                    github_update.install_dependencies(self.repo, review['token'], True)
+            for code, expected in [(126, 'cancelled or denied'), (1, 'installation failed'), (0, 'still missing')]:
+                def popen(args, **kwargs):
+                    if args[0] == '/usr/bin/pkexec':
+                        process = MagicMock(); process.__enter__.return_value = process
+                        process.stdout = io.StringIO('Transaction could not complete\n')
+                        process.wait.return_value = code
+                        return process
+                    return actual_popen(args, **kwargs)
+                with patch.object(github_update.shutil, 'which', return_value='/usr/bin/tool'), \
+                     patch.object(github_update.subprocess, 'Popen', side_effect=popen):
+                    result = github_update.run_dependencies(self.repo, review['token'])
+                    self.assertFalse(result['ok'])
+                    self.assertIn(expected, result['message'])
+                    self.assertIn('Transaction could not complete', result['output'])
+                review = github_update.preview(self.repo)
+                self.assertFalse(review['ready'])
+
+    def test_dependency_worker_launch_failure_is_not_left_running(self):
+        self.dependency_candidate()
+        actual_popen = subprocess.Popen
+        def popen(args, **kwargs):
+            if '--dependency-worker' in args:
+                raise OSError('simulated worker launch failure')
+            return actual_popen(args, **kwargs)
         with patch.object(compatibility, 'missing_packages', side_effect=lambda names, distro: list(names)), \
              patch.object(github_update.shutil, 'which', return_value='/usr/bin/tool'), \
-             patch.object(github_update.subprocess, 'run', side_effect=run):
+             patch.object(github_update.subprocess, 'Popen', side_effect=popen):
             review = github_update.preview(self.repo)
-            with self.assertRaisesRegex(ValueError, 'Run: sudo dnf install new-library'):
+            with self.assertRaisesRegex(OSError, 'simulated worker launch'):
                 github_update.install_dependencies(self.repo, review['token'], True)
+            result = github_update.status()
+            self.assertFalse(result['ok'])
+            self.assertFalse(result['running'])
             self.assertFalse(github_update.reviewed(self.repo, review['token'], require_ready=False).get('dependenciesRequested', False))
+
+    def test_dependency_jobs_share_update_lock_and_report_interruption(self):
+        self.dependency_candidate()
+        with patch.object(compatibility, 'missing_packages', side_effect=lambda names, distro: list(names)), \
+             patch.object(github_update.shutil, 'which', return_value='/usr/bin/tool'):
+            review = github_update.preview(self.repo)
+            state = deployment.roots()['state']
+            with (state / 'update-job.lock').open('a') as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with self.assertRaisesRegex(ValueError, 'already running'):
+                    github_update.install_dependencies(self.repo, review['token'], True)
+                deployment.atomic_json(state / 'update-status.json', {'operation': 'dependencies', 'ok': True,
+                                       'running': True, 'output': 'Downloading package', 'packages': ['new-library']})
+                self.assertTrue(github_update.status()['running'])
+            result = github_update.status()
+            self.assertFalse(result['running'])
+            self.assertFalse(result['ok'])
+            self.assertEqual(result['operation'], 'dependencies')
+            self.assertEqual(result['output'], 'Downloading package')
 
     def test_developer_updates_ignore_user_fork_and_tracking_branch(self):
         self.source_patch.stop()
