@@ -331,7 +331,7 @@ controls; no new configuration keys or startup services are introduced.
 
 ## Screen locking
 
-The Screen locking page selects a foreground Wayland locker command, an idle
+The Screen locking page selects a foreground Hyprland-compatible locker command, an idle
 period (0–240 whole minutes; 0 disables the timer), and locking before sleep.
 Automatic locking defaults to off. Existing preferences inherit these defaults.
 Lock now runs the last saved command without enabling automatic locking.
@@ -347,7 +347,7 @@ enabling/changing automatic locking. An existing Hypridle process is left alone
 and reported as a conflict; disable its user service/autostart before enabling
 Hyprshell management. The generated `hyprshell/hypridle.conf` belongs to Hyprshell;
 `hypr/hypridle.conf` and locker configuration files are preserved. This controller
-runs only with Hyprshell; it does not install a separate background service.
+runs for the lifetime of the Hyprshell session.
 
 The backend's `--lock` executes the configured argv directly and serializes
 foreground locker requests. `--idle` generates Hypridle configuration with only

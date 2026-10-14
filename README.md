@@ -2,7 +2,7 @@
 
 Hyprshell is a configurable desktop shell for **Hyprland on Arch Linux and Fedora Everything**, built
 with **Quickshell**. It brings the application launcher, status bar, desktop
-menus, notification inbox, and settings into one native Wayland interface.
+menus, notification inbox, and settings into one native Qt 6 interface.
 
 **hyprbar** is the name of Hyprshell's top bar. References to the “bar”,
 “top bar”, or “topbar” in this documentation mean hyprbar.
@@ -65,7 +65,7 @@ describe the established Arch installation unless stated otherwise.
 | Workspace controls | Switch between Hyprland workspaces. |
 | Media display | Playback information and a twelve-band audio spectrum captured from speaker output. |
 | Calendar | Date and time with a calendar menu; bundled holiday data covers the Philippines. |
-| Notification inbox | Persistent notifications, search, expansion, dismissal, and clearing without toast popups. |
+| Notifications | Persistent inbox with search, expansion, dismissal, and clearing; optional popups configured in Settings. |
 | Audio controls | Output and microphone volume, mute controls, and output selection. |
 | Wi-Fi | NetworkManager integration for wireless connections. |
 | Bluetooth | BlueZ integration with device controls and pairing prompts. |
@@ -79,9 +79,6 @@ describe the established Arch installation unless stated otherwise.
 The interface and service bindings use QML and JavaScript. A small C helper
 captures and analyzes audio for the spectrum; Python helpers handle settings
 validation, installation, cleanup, and GitHub sync.
-
-Hyprshell uses its own Quickshell bar, launcher, menus, and notification
-handler.
 
 The installer disables NetworkManager's separate `nm-applet` tray icon with a
 user autostart override in `config/autostart/nm-applet.desktop`. Hyprshell's
@@ -105,11 +102,10 @@ The supported installation target is:
 - Quickshell 0.3.2+, UWSM 0.27.0+ and Qt 6, installed if missing.
 - See [compatibility.json](compatibility.json) for supported systems, minimums
   and recorded baseline versions; newer versions are not automatically certified.
-- Graphics drivers suitable for a Wayland session.
+- Graphics drivers suitable for Hyprland.
 
-The installer uses official Arch repositories and pacman. It does not install
-an AUR helper. Other distributions may provide the underlying components, but
-the supplied installer supports Arch and traditional Fedora Everything 44 on x86_64.
+The installer uses official Arch repositories and pacman on Arch, and DNF on
+traditional Fedora Everything 44. Both targets use x86_64.
 
 Some modules depend on hardware: Bluetooth needs a supported adapter, battery
 information needs a battery exposed by the system, and brightness controls need
@@ -194,12 +190,10 @@ providers with pacman. The package and service stages consume the same plan.
 | Printing, scanning and backups | Retain tools for local/network/hotplug peripherals; CUPS is socket-activated; backup schedules and clipboard capture remain opt-in |
 
 This is dependency and compatibility planning across the whole installer.
-Hardware cannot determine a user's preferred browser, file manager or font,
-so those follow the desktop configuration rather than a guessed performance
-ranking. Optional tools are not started just because their packages are present.
-Conflicting backends are reported for deliberate migration; setup does not stop
-the user's network, remove another desktop or replace an audio/power policy to
-force installation. See [TLP's guidance on competing power daemons](https://linrunner.de/tlp/faq/conflicts.html).
+Browser, file manager and font choices follow the desktop configuration and
+saved preferences. Optional tools start according to their saved startup choices.
+Conflicting backends stop installation for deliberate migration, preserving the
+existing network, desktop and audio/power policies. See [TLP's guidance on competing power daemons](https://linrunner.de/tlp/faq/conflicts.html).
 
 Inaccessible system-service/package checks are shown as unavailable and full
 setup must be rerun from a normal system session. A TTY without a user D-Bus
@@ -210,8 +204,8 @@ services are enabled for the next login. Config-only updates skip system plannin
 
 Full setup includes media codecs and chooses acceleration packages from the
 detected GPU, independently of the CPU vendor. It supports desktops, laptops
-and hybrid graphics; it does not copy the author's Intel driver choice to every
-machine. [Hardware selection](tools/hardware_plan.py) reads kernel PCI/USB data
+and hybrid graphics, selecting drivers for each machine.
+[Hardware selection](tools/hardware_plan.py) reads kernel PCI/USB data
 without collecting serial numbers, network names or device addresses.
 
 | Detected hardware | Automatic selection |
@@ -273,17 +267,14 @@ It does not reboot the machine or restart the running desktop.
 
 Hyprshell is designed to coexist with an existing desktop, including KDE
 Plasma, GNOME, Xfce, Cinnamon, MATE, LXQt, or COSMIC, on a supported system.
-The installer has no step that uninstalls the existing desktop or replaces its
-session. It preserves the existing login manager and installs SDDM only when
-none is found. At a login screen that supports Hyprland's Wayland session,
+The installer preserves existing desktops, their sessions and the login manager,
+and installs SDDM only when none is found. At a login screen that supports Hyprland,
 select **Hyprland (uwsm-managed)** to use Hyprshell, or select your existing
 desktop to return to it. Log out before switching sessions. Hyprshell's bar,
-launcher, and desktop controls run in the Hyprland session; installing them
-does not add those controls to your other desktop.
+launcher, and desktop controls run in the Hyprland session.
 
 The installation limits remain x86_64 Arch Linux and traditional DNF-based
-Fedora 44, with Fedora Everything 44 as the documented Fedora target. Having
-one of these desktops installed does not extend support to other distributions.
+Fedora 44, with Fedora Everything 44 as the documented Fedora target.
 Preservation of existing desktops is confirmed by installer/configuration
 review; fresh coexistence tests for the desktops listed above are pending.
 Identical behavior across desktops and hardware is not yet certified;
@@ -376,7 +367,7 @@ Ctrl+U to remove text before the cursor, Ctrl+K to remove text after it, and
 Ctrl+Y to restore removed text; these use Bash's own buffer, not the desktop
 clipboard. Terminal output can be copied, but cannot be cut.
 
-The main install includes Hyprlock, XDG and Wayland clipboard utilities,
+The main install includes Hyprlock, XDG utilities and clipboard tools,
 Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic, rclone,
 and yt-dlp, plus Mousepad, media controls, archives, clipboard-history tools,
 printing/scanning, firmware, keyring support, time synchronization and firewall.
@@ -590,12 +581,11 @@ group. You can reorder items, show or hide built-in modules, and adjust:
 Individual overrides take priority over general settings. Choose inheritance
 or use the relevant reset control to return to the general value. Manual colors
 override the corresponding adaptive colors. Tray artwork remains supplied by
-its application; it is not replaced by custom text or icon fields.
+its application.
 
 Avoid overcrowding the bar: unusually wide labels or too many center items can
 overlap other groups. Shorten text, reduce sizes, hide items, or move them to
-another group. Hiding a status item does not stop the underlying desktop
-service.
+another group. Status services continue running when their bar items are hidden.
 
 ### Saving and Hyprland appearance
 
@@ -824,8 +814,8 @@ repository, check native dependencies with:
 python3 tools/check_runtime.py --native
 ```
 
-The launcher verifies both bar readiness and notification ownership. A startup
-failure is reported instead of launching another desktop shell.
+The launcher verifies both bar readiness and notification ownership and reports
+startup failures in the log.
 
 ### Settings or the application launcher will not open
 

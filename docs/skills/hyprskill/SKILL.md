@@ -5,7 +5,7 @@ description: Diagnose, customize, or maintain this user's Linux machine and desk
 
 # Hyprskill
 
-This machine currently uses Fedora 44, Hyprland **Lua** configuration, and Hyprshell's native Qt 6 Quickshell desktop. Do not assume hyprland.conf, Waybar, Rofi, or a separate notification daemon.
+This machine currently uses Fedora 44, Hyprland **Lua** configuration, and Hyprshell's native Qt 6 Quickshell desktop. The entry point is `hypr/hyprland.lua`; Quickshell owns the bar, launcher, menus, and notifications.
 
 The user calls Hyprshell's top bar **hyprbar**. Treat “hyprbar”, “top bar”,
 “topbar”, and “bar” as the same desktop component.

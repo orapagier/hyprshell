@@ -30,7 +30,7 @@ personal configuration; updates preserve existing preferences. See
 | Audio | PipeWire, PulseAudio/ALSA compatibility, WirePlumber, general audio and SOF firmware |
 | Network | NetworkManager, Wi-Fi backend, connection editor, wireless firmware and BlueZ |
 | Apps | Chromium, COSMIC Files/GVfs/MTP, Kitty, mpv, Loupe, Papers, Mousepad, File Roller |
-| Integration | Browser/folder/media/image/PDF/text defaults, media keys, Wayland clipboard, archive tools, manuals and shell completion |
+| Integration | Browser/folder/media/image/PDF/text defaults, media keys, clipboard tools, archive tools, manuals and shell completion |
 | Lock/power | Hyprlock artwork, Hypridle, brightness and power profiles; personal defaults or retained user locking preferences |
 | Peripherals | CUPS socket, Avahi discovery, printer configuration, SANE and Simple Scan |
 | Credentials | GNOME Keyring and Seahorse; optional SDDM PAM unlock where missing |

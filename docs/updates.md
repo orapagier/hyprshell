@@ -14,7 +14,7 @@ Hyprshell owns the shell and its user configuration.
 | Settings → Sync from GitHub | Fetch updates from the developer’s `orapagier/hyprshell` repository, review, validate and apply to this checkout and the installed desktop |
 
 Fresh installations use the single configuration in `config/`, including the
-author's personal preferences. There is no separate public/personal profile.
+author's personal preferences.
 The monitor fallback uses preferred mode and automatic positioning/scaling;
 confirmed display choices still depend on the available hardware.
 

@@ -8,15 +8,13 @@ The desktop service bindings and menus are native QML. Python helpers handle
 settings, shortcut edits, cleanup, and GitHub sync.
 
 The QML files live directly in `~/.config/quickshell/`, with `shell.qml` as
-the default entry point. The explicit ShellId in `shell.qml` preserves the
-existing notification history across the directory move. The activation
-script also stops an existing instance launched from the previous location.
+the default entry point. Its explicit ShellId identifies Hyprshell's persistent
+notification history.
 
-The styling follows the native desktop with more vertical room: 32px panel
-height, 28px pills, and 5px top / 10px side
+The styling uses 32px panel height, 28px pills, and 5px top / 10px side
 margins, transparent background, wallpaper-tinted glass pills, DejaVu Sans / GoMono
-Nerd Font, and the original module order. The `hyprshell` layer namespace keeps
-the existing compositor blur and animation rules.
+Nerd Font, and a configurable module order. The `hyprshell` layer namespace
+connects the panel to compositor blur and animation rules.
 
 Each pill samples the wallpaper directly underneath its current position.
 `WallpaperWatcher.qml` queries awww every two seconds, independently identifying
@@ -90,7 +88,7 @@ Application rows include 22px icons next to their names. `AppIcons.qml` uses
 the platform icon theme first, then indexes installed hicolor app icons and
 pixmaps through Qt's folder models. The installed Pop theme provides general
 category icons, and entries without usable artwork show a generic app icon.
-The popup keeps a stable Wayland surface and allows the bar to receive
+The popup keeps a stable surface and allows the bar to receive
 pointer input, preventing hover flicker during opening and switching.
 The last menu's anchor, alignment, and contents remain in place until its
 closing fade finishes, so the funnel cannot stretch across the bar on exit.
@@ -114,13 +112,12 @@ Run once in a Hyprland desktop terminal:
 ```
 
 This restarts Hyprshell and verifies the panels and notification service.
-Notifications are stored natively with Quickshell FileView. Existing notification
-history can be imported once from the old read-only database.
+Notifications are stored with Quickshell FileView.
 
 Click a notification to expand its full title and body; click its text again
 to collapse it. Expanded text wraps without a character limit, and the list
 scrolls vertically to the end of long messages. The × at the upper right of
-an expanded notification dismisses it. There is no bottom Dismiss button.
+an expanded notification dismisses it.
 The inbox preserves the text supplied by each application. If a sender cuts
 its text before sending it (for example, the saved Kitty titles that already
 end with an ellipsis at 200 characters), changing the inbox cannot recover

@@ -35,8 +35,8 @@ Run setup as your desktop user, without `sudo ./setup.sh`. `--extra` adds
 Distrobox, Podman and cmatrix. Everyday apps, archive tools, clipboard-history
 tools, media controls and a text editor are included without it. The base manifest installs
 the desktop, Chromium, terminal, file manager, Wi-Fi support, Bluetooth,
-audio, fonts, helper build dependencies, Hyprlock, XDG and Wayland clipboard
-utilities, Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic,
+audio, fonts, helper build dependencies, Hyprlock, XDG utilities, clipboard
+tools, Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic,
 rclone, and yt-dlp. Saved preferences enable Hyprlock after 60 idle minutes and before sleep.
 Backup destinations/schedules must be configured separately after installation.
 Clipboard capture remains disabled. [Daily-driver setup](daily-driver.md) covers
