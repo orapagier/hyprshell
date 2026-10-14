@@ -21,6 +21,7 @@ PanelWindow {
     function open() {
         error = "";
         visible = true;
+        Qt.callLater(() => duplicateButton.forceActiveFocus());
     }
     function choose(layout) {
         if (worker.running) return;
@@ -62,20 +63,43 @@ PanelWindow {
             anchors.top: parent.top
             anchors.margins: 20
             spacing: 12
+            Label {
+                text: "Projector options"
+                color: Style.Theme.text
+                font.pixelSize: Style.Theme.sectionSize
+                font.weight: Font.DemiBold
+                Layout.fillWidth: true
+            }
             RowLayout {
                 Layout.fillWidth: true
                 SettingsButton {
+                    id: duplicateButton
                     objectName: "duplicateDisplays"
                     text: "Duplicate"
                     Layout.fillWidth: true
                     enabled: !worker.running
+                    KeyNavigation.priority: KeyNavigation.BeforeItem
+                    KeyNavigation.left: extendButton
+                    KeyNavigation.right: extendButton
+                    KeyNavigation.up: extendButton
+                    KeyNavigation.down: extendButton
+                    Keys.onReturnPressed: event => { window.choose("duplicate"); event.accepted = true; }
+                    Keys.onEnterPressed: event => { window.choose("duplicate"); event.accepted = true; }
                     onClicked: window.choose("duplicate")
                 }
                 SettingsButton {
+                    id: extendButton
                     objectName: "extendDisplays"
                     text: "Extend"
                     Layout.fillWidth: true
                     enabled: !worker.running
+                    KeyNavigation.priority: KeyNavigation.BeforeItem
+                    KeyNavigation.left: duplicateButton
+                    KeyNavigation.right: duplicateButton
+                    KeyNavigation.up: duplicateButton
+                    KeyNavigation.down: duplicateButton
+                    Keys.onReturnPressed: event => { window.choose("extend"); event.accepted = true; }
+                    Keys.onEnterPressed: event => { window.choose("extend"); event.accepted = true; }
                     onClicked: window.choose("extend")
                 }
             }

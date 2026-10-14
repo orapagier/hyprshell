@@ -606,6 +606,8 @@ and refresh rates, scale, rotation (including flipped orientations), and positio
 Press **Super+P** to open a compact, centered Projector options overlay with Duplicate
 (mirror) and Extend (**Alt+S** still opens Settings). These are the only two
 buttons: choosing either applies and saves immediately, then closes the popup.
+The header identifies Projector options. Duplicate receives keyboard focus on
+every open; use arrow keys to switch buttons and Enter to apply the focused choice.
 Duplicate uses the laptop screen as the source when available. A failed change
 restores the previous layout. Escape or clicking outside also closes
 the overlay, which stays above tiled windows like Super+K. Settings → Displays retains the

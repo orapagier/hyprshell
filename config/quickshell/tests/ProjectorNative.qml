@@ -1,4 +1,5 @@
 import QtQuick
+import QtTest
 import Quickshell
 import ".."
 
@@ -6,6 +7,7 @@ ShellRoot {
     id: test
     property int phase: 0
     ProjectorWindow { id: projector }
+    TestCase { id: keyboard; name: "ProjectorKeyboard"; when: false }
     function find(root, name) {
         if (root.objectName === name) return root;
         for (let child of root.children || []) { let match = find(child, name); if (match) return match; }
@@ -23,10 +25,23 @@ ShellRoot {
                 if (duplicate.text !== "Duplicate" || extend.text !== "Extend"
                     || test.find(projector.contentItem, "applyDisplays")
                     || test.find(projector.contentItem, "keepDisplays")) { test.fail("unexpected controls"); return; }
-                duplicate.clicked(); test.phase = 1;
+                if (!duplicate.activeFocus) { test.fail("Duplicate not focused on open"); return; }
+                keyboard.keyClick(Qt.Key_Return); test.phase = 1;
             } else if (test.phase === 1 && !projector.busy) {
                 if (projector.visible || projector.error) { test.fail("duplicate auto apply"); return; }
-                projector.open(); extend.clicked(); test.phase = 2;
+                projector.open(); test.phase = 3;
+            } else if (test.phase === 3) {
+                if (!duplicate.activeFocus) { test.fail("Duplicate not focused on reopen"); return; }
+                keyboard.keyClick(Qt.Key_Right);
+                if (!extend.activeFocus) { test.fail("right arrow"); return; }
+                keyboard.keyClick(Qt.Key_Left);
+                if (!duplicate.activeFocus) { test.fail("left arrow"); return; }
+                keyboard.keyClick(Qt.Key_Down);
+                if (!extend.activeFocus) { test.fail("down arrow"); return; }
+                keyboard.keyClick(Qt.Key_Up);
+                if (!duplicate.activeFocus) { test.fail("up arrow"); return; }
+                keyboard.keyClick(Qt.Key_Right);
+                keyboard.keyClick(Qt.Key_Enter); test.phase = 2;
             } else if (test.phase === 2 && !projector.busy) {
                 if (projector.visible || projector.error) { test.fail("extend auto apply"); return; }
                 console.log("PROJECTOR_NATIVE_OK"); Qt.quit();
