@@ -10,6 +10,41 @@ This machine currently uses Fedora 44, Hyprland **Lua** configuration, and Hyprs
 The user calls Hyprshell's top bar **hyprbar**. Treat “hyprbar”, “top bar”,
 “topbar”, and “bar” as the same desktop component.
 
+## Mandatory task scope and feature preservation
+
+These rules apply to every agent using Hyprskill, including Codex, Claude Code,
+OpenCode, and any delegated agents. Include these constraints and the exact task
+scope in delegated work; the coordinating agent must review the combined changes.
+
+- Before editing, identify the requested outcome and the files, code blocks, and
+  settings needed to achieve it. Inspect existing diffs and relevant live/repo
+  differences so pre-existing work and preferences remain intact.
+- Modify only files and lines directly necessary for the requested task. A
+  task-related file does not authorize changing unrelated code within it. Read
+  dependencies as needed, but do not perform incidental cleanup, refactoring,
+  formatting, renaming, dependency upgrades, or fixes outside the task.
+- Preserve every unrelated feature and its behavior, UI controls, defaults,
+  shortcuts, settings, and wiring. Never remove, hide, disable, simplify away, or
+  replace an existing feature merely because it seems unused, redundant, broken,
+  or inconvenient for the implementation. Remove or change it only when the user
+  requested that change or explicitly authorized the necessary tradeoff.
+- Use focused patches. Do not replace whole files or deploy entire config trees
+  for a small change. Reconcile live/repo differences and apply only the relevant
+  edits to each copy; never overwrite unrelated live customizations with a repo
+  copy or unrelated repo work with a live copy. Generated files must retain
+  unrelated settings and behavior.
+- Necessary integration changes are in scope only when they support the requested
+  outcome and preserve unrelated behavior. If completion requires changing an
+  unrelated feature or discarding existing work, explain the concrete conflict
+  and obtain explicit authorization before that change. Record unrelated issues
+  without fixing them as part of this task.
+- Before deployment and again before committing or reporting completion, review
+  the full task diff, including deletions and newly created files, against the
+  baseline. Every changed block must have a task-specific reason. Undo only your
+  own accidental unrelated edits; never reset or restore over pre-existing work.
+  Run focused checks for the requested behavior and any adjacent feature affected
+  by shared code. Passing checks do not replace the scope and preservation review.
+
 Resolve paths independently of the working directory:
 - Config root: `${XDG_CONFIG_HOME:-$HOME/.config}`.
 - State root: `${XDG_STATE_HOME:-$HOME/.local/state}`.
