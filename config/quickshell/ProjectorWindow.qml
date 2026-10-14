@@ -3,36 +3,55 @@ import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Wayland
 import "style" as Style
 
-FloatingWindow {
+PanelWindow {
     id: window
-    title: "Hyprshell Projector options"
     visible: false
-    implicitWidth: 560
-    implicitHeight: 440
-    color: Style.Theme.background
-    onClosed: visible = false
+    anchors { top: true; bottom: true; left: true; right: true }
+    exclusionMode: ExclusionMode.Ignore
+    color: "transparent"
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "hyprshell-projector"
+    WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     function open() {
         visible = true;
         if (!page.busy) page.request("status");
     }
-    ColumnLayout {
+    MouseArea {
         anchors.fill: parent
-        anchors.margins: 20
-        spacing: 16
-        SettingsDisplays {
-            id: page
-            objectName: "projectorPage"
-            projectionOnly: true
-            visible: window.visible
-            Layout.fillWidth: true
-        }
-        Item { Layout.fillHeight: true }
-        SettingsButton {
-            text: "Close"
-            Layout.alignment: Qt.AlignRight
-            onClicked: window.visible = false
+        onClicked: window.visible = false
+    }
+    Rectangle {
+        id: card
+        anchors.centerIn: parent
+        width: Math.min(460, window.width - 40)
+        height: contents.implicitHeight + 40
+        radius: 22
+        color: Style.Theme.background
+        border.color: Style.Theme.border
+        MouseArea { anchors.fill: parent }
+        ColumnLayout {
+            id: contents
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 20
+            spacing: 12
+            SettingsDisplays {
+                id: page
+                objectName: "projectorPage"
+                projectionOnly: true
+                visible: window.visible
+                Layout.fillWidth: true
+            }
+            SettingsButton {
+                text: "Close · Esc"
+                Layout.alignment: Qt.AlignRight
+                onClicked: window.visible = false
+            }
         }
     }
+    Shortcut { sequence: "Escape"; enabled: window.visible; onActivated: window.visible = false }
 }

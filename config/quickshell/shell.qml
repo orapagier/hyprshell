@@ -227,10 +227,10 @@ ShellRoot {
         }
         function displays(): void {
             for (let panel of panels.instances) panel.closeMenu();
+            let focused = Hyprland.focusedMonitor;
+            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
+            if (panel) projectorWindow.screen = panel.screen;
             projectorWindow.open();
-            let existing = Hyprland.toplevels.values.find(t => t.title === projectorWindow.title);
-            if (existing)
-                Hyprland.dispatch("hl.dsp.focus({ window = 'address:" + existing.address + "' })");
         }
         function toggleBar(): void {
             let workspace = shell.currentWorkspace;

@@ -121,7 +121,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: page.pending ? "Keep these settings?" : (page.projectionOnly ? "Projector options" : "Connected displays")
-        subtitle: page.pending ? "Reverting in " + page.seconds + " seconds unless you keep the changes." : "Duplicate shows the same desktop and cursor on your laptop and TV. Extend gives each screen its own desktop. Choose a layout, then apply and keep the changes."
+        subtitle: page.pending ? "Reverting in " + page.seconds + " seconds unless you keep the changes." : (page.projectionOnly ? "Choose a layout, then apply." : "Duplicate shows the same desktop and cursor on your laptop and TV. Extend gives each screen its own desktop. Choose a layout, then apply and keep the changes.")
         ColumnLayout {
             Layout.fillWidth: true
             visible: page.projectionOnly || page.monitors.length > 1

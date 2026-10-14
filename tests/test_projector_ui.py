@@ -19,6 +19,15 @@ class ProjectorUiTests(unittest.TestCase):
                 payload = root / 'config/quickshell'
                 shutil.copytree(ROOT / 'config/quickshell', payload,
                                 ignore=shutil.ignore_patterns('__pycache__', 'audio-spectrum'))
+                # Offscreen Qt has no layer-shell backend. Keep the actual card
+                # and controls, using a native window only in this isolated copy.
+                projector = payload / 'ProjectorWindow.qml'
+                source = projector.read_text().replace('PanelWindow {', 'FloatingWindow {')
+                source = source.replace('    anchors { top: true; bottom: true; left: true; right: true }',
+                                        '    implicitWidth: 800; implicitHeight: 600')
+                source = '\n'.join(line for line in source.splitlines()
+                                   if 'exclusionMode:' not in line and 'WlrLayershell.' not in line) + '\n'
+                projector.write_text(source)
                 (payload / 'settings/displays.py').write_text('''import json, sys
 p = json.loads(sys.argv[2])
 def emit(data):
