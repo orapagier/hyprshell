@@ -340,7 +340,10 @@ ShellRoot {
             find(page, "confirmFirewall").clicked(); test.phase = 20;
         } else if (test.phase === 20 && page && !page.busy && page.snapshot.dnsFilterReady) {
             if (!page.editing || find(page, "firewallWebsite").text !== "https://www.example.com/page") { test.fail("setup lost draft"); return; }
-            let mode = find(page, "dnsMode"); mode.currentIndex = 1; mode.activated(1);
+            let mode = find(page, "dnsMode");
+            if (mode.count !== 2 || find(page, "customDnsServers").visible || page.dnsServersDraft !== "") { test.fail("DNS choices or automatic form"); return; }
+            mode.currentIndex = 1; mode.activated(1);
+            if (!find(page, "customDnsServers").visible || find(page, "applyDnsMode").enabled) { test.fail("empty custom DNS form"); return; }
             let servers = find(page, "customDnsServers"); servers.text = "1.1.1.1, 1.0.0.1"; servers.textEdited();
             if (!page.dnsDirty || !find(page, "applyDnsMode").enabled) { test.fail("custom DNS form"); return; }
             find(page, "applyDnsMode").clicked();
@@ -348,10 +351,10 @@ ShellRoot {
             find(page, "confirmFirewall").clicked(); test.phase = 24;
         } else if (test.phase === 24 && page && !page.busy) {
             if (!page.success || page.snapshot.dnsMode !== "custom" || page.snapshot.dnsServers[0] !== "1.1.1.1" || page.dnsDirty || !page.editing) { test.fail("custom DNS result or website draft"); return; }
-            let mode = find(page, "dnsMode"); mode.currentIndex = 3; mode.activated(3);
-            find(page, "applyDnsMode").clicked(); find(page, "confirmFirewall").clicked(); test.phase = 25;
-        } else if (test.phase === 25 && page && !page.busy) {
-            if (!page.success || page.snapshot.dnsMode !== "family" || page.snapshot.dnsServers[0] !== "1.1.1.3") { test.fail("family DNS result"); return; }
+            // Legacy saved providers must display as custom, preserving their addresses.
+            page.snapshot = Object.assign({}, page.snapshot, {dnsMode: "family", dnsServers: ["1.1.1.3", "1.0.0.3"]});
+            page.resetDnsDraft();
+            if (page.dnsModeDraft !== "custom" || page.dnsServersDraft !== "1.1.1.3, 1.0.0.3" || find(page, "dnsModeStatus").text !== "Saved mode: Custom DNS") { test.fail("legacy DNS addresses"); return; }
             let mode = find(page, "dnsMode"); mode.currentIndex = 0; mode.activated(0);
             find(page, "applyDnsMode").clicked(); find(page, "confirmFirewall").clicked(); test.phase = 26;
         } else if (test.phase === 26 && page && !page.busy) {
@@ -411,5 +414,5 @@ ShellRoot {
             calls = [json.loads(line) for line in (root / 'calls').read_text().splitlines()]
             self.assertEqual(sum('--add-service=http' in row for row in calls), 2)
             self.assertEqual(sum('--add-service=http' in row and '--permanent' in row for row in calls), 1)
-            self.assertEqual((root / 'auth-jobs').read_text().splitlines(), ['status', 'add-service', 'edit-rule', 'status', 'edit-rule', 'remove-port', 'setup-website-dns', 'restore-website-dns', 'setup-website-dns', 'configure-website-dns', 'configure-website-dns', 'configure-website-dns', 'add-website', 'edit-website', 'disable', 'remove-website', 'enable', 'status', 'status'])
+            self.assertEqual((root / 'auth-jobs').read_text().splitlines(), ['status', 'add-service', 'edit-rule', 'status', 'edit-rule', 'remove-port', 'setup-website-dns', 'restore-website-dns', 'setup-website-dns', 'configure-website-dns', 'configure-website-dns', 'add-website', 'edit-website', 'disable', 'remove-website', 'enable', 'status', 'status'])
             self.assertFalse((root / 'config/hyprshell/settings.json').exists())

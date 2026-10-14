@@ -1264,21 +1264,18 @@ blocks in place and shows wildcard rules as needing setup. On Arch install
 missing dnsmasq with a full supported package transaction before setup; manifests
 include dnsmasq for future fresh installs without enabling its standalone service.
 
-**Firewall → DNS & website protection** offers four saved modes:
-Automatic (network/VPN DNS), Custom DNS (one to eight numeric IPv4/IPv6 server
-addresses), Block malicious sites, and Block adult + malicious sites. Protection
-presets use [Cloudflare for Families](https://developers.cloudflare.com/1.1.1.1/ip-addresses/):
-`1.1.1.2` / `1.0.0.2` plus matching IPv6 servers for malicious domains;
-`1.1.1.3` / `1.0.0.3` plus matching IPv6 servers for adult and malicious domains.
-They filter known malware/phishing and optionally adult domains; no provider can
-promise every harmful site or filter content within a shared domain. Custom DNS
-uses the chosen provider's policy. No separate application or extension is needed;
-these presets still use an external DNS service. This bridge uses ordinary DNS,
-without adding DNS-over-HTTPS/TLS.
+**Firewall → DNS** offers two saved modes: **Automatic DNS (from network)**
+uses network/VPN DNS, and **Custom DNS** accepts one to eight manually entered
+numeric IPv4/IPv6 server addresses. Custom DNS starts with an empty address field;
+there are no provider presets. Previously saved protection presets appear as
+Custom DNS with their existing addresses, preserving the active configuration
+until the user applies a change. Legacy receipt handling remains in the backend
+for validation and rollback. This bridge uses ordinary DNS, without adding
+DNS-over-HTTPS/TLS.
 
-Custom and protection modes write NetworkManager's `global-dns-domain-*`
+Custom DNS writes NetworkManager's `global-dns-domain-*`
 configuration so connection/DHCP/IPv6/VPN DNS cannot remain an unfiltered fallback
-for system lookups. They replace private network/VPN DNS domains too, so private
+for system lookups. It replaces private network/VPN DNS domains too, so private
 names may require Automatic. Automatic removes the managed global override while
 keeping the local filter and manual blocks. Restore DNS setup removes the bridge
 and returns to the original configuration. Independent browser secure DNS,

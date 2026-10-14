@@ -13,11 +13,12 @@ ColumnLayout {
     property bool dnsDirty: false
     property string dnsModeDraft: "automatic"
     property string dnsServersDraft: ""
-    readonly property var dnsModes: ["automatic", "custom", "malicious", "family"]
-    readonly property var dnsLabels: ["Automatic (network DNS)", "Custom DNS", "Block malicious sites", "Block adult + malicious sites"]
+    readonly property var dnsModes: ["automatic", "custom"]
+    readonly property var dnsLabels: ["Automatic DNS (from network)", "Custom DNS"]
     function resetDnsDraft() {
         dnsDirty = false;
-        dnsModeDraft = snapshot.dnsMode || "automatic";
+        // Previously saved presets remain editable as explicit custom addresses.
+        dnsModeDraft = (snapshot.dnsMode || "automatic") === "automatic" ? "automatic" : "custom";
         dnsServersDraft = (snapshot.dnsServers || []).join(", ");
     }
     onSnapshotChanged: if (!dnsDirty) resetDnsDraft()
@@ -123,10 +124,10 @@ ColumnLayout {
     Label { objectName: "firewallMessage"; visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
     Label { visible: !!page.snapshot.websiteError; text: page.snapshot.websiteError || ""; color: Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
     SettingsCard {
-        title: "DNS & website protection"
+        title: "DNS"
         subtitle: "Choose DNS for this laptop. Manual website blocks work alongside it."
         Layout.fillWidth: true
-        Label { objectName: "dnsModeStatus"; text: !page.loaded || !page.snapshot.websiteRevision ? "Refresh to read DNS settings." : page.snapshot.dnsFilterInstalled && !page.snapshot.dnsFilterReady ? "DNS setup needs recovery. Restore it before applying a mode." : "Saved mode: " + page.dnsLabels[Math.max(0, page.dnsModes.indexOf(page.snapshot.dnsMode || "automatic"))]; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { objectName: "dnsModeStatus"; text: !page.loaded || !page.snapshot.websiteRevision ? "Refresh to read DNS settings." : page.snapshot.dnsFilterInstalled && !page.snapshot.dnsFilterReady ? "DNS setup needs recovery. Restore it before applying a mode." : "Saved mode: " + page.dnsLabels[(page.snapshot.dnsMode || "automatic") === "automatic" ? 0 : 1]; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         SettingsComboBox {
             objectName: "dnsMode"
             Layout.fillWidth: true
@@ -140,16 +141,16 @@ ColumnLayout {
             objectName: "customDnsServers"
             visible: page.dnsModeDraft === "custom"
             Layout.fillWidth: true
-            placeholderText: "DNS IP addresses, e.g. 1.1.1.1, 1.0.0.1"
+            placeholderText: "Enter DNS server IP addresses"
             text: page.dnsServersDraft
             enabled: !page.busy && !page.pending
             selectByMouse: true
             Accessible.name: "Custom DNS server addresses"
             onTextEdited: { page.dnsServersDraft = text; page.dnsDirty = true; }
         }
-        Label { text: page.dnsModeDraft === "automatic" ? "Use DNS from your network and VPN. Any local website blocks remain active." : page.dnsModeDraft === "custom" ? "Enter IPv4 or IPv6 addresses separated by commas or spaces. Filtering depends on your chosen DNS provider." : "Uses Cloudflare for Families to filter known malware and phishing domains" + (page.dnsModeDraft === "family" ? " and adult domains." : "."); color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: page.dnsModeDraft === "automatic" ? "Use DNS from your network and VPN. Any local website blocks remain active." : "Enter IPv4 or IPv6 addresses separated by commas or spaces."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label { visible: page.dnsModeDraft !== "automatic"; text: "Applies across networks and replaces network/VPN DNS for system lookups. Private network names may require Automatic mode. No separate app is needed."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        Label { text: "DNS filtering cannot catch every harmful site or filter content inside a shared website. Browsers with their own secure DNS, VPNs and proxies may bypass it."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: "Browsers with their own secure DNS, VPNs and proxies may bypass system DNS and manual website blocks."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         RowLayout {
             SettingsButton {
                 objectName: "applyDnsMode"
