@@ -1,13 +1,18 @@
 """Audit configured Lua bindings without executing their actions."""
 import json
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location('keybindings_guide', ROOT / 'config/quickshell/settings/keybindings_guide.py')
+guide_reader = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(guide_reader)
 
 # Evaluate registration and remapping only. Dispatcher calls create inert tokens;
 # callbacks, application launches, power actions and compositor IPC never run.
@@ -69,6 +74,37 @@ def configured_bindings(config):
 
 
 class KeybindingsGuideTests(unittest.TestCase):
+    def test_lua_display_names_preserve_every_runtime_registration(self):
+        rows = configured_bindings(ROOT / 'config')
+        names = [row['key'] for row in rows]
+        for row in rows:
+            row.update(key='', keycode=0, submap='', catch_all=False)
+        text = ''.join('bindd\n' + ''.join('\t' + key + ': ' + str(value) + '\n' for key, value in [
+            ('modmask', row['modmask']), ('submap', row['submap']), ('key', name),
+            ('keycode', 0), ('catchall', 'false'), ('description', row['description']),
+            ('dispatcher', row['dispatcher']), ('arg', row['arg'])]) + '\n'
+            for row, name in zip(rows, names))
+        with patch.object(guide_reader.subprocess, 'run') as run:
+            run.side_effect = [subprocess.CompletedProcess([], 0, json.dumps(rows)),
+                               subprocess.CompletedProcess([], 0, text)]
+            entries = guide_reader.read_bindings()
+        self.assertEqual([entry['key'] for entry in entries], names)
+        self.assertEqual(len(entries), len(rows))
+        for row, entry in zip(rows, entries):
+            self.assertEqual({k: v for k, v in entry.items() if k != 'key'},
+                             {k: v for k, v in row.items() if k != 'key'})
+        with self.assertRaises(ValueError):
+            guide_reader.named_bindings(rows, text.replace('keycode: 0', 'keycode: 1', 1))
+        with self.assertRaises(ValueError):
+            guide_reader.named_bindings(rows[:-1], text)
+
+    def test_named_legacy_and_code_bindings_need_no_second_query(self):
+        rows = [{'key': 'F1'}, {'key': '', 'keycode': 38}, {'key': '', 'catch_all': True}]
+        with patch.object(guide_reader.subprocess, 'run') as run:
+            run.return_value = subprocess.CompletedProcess([], 0, json.dumps(rows))
+            self.assertEqual(guide_reader.read_bindings(), rows)
+            self.assertEqual(run.call_count, 1)
+
     def test_projection_and_pseudotiling_invoke_the_correct_actions(self):
         rows = configured_bindings(ROOT / 'config')
         by_key = {(r['modmask'], r['key'].upper()): r for r in rows}

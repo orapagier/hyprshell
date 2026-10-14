@@ -23,7 +23,7 @@ ColumnLayout {
     Timer { interval: 1500; running: true; repeat: true; onTriggered: if (!bindingReader.running) bindingReader.running = true }
     Process {
         id: bindingReader
-        command: ["hyprctl", "-j", "binds"]
+        command: ["python3", decodeURIComponent(Qt.resolvedUrl("settings/keybindings_guide.py").toString().replace(/^file:\/\//, ""))]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {

@@ -28,6 +28,22 @@ TestCase {
         let bindings = Guide.desktopBindings([{key: "XF86AudioRaiseVolume", modmask: 0}]);
         compare(Guide.matching(bindings, "xf86audioraisevolume").length, 1);
         compare(Guide.matching(bindings, "volume up").length, 1);
+        compare(Guide.matching(bindings, "fn f3").length, 1);
+    }
+    function test_function_keys_letters_and_named_keys() {
+        for (let i = 1; i <= 35; ++i)
+            compare(Guide.shortcut({key: "F" + i, modmask: 0}), "F" + i);
+        compare(Guide.shortcut({key: "z", modmask: 64}), "Super + Z");
+        compare(Guide.shortcut({key: "left", modmask: 65}), "Super + Shift + Left");
+        compare(Guide.shortcut({key: "Return", modmask: 0}), "Enter");
+        compare(Guide.shortcut({key: "Prior", modmask: 0}), "Page Up");
+        compare(Guide.shortcut({key: "Print", modmask: 0}), "Print Screen");
+        compare(Guide.shortcut({key: "", modmask: 0}), "Unknown key");
+        compare(Guide.shortcut({key: "", modmask: 0, catch_all: true}), "Any key");
+        let bindings = Guide.desktopBindings([{key: "XF86AudioMicMute", modmask: 0},
+            {key: "F1", modmask: 0}, {key: "Insert", modmask: 0}]);
+        compare(Guide.matching(bindings, "f1").length, 2);
+        compare(Guide.matching(bindings, "print screen").length, 1);
     }
     function test_search_context_and_no_unimplemented_power_sequences() {
         compare(Guide.matching([], "kitty").length, 2);

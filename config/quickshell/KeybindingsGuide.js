@@ -16,9 +16,23 @@ const localBindings = [
     {shortcut: "Space / Enter", action: "Activate the focused button", context: "Shell buttons"},
     {shortcut: "Left / Right", action: "Adjust the focused slider", context: "Settings sliders"},
     {shortcut: "Up / Down", action: "Change the focused number or list selection", context: "Settings numeric fields and lists"},
+    {shortcut: "Home / End", action: "Move to the start / end of the text", context: "Shell text fields"},
+    {shortcut: "Ctrl + A", action: "Select all text", context: "Shell text fields"},
+    {shortcut: "Ctrl + C / Ctrl + X / Ctrl + V", action: "Copy / cut / paste text", context: "Shell text fields"},
+    {shortcut: "Ctrl + Z / Ctrl + Shift + Z", action: "Undo / redo text editing", context: "Shell text fields"},
+    {shortcut: "Shift + Left / Right / Home / End", action: "Extend the text selection", context: "Shell text fields"},
+    {shortcut: "Ctrl + Left / Right", action: "Move by word", context: "Shell text fields"},
+    {shortcut: "Backspace / Delete", action: "Delete text before / after the cursor", context: "Shell text fields"},
     {shortcut: "Ctrl + C", action: "Copy selection, or interrupt if nothing is selected", context: "Kitty terminal · configured mapping"},
     {shortcut: "Ctrl + V", action: "Paste text or let the terminal application handle an image attachment", context: "Kitty terminal · configured mapping"}
 ];
+
+// Function-row alternatives documented in this desktop's shortcuts.lua.
+const laptopMediaKeys = {
+    XF86AudioMicMute: "Fn + F1", XF86AudioLowerVolume: "Fn + F2",
+    XF86AudioRaiseVolume: "Fn + F3", XF86AudioMute: "Fn + F4",
+    XF86MonBrightnessDown: "Fn + F6", XF86MonBrightnessUp: "Fn + F7"
+};
 
 function shortcut(binding) {
     let parts = [];
@@ -27,10 +41,13 @@ function shortcut(binding) {
         if (binding.modmask & modifier[0]) parts.push(modifier[1]);
     let unknown = (binding.modmask || 0) & ~255;
     if (unknown) parts.push("Modifier " + unknown);
-    let key = binding.key || (binding.keycode ? "Keycode " + binding.keycode : "Any key");
+    let key = binding.key || (binding.keycode ? "Keycode " + binding.keycode : binding.catch_all ? "Any key" : "Unknown key");
     if ((key === "Super_L" || key === "Super_R") && binding.modmask === 64)
         return key === "Super_R" ? "Right Super" : "Super";
-    key = ({"Super_L":"Left Super", "Super_R":"Right Super", "mouse:272":"Left mouse",
+    key = ({"Super_L":"Left Super", "Super_R":"Right Super", "left":"Left", "right":"Right",
+        "up":"Up", "down":"Down", "BackSpace":"Backspace", "Prior":"Page Up", "Next":"Page Down",
+        "Print":"Print Screen", "Caps_Lock":"Caps Lock", "Num_Lock":"Num Lock", "Scroll_Lock":"Scroll Lock",
+        "KP_Enter":"Numpad Enter", "mouse:272":"Left mouse",
         "mouse:273":"Right mouse", "mouse:274":"Middle mouse", "mouse_down":"Scroll down",
         "mouse_up":"Scroll up", "mouse_left":"Scroll left", "mouse_right":"Scroll right",
         "Return":"Enter", "space":"Space", "XF86AudioRaiseVolume":"Volume up (XF86AudioRaiseVolume)",
@@ -48,6 +65,8 @@ function desktopBindings(rows) {
     // submaps, press/release triggers, or mouse behavior.
     return rows.map(b => {
         let details = [];
+        if (laptopMediaKeys[b.key]) details.push("Laptop key: " + laptopMediaKeys[b.key]);
+        if (b.key === "Insert") details.push("This laptop's Print Screen key sends Insert");
         if (b.release) details.push("On release");
         if (b.repeat || b.repeating) details.push("Repeats while held");
         if (b.mouse) details.push("Mouse drag");
