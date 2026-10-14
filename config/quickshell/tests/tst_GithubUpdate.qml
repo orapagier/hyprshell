@@ -61,5 +61,29 @@ Item {
             compare(button.contentItem.children[0].text, "\uf09b");
             verify(button.implicitWidth > 100);
         }
+        function test_developerSourceAndExclusiveCheckboxes() {
+            dialog.conflictChoices = ({});
+            dialog.review = {ready: false, repository: "https://github.com/orapagier/hyprshell.git", branch: "main",
+                             conflicts: [{path: "config/hyprshell/settings.json", local: "local value", github: "incoming value", diff: "-local value\n+incoming value", choice: ""}]};
+            let source = find(dialog.contentItem, "githubUpdateSource");
+            verify(source.text.indexOf("developer’s GitHub repository") !== -1);
+            verify(source.text.indexOf("orapagier/hyprshell") !== -1);
+            tryVerify(() => find(dialog.contentItem, "githubConflictKeepLocal") !== null);
+            let local = find(dialog.contentItem, "githubConflictKeepLocal");
+            let developer = find(dialog.contentItem, "githubConflictUseDeveloper");
+            let diff = find(dialog.contentItem, "githubConflictDiff");
+            verify(diff.text.indexOf("-local value") !== -1);
+            verify(!local.checked); verify(!developer.checked);
+            local.toggle(); local.clicked();
+            verify(local.checked); verify(!developer.checked);
+            verify(dialog.choicesComplete);
+            developer.toggle(); developer.clicked();
+            verify(!local.checked); verify(developer.checked);
+            developer.toggle(); developer.clicked();
+            verify(!dialog.choicesComplete);
+            verify(!local.checked); verify(!developer.checked);
+            dialog.review = ({});
+            dialog.conflictChoices = ({});
+        }
     }
 }

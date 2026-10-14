@@ -11,7 +11,7 @@ Hyprshell owns the shell and its user configuration.
 | `./setup.sh --config-only` | Deploy desktop files and compile the helper; validate saved JSON/Python/Lua; no package or service changes |
 | `./setup.sh --update` | As above, with compatibility, staged Hyprland and offscreen Qt checks |
 | Settings → Sync to GitHub | Capture the live desktop, commit locally, then push to your authenticated account |
-| Settings → Sync from GitHub | Fetch, review, validate and apply an incoming update to this checkout and the installed desktop |
+| Settings → Sync from GitHub | Fetch updates from the developer’s `orapagier/hyprshell` repository, review, validate and apply to this checkout and the installed desktop |
 
 Fresh installations use the single configuration in `config/`, including the
 author's personal preferences. There is no separate public/personal profile.
@@ -28,8 +28,10 @@ Only `assets/wallpapers/default.jpg` is tracked and installed; other wallpapers
 remain local. Configure a Git commit identity on fresh clones.
 
 **Sync from GitHub** previews without changing the desktop, checkout or committed
-history. Conflicts display both full-file versions. Choose **Keep local** or
-**Use GitHub** for every conflict, then **Review choices**. The rebuilt review is
+history. Conflicts display both full-file versions and a diff (minus for local,
+plus for developer). Select **Keep your local version** or **Use developer’s
+version** with the checkboxes for every conflict, then **Review choices**. Only
+one version per file can be selected. The rebuilt review is
 bound to the same GitHub revision and your current files; later edits invalidate
 it. Review compatibility, acknowledge the limitations and choose **Sync now**.
 Choices apply to entire files, including deletion. Validation and backups still
@@ -47,11 +49,13 @@ change without a supported migration. It never resets malformed settings.
 ## Preview and apply
 
 The GitHub icons in the Settings header distinguish the two directions. The
-right-hand **Sync from GitHub** button opens a preview. It fetches the branch
-configured as the current branch's upstream (or `origin` with the current branch
-name when no upstream is configured). The exact GitHub URL and branch are shown.
-Public HTTPS repositories do not require authentication; private repositories
-need Git credentials. Authentication remains available in Sync to GitHub.
+right-hand **Sync from GitHub** button opens a preview. It checks the developer’s
+`https://github.com/orapagier/hyprshell.git` repository on `main` for commits not
+yet included in the local checkout. The window explicitly identifies the
+developer source and branch. Fetching uses that URL directly, regardless of the
+checkout's origin or tracking branch, and does not change either. The public
+update repository needs no authentication. Authentication for publishing remains
+available in Sync to GitHub.
 
 The preview shows:
 
@@ -70,7 +74,7 @@ prevent applying until you choose a version. System package upgrades and root-ow
 separate from this user-level update.
 
 Preview reads candidate data without running its Python, Lua or QML. At apply,
-the backend verifies the preview token, checkout, tracking source and live file
+the backend verifies the preview token, checkout, developer source and live file
 fingerprints. Previews expire after one hour. It installs the exact reviewed
 revision, even if GitHub changes later; use Check again to review newer changes.
 A clean merge is computed in Git objects for users with local commits, then
@@ -93,20 +97,11 @@ reported as interrupted, not successful.
 ## Forks and update sources
 
 Sync to GitHub keeps `origin` unchanged and pushes explicitly to your account.
-A clone of the project therefore continues receiving project updates even after
-you save a profile to your own fork. If you cloned your fork, its tracking branch
-is the default update source. To follow project updates instead, explicitly set
-an upstream remote and the tracking branch, then verify the URL in the preview:
-
-```bash
-git remote add upstream https://github.com/orapagier/hyprshell.git
-git fetch upstream
-git branch --set-upstream-to=upstream/main main
-```
-
-If `upstream` already exists, inspect it with `git remote -v` instead of adding it
-again. Use the branch names appropriate to your checkout. Unrelated histories
-cannot be automatically combined.
+Sync from GitHub always reviews the developer’s `orapagier/hyprshell` `main`
+branch, including when you cloned your fork or track a personal branch. No
+upstream remote or tracking-branch change is needed. Your fork and publishing
+destination stay as configured. Unrelated histories cannot be automatically
+combined.
 
 ## Recovery
 

@@ -735,13 +735,16 @@ the local commit for retry.
 Staged changes, unfinished merges, or conflicting repo/live copies require
 resolution before publishing. Configure a Git commit identity on fresh clones.
 
-**Sync from GitHub** checks and previews without committing local edits. Conflicts
-show both full-file versions with **Keep local** and **Use GitHub** choices,
-including deletions. Choose each version, click **Review choices**, acknowledge
+**Sync from GitHub** checks the developer’s `orapagier/hyprshell` repository on
+`main`, even when the checkout tracks your fork. The window identifies this source
+and previews updates without committing local edits. Conflicts show both full-file
+versions and a diff, with **Keep your local version** and **Use developer’s version**
+checkboxes, including deletions. Select one version per conflict, click **Review choices**, acknowledge
 the updated review, then **Sync now**. Local edits kept during an update remain
 uncommitted until Sync to GitHub. Updates can add a merge commit for already
 committed branch history, without including your unsynced edits. Pushes never
-force or automatically merge remote changes.
+force or automatically merge remote changes. **Sync to GitHub** continues publishing
+to your own repository; checking for developer updates leaves that destination intact.
 
 Setup records the checkout location in
 `~/.local/state/hyprshell/repository`. Re-running setup updates that pointer.

@@ -32,7 +32,7 @@ Popup {
             review = ({});
             conflictChoices = ({});
             acknowledgement.checked = false;
-            message = "Fetching update details and checking this setup…";
+            message = "Checking the developer’s GitHub repository for updates missing from this machine…";
         }
         success = true;
         requestAction(args);
@@ -53,7 +53,8 @@ Popup {
         Label { text: "Sync from GitHub"; font.pixelSize: 20; font.bold: true; color: Style.Theme.text }
         Label {
             Layout.fillWidth: true
-            text: dialog.review.repository ? dialog.review.repository + " · " + dialog.review.branch : "Updates from this checkout’s GitHub tracking branch"
+            objectName: "githubUpdateSource"
+            text: "You are updating from the developer’s GitHub repository: " + (dialog.review.repository ? dialog.review.repository + " · " + dialog.review.branch : "https://github.com/orapagier/hyprshell.git · main")
             textFormat: Text.PlainText
             wrapMode: Text.WrapAnywhere
             color: Style.Theme.accentText
@@ -118,7 +119,15 @@ Popup {
                                 required property string modelData
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 1
-                                Label { text: version.modelData === "local" ? "Your local version" : "GitHub version"; color: Style.Theme.text }
+                                CheckBox {
+                                    objectName: version.modelData === "local" ? "githubConflictKeepLocal" : "githubConflictUseDeveloper"
+                                    text: version.modelData === "local" ? "Keep your local version" : "Use developer’s version"
+                                    checked: dialog.conflictChoices[conflict.modelData.path] === version.modelData
+                                    enabled: !dialog.busy
+                                    palette.windowText: Style.Theme.text
+                                    Accessible.name: text + " for " + conflict.modelData.path
+                                    onClicked: dialog.choose(conflict.modelData.path, checked ? version.modelData : "")
+                                }
                                 ScrollView {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 160
@@ -136,13 +145,25 @@ Popup {
                             }
                         }
                     }
-                    ComboBox {
-                        objectName: "githubConflictChoice"
+                    Label {
+                        text: "Differences (− local, + developer)"
+                        color: Style.Theme.text
+                    }
+                    ScrollView {
                         Layout.fillWidth: true
-                        enabled: !dialog.busy
-                        model: ["Choose a version…", "Keep local", "Use GitHub"]
-                        currentIndex: dialog.conflictChoices[conflict.modelData.path] === "local" ? 1 : dialog.conflictChoices[conflict.modelData.path] === "github" ? 2 : 0
-                        onActivated: index => { if (index > 0) dialog.choose(conflict.modelData.path, index === 1 ? "local" : "github"); }
+                        Layout.preferredHeight: 140
+                        clip: true
+                        TextArea {
+                            objectName: "githubConflictDiff"
+                            text: conflict.modelData.diff || "Compare the versions above."
+                            textFormat: TextEdit.PlainText
+                            readOnly: true
+                            selectByMouse: true
+                            wrapMode: TextEdit.Wrap
+                            font.family: "monospace"
+                            color: Style.Theme.text
+                            background: Rectangle { color: Style.Theme.field; radius: 6 }
+                        }
                     }
                 }
             }

@@ -8,7 +8,6 @@ import io
 import json
 import os
 from pathlib import Path
-import re
 import shutil
 import subprocess
 import sys
@@ -21,6 +20,9 @@ import compatibility
 import deployment
 import update_merge
 from github_sync import git, friendly_error
+
+DEVELOPER_REPOSITORY = 'https://github.com/orapagier/hyprshell.git'
+DEVELOPER_BRANCH = 'main'
 
 
 def repository():
@@ -45,20 +47,11 @@ def repository_lock(repo):
 
 
 def source(repo):
-    branch = git(repo, 'symbolic-ref', '--quiet', '--short', 'HEAD')
-    remote = git(repo, 'config', '--get', f'branch.{branch}.remote') if has_config(repo, f'branch.{branch}.remote') else 'origin'
-    ref = git(repo, 'config', '--get', f'branch.{branch}.merge') if has_config(repo, f'branch.{branch}.merge') else f'refs/heads/{branch}'
-    if remote == '.' or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', remote) or not ref.startswith('refs/heads/'):
-        raise ValueError('Configure a GitHub tracking branch for this checkout before updating.')
-    url = git(repo, 'remote', 'get-url', remote)
-    if not re.fullmatch(r'(?:https://github\.com/|git@github\.com:)[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?', url):
-        raise ValueError('The update remote must be an HTTPS or SSH GitHub repository.')
-    return {'remote': remote, 'ref': ref, 'url': url, 'branch': branch}
-
-
-def has_config(repo, key):
-    result = subprocess.run(['git', '-C', str(repo), 'config', '--get', key], capture_output=True, timeout=10)
-    return result.returncode == 0
+    # Fetch by URL so a user's fork, tracking branch and push remote stay intact.
+    checkout_branch = git(repo, 'symbolic-ref', '--quiet', '--short', 'HEAD')
+    return {'remote': DEVELOPER_REPOSITORY, 'ref': 'refs/heads/' + DEVELOPER_BRANCH,
+            'url': DEVELOPER_REPOSITORY, 'branch': DEVELOPER_BRANCH,
+            'checkoutBranch': checkout_branch}
 
 
 def archive(repo, revision, target):
@@ -147,7 +140,7 @@ def preview(repo, choices=None, previous=None):
                 assessment['warnings'].append('This update also changes system installation files. Sync updates your desktop; use full setup separately to apply boot, login or system-service changes.')
             notes = candidate / 'CHANGELOG.md'
             result = {'ok': True, 'ready': not blockers and not unresolved and incoming,
-                      'message': 'No incoming updates.' if not incoming else ('Choose which version to keep for each conflict.' if unresolved else 'Review the changes and compatibility results before syncing.'),
+                      'message': 'No new updates from the developer’s GitHub repository.' if not incoming else ('Choose which version to keep for each conflict.' if unresolved else 'Review the developer’s updates and compatibility results before syncing.'),
                       'conflicts': combined['conflicts'],
                       'repository': selection['url'], 'branch': selection['branch'], 'base': base, 'target': target,
                       'commits': commits, 'changes': changes, 'notes': notes.read_text()[:12000] if notes.exists() else '',

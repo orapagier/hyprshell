@@ -1,5 +1,6 @@
 """Build review trees and resolve file conflicts without committing local edits."""
 import hashlib
+import difflib
 import os
 from pathlib import Path
 import shutil
@@ -93,6 +94,24 @@ def describe(path):
     return value[:24000] + ('\n… Preview truncated.' if len(value) > 24000 else '')
 
 
+def difference(left, right):
+    def lines(path):
+        if path is None: return ['(File deleted)\n']
+        data = path.read_bytes()
+        if b'\0' in data: raise ValueError('binary')
+        return [line + '\n' for line in data.decode('utf-8').splitlines()]
+    try:
+        diff = ''.join(difflib.unified_diff(lines(left), lines(right),
+                     fromfile='Your local version', tofile='Developer’s GitHub version'))
+    except (UnicodeDecodeError, ValueError):
+        diff = 'Binary file change; choose which entire file to keep.\n'
+    if left is not None and right is not None and version(left)[1] != version(right)[1]:
+        diff += 'Executable permission: local=' + str(version(left)[1]) + ', developer=' + str(version(right)[1]) + '\n'
+    if not diff:
+        diff = 'File encoding or line endings differ. Choose which entire file to keep.\n'
+    return diff[:48000] + ('\n… Diff truncated.' if len(diff) > 48000 else '')
+
+
 def merge_directories(base, local, incoming, output, choices):
     """Three-way merge, with explicit full-file choices for conflicting changes."""
     output.mkdir(parents=True, exist_ok=True)
@@ -118,6 +137,7 @@ def merge_directories(base, local, incoming, output, choices):
             else:
                 decision = choices.get(name)
                 conflicts.append({'path': name, 'local': describe(left), 'github': describe(right),
+                                  'diff': difference(left, right),
                                   'choice': decision or '', 'localDeleted': left is None, 'githubDeleted': right is None})
                 chosen = right if decision == 'github' else left
         if chosen is not None:

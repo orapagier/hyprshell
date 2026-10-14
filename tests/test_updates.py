@@ -277,12 +277,82 @@ class GitUpdateTests(unittest.TestCase):
         (self.root / 'config/quickshell/shell.qml').write_text('// old')
         src = patch.object(github_update, 'source', return_value={'remote': 'origin', 'ref': 'refs/heads/main',
                           'url': 'https://github.com/example/hyprshell.git', 'branch': 'main'})
+        self.source_patch = src
         src.start(); self.addCleanup(src.stop)
         hardware = patch.object(compatibility, 'machine', return_value=copy.deepcopy(INFO))
         hardware.start(); self.addCleanup(hardware.stop)
 
     def git(self, *args):
         return github_update.git(self.repo, *args)
+
+    def test_developer_updates_ignore_user_fork_and_tracking_branch(self):
+        self.source_patch.stop()
+        fork = self.root / 'fork'
+        subprocess.run(['git', 'init', '--bare', str(fork)], check=True, capture_output=True)
+        self.git('remote', 'set-url', 'origin', str(fork))
+        self.git('push', 'origin', 'HEAD:refs/heads/personal')
+        self.git('branch', '-m', 'personal')
+        self.git('config', 'branch.personal.remote', 'origin')
+        self.git('config', 'branch.personal.merge', 'refs/heads/personal')
+        with patch.object(github_update, 'DEVELOPER_REPOSITORY', str(self.remote)):
+            selection = github_update.source(self.repo)
+            self.assertEqual(selection['branch'], 'main')
+            self.assertEqual(selection['remote'], str(self.remote))
+            review = github_update.preview(self.repo)
+            self.assertTrue(review['ready'])
+            self.assertEqual(review['target'], self.target)
+            self.assertEqual(review['repository'], str(self.remote))
+            self.git('checkout', '-b', 'other-personal')
+            with self.assertRaisesRegex(ValueError, 'changed after'):
+                github_update.reviewed(self.repo, review['token'])
+            self.git('checkout', 'personal')
+            with patch.object(deployment, 'install', return_value={'backup': ''}):
+                github_update.apply(self.repo, review['token'])
+        self.assertEqual(self.git('rev-parse', 'HEAD'), self.target)
+        self.assertEqual(self.git('remote', 'get-url', 'origin'), str(fork))
+        self.assertEqual(self.git('config', 'branch.personal.remote'), 'origin')
+        self.assertEqual(self.git('config', 'branch.personal.merge'), 'refs/heads/personal')
+        self.assertEqual(github_update.git(fork, 'rev-parse', 'personal'), self.base)
+
+    def test_live_settings_conflict_displays_values_and_applies_reviewed_choice(self):
+        self.git('reset', '--hard', self.target)
+        source = self.repo / 'config/hyprshell/settings.json'
+        source.parent.mkdir(parents=True)
+        defaults = json.loads((ROOT / 'config/hyprshell/settings.json').read_text())
+        source.write_text(json.dumps(defaults, indent=2) + '\n')
+        self.git('add', '.'); self.git('commit', '-m', 'Add settings fixture')
+        settings_base = self.git('rev-parse', 'HEAD')
+        developer = copy.deepcopy(defaults); developer['bar']['height'] = 43
+        source.write_text(json.dumps(developer, indent=2) + '\n')
+        self.git('add', '.'); self.git('commit', '-m', 'Change developer bar height'); self.git('push')
+        settings_target = self.git('rev-parse', 'HEAD')
+        self.git('reset', '--hard', settings_base)
+        (self.root / 'config/quickshell/shell.qml').write_text('// new')
+        live = self.root / 'config/hyprshell/settings.json'
+        live.parent.mkdir(parents=True)
+        local = copy.deepcopy(defaults); local['bar']['height'] = 47
+        live.write_text(json.dumps(local, indent=2) + '\n')
+        review = github_update.preview(self.repo)
+        self.assertFalse(review['ready'])
+        conflict = next(c for c in review['conflicts'] if c['path'] == 'config/hyprshell/settings.json')
+        self.assertEqual(json.loads(conflict['local'])['bar']['height'], 47)
+        self.assertEqual(json.loads(conflict['github'])['bar']['height'], 43)
+        self.assertIn('-    "height": 47', conflict['diff'])
+        self.assertIn('+    "height": 43', conflict['diff'])
+        for choice, height in (('local', 47), ('github', 43)):
+            review = github_update.preview(self.repo, {'config/hyprshell/settings.json': choice}, review['token'])
+            self.assertTrue(review['ready'])
+            with tempfile.TemporaryDirectory() as directory:
+                github_update.archive(self.repo, github_update.reviewed(self.repo, review['token'])['tree'], Path(directory))
+                self.assertEqual(json.loads((Path(directory) / 'config/hyprshell/settings.json').read_text())['bar']['height'], height)
+        def install(candidate, **kwargs):
+            live.write_bytes((candidate / 'config/hyprshell/settings.json').read_bytes())
+            return {'backup': ''}
+        with patch.object(deployment, 'install', side_effect=install):
+            github_update.apply(self.repo, review['token'])
+        self.assertEqual(json.loads(live.read_text())['bar']['height'], 43)
+        self.assertEqual(self.git('rev-parse', 'HEAD'), settings_target)
+        self.assertEqual(self.git('status', '--porcelain'), '')
 
     def test_preview_does_not_checkout_and_apply_uses_exact_reviewed_commit(self):
         result = github_update.preview(self.repo)
@@ -318,6 +388,8 @@ class GitUpdateTests(unittest.TestCase):
         self.assertEqual(review['conflicts'][0]['path'], 'config/quickshell/shell.qml')
         self.assertEqual(review['conflicts'][0]['local'], '// my uncommitted desktop')
         self.assertEqual(review['conflicts'][0]['github'], '// new')
+        self.assertIn('-// my uncommitted desktop\n', review['conflicts'][0]['diff'])
+        self.assertIn('+// new\n', review['conflicts'][0]['diff'])
         self.assertEqual(self.git('rev-parse', 'HEAD'), self.base)
         self.assertEqual(self.git('status', '--porcelain'), '')
         with self.assertRaisesRegex(ValueError, 'cannot be applied'):
@@ -399,6 +471,7 @@ class GitUpdateTests(unittest.TestCase):
         live = self.root / 'config/quickshell/shell.qml'; live.write_text('// local')
         review = github_update.preview(self.repo)
         self.assertTrue(review['conflicts'][0]['githubDeleted'])
+        self.assertIn('+(File deleted)', review['conflicts'][0]['diff'])
         selected = github_update.preview(self.repo, {'config/quickshell/shell.qml': 'github'}, review['token'])
         self.assertTrue(selected['ready'])
         with tempfile.TemporaryDirectory() as directory:
