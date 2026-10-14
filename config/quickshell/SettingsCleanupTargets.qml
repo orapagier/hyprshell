@@ -14,7 +14,7 @@ ColumnLayout {
     property var excluded: []
     property var fileEntries: []
     property int fileOffset: 0
-    property int days: 7
+    property int days: administrator ? 7 : 0
     property int keep: 5
     property string folder: ""
     property string message: ""
@@ -75,8 +75,8 @@ ColumnLayout {
     }
     SettingsCard {
         Layout.fillWidth: true
-        title: page.administrator ? "System files · administrator access" : "Your files · manual cleanup"
-        subtitle: page.administrator ? "Select system maintenance categories. Preview and cleanup each request administrator authentication. Tools use their stated retention policies." : "Choose what to remove and where. All categories start off. These choices do not change your automatic cleanup schedule."
+        title: page.administrator ? "System files · administrator access" : "Clean now · your files"
+        subtitle: page.administrator ? "Select system maintenance categories. Preview and cleanup each request administrator authentication. Tools use their stated retention policies." : "Turn on the categories you want, then Analyze & preview below. Recent files are included by default (age 0). Close browsers before previewing their caches. These choices do not change your automatic cleanup schedule."
         Repeater {
             model: page.groups
             delegate: ColumnLayout {
@@ -141,7 +141,7 @@ ColumnLayout {
             delegate: SettingsLabel {
                 required property var modelData
                 Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText
-                text: modelData.title + " · " + (modelData.blocked ? "Skipped" : page.size(modelData.bytes) + (modelData.estimate ? " observed; reclaimed space depends on the tool's policy" : " · " + modelData.count + " eligible files")) + "\n" + modelData.paths.join("\n") + "\n" + modelData.impact + (modelData.command ? "\nAction: " + modelData.command.join(" ") : "") + (modelData.warnings.length ? "\n" + modelData.warnings.join("\n") : "")
+                text: modelData.title + " · " + (modelData.blocked ? "Skipped" : page.size(modelData.bytes) + (modelData.estimate ? " observed; reclaimed space depends on the tool's policy" : " · " + modelData.count + " eligible files")) + "\n" + modelData.paths.join("\n") + "\n" + modelData.impact + (modelData.emptyReason ? "\n" + modelData.emptyReason : "") + (modelData.command ? "\nAction: " + modelData.command.join(" ") : "") + (modelData.warnings.length ? "\n" + modelData.warnings.join("\n") : "")
                 color: modelData.blocked || modelData.warnings.length ? Style.Theme.warning : Style.Theme.text
             }
         }

@@ -146,6 +146,19 @@ class SystemCleanupTests(unittest.TestCase):
         self.file('.cache/thumbnails/recent')
         result = subject.request(dict(operation='preview', selected=['thumbnails'], days=7, keep=1))
         self.assertEqual(result['preview']['totalFiles'], 0)
+        self.assertIn('Set minimum age to 0', result['preview']['groups'][0]['emptyReason'])
+
+    def test_manual_default_includes_recent_cache_without_changing_schedule(self):
+        self.file('.cache/thumbnails/recent')
+        schedule = {'schedule': 'weekly', 'days': 7, 'keep': 3,
+                    'thumbnails': True, 'temporary': True, 'backups': True}
+        path = self.file('.config/hyprshell/cleanup.json', json.dumps(schedule))
+        before = path.read_bytes()
+        result = subject.request(dict(operation='preview', selected=['thumbnails']))
+        self.assertEqual(result['preview']['totalFiles'], 1)
+        self.assertEqual(subject.options(dict(selected=['thumbnails']), False)['days'], 0)
+        self.assertEqual(subject.options(dict(selected=['crashes']), True)['days'], 7)
+        self.assertEqual(path.read_bytes(), before)
 
     def test_paging_keeps_one_plan_and_allows_excluding_later_files(self):
         for n in range(205): self.file(f'.cache/thumbnails/{n:04d}')

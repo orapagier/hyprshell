@@ -95,8 +95,12 @@ def token(entries):
     return hashlib.sha256(json.dumps(entries, sort_keys=True).encode()).hexdigest()
 
 def preview():
-    entries = scan(read())
-    return dict(ok=True, entries=entries, token=token(entries), bytes=sum(e['size'] for e in entries), message=f'{len(entries)} eligible files. Only old files owned by you; symlinks are skipped. Empty directories are retained.')
+    settings = read()
+    entries = scan(settings)
+    message = (f'{len(entries)} eligible files. Only old files owned by you; symlinks are skipped. Empty directories are retained.'
+               if entries else f'No files match the saved {settings["days"]}-day age and backup-retention rules. '
+               'This checks thumbnails, temporary files and backups only. Use Clean now · your files for browser and package caches.')
+    return dict(ok=True, entries=entries, token=token(entries), bytes=sum(e['size'] for e in entries), message=message)
 
 def clean(expected=None):
     entries = scan(read())

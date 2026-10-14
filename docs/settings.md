@@ -370,7 +370,7 @@ and `/var/tmp`, and old files in Hyprshell's configuration backup directory
 Recently accessed, modified, or changed files are kept. Symlinks are skipped,
 empty directories remain, and active configurations are excluded.
 
-**Clean System Now…** displays the eligible paths, individual sizes, and total
+**Preview scheduled cleanup rules…** displays the eligible paths, individual sizes, and total
 size using the saved choices. **Delete previewed files** confirms deletion;
 if the eligible files changed, preview again. Scheduled runs apply the same
 rules without prompting. Results are recorded in
@@ -381,7 +381,7 @@ retention remains independent of the user cleanup schedule.
 
 #### Manual file and system maintenance
 
-**Your files · manual cleanup** adds per-directory switches for Chromium,
+**Clean now · your files**, shown first, adds per-directory switches for Chromium,
 Firefox and Brave caches, user DNF metadata, npm download cache, thumbnails,
 Flatpak download metadata, graphics/font/Qt caches, desktop Trash and older
 Hyprshell recovery backups. Nothing is selected by default. Each switch names
@@ -390,7 +390,8 @@ troubleshooting history, recovery history or personal recovery copies. Applicati
 profiles, cookies, saved logins, documents, installed software, cached OpenCode
 tools, VM disks and container volumes remain outside automatic deletion.
 
-Manual age defaults to seven days; zero includes recent files. Keep newest
+User manual age defaults to zero, including recent files; administrator file
+cleanup defaults to seven days. The scheduler retains its saved age. Keep newest
 backup sets defaults to five, with at least one always retained. These choices
 do not save or modify the existing scheduler. Browsers and package download
 tools must be closed: an active related process skips that cache, and an activity

@@ -104,7 +104,7 @@ def options(payload, system):
     rows = {item['id']: item for item in catalog(system)}
     if set(selected) - set(rows):
         raise ValueError('Unknown cleanup category.')
-    days, keep = payload.get('days', 7), payload.get('keep', 5)
+    days, keep = payload.get('days', 7 if system else 0), payload.get('keep', 5)
     if type(days) is not int or not 0 <= days <= 365:
         raise ValueError('File age must be a whole number from 0 to 365 days.')
     if type(keep) is not int or not 1 <= keep <= 100:
@@ -248,6 +248,12 @@ def plan(choice, system=False):
                 errors.append(str(exc))
         item.update(count=len(entries), bytes=sum(e['size'] for e in entries), blocked=blocked,
                     warnings=errors[:20], estimate=item['policy'] == 'command')
+        if not entries and not blocked and item['policy'] != 'command':
+            item['emptyReason'] = (
+                f'No files match the age/retention rules; the newest {choice["keep"]} backup sets are kept.'
+                if item['policy'] == 'backups' else
+                f'No matching files untouched for {choice["days"]} days. Set minimum age to 0 to include recent files.'
+                if choice['days'] else 'No eligible regular files were found in this directory.')
         groups.append(item)
         if item['policy'] != 'command':
             all_entries.extend(entries)

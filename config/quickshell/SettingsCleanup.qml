@@ -58,6 +58,8 @@ ColumnLayout {
         }
         stderr: StdioCollector { onStreamFinished: if (text) page.message = text }
     }
+    SettingsCleanupTargets { id: manualCleanup; objectName: "manualCleanupTargets"; Layout.fillWidth: true; enabled: !worker.running && !systemCleanup.busy && !factoryReset.busy }
+    SettingsCleanupTargets { id: systemCleanup; objectName: "administratorCleanupTargets"; administrator: true; Layout.fillWidth: true; enabled: !worker.running && !manualCleanup.busy && !factoryReset.busy }
     SettingsCard {
         Layout.fillWidth: true
         title: "Automatic cleanup"
@@ -93,10 +95,10 @@ ColumnLayout {
     }
     SettingsCard {
         Layout.fillWidth: true
-        title: "Clean System Now"
-        subtitle: "Preview eligible files using your saved cleanup settings. Active configs, general application caches, and other users' files are excluded. Empty directories are kept."
+        title: "Preview automatic cleanup rules"
+        subtitle: "Checks only the saved thumbnail, temporary-file and backup rules, including their age and retention limits. To clean browser and other caches now, use the manual controls above."
         SettingsButton {
-            text: page.busy ? "Working…" : "Clean System Now…"
+            text: page.busy ? "Working…" : "Preview scheduled cleanup rules…"
             enabled: page.loaded && !page.dirty && !page.busy
             onClicked: page.request("preview", "")
         }
@@ -117,7 +119,7 @@ ColumnLayout {
                 wrapMode: TextEdit.WrapAnywhere
                 color: Style.Theme.text
                 background: Rectangle { radius: Style.Theme.controlRadius; color: Style.Theme.field; border.color: Style.Theme.controlBorder }
-                text: page.preview ? page.preview.entries.map(e => e.category + " · " + e.size + " bytes\n" + e.path).join("\n\n") || "No eligible files." : ""
+                text: page.preview ? page.preview.entries.map(e => e.category + " · " + e.size + " bytes\n" + e.path).join("\n\n") || "No files match the saved age and backup-retention rules. This does not mean your browser or package caches are empty. Use Clean now · your files above to preview those caches." : ""
             }
         }
         RowLayout {
@@ -133,12 +135,10 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Automatic cleanup status"
-        subtitle: "The user cleanup timer and the distribution's existing package-cache timer keep their separate policies. Manual system maintenance is available below."
+        subtitle: "The user cleanup timer and the distribution's existing package-cache timer keep their separate policies. Manual system maintenance is available above."
         Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "paccache.timer: " + page.paccache; color: Style.Theme.text }
         Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Hyprshell cleanup timer: " + page.timerStatus; color: Style.Theme.muted }
     }
-    SettingsCleanupTargets { id: manualCleanup; objectName: "manualCleanupTargets"; Layout.fillWidth: true; enabled: !worker.running && !systemCleanup.busy && !factoryReset.busy }
-    SettingsCleanupTargets { id: systemCleanup; objectName: "administratorCleanupTargets"; administrator: true; Layout.fillWidth: true; enabled: !worker.running && !manualCleanup.busy && !factoryReset.busy }
     SettingsCard {
         Layout.fillWidth: true
         title: "Personal data and installed software"

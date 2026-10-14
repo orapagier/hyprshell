@@ -77,7 +77,8 @@ ShellRoot {
             if (!manual || !admin || manual.busy || admin.busy || !manual.loaded || !admin.loaded) return;
             if (test.phase === 1) {
                 if (manual.selected.length || admin.selected.length) { test.fail("categories preselected"); return; }
-                manual.toggle("thumbnails", true); manual.days = 0;
+                if (manual.days !== 0 || admin.days !== 7) { test.fail("manual and system age defaults"); return; }
+                manual.toggle("thumbnails", true);
                 manual.request("preview"); test.phase++;
             } else if (test.phase === 2 && manual.preview) {
                 if (manual.preview.totalFiles !== 2 || manual.fileEntries.length !== 2) { test.fail("file preview"); return; }

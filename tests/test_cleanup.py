@@ -88,3 +88,9 @@ class CleanupTests(unittest.TestCase):
         for key, value in [('days', 0), ('keep', True), ('schedule', 'hourly'), ('backups', 1)]:
             with self.assertRaises(ValueError):
                 cleanup.validate(dict(self.settings, **{key: value}))
+
+    def test_empty_preview_explains_saved_scope_and_manual_cleanup(self):
+        result = cleanup.preview()
+        self.assertEqual(result['entries'], [])
+        self.assertIn('thumbnails, temporary files and backups only', result['message'])
+        self.assertIn('Clean now', result['message'])
