@@ -28,9 +28,9 @@ FloatingWindow {
     property var submitted: Model.copy(store.defaults)
     property bool editingSession: false
     readonly property bool saving: writer.running
-    readonly property bool idle: !writer.running && !autoSave.running && !displayPage.busy && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !githubUpdate.busy && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && !networkPage.busy && !regionalPage.busy && !helpPage.busy && !behaviorPage.busy && !clipboardPage.busy && !peripheralsPage.busy
-    readonly property bool manualDirty: lockPage.dirty || themePage.dirty || displayPage.dirty || keybindingsPage.dirty || cleanupPage.dirty || regionalPage.dirty || behaviorPage.dirty || recoveryPage.dirty
-    readonly property bool pageDirty: section === -3 ? lockPage.dirty : section === -8 ? themePage.dirty : section === -7 ? displayPage.dirty : section === -6 ? keybindingsPage.dirty : section === -4 ? cleanupPage.dirty : section === -17 ? regionalPage.dirty : section === -19 ? behaviorPage.dirty : section === -14 ? recoveryPage.dirty : false
+    readonly property bool idle: !writer.running && !autoSave.running && !displayPage.busy && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !githubUpdate.busy && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && !networkPage.busy && !firewallPage.busy && !regionalPage.busy && !helpPage.busy && !behaviorPage.busy && !clipboardPage.busy && !peripheralsPage.busy
+    readonly property bool manualDirty: lockPage.dirty || themePage.dirty || displayPage.dirty || keybindingsPage.dirty || cleanupPage.dirty || regionalPage.dirty || firewallPage.dirty || behaviorPage.dirty || recoveryPage.dirty
+    readonly property bool pageDirty: section === -3 ? lockPage.dirty : section === -8 ? themePage.dirty : section === -7 ? displayPage.dirty : section === -6 ? keybindingsPage.dirty : section === -4 ? cleanupPage.dirty : section === -17 ? regionalPage.dirty : section === -22 ? firewallPage.dirty : section === -19 ? behaviorPage.dirty : section === -14 ? recoveryPage.dirty : false
     function savingPolicy() {
         if (section === -3) return "Timers save automatically · Use Apply lock command to change the locker";
         if (section === -8) return "Colors save immediately · Apply font and cursor to save them";
@@ -40,7 +40,7 @@ FloatingWindow {
         if (section === -17) return "Use Save for next login to save language and region";
         if (section === -19) return "Use Apply changes to save workspaces and rules";
         if (section === -14) return "Backup plans require Save · Recovery and updates require an explicit action";
-        if ([-5, -15, -18, -21].indexOf(section) >= 0) return "Use this page’s action buttons";
+        if ([-5, -15, -18, -21, -22].indexOf(section) >= 0) return "Use this page’s action buttons";
         if (section === -12) return "Sound changes apply immediately and are remembered by the audio service";
         if (section === -10) return "Timers save automatically · Hardware controls apply immediately";
         if (section === -13) return "Choices save immediately · Startup changes take effect at next login";
@@ -81,6 +81,7 @@ FloatingWindow {
             {section: -6, title: "Keyboard shortcuts", symbol: "󰌌", keywords: "keybindings hotkeys"}
         ]},
         {group: "System", pages: [
+            {section: -22, title: "Firewall", symbol: "󰒃", keywords: "firewalld security rules ports services zones block incoming tcp udp"},
             {section: -16, title: "Accessibility", symbol: "󰋁", keywords: "large text size contrast reduced motion animations"},
             {section: -17, title: "Language & region", symbol: "󰗊", keywords: "locale timezone date time number formats"},
             {section: -10, title: "Power & battery", symbol: "󰁹", keywords: "brightness sleep lid profiles"},
@@ -686,7 +687,7 @@ FloatingWindow {
                             Layout.fillWidth: true
                             Layout.topMargin: -14
                             font.pixelSize: Style.Theme.bodySize
-                            text: window.section === -20 ? "Optional local clipboard history" : window.section === -21 ? "Printers and scanners when you need them" : window.section === -19 ? "Choose workspace layouts and rules for application windows." : window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover personal configuration, and back up personal files." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for your desktop bar." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
+                            text: window.section === -22 ? "Inspect firewall zones and explicitly apply incoming traffic rules." : window.section === -20 ? "Optional local clipboard history" : window.section === -21 ? "Printers and scanners when you need them" : window.section === -19 ? "Choose workspace layouts and rules for application windows." : window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover personal configuration, and back up personal files." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for your desktop bar." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
                             wrapMode: Text.WordWrap
                             color: Style.Theme.muted
                         }
@@ -812,6 +813,13 @@ FloatingWindow {
                             id: applicationsPage
                             visible: window.section === -13
                             Layout.fillWidth: true
+                        }
+                        SettingsPageLoader {
+                            id: firewallPage
+                            objectName: "settingsFirewallLoader"
+                            Layout.fillWidth: true
+                            visible: window.visible && window.section === -22
+                            sourceComponent: SettingsFirewall {}
                         }
                         SettingsPageLoader {
                             id: networkPage

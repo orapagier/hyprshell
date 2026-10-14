@@ -1180,3 +1180,37 @@ Super+C and Super+V forward Copy and Paste to the focused application
 (Ctrl+C/V, or Ctrl+Shift+C/V for Kitty, Alacritty, Foot, WezTerm and Ptyxis).
 Super+Alt+V toggles floating windows. Application-specific shortcut preferences can
 override the conventional forwarded keys.
+
+## Firewall controls
+
+**System → Firewall** reads firewalld on demand and shows active zone/interface
+bindings, zone details, allowed services and ports, and rich rules. Choose the
+zone used by your connection. Add/remove a named service or TCP/UDP port/range;
+block an IPv4/IPv6 address or CIDR network with a negative-priority source drop
+rule, or remove an existing rich rule. Every mutation requires review and Apply.
+The helper validates values, passes argument arrays without a shell, and checks
+the displayed zone revision before changing it. Administrator authorization uses
+firewalld/Polkit; access failures are shown as unavailable rather than stopped.
+
+**Current rules** take effect immediately and last until reload/restart.
+**Saved rules** survive restart but become effective only after reload/restart.
+Apply the same change in each view to keep it now and after restart. This UI
+never reloads the firewall or copies all current rules over saved rules. Removing
+one allowance does not guarantee blocking when another rule or the zone target
+also permits traffic. Existing rich rules with earlier priorities or policy
+rules can take precedence over the source block. Draft input and confirmation
+survive page navigation and closing Settings within the running shell. Discard
+or apply to clear them.
+
+**Enable and start** opens an explicit authenticated Kitty terminal for
+`sudo systemctl enable --now firewalld.service`; Refresh verifies completion.
+Opening Settings does not enable a firewall or change existing rules. firewalld
+is already a base package on Fedora and Arch. Other firewall managers are not
+replaced. System firewall rules, interfaces and source addresses are not desktop
+preferences and stay outside GitHub sync. Advanced outgoing restrictions,
+forwarding, connection-zone assignments and policies use firewalld/NetworkManager
+tools. [Official firewall-cmd documentation](https://firewalld.org/documentation/man-pages/firewall-cmd.html).
+
+Checks: `python3 -m unittest discover -s tests -p test_firewall.py -v`.
+Tests use fake firewall commands and a native offscreen Settings window; no real
+rule, administrator authentication or service activation is performed.
