@@ -72,6 +72,10 @@ Captured from a running Hyprshell desktop.
 ### Hyprshell desktop settings
 
 ![Hyprshell desktop settings](docs/assets/hyprshell-settings.png)
+
+### Hyprshell tiled windows
+
+![Hyprshell tiled windows](docs/assets/hyprshell-tiled.png)
 <!-- desktop-screenshots:end -->
 
 To capture the running desktop, launcher, settings, and tiled windows, run
