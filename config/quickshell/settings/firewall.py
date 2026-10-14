@@ -167,10 +167,10 @@ def request(payload):
     if operation in ('enable', 'disable'):
         if payload.get('confirmed') is not True:
             raise ValueError('Confirm turning the firewall on or off first.')
-        if not shutil.which('pkexec'):
+        if os.geteuid() != 0 and not shutil.which('pkexec'):
             raise ValueError('Administrator authentication is unavailable. Install polkit and use a desktop authorization agent.')
         action = 'enable' if operation == 'enable' else 'disable'
-        result = subprocess.run(['pkexec', '/usr/bin/systemctl', action, '--now', 'firewalld.service'],
+        result = subprocess.run([*(['pkexec'] if os.geteuid() != 0 else []), '/usr/bin/systemctl', action, '--now', 'firewalld.service'],
                                 capture_output=True, text=True, timeout=120)
         if result.returncode:
             raise ValueError('The firewall switch was not changed. Authentication was cancelled or the system could not complete the request. Refresh to check its status.')

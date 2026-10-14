@@ -1191,8 +1191,13 @@ in the form for correction; Refresh keeps a draft. Rules show whether they are
 active, saved only or temporary. Remove and switching the firewall require a
 short confirmation. Help and technical details are collapsed by default.
 
-The switch uses `pkexec /usr/bin/systemctl enable|disable --now firewalld.service`
-with the desktop authorization prompt, then reads actual status. Turning off
+Each page action runs one short `pkexec /usr/bin/python3 settings/firewall.py`
+job with the desktop authorization prompt. All reads, writes, rollback and
+final status checks run inside that job, so individual firewall-cmd subprocesses
+do not request separate passwords. The switch uses systemctl enable/disable
+inside the already authenticated job. There is no persistent elevated process,
+password storage or authorization-policy change. Refresh can ask for authorization
+once; cancellation stops the job without an automatic retry. Turning off
 preserves saved rules and keeps the firewall off after restart. Stopped, checking,
 unknown and running states are distinct. Rule editing is available while running;
 when off, the page explains that rules are kept and become available after turning

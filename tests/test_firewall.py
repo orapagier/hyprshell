@@ -60,9 +60,14 @@ class FirewallTests(unittest.TestCase):
             with patch.object(firewall.subprocess, 'run') as run:
                 with self.assertRaises(ValueError): firewall.request({'operation': operation})
                 run.assert_not_called()
-            with patch.object(firewall.shutil, 'which', return_value='/usr/bin/pkexec'), patch.object(firewall.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)) as run, patch.object(firewall, 'context', side_effect=firewall.FirewallStopped('stopped')):
+            with patch.object(firewall.os, 'geteuid', return_value=1000), patch.object(firewall.shutil, 'which', return_value='/usr/bin/pkexec'), patch.object(firewall.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)) as run, patch.object(firewall, 'context', side_effect=firewall.FirewallStopped('stopped')):
                 firewall.request({'operation': operation, 'confirmed': True})
                 self.assertEqual(run.call_args.args[0], ['pkexec', '/usr/bin/systemctl', action, '--now', 'firewalld.service'])
+
+    def test_authenticated_job_does_not_request_authentication_again_for_switch(self):
+        with patch.object(firewall.os, 'geteuid', return_value=0), patch.object(firewall.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)) as run, patch.object(firewall, 'context', side_effect=firewall.FirewallStopped('stopped')):
+            firewall.request({'operation': 'disable', 'confirmed': True})
+            self.assertEqual(run.call_args.args[0], ['/usr/bin/systemctl', 'disable', '--now', 'firewalld.service'])
 
     def test_stopped_firewall_is_off_not_unknown(self):
         with patch.object(firewall, 'context', side_effect=firewall.FirewallStopped('stopped')):
@@ -194,12 +199,27 @@ else:
             fake.chmod(0o755)
             pkexec = commands / 'pkexec'
             pkexec.write_text(f'''#!{sys.executable}
-import os, sys
+import json, os, runpy, subprocess, sys
 from pathlib import Path
 root = Path(os.environ['FIREWALL_TEST_ROOT'])
-if sys.argv[2] == 'disable': (root / 'off').touch()
-elif sys.argv[2] == 'enable': (root / 'off').unlink(missing_ok=True)
-else: sys.exit(3)
+assert sys.argv[1] == '/usr/bin/python3'
+script, arguments = sys.argv[2], sys.argv[3:]
+request = json.loads(arguments[1])
+with (root / 'auth-jobs').open('a') as log: log.write(request['operation'] + '\\n')
+if (root / 'cancel-auth').exists(): sys.exit(126)
+os.geteuid = lambda: 0
+original_run = subprocess.run
+def run(args, **kwargs):
+    if args[0] == '/usr/bin/systemctl':
+        if args[1] == 'disable': (root / 'off').touch()
+        elif args[1] == 'enable': (root / 'off').unlink(missing_ok=True)
+        else: raise AssertionError(args)
+        return subprocess.CompletedProcess(args, 0, '', '')
+    assert args[0] != 'pkexec', 'Nested authentication request'
+    return original_run(args, **kwargs)
+subprocess.run = run
+sys.argv = [script, *arguments]
+runpy.run_path(script, run_name='__main__')
 ''')
             pkexec.chmod(0o755)
             fixture = qml / 'FirewallNative.qml'
@@ -214,6 +234,7 @@ ShellRoot {
     SettingsStore { id: prefs }
     SettingsController { id: controller; store: prefs }
     Process { id: deny; command: ["touch", "DENY_PATH"] }
+    Process { id: cancellation; command: ["touch", "CANCEL_PATH"] }
     function find(root, name) { if (!root) return null; if (root.objectName === name) return root; for (let child of root.children || []) { let match = find(child, name); if (match) return match; } return null; }
     function fail(message) { console.error("FIREWALL_FAILED", phase, message); Qt.quit(); }
     Timer { interval: 80; running: true; repeat: true; onTriggered: {
@@ -280,12 +301,17 @@ ShellRoot {
         else if (test.phase === 11 && page && !page.busy && !page.success) {
             if (page.loaded || !page.message.includes("Cannot access") || find(page, "firewallSwitch").enabled) { test.fail("access failure"); return; }
             if (window.dirty || window.saving) { test.fail("unrelated settings saved"); return; }
+            cancellation.running = true; test.phase = 14;
+        } else if (test.phase === 14 && !cancellation.running) {
+            find(page, "refreshFirewall").clicked(); test.phase = 15;
+        } else if (test.phase === 15 && page && !page.busy) {
+            if (!page.message.includes("Authentication cancelled")) { test.fail("cancelled authentication"); return; }
             console.warn("FIREWALL_NATIVE_OK"); Qt.quit();
         }
     } }
     Timer { interval: 15000; running: true; onTriggered: test.fail("timeout") }
 }
-'''.replace('DENY_PATH', str(root / 'deny')))
+'''.replace('DENY_PATH', str(root / 'deny')).replace('CANCEL_PATH', str(root / 'cancel-auth')))
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
             env = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'), XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software', QT_QPA_PLATFORMTHEME='', PATH=str(commands) + os.pathsep + os.environ['PATH'], FIREWALL_TEST_ROOT=str(root))
             result = subprocess.run(['quickshell', '-p', str(fixture)], env=env, capture_output=True, text=True, timeout=20)
@@ -296,4 +322,5 @@ ShellRoot {
             calls = [json.loads(line) for line in (root / 'calls').read_text().splitlines()]
             self.assertEqual(sum('--add-service=http' in row for row in calls), 2)
             self.assertEqual(sum('--add-service=http' in row and '--permanent' in row for row in calls), 1)
+            self.assertEqual((root / 'auth-jobs').read_text().splitlines(), ['status', 'add-service', 'edit-rule', 'status', 'edit-rule', 'remove-port', 'disable', 'enable', 'status', 'status'])
             self.assertFalse((root / 'config/hyprshell/settings.json').exists())

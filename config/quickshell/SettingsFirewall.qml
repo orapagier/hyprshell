@@ -19,7 +19,8 @@ ColumnLayout {
     property bool success: true
     property bool loaded: false
     signal reviewRequested(var card)
-    readonly property bool busy: worker.running
+    property bool startingRequest: false
+    readonly property bool busy: worker.running || startingRequest
     readonly property bool dirty: editing || pending !== null
     readonly property var rules: snapshot.rules || []
     readonly property var serviceIds: {
@@ -36,8 +37,9 @@ ColumnLayout {
     function discard() { editing = false; original = null; pending = null; }
     function request(payload) {
         if (busy) return;
+        startingRequest = true;
         lastOperation = payload.operation;
-        worker.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/firewall.py").toString().replace(/^file:\/\//, "")), "--request-json", JSON.stringify(payload)];
+        worker.command = ["pkexec", "/usr/bin/python3", decodeURIComponent(Qt.resolvedUrl("settings/firewall.py").toString().replace(/^file:\/\//, "")), "--request-json", JSON.stringify(payload)];
         worker.running = true;
     }
     function openEditor(row) {
@@ -65,9 +67,10 @@ ColumnLayout {
     }
     Process {
         id: worker
-        onExited: (code, status) => { if (code !== 0) { page.success = false; page.loaded = false; page.message = "The request could not finish. Refresh to check the result."; } }
+        onExited: (code, status) => { page.startingRequest = false; if (code !== 0) { page.success = false; page.message = code === 126 ? "Authentication cancelled. Nothing was requested." : "Administrator access was not granted or the request could not finish. Refresh to check the result."; } }
         stdout: StdioCollector {
             onStreamFinished: {
+                if (!text.trim()) return;
                 try {
                     let result = JSON.parse(text);
                     page.success = result.ok; page.message = result.message || "";
