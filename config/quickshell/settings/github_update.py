@@ -205,7 +205,10 @@ def apply(repo, token):
             archive(repo, review['history_tree'], history)
             archive(repo, review['checkout_tree'], original)
             archive(repo, review['base'], head)
-            installed = deployment.install(candidate, native=True, base_repo=repo, resolved=True)
+            build = {'channel': 'rolling', 'revision': revision, 'upstream_revision': review['target'],
+                     'date': git(repo, 'show', '-s', '--format=%cs', review['target']),
+                     'modified': review['tree'] != git(repo, 'rev-parse', review['target'] + '^{tree}')}
+            installed = deployment.install(candidate, native=True, base_repo=repo, resolved=True, build=build)
             advanced = False
             checkout_touched = False
             try:
@@ -231,7 +234,8 @@ def apply(repo, token):
                     deployment.rollback(Path(installed['backup']))
                 raise
         deployment.atomic_json(deployment.roots()['state'] / 'installed-release.json',
-                               {'revision': revision, 'source': review['source'], 'updated': time.time()})
+                               {'revision': revision, 'upstream_revision': review['target'],
+                                'source': review['source'], 'updated': time.time(), 'backup': installed['backup']})
         return {'ok': True, 'message': 'Hyprshell updated using your choices. Unsynced local edits remain uncommitted. Log out and back in to finish activation.',
                 'backup': installed['backup'], 'revision': revision}
 

@@ -40,6 +40,12 @@ def machine():
                 output = ''
         parsed = version(output)
         versions[name] = '.'.join(map(str, parsed)) if parsed else 'unknown'
+    # Query the host's Qt 6 base package, not an unqualified Qt 5 tool or SDK.
+    distro = osinfo.get('ID', 'unknown')
+    qt = command(['rpm', '-q', '--qf', '%{VERSION}', 'qt6-qtbase']) if distro == 'fedora' else (
+        command(['pacman', '-Q', 'qt6-base']) if distro == 'arch' else '')
+    parsed = version(qt)
+    versions['qt6'] = '.'.join(map(str, parsed)) if parsed else 'unknown'
     vendors = set()
     for device in Path('/sys/class/drm').glob('card[0-9]*/device/vendor'):
         try:
@@ -80,7 +86,7 @@ def missing_packages(names, distro):
 def assess(manifest, info=None, package_names=None):
     info = info or machine()
     blockers, warnings, checks = [], [], []
-    if manifest.get('format') != 1:
+    if manifest.get('format') not in (1, 2):
         raise ValueError('This update requires a newer compatibility checker.')
     if info['atomic']:
         blockers.append('Fedora Atomic/OSTree is not supported by this installer.')
@@ -93,17 +99,28 @@ def assess(manifest, info=None, package_names=None):
         blockers.append('Unsupported operating system: ' + info['distribution'] + ' ' + info['release'])
     else:
         checks.append('Operating system: ' + info['distribution'] + ' ' + info['release'])
-    for name, required in manifest['minimum'].items():
+    evidence = manifest.get('platform_evidence', {}).get(info['distribution'], {})
+    tested = evidence.get('versions', manifest['tested'])
+    for name in sorted(manifest['minimum'].keys() | manifest.get('required_major', {}).keys()):
+        required = manifest['minimum'].get(name)
         current = info['versions'].get(name, 'unknown')
-        parsed, minimum = version(current), version(required)
-        if minimum is None:
+        parsed, minimum = version(current), version(required) if required else None
+        if required and minimum is None:
             raise ValueError('Invalid minimum version')
-        if parsed is None or parsed < minimum:
-            blockers.append(f'{name}: {required}+ required; installed {current}.')
-        elif current not in manifest['tested'].get(name, []):
-            warnings.append(f'{name} {current} meets the minimum but has not been recorded as tested.')
+        major = manifest.get('required_major', {}).get(name)
+        excluded = manifest.get('incompatible', {}).get(name, {})
+        if parsed is None or minimum and parsed < minimum or major is not None and parsed[0] != major:
+            requirement = required + '+' if required else f'major version {major}'
+            blockers.append(f'{name}: {requirement} required; installed {current}.')
+        elif current in excluded:
+            blockers.append(f'{name} {current} is incompatible: {excluded[current]}')
+        elif current not in tested.get(name, []):
+            warnings.append(f'{name} {current} meets the requirements but has not been recorded as tested for this distribution.')
         else:
-            checks.append(f'{name} {current}: recorded baseline version.')
+            checks.append(f'{name} {current}: recorded baseline version for this distribution.')
+    if evidence.get('last_working_date'):
+        checks.append('Last reported working desktop: ' + evidence['last_working_date'] + '. ' + evidence.get('basis', ''))
+    warnings.extend(evidence.get('notes', []))
     missing = missing_packages(package_names or [], info['distribution'])
     if missing:
         blockers.append('Install required packages using your system package manager, then check again: ' + ', '.join(missing))
@@ -121,8 +138,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('manifest', type=Path)
     parser.add_argument('--json', action='store_true')
+    parser.add_argument('--platform-only', action='store_true', help='Check OS and architecture before package installation')
     args = parser.parse_args()
-    result = assess(json.loads(args.manifest.read_text()))
+    manifest = json.loads(args.manifest.read_text())
+    if args.platform_only:
+        manifest.update(minimum={}, required_major={}, incompatible={})
+    result = assess(manifest)
     if args.json:
         print(json.dumps(result))
     else:

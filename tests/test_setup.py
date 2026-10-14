@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import shutil
+import shlex
 import tempfile
 import unittest
 
@@ -31,7 +32,28 @@ class InstallerTests(unittest.TestCase):
             hyprland.write_text("#!/bin/sh\nprintf '%s\\n' '{\"version\":\"0.56.2\"}'\n")
             hyprland.chmod(0o755)
             env = dict(env, PATH=str(version_bin) + os.pathsep + env['PATH'])
-        return subprocess.run(['bash', str(ROOT / 'setup.sh'), '--distro', 'arch', *args],
+        script = ROOT / 'setup.sh'
+        if '--config-only' in args and '--dry-run' not in args:
+            # Run the real checker against a synthetic supported platform in
+            # portable config-copy tests. Runtime policy has dedicated tests.
+            driver = self.root / 'compatibility_fixture.py'
+            driver.write_text(
+                'import sys\nfrom unittest.mock import patch\n'
+                f'sys.path.insert(0, {str(ROOT / "config/quickshell/settings")!r})\n'
+                'import compatibility\n'
+                'info = {"distribution":"arch", "release":"rolling", "architecture":"x86_64", '
+                '"versions":{"hyprland":"0.56.2", "quickshell":"0.3.2", "uwsm":"0.27.0", "qt6":"6.11.2"}, '
+                '"atomic":False, "graphics":[]}\n'
+                'with patch.object(compatibility, "machine", return_value=info):\n'
+                '    raise SystemExit(compatibility.main())\n')
+            script = self.root / 'setup-fixture.sh'
+            text = (ROOT / 'setup.sh').read_text()
+            text = text.replace('REPO_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)',
+                                'REPO_DIR=' + shlex.quote(str(ROOT)))
+            text = text.replace('"$REPO_DIR/config/quickshell/settings/compatibility.py"',
+                                shlex.quote(str(driver)))
+            script.write_text(text)
+        return subprocess.run(['bash', str(script), '--distro', 'arch', *args],
                               env=env, text=True, capture_output=True, check=check)
 
     def test_config_only_rejects_old_hyprland_before_copying_on_both_distros(self):
@@ -44,7 +66,7 @@ class InstallerTests(unittest.TestCase):
             result = subprocess.run(['bash', str(ROOT / 'setup.sh'), '--distro', distro,
                                      '--config-only'], env=self.env, text=True, capture_output=True)
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn('Hyprland 0.56+ is required', result.stderr)
+            self.assertIn('hyprland: 0.56.0+ required', result.stdout)
             self.assertFalse(self.home.exists())
 
     def install(self):

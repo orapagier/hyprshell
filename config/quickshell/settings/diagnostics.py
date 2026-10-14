@@ -10,6 +10,7 @@ import subprocess
 import sys
 
 import backend
+import build_info
 from preferences import roots
 
 SERVICES = (
@@ -70,14 +71,15 @@ def check():
     rows.append({'title': 'Desktop compositor', 'state': state, 'hint': hint, 'page': -2})
     # No hostname, username, IP/SSID, devices, window titles, commands, paths or logs.
     return {'version': 1, 'created': datetime.now(timezone.utc).isoformat(timespec='seconds'),
-            'system': {'platform': platform.system(), 'kernel': platform.release(), 'architecture': platform.machine()},
+            'system': {'platform': platform.system(), 'kernel': platform.release(), 'architecture': platform.machine(),
+                       'hyprshell': build_info.installed()},
             'checks': rows}
 
 
 def request(payload):
     operation = payload.get('operation')
     if operation == 'status':
-        return {'ok': True, 'guideComplete': welcome()}
+        return {'ok': True, 'guideComplete': welcome(), 'build': build_info.installed()}
     if operation == 'guide-complete':
         _, state = roots()
         backend.atomic(state / 'welcome.json', json.dumps({'version': 1, 'completed': True}))

@@ -8,7 +8,7 @@ Hyprshell owns the shell and its user configuration.
 | Command or control | Effect |
 | --- | --- |
 | `./setup.sh` | Install/upgrade system dependencies and integration; deploy desktop files; preserve existing user preferences |
-| `./setup.sh --config-only` | Deploy desktop files and compile the helper; validate saved JSON/Python/Lua; no package or service changes |
+| `./setup.sh --config-only` | Check platform/runtime compatibility, deploy desktop files and compile the helper; validate saved JSON/Python/Lua; no package or service changes |
 | `./setup.sh --update` | As above, with compatibility, staged Hyprland and offscreen Qt checks |
 | Settings → Sync to GitHub | Capture the live desktop, commit locally, then push to your authenticated account |
 | Settings → Sync from GitHub | Fetch updates from the developer’s `orapagier/hyprshell` repository, review, validate and apply to this checkout and the installed desktop |
@@ -61,7 +61,7 @@ The preview shows:
 
 - incoming commit subjects, changed files and optional `CHANGELOG.md`;
 - added/removed package requirements and missing installed packages;
-- Fedora/Arch release, architecture, Hyprland, Quickshell and UWSM versions;
+- Fedora/Arch release, architecture, Hyprland, Quickshell, host Qt 6 base package and UWSM versions;
 - detected graphics vendors, known limitations and the release acceptance record;
 - local code conflicts and whether a history-preserving merge is needed.
 
@@ -127,11 +127,70 @@ an appropriate recovery branch yourself; rollback does not reset commits.
 Preferences changed by external application integration on first installation use those helpers' own backups. Normal updates do not reapply MIME
 associations or regional settings.
 
-## Release discipline
+## Rolling support policy
 
-`compatibility.json` is the version/support record. Keep its acceptance text
-honest: implemented features, automated test results, VM login and physical
-hardware checks are different evidence. Tag releases only after the checklist
-in [acceptance.md](acceptance.md) is complete for the advertised target. Keep
-release notes in `CHANGELOG.md`; don't advertise a release tag that has not been
-created. Current work is a development candidate, not a certified release.
+Hyprshell has one rolling channel, `main`, for both distributions. Development
+should use branches and pull requests, merging only after the required checks
+pass. Repository owners must configure GitHub branch rules to enforce this;
+the local workflow alone does not prevent a direct push of failing code.
+There are no separate Fedora and Arch editions or maintained numbered branches.
+
+`compatibility.json` is the support record. Fedora support covers explicitly
+listed traditional DNF-based releases (currently 44); Atomic/OSTree remains
+unsupported. Arch targets a fully updated rolling system, not an installation
+ISO version. New Fedora releases require validation before adding support.
+
+`minimum` lists dependency minimums; `required_major.qt6` requires Qt 6 without
+inventing an untested minor-version floor. `incompatible` maps component names
+to exact versions and reasons, for example `{"hyprland": {"0.57.1": "reason"}}`.
+No versions are currently excluded. Unknown/missing or known incompatible
+dependencies block deployment; newer unrecorded versions generate warnings.
+The rolling manifest uses format 2 so older update checkers cannot silently
+ignore the new Qt/exclusion rules. On an older installation, first bring the
+checkout up to date while preserving local work, review it, then run
+`./setup.sh --update` once to bootstrap the checker. Subsequent Settings updates
+use the normal preview flow. The new checker still accepts format 1 manifests.
+Per-platform `versions` are dependency evidence, not interchangeable Fedora/Arch
+certification. An empty Arch version record deliberately preserves that distinction.
+Qt detection records the distro's Qt base package, not a custom SDK or proof that
+a custom Quickshell binary was built against that same Qt. Staged native checks
+remain necessary for ABI and QML compatibility.
+
+Automated Arch and Fedora checks run on pushes, pull requests, manual requests
+and a daily schedule. Each distro job uploads dated JSON dependency evidence
+including the tested commit and package versions. Consult the job result for
+test success; a snapshot alone is not a passing test. CI never automatically
+changes the published support record or declares physical hardware certified.
+
+Keep acceptance text honest: dependency inspection, automated tests, VM login
+and physical checks are different evidence. Use [acceptance.md](acceptance.md)
+for fresh-install and hardware testing, and `CHANGELOG.md` for rolling changes.
+
+### Reported platform issues
+
+- **Arch — last reported working October 11, 2026:** the user's touchpad did
+  not work with the kernel previously used; installing and booting an LTS kernel
+  resolved it. Exact kernel/dependency versions and the tested Hyprshell commit
+  were not captured. This is a machine-specific report, not a requirement to
+  replace every Arch user's kernel. The installer preserves custom kernels.
+- **Fedora 44 — Distrobox identity:** the user reports that an installed Ubuntu
+  container environment still reports Fedora 44, making it appear that no
+  container was entered. Reproduction and cause remain unverified. Verify
+  identity inside the entered container separately from host installation
+  detection. This rolling-policy change records the issue; it does not fix it.
+
+### Installed build and recovery
+
+Settings → Help & diagnostics shows the deployed rolling build's date and
+commit, also included in diagnostic reports. `deployed.json` stores build
+metadata alongside owned files. Reviewed updates record the developer's exact
+upstream commit separately from any local merge commit and flag local changes.
+Direct setup records the local checkout commit and dirty state; it does not
+guess which developer commit a fork contains. Older installs show “build not
+recorded” until deployed again.
+
+Each changed-file backup includes the previous ownership manifest and build
+record, so the rollback command above restores both. It does not downgrade
+system packages, switch kernels or reset Git history. `installed-release.json`
+is an update history record; `deployed.json` describes the currently restored
+desktop. The date identifies the source commit, not the last hardware test.

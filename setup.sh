@@ -250,12 +250,7 @@ fi
 (( EUID != 0 )) || die 'Run as your normal desktop user, not root or sudo ./setup.sh'
 if [[ "$MODE" == install ]]; then
   [[ "$OS_ID" == "$DISTRO" ]] || die 'The selected distribution does not match this operating system'
-  [[ ! -e /run/ostree-booted ]] || die 'Fedora Atomic/OSTree is not supported; use a traditional DNF-based Fedora installation'
-  [[ $(uname -m) == x86_64 ]] || die 'This setup currently supports x86_64'
-  if [[ "$DISTRO" == fedora ]]; then
-    FEDORA_RELEASE=$(. /etc/os-release; printf '%s' "${VERSION_ID:-}")
-    python3 -c 'import json,sys; sys.exit(0 if sys.argv[2] in json.load(open(sys.argv[1]))["distributions"]["fedora"] else 1)' "$REPO_DIR/compatibility.json" "$FEDORA_RELEASE" || die 'Unsupported Fedora release; see compatibility.json before upgrading Fedora.'
-  fi
+  python3 "$REPO_DIR/config/quickshell/settings/compatibility.py" "$REPO_DIR/compatibility.json" --platform-only
   command -v sudo >/dev/null || die 'Install sudo and grant your user sudo access first'
   if [[ "$DISTRO" == fedora ]]; then
     command -v dnf >/dev/null || die 'DNF is required'
@@ -300,33 +295,17 @@ if [[ "$MODE" == install ]]; then
     bash "$REPO_DIR/tools/check_media.sh"
   fi
 
-  python3 - <<'PY'
-import json, re, subprocess
-info = json.loads(subprocess.check_output(['Hyprland', '--version-json'], text=True))
-version = tuple(map(int, re.findall(r'\d+', info['version'])[:3]))
-if version < (0, 56, 0):
-    raise SystemExit('Hyprland 0.56 or newer is required; use compatible distribution packages (see docs/fedora.md on Fedora) and rerun.')
-print('Hyprland version:', info['version'])
-PY
-  python3 "$REPO_DIR/config/quickshell/settings/compatibility.py" "$REPO_DIR/compatibility.json"
 fi
 
-command -v python3 >/dev/null || die 'Python 3 is required for --config-only'
-# Reject an incompatible desktop before replacing configuration on config-only too.
-if [[ "$MODE" == config-only ]]; then
-  python3 - <<'PY_VERSION'
-import json, re, subprocess
-info = json.loads(subprocess.check_output(['Hyprland', '--version-json'], text=True))
-if tuple(map(int, re.findall(r'\d+', info['version'])[:3])) < (0, 56, 0):
-    raise SystemExit('Hyprland 0.56+ is required before installing the Lua config; install compatible distribution packages.')
-PY_VERSION
-fi
+command -v python3 >/dev/null || die 'Python 3 is required for configuration deployment'
+# One compatibility policy for full setup, config-only and reviewed updates.
+# Full setup checks runtime dependencies after installing them.
+python3 "$REPO_DIR/config/quickshell/settings/compatibility.py" "$REPO_DIR/compatibility.json"
 # The bundled default.jpg is selected by hypr/wallpaper-start.sh.
 [[ -f "$REPO_DIR/assets/wallpapers/default.jpg" ]] || die 'Missing bundled default wallpaper'
 log 'Installing configs and wallpapers, with backups for changed files'
 INSTALL_OPTIONS=()
 if (( UPDATE_ONLY )); then
-  python3 "$REPO_DIR/config/quickshell/settings/compatibility.py" "$REPO_DIR/compatibility.json"
   INSTALL_OPTIONS+=(--validate-native)
 fi
 python3 "$REPO_DIR/tools/install_configs.py" "$REPO_DIR" "${INSTALL_OPTIONS[@]}"

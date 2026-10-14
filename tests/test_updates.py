@@ -13,18 +13,55 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'config/quickshell/settings'))
 import compatibility
+import build_info
 import deployment
 import github_update
 sys.path.insert(0, str(ROOT / 'tools'))
 import release_acceptance
 
 INFO = {'distribution': 'fedora', 'release': '44', 'architecture': 'x86_64',
-        'versions': {'hyprland': '0.56.2', 'quickshell': '0.3.2', 'uwsm': '0.27.0'},
+        'versions': {'hyprland': '0.56.2', 'quickshell': '0.3.2', 'uwsm': '0.27.0', 'qt6': '6.11.2'},
         'atomic': False, 'graphics': ['Intel']}
 MANIFEST = json.loads((ROOT / 'compatibility.json').read_text())
 
 
 class CompatibilityTests(unittest.TestCase):
+    def test_manifest_transition_and_future_format(self):
+        legacy = copy.deepcopy(MANIFEST); legacy['format'] = 1
+        self.assertTrue(compatibility.assess(legacy, INFO)['compatible'])
+        future = copy.deepcopy(MANIFEST); future['format'] = 3
+        with self.assertRaisesRegex(ValueError, 'newer compatibility checker'):
+            compatibility.assess(future, INFO)
+    def test_arch_evidence_does_not_inherit_fedora_dependency_claims(self):
+        info = copy.deepcopy(INFO); info.update(distribution='arch', release='rolling')
+        result = compatibility.assess(MANIFEST, info)
+        self.assertTrue(result['compatible'])
+        self.assertIn('2026-10-11', ' '.join(result['checks']))
+        self.assertIn('LTS', ' '.join(result['warnings']))
+        self.assertNotIn('recorded baseline', ' '.join(result['checks']))
+
+    def test_qt_major_unknown_and_exact_exclusions(self):
+        for qt in ('unknown', '5.15.0', '7.0.0'):
+            info = copy.deepcopy(INFO); info['versions']['qt6'] = qt
+            self.assertFalse(compatibility.assess(MANIFEST, info)['compatible'])
+        manifest = copy.deepcopy(MANIFEST)
+        manifest['incompatible'] = {'hyprland': {'0.56.2': 'Regression under investigation'}}
+        result = compatibility.assess(manifest, INFO)
+        self.assertFalse(result['compatible'])
+        self.assertIn('Regression under investigation', ' '.join(result['blockers']))
+        info = copy.deepcopy(INFO); info['versions']['hyprland'] = '0.56.3'
+        self.assertTrue(compatibility.assess(manifest, info)['compatible'])
+
+    def test_host_qt_query_uses_distribution_package(self):
+        def output(args):
+            if args[0] == 'rpm':
+                self.assertEqual(args, ['rpm', '-q', '--qf', '%{VERSION}', 'qt6-qtbase'])
+                return '6.11.2'
+            return ''
+        with patch.object(Path, 'read_text', return_value='ID=fedora\nVERSION_ID=44\n'), \
+             patch.object(compatibility, 'command', side_effect=output):
+            self.assertEqual(compatibility.machine()['versions']['qt6'], '6.11.2')
+
     def test_supported_unknown_newer_older_and_atomic(self):
         result = compatibility.assess(MANIFEST, INFO)
         self.assertTrue(result['compatible'])
@@ -84,6 +121,30 @@ class DeploymentTests(unittest.TestCase):
 
     def install(self, **kwargs):
         return deployment.install(self.repo, **kwargs)
+
+    def test_build_identity_survives_checkout_changes_and_rollback(self):
+        first = {'channel': 'rolling', 'revision': 'local-merge', 'upstream_revision': 'abc123',
+                 'date': '2026-10-11', 'modified': True}
+        self.install(build=first)
+        self.assertIn('abc123', build_info.installed()['label'])
+        self.assertIn('local changes', build_info.installed()['label'])
+        source = self.repo / 'config/quickshell/SettingsButton.qml'
+        source.write_text(source.read_text() + '\n// upstream change\n')
+        second = {**first, 'upstream_revision': 'def456', 'date': '2026-10-14'}
+        result = self.install(build=second)
+        self.assertEqual(build_info.installed()['upstream_revision'], 'def456')
+        deployment.rollback(Path(result['backup']))
+        self.assertEqual(build_info.installed()['upstream_revision'], 'abc123')
+        self.assertNotIn('upstream change', (self.config / 'quickshell/SettingsButton.qml').read_text())
+
+    def test_metadata_only_update_has_a_recovery_backup(self):
+        first = {'revision': 'first', 'channel': 'rolling'}
+        self.install(build=first)
+        result = self.install(build={'revision': 'second', 'channel': 'rolling'})
+        self.assertEqual(result['changed'], [])
+        self.assertTrue(result['backup'])
+        deployment.rollback(Path(result['backup']))
+        self.assertEqual(build_info.installed()['revision'], 'first')
 
     def test_unified_install_rerun_and_preserving_update(self):
         first = self.install()

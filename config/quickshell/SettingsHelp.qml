@@ -11,6 +11,7 @@ ColumnLayout {
     property var report: null
     property string reportPath: ""
     property string message: ""
+    property string buildLabel: "Hyprshell Rolling"
     property bool success: true
     readonly property bool busy: worker.running
     signal navigate(int section)
@@ -28,6 +29,7 @@ ColumnLayout {
             onStreamFinished: {
                 try {
                     let result = JSON.parse(text); page.success = result.ok; page.message = result.message || "";
+                    if (result.build) page.buildLabel = result.build.label;
                     if (result.guideComplete !== undefined) { page.guideComplete = result.guideComplete; if (page.guideComplete) page.guideFinished(); }
                     if (result.report) page.report = result.report;
                     if (result.path) page.reportPath = result.path;
@@ -37,6 +39,7 @@ ColumnLayout {
         onExited: (code, status) => { if (code !== 0 && page.success) { page.success = false; page.message = "Desktop checks could not finish. Try again."; } }
     }
     Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    Label { objectName: "hyprshellBuild"; text: page.buildLabel; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
     SettingsCard {
         title: page.guideComplete ? "Getting-started guide" : "Welcome to your daily desktop"
         subtitle: "Work through the essentials at your own pace. Changes use the same saved Settings you can sync to GitHub."

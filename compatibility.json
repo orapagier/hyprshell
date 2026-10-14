@@ -1,6 +1,6 @@
 {
-  "format": 1,
-  "release": "2026.10",
+  "format": 2,
+  "release": "rolling",
   "architectures": [
     "x86_64"
   ],
@@ -26,7 +26,8 @@
     ],
     "uwsm": [
       "0.27.0"
-    ]
+    ],
+    "qt6": []
   },
   "observed_packages": {
     "fedora44": [
@@ -36,5 +37,42 @@
     ]
   },
   "settings_schema": 1,
-  "acceptance": "Native dependencies checked; fresh VM and physical acceptance pending."
+  "acceptance": "Native dependencies checked; fresh VM and physical acceptance pending.",
+  "channel": "rolling",
+  "required_major": {
+    "qt6": 6
+  },
+  "incompatible": {},
+  "platform_evidence": {
+    "arch": {
+      "last_working_date": "2026-10-11",
+      "basis": "User-reported working desktop on this machine; exact dependency versions and Hyprshell revision were not captured.",
+      "versions": {},
+      "notes": [
+        "Touchpad did not work with the kernel previously used. The user reports that installing and using an LTS kernel resolved it. Kernel versions and affected hardware were not recorded; this is not a universal Arch issue."
+      ]
+    },
+    "fedora": {
+      "release": "44",
+      "last_dependency_check_date": "2026-10-14",
+      "basis": "Local dependency inspection; fresh-install and physical acceptance remain pending.",
+      "versions": {
+        "hyprland": [
+          "0.56.2"
+        ],
+        "quickshell": [
+          "0.3.2"
+        ],
+        "uwsm": [
+          "0.27.0"
+        ],
+        "qt6": [
+          "6.11.2"
+        ]
+      },
+      "notes": [
+        "User reports that a Distrobox environment for an installed Ubuntu container still identifies as Fedora 44, making it appear that the container was not entered. Cause and reproduction are not verified; container identity checks must run inside the entered container, separately from host installer detection."
+      ]
+    }
+  }
 }

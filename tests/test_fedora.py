@@ -266,7 +266,7 @@ os.execv({real_python!r}, [{real_python!r}, *sys.argv[1:]])''')
         self.program('Hyprland', "print(json.dumps({'version': '0.55.0'}))")
         result = self.run_setup('--config-only')
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('Hyprland 0.56+', result.stderr)
+        self.assertIn('hyprland: 0.56.0+ required', result.stdout)
         self.assertFalse(self.home.exists())
 
 

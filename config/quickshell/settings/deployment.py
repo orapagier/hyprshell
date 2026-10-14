@@ -11,6 +11,8 @@ import subprocess
 import tempfile
 import uuid
 
+import build_info
+
 PREFERENCES = {'settings.json', 'cleanup.json', 'keybindings.json', 'keybindings.lua',
                'displays.json', 'displays.lua', 'theme.json', 'applications.json',
                'regional.json', 'behavior.json', 'behavior.lua', 'overrides.lua'}
@@ -225,7 +227,7 @@ def restore(journal, backup, locations):
         manifest.unlink()
 
 
-def install(repo, *, native=False, base_repo=None, locations=None, resolved=False):
+def install(repo, *, native=False, base_repo=None, locations=None, resolved=False, build=None):
     locations = locations or roots()
     repo = repo.resolve()
     with lock(locations):
@@ -290,7 +292,8 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
             backup = state / 'backups' / ('update-' + datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:8])
             journal = {'format': 1, 'files': []}
             old_manifest = state / 'deployed.json'
-            if changed or plan['removed']:
+            new_build = build if build is not None else build_info.repository(repo)
+            if changed or plan['removed'] or load_manifest(locations).get('build') != new_build:
                 backup.mkdir(parents=True)
                 if old_manifest.exists():
                     shutil.copy2(old_manifest, backup / 'deployed.json')
@@ -322,7 +325,8 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
                 for key in plan['removed']:
                     destination(key, locations).unlink()
                     applied['files'].append(next(row for row in journal['files'] if row['key'] == key))
-                atomic_json(old_manifest, {'format': 1, 'files': {key: {'hash': digest(source)} for key, source in staged.items()}})
+                atomic_json(old_manifest, {'format': 1, 'build': new_build,
+                                          'files': {key: {'hash': digest(source)} for key, source in staged.items()}})
             except BaseException:
                 if applied['files']:
                     restore(applied, backup, locations)

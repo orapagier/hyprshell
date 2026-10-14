@@ -1,5 +1,13 @@
 name: Configuration checks
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * *'
+
+permissions:
+  contents: read
 
 jobs:
   checks:
@@ -47,6 +55,14 @@ jobs:
         run: /usr/lib/qt6/bin/qmltestrunner -input config/quickshell/tests
       - name: Check native FFT and QML delivery
         run: python3 config/quickshell/tests/test_spectrum.py
+      - name: Record Arch dependency evidence
+        if: always()
+        run: python3 tools/compatibility_report.py --output arch-compatibility.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: arch-compatibility
+          path: arch-compatibility.json
 
   fedora:
     runs-on: ubuntu-latest
@@ -83,3 +99,11 @@ jobs:
           cc -O2 config/quickshell/helpers/audio-spectrum.c -o config/quickshell/helpers/audio-spectrum -lpulse-simple -lpulse -lfftw3 -lm
           "$(python3 tools/check_runtime.py --qmltestrunner)" -input config/quickshell/tests
           python3 config/quickshell/tests/test_spectrum.py
+      - name: Record Fedora dependency evidence
+        if: always()
+        run: python3 tools/compatibility_report.py --output fedora-compatibility.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fedora-44-compatibility
+          path: fedora-compatibility.json

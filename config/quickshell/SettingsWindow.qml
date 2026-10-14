@@ -118,7 +118,7 @@ FloatingWindow {
             {section: -3, title: "Screen locking", symbol: "󰌾", keywords: "security idle lock"},
             {section: -4, title: "Cleanup", symbol: "󰃢", keywords: "storage files maintenance"},
             {section: -14, title: "Updates & recovery", symbol: "󰁯", keywords: "backup restore checkpoints"},
-            {section: -18, title: "Help & diagnostics", symbol: "󰋖", keywords: "welcome guide health diagnostics support getting started"},
+            {section: -18, title: "Help & diagnostics", symbol: "󰋖", keywords: "welcome guide health diagnostics support getting started version build rolling"},
             {section: -5, title: "Hyprskill", symbol: "󰒓", keywords: "agents coding knowledge"}
         ]}
     ]

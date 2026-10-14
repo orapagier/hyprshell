@@ -32,6 +32,8 @@ ShellRoot {
                 if (editor.section !== -18) { test.fail("first-run page"); return; }
                 let complete = test.find(editor.contentItem, "finishWelcomeGuide");
                 if (!complete || !complete.enabled) return;
+                let build = test.find(editor.contentItem, "hyprshellBuild");
+                if (!build || build.text.indexOf("Hyprshell Rolling · ") !== 0) { test.fail("build identity missing"); return; }
                 complete.clicked(); test.phase = 2;
             } else if (test.phase === 2 && editor && editor.idle && !editor.firstRunPending) {
                 editor.visible = false; test.phase = 3;

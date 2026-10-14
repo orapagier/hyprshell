@@ -1,5 +1,11 @@
 # Hyprshell
 
+Hyprshell uses one **rolling** update channel for Arch and Fedora. Supported
+Fedora releases, dependency requirements and per-platform evidence are recorded
+in [compatibility.json](compatibility.json). Arch targets fully updated systems;
+its last user-reported working test was **October 11, 2026**. See the
+[rolling support policy and reported issues](docs/updates.md#rolling-support-policy).
+
 Hyprshell is a configurable desktop shell for **Hyprland on Arch Linux and Fedora**, built
 with **Quickshell**. It brings the application launcher, status bar, desktop
 menus, notification inbox, and settings into one native Qt 6 interface.
