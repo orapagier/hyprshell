@@ -18,6 +18,7 @@ SettingsGithubUpdateReview {
                     dialog.success = result.ok === true;
                     dialog.message = result.message || "";
                     if (dialog.action === "--preview" || dialog.action === "--resolve") dialog.review = result;
+                    if (dialog.action === "--install-dependencies" && result.dependenciesStarted) dialog.dependenciesStarted = true;
                     if (dialog.action === "--apply" || dialog.action === "--status") {
                         dialog.applying = result.running === true;
                         if (!dialog.applying) dialog.review = ({});

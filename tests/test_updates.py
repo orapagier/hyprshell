@@ -346,6 +346,94 @@ class GitUpdateTests(unittest.TestCase):
     def git(self, *args):
         return github_update.git(self.repo, *args)
 
+    def dependency_candidate(self, distro='fedora'):
+        self.git('reset', '--hard', self.target)
+        name = 'packages-fedora.txt' if distro == 'fedora' else 'packages.txt'
+        (self.repo / name).write_text('new-library\n')
+        self.git('add', name); self.git('commit', '-m', 'Require new library')
+        self.git('push', 'origin', 'HEAD:main')
+        self.target = self.git('rev-parse', 'HEAD')
+        self.git('reset', '--hard', self.base)
+
+    def test_dependency_preview_commands_for_both_distros(self):
+        for distro, command in [('fedora', 'sudo dnf install new-library'),
+                                ('arch', 'sudo pacman -Syu --needed new-library')]:
+            self.dependency_candidate(distro)
+            info = copy.deepcopy(INFO); info['distribution'] = distro
+            info['release'] = 'rolling' if distro == 'arch' else '44'
+            with patch.object(compatibility, 'machine', return_value=info), \
+                 patch.object(compatibility, 'missing_packages', side_effect=lambda names, distro: list(names)):
+                review = github_update.preview(self.repo)
+            self.assertEqual(review['missingPackages'], ['new-library'])
+            self.assertEqual(review['dependencyCommand'], command)
+            self.assertTrue(review['canInstallDependencies'])
+            self.assertFalse(review['ready'])
+
+    def test_dependency_install_requires_confirmation_and_fresh_review(self):
+        self.dependency_candidate()
+        launches = []
+        actual_run = subprocess.run
+        def run(args, **kwargs):
+            if args[0] == 'kitty':
+                launches.append(args)
+                return subprocess.CompletedProcess(args, 0, '', '')
+            return actual_run(args, **kwargs)
+        with patch.object(compatibility, 'missing_packages', side_effect=lambda names, distro: list(names)), \
+             patch.object(github_update.shutil, 'which', return_value='/usr/bin/tool'), \
+             patch.object(github_update.subprocess, 'run', side_effect=run):
+            review = github_update.preview(self.repo)
+            with self.assertRaisesRegex(ValueError, 'confirm installation'):
+                github_update.install_dependencies(self.repo, review['token'])
+            self.assertEqual(launches, [])
+            result = github_update.install_dependencies(self.repo, review['token'], True)
+            self.assertTrue(result['dependenciesStarted'])
+            self.assertEqual(launches, [['kitty', '--detach', '--hold', '--title', 'Hyprshell update dependencies',
+                                         'sudo', 'dnf', 'install', 'new-library']])
+            self.assertEqual(self.git('rev-parse', 'HEAD'), self.base)
+            self.assertEqual((self.root / 'config/quickshell/shell.qml').read_text(), '// old')
+            with self.assertRaisesRegex(ValueError, 'Check again'):
+                github_update.install_dependencies(self.repo, review['token'], True)
+            with self.assertRaisesRegex(ValueError, 'expired|Check again'):
+                github_update.reviewed(self.repo, review['token'])
+            # Cancellation/failure leaves the update blocked on a fresh check.
+            self.assertFalse(github_update.preview(self.repo)['ready'])
+        with patch.object(compatibility, 'missing_packages', return_value=[]):
+            self.assertTrue(github_update.preview(self.repo)['ready'])
+
+    def test_dependency_install_refuses_stale_unsupported_or_changed_requirements(self):
+        self.dependency_candidate()
+        with patch.object(compatibility, 'missing_packages', side_effect=lambda names, distro: list(names)):
+            review = github_update.preview(self.repo)
+            (self.repo / 'config/quickshell/shell.qml').write_text('// edited after review')
+            with self.assertRaisesRegex(ValueError, 'changed after'):
+                github_update.install_dependencies(self.repo, review['token'], True)
+            (self.repo / 'config/quickshell/shell.qml').write_text('// old')
+            info = copy.deepcopy(INFO); info['release'] = '45'
+            with patch.object(compatibility, 'machine', return_value=info):
+                unsupported = github_update.preview(self.repo)
+                self.assertFalse(unsupported['canInstallDependencies'])
+                with self.assertRaisesRegex(ValueError, 'Resolve the update review'):
+                    github_update.install_dependencies(self.repo, unsupported['token'], True)
+            review = github_update.preview(self.repo)
+        with patch.object(compatibility, 'missing_packages', return_value=[]):
+            with self.assertRaisesRegex(ValueError, 'dependencies changed'):
+                github_update.install_dependencies(self.repo, review['token'], True)
+
+    def test_dependency_terminal_failure_preserves_review_for_retry(self):
+        self.dependency_candidate()
+        actual_run = subprocess.run
+        def run(args, **kwargs):
+            if args[0] == 'kitty':
+                return subprocess.CompletedProcess(args, 1, '', 'not available')
+            return actual_run(args, **kwargs)
+        with patch.object(compatibility, 'missing_packages', side_effect=lambda names, distro: list(names)), \
+             patch.object(github_update.shutil, 'which', return_value='/usr/bin/tool'), \
+             patch.object(github_update.subprocess, 'run', side_effect=run):
+            review = github_update.preview(self.repo)
+            with self.assertRaisesRegex(ValueError, 'Run: sudo dnf install new-library'):
+                github_update.install_dependencies(self.repo, review['token'], True)
+            self.assertFalse(github_update.reviewed(self.repo, review['token'], require_ready=False).get('dependenciesRequested', False))
+
     def test_developer_updates_ignore_user_fork_and_tracking_branch(self):
         self.source_patch.stop()
         fork = self.root / 'fork'

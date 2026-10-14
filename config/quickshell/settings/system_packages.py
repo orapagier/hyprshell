@@ -20,8 +20,11 @@ def upgrade_command():
     return ['sudo', 'dnf', 'upgrade', '--refresh'] if distribution() == 'fedora' else ['sudo', 'pacman', '-Syu']
 
 
-def install_command(packages):
-    if distribution() == 'fedora':
+def install_command(packages, *, distro=None):
+    distro = distribution() if distro is None else distro
+    if distro not in ('arch', 'fedora'):
+        raise ValueError('Package operations support Arch Linux and Fedora.')
+    if distro == 'fedora':
         aliases = {'github-cli': 'gh', 'sane': 'sane-backends'}
         return ['sudo', 'dnf', 'install', *[aliases.get(name, name) for name in packages]]
     return ['sudo', 'pacman', '-Syu', '--needed', *packages]

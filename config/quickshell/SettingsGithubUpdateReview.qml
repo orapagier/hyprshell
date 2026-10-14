@@ -15,6 +15,7 @@ Popup {
     property bool success: true
     property bool applying: false
     property bool requesting: false
+    property bool dependenciesStarted: false
     readonly property bool busy: requesting || applying
     signal requestAction(var args)
     property string action: ""
@@ -28,6 +29,10 @@ Popup {
     function run(args) {
         if (requesting) return;
         action = args[0];
+        if (action === "--preview" || action === "--resolve") {
+            dependencyApproval.checked = false;
+            dependenciesStarted = false;
+        }
         if (action === "--preview") {
             review = ({});
             conflictChoices = ({});
@@ -94,11 +99,51 @@ Popup {
                     add("Needs your review", r.warnings);
                     if (r.acceptance) sections.push("Validation record\n" + r.acceptance);
                     add("New package requirements", r.packagesAdded);
+                    add("Missing installed dependencies", r.missingPackages);
                     add("Packages no longer required (not automatically removed)", r.packagesRemoved);
                     add("Changed files", r.changes);
                     if (r.notes) sections.push("Release notes\n" + r.notes);
                     sections.push("Local changes are preserved where they combine with the update. Choose the full file to keep for each conflict, then review your choices. Checking and updating do not commit your unsynced edits. Log out and back in after completion.");
                     return sections.join("\n\n");
+                }
+            }
+            SettingsCard {
+                Layout.fillWidth: true
+                visible: (dialog.review.missingPackages || []).length > 0
+                title: "Install missing dependencies"
+                subtitle: (dialog.review.dependencyNote || "") + " The package manager will show the complete transaction, including additional dependencies, before you confirm it."
+                Label {
+                    Layout.fillWidth: true; wrapMode: Text.Wrap
+                    text: (dialog.review.missingPackages || []).join(", ")
+                    textFormat: Text.PlainText; color: Style.Theme.text
+                }
+                TextArea {
+                    objectName: "githubDependencyCommand"
+                    Layout.fillWidth: true; wrapMode: TextEdit.Wrap
+                    text: dialog.review.dependencyCommand || ""
+                    textFormat: TextEdit.PlainText
+                    readOnly: true; selectByMouse: true
+                    font.family: "monospace"; color: Style.Theme.text
+                    background: Rectangle { color: Style.Theme.field; radius: 6 }
+                }
+                Label {
+                    Layout.fillWidth: true; wrapMode: Text.Wrap
+                    text: dialog.dependenciesStarted ? "Finish or cancel the terminal transaction, then choose Check again to recheck compatibility before syncing." : dialog.review.canInstallDependencies ? "Install here, or run the command in your terminal. Then choose Check again. Installing dependencies does not apply the desktop update." : "Resolve the other update review issues and review your conflict choices before installing here. You can also use the command above manually."
+                    color: Style.Theme.muted
+                }
+                CheckBox {
+                    id: dependencyApproval
+                    objectName: "githubDependencyApproval"
+                    text: "I allow this package installation" + (dialog.review.dependencyFullUpgrade ? " and full system upgrade." : ".")
+                    enabled: !dialog.busy && !dialog.dependenciesStarted && dialog.review.canInstallDependencies === true
+                    palette.windowText: Style.Theme.text
+                    Accessible.name: text
+                }
+                SettingsButton {
+                    objectName: "githubDependencyInstall"
+                    text: "Install in terminal"
+                    enabled: !dialog.busy && !dialog.dependenciesStarted && dialog.review.canInstallDependencies === true && dependencyApproval.checked
+                    onClicked: dialog.run(["--install-dependencies", dialog.review.token, "--acknowledge"])
                 }
             }
             Repeater {
@@ -206,7 +251,7 @@ Popup {
                 objectName: "githubUpdateConfirm"
                 text: dialog.applying ? "Syncing…" : "Sync now"
                 highlighted: true
-                enabled: !dialog.busy && dialog.review.ready === true && dialog.choicesReviewed && acknowledgement.checked
+                enabled: !dialog.busy && !dialog.dependenciesStarted && dialog.review.ready === true && dialog.choicesReviewed && acknowledgement.checked
                 onClicked: dialog.run(["--apply", dialog.review.token, "--acknowledge"])
             }
             SettingsButton { text: "Close"; enabled: !dialog.busy; onClicked: dialog.close() }

@@ -2,6 +2,8 @@
 
 ## Rolling — 2026-10-14
 
+- Show missing update dependencies and an installation command; offer a separate
+  confirmed terminal installation and require a new compatibility review afterward.
 - Formalize one rolling channel for Arch and Fedora with per-platform evidence.
 - Record the October 11 user-reported Arch test and LTS-kernel touchpad workaround;
   record the unresolved Fedora 44 Distrobox/container identity report.

@@ -73,6 +73,24 @@ Unsupported systems, missing dependencies, incompatible schemas and unresolved c
 prevent applying until you choose a version. System package upgrades and root-owned boot/login changes are
 separate from this user-level update.
 
+When required packages are missing, the preview lists them and shows a copyable
+installation command. After resolving file conflicts and other review issues,
+select the separate package-installation consent and choose **Install in terminal**.
+Hyprshell opens Kitty with `sudo dnf install …` on Fedora or
+`sudo pacman -Syu --needed …` on Arch. Arch consent explicitly includes a full
+system upgrade, avoiding partial upgrades. Normal authentication and package-manager
+confirmation remain interactive; the terminal shows the complete transaction,
+including transitive dependencies and any additional changes. No automatic yes
+flag is used and no repositories are enabled by this action.
+
+Opening the terminal does not mean installation succeeded and never applies the
+desktop update. Finish or cancel the transaction, then choose **Check again**.
+The old preview becomes unusable after launching installation; the new preview
+checks current packages and runtime versions before offering **Sync now**.
+If installation fails, is cancelled or the enabled repositories cannot supply a
+package, the missing requirements remain visible and the desktop update stays
+blocked. If Kitty is unavailable, run the displayed command manually and recheck.
+
 Preview reads candidate data without running its Python, Lua or QML. At apply,
 the backend verifies the preview token, checkout, developer source and live file
 fingerprints. Previews expire after one hour. It installs the exact reviewed

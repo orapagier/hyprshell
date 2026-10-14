@@ -8,6 +8,7 @@ import io
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -19,6 +20,7 @@ import uuid
 import compatibility
 import deployment
 import update_merge
+import system_packages
 from github_sync import git, friendly_error
 
 DEVELOPER_REPOSITORY = 'https://github.com/orapagier/hyprshell.git'
@@ -126,12 +128,17 @@ def preview(repo, choices=None, previous=None):
             wanted = compatibility.packages(candidate / package_file)
             old = compatibility.packages(repo / package_file)
             assessment = compatibility.assess(manifest, info, wanted)
+            missing = assessment['missingPackages']
+            install_command = system_packages.install_command(missing, distro=info['distribution']) if missing and info['distribution'] in ('arch', 'fedora') else []
+            platform_manifest = {**manifest, 'minimum': {}, 'required_major': {}, 'incompatible': {}}
+            platform_ok = compatibility.assess(platform_manifest, info)['compatible']
             if merge_needed and not blockers:
                 assessment['warnings'].append('This update will create a merge commit preserving your local commits and the incoming GitHub history.')
             plan = deployment.inspect(candidate, base_repo=repo)
             settings = deployment.roots()['config'] / 'hyprshell/settings.json'
             if settings.exists() and json.loads(settings.read_text()).get('version') != manifest['settings_schema']:
                 blockers.append('Your settings schema requires a migration that this updater does not support.')
+            can_install = bool(install_command) and incoming and not blockers and not unresolved and platform_ok
             blockers += assessment['blockers']
             commits = git(repo, 'log', '--max-count=80', '--format=%h %s', f'{base}..{target}').splitlines()
             changes = git(repo, 'diff', '--name-status', base, tree).splitlines()
@@ -145,6 +152,12 @@ def preview(repo, choices=None, previous=None):
                       'repository': selection['url'], 'branch': selection['branch'], 'base': base, 'target': target,
                       'commits': commits, 'changes': changes, 'notes': notes.read_text()[:12000] if notes.exists() else '',
                       'packagesAdded': sorted(set(wanted) - set(old)), 'packagesRemoved': sorted(set(old) - set(wanted)),
+                      'missingPackages': missing, 'dependencyCommand': shlex.join(install_command),
+                      'canInstallDependencies': can_install,
+                      'dependencyFullUpgrade': info['distribution'] == 'arch',
+                      'dependencyNote': ('Arch installs packages as part of a full system upgrade to avoid partial upgrades.'
+                                         if info['distribution'] == 'arch' else
+                                         'Fedora installs the missing requirements from your enabled repositories.'),
                       'checks': assessment['checks'], 'warnings': assessment['warnings'], 'blockers': blockers,
                       'acceptance': assessment['acceptance'], 'preserved': plan['preserved'],
                       'requiresAcknowledgment': bool(assessment['warnings'])}
@@ -173,11 +186,49 @@ def reviewed(repo, token, require_ready=True):
     if (review['token'] != token or review['repo'] != str(repo) or
             time.time() - review['created'] > 3600 or require_ready and not review['result']['ready']):
         raise ValueError('This preview has expired or cannot be applied. Check for updates again.')
+    if review.get('dependenciesRequested'):
+        raise ValueError('Dependency installation was requested. Check again after the terminal finishes.')
     if (git(repo, 'rev-parse', 'HEAD') != review['base'] or
             update_merge.checkout_fingerprint(repo) != review['checkout_fingerprint'] or
             source(repo) != review['source'] or fingerprints(repo) != review['fingerprint']):
         raise ValueError('Your repository or desktop changed after the preview. Check for updates again.')
     return review
+
+
+def install_dependencies(repo, token, acknowledged=False):
+    if not acknowledged:
+        raise ValueError('Review the missing dependencies and confirm installation first.')
+    with repository_lock(repo):
+        review = reviewed(repo, token, require_ready=False)
+        if not review['result'].get('canInstallDependencies'):
+            raise ValueError('Resolve the update review before installing dependencies.')
+        info = compatibility.machine()
+        if info != review['machine']:
+            raise ValueError('Your system changed after the preview. Check again before installing dependencies.')
+        # Read package names as data from the exact reviewed tree. Never run
+        # installer code from an incoming revision to install its dependencies.
+        with tempfile.TemporaryDirectory(prefix='hyprshell-dependencies-') as temp:
+            candidate = Path(temp)
+            archive(repo, review['tree'], candidate)
+            package_file = 'packages-fedora.txt' if info['distribution'] == 'fedora' else 'packages.txt'
+            wanted = compatibility.packages(candidate / package_file)
+            missing = compatibility.missing_packages(wanted, info['distribution'])
+        if missing != review['result']['missingPackages'] or not missing or not set(missing) <= set(wanted):
+            raise ValueError('The missing dependencies changed. Check again to review the current requirements.')
+        command = system_packages.install_command(missing, distro=info['distribution'])
+        if not shutil.which('kitty') or not shutil.which(command[1]) or not shutil.which('sudo'):
+            raise ValueError('Open a terminal and run: ' + shlex.join(command) + '. Then check for updates again.')
+        # No shell, automatic yes, new repositories, or desktop deployment.
+        # sudo and the package manager keep their normal interactive prompts.
+        result = subprocess.run(['kitty', '--detach', '--hold', '--title', 'Hyprshell update dependencies', *command],
+                                capture_output=True, text=True, timeout=15)
+        if result.returncode:
+            raise ValueError('Could not open the installation terminal. Run: ' + shlex.join(command) + '. Then check again.')
+        review['dependenciesRequested'] = True
+        review['result']['ready'] = False
+        deployment.atomic_json(deployment.roots()['state'] / 'update-preview.json', review)
+    return {'ok': True, 'dependenciesStarted': True,
+            'message': 'Installation terminal opened. Review the package transaction and authenticate there. When it finishes or is cancelled, choose Check again; the desktop update has not been applied.'}
 
 
 def apply(repo, token):
@@ -287,6 +338,7 @@ def main():
     actions.add_argument('--preview', action='store_true')
     actions.add_argument('--apply', metavar='TOKEN')
     actions.add_argument('--resolve', metavar='TOKEN')
+    actions.add_argument('--install-dependencies', metavar='TOKEN')
     parser.add_argument('--choices-json', default='{}')
     actions.add_argument('--status', action='store_true')
     actions.add_argument('--worker', metavar='TOKEN')
@@ -304,6 +356,8 @@ def main():
             result = preview(repository(), choices, args.resolve)
         elif args.apply:
             result = start(repository(), args.apply, args.acknowledge)
+        elif args.install_dependencies:
+            result = install_dependencies(repository(), args.install_dependencies, args.acknowledge)
         else:
             result = apply(repository(), args.worker)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError, KeyError) as error:

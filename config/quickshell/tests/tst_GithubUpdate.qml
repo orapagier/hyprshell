@@ -6,6 +6,7 @@ Item {
     width: 900; height: 800
     SettingsGithubUpdateReview { id: dialog }
     SettingsGithubButton { id: button; text: "Sync from GitHub" }
+    SignalSpy { id: requests; target: dialog; signalName: "requestAction" }
     TestCase {
         name: "GithubUpdateReview"
         when: windowShown
@@ -55,6 +56,33 @@ Item {
             verify(!confirm.enabled);
             dialog.review = ({});
             acknowledgement.checked = false;
+        }
+        function test_dependencyInstallationNeedsSeparateConsentAndRecheck() {
+            dialog.dependenciesStarted = false;
+            dialog.review = {ready: false, token: "dependencies", base: "000000000000", target: "111111111111",
+                             missingPackages: ["new-library"], dependencyCommand: "sudo pacman -Syu --needed new-library",
+                             dependencyFullUpgrade: true, canInstallDependencies: true};
+            let install = find(dialog.contentItem, "githubDependencyInstall");
+            let approval = find(dialog.contentItem, "githubDependencyApproval");
+            let command = find(dialog.contentItem, "githubDependencyCommand");
+            verify(install !== null); verify(approval !== null);
+            compare(command.text, "sudo pacman -Syu --needed new-library");
+            verify(approval.text.indexOf("full system upgrade") !== -1);
+            verify(!install.enabled);
+            approval.checked = true;
+            verify(install.enabled);
+            requests.clear(); install.clicked();
+            compare(requests.count, 1);
+            compare(requests.signalArguments[0][0][0], "--install-dependencies");
+            compare(requests.signalArguments[0][0][1], "dependencies");
+            compare(requests.signalArguments[0][0][2], "--acknowledge");
+            dialog.dependenciesStarted = true;
+            verify(!install.enabled);
+            verify(!find(dialog.contentItem, "githubUpdateConfirm").enabled);
+            dialog.run(["--preview"]);
+            verify(!approval.checked);
+            verify(!dialog.dependenciesStarted);
+            dialog.review = ({});
         }
         function test_githubButtonHasReadableLabelAndIcon() {
             compare(button.Accessible.name, "Sync from GitHub");
