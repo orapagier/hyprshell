@@ -18,7 +18,7 @@ class WebsiteTests(unittest.TestCase):
         self.original = '127.0.0.1 localhost\n::1 localhost\n192.0.2.1 printer.local # keep\n'
         self.hosts.write_text(self.original)
         self.hosts.chmod(0o644)
-        self.patches = [patch.object(websites, 'HOSTS', self.hosts), patch.object(websites, 'LOCK', root / 'lock')]
+        self.patches = [patch.object(websites, 'HOSTS', self.hosts), patch.object(websites, 'LOCK', root / 'lock'), patch.object(websites.website_dns, 'status', return_value={'dnsFilterReady': True, 'dnsFilterInstalled': True, 'dnsFilterRevision': 'test'}), patch.object(websites.website_dns, 'apply')]
         for item in self.patches: item.start()
 
     def tearDown(self):
@@ -99,7 +99,39 @@ class WebsiteTests(unittest.TestCase):
         self.assertIn('new-device.local', self.hosts.read_text())
         self.assertNotIn('www.example.com', self.hosts.read_text())
 
+    def test_subdomains_default_on_and_edit_can_turn_them_off(self):
+        self.change('add-website', 'example.com')
+        self.assertTrue(websites.status()['websites'][0]['subdomains'])
+        websites.website_dns.apply.assert_called_with({'example.com': True})
+        self.change('edit-website', 'example.com', old='example.com', subdomains=False)
+        self.assertFalse(websites.status()['websites'][0]['subdomains'])
+        websites.website_dns.apply.assert_called_with({'example.com': False})
+
+    def test_legacy_exact_entries_remain_exact(self):
+        self.hosts.write_text(self.original + websites.content(['example.com'], legacy=True))
+        self.assertFalse(websites.status()['websites'][0]['subdomains'])
+
+    def test_default_wildcard_save_rejected_before_writing_without_filter(self):
+        with patch.object(websites.website_dns, 'status', return_value={'dnsFilterReady': False, 'dnsFilterInstalled': False, 'dnsFilterRevision': 'test'}):
+            with self.assertRaisesRegex(ValueError, 'Set up'):
+                self.change('add-website', 'example.com')
+        self.assertEqual(self.hosts.read_text(), self.original)
+        websites.website_dns.apply.assert_not_called()
+
+    def test_dns_update_failure_restores_hosts(self):
+        with patch.object(websites.website_dns, 'apply', side_effect=ValueError('dns failed')):
+            with self.assertRaises(ValueError): self.change('add-website', 'example.com')
+        self.assertEqual(self.hosts.read_text(), self.original)
+
     def test_symlink_is_rejected(self):
         target = self.hosts.with_name('target'); self.hosts.rename(target); self.hosts.symlink_to(target)
         with self.assertRaises(ValueError): websites.status()
         self.assertEqual(target.read_text(), self.original)
+
+    def test_dns_mode_change_rejects_stale_website_revision(self):
+        with patch.object(websites.website_dns, 'configure') as configure:
+            with self.assertRaisesRegex(ValueError, 'changed'):
+                websites.dns_change('configure-website-dns', {'mode': 'family', 'expectedWebsite': 'stale'})
+            configure.assert_not_called()
+            websites.dns_change('configure-website-dns', {'mode': 'custom', 'servers': '1.1.1.1', 'expectedWebsite': websites.status()['websiteRevision']})
+            configure.assert_called_once_with({}, 'custom', '1.1.1.1')

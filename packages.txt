@@ -119,6 +119,7 @@ gnome-keyring
 seahorse
 chrony
 firewalld
+dnsmasq
 linux-firmware
 sof-firmware
 alsa-firmware

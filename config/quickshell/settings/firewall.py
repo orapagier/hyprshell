@@ -249,6 +249,14 @@ def request_firewall(payload):
 def request(payload):
     if not isinstance(payload, dict):
         raise ValueError('Invalid firewall request.')
+    if payload.get('operation') in ('setup-website-dns', 'restore-website-dns', 'configure-website-dns'):
+        if payload.get('confirmed') is not True: raise ValueError('Confirm the DNS setup change first.')
+        website_blocks.dns_change(payload['operation'], payload)
+        try:
+            result = request({'operation': 'status', 'scope': 'both', 'zone': payload.get('zone', '')})
+        except ValueError:
+            result = {'ok': True, 'firewallUnavailable': True, 'running': False, 'rules': [], **website_blocks.status()}
+        return {**result, 'message': 'DNS mode saved and connection checked.' if payload['operation'] == 'configure-website-dns' else 'DNS filter is ready.' if payload['operation'] == 'setup-website-dns' else 'Original DNS setup restored. Exact website blocks remain.'}
     if payload.get('operation') in ('add-website', 'edit-website', 'remove-website'):
         website = website_blocks.change(payload)
         try:
@@ -275,6 +283,10 @@ def main():
         if isinstance(error, subprocess.TimeoutExpired):
             message = 'The firewall request took too long. Refresh to check whether it completed.'
         result = {'ok': False, 'message': message}
+        # An unsuccessful setup can leave a recovery receipt. Return it now,
+        # without requiring another Refresh/authentication before showing Restore.
+        try: result.update(website_blocks.status())
+        except (ValueError, OSError): pass
     print(json.dumps(result))
 
 

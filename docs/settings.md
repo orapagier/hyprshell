@@ -1226,30 +1226,91 @@ Checks: `python3 -m unittest discover -s tests -p test_firewall.py -v`.
 Tests use fake firewall commands and a native offscreen Settings window; no real
 rule, administrator authentication or service activation is performed.
 
-### Website names in Firewall settings
+### Website names and subdomains in Firewall settings
 
-**Add rule → Block a website** accepts a domain or an http/https link. Links
-become a domain-wide block; leading www is normalized, and the domain plus its
-www name get IPv4/IPv6 sink entries in a marked `/etc/hosts` section. Names have
-Edit/Remove actions in the same rule list. Other subdomains need their own rules.
-These are hostname-lookup blocks, not firewalld incoming-IP rules, and remain
-active while firewalld is off. The editor makes that distinction explicit. Apps
-using separate DNS lookup, direct IPs, proxies or cached results may bypass them;
-this is a convenient local block rather than enforced content filtering. Restart
-the browser after changes when it continues using a cached result. See
+**Add rule → Block a website** accepts a domain or an http/https link.
+**Block all subdomains** defaults On for new rules. Off blocks the domain plus www
+through managed IPv4/IPv6 hosts entries; On additionally routes all record types
+in the whole suffix to dnsmasq’s NXDOMAIN local-domain rule. Old saved rules stay
+exact-only until edited. The option is remembered on each rule and visible in the
+list. Block lists and DNS setup state remain local and outside GitHub sync.
+
+**Set up DNS filter** is one authenticated action. On Fedora it installs dnsmasq
+if missing, configures NetworkManager’s local caching plugin and puts it upstream
+of the existing systemd-resolved stub. It creates three managed snippets:
+NetworkManager main settings, resolved fallback policy, and dnsmasq website
+suffixes. The resolver symlink is recorded and points to NetworkManager’s
+continuously updated resolver file, allowing resolved to import filtered DNS
+and search domains through its compatibility path. nsswitch.conf, connection
+profiles and service startup choices are preserved. In Automatic mode, NetworkManager keeps choosing connection/VPN
+upstreams. Direct resolved per-link pushes are disabled to avoid bypassing the
+filter. Global custom DNS, strict DNSSEC/DNS-over-TLS, connection TLS policies,
+another DNS provider or an existing localhost DNS server require review rather
+than silent replacement. The automatic bridge is specifically for an existing
+NetworkManager + systemd-resolved stub; other setups are rejected.
+
+DNS reload uses nmcli’s single `conf,dns-full` argument. Filter activation clears
+old resolved link servers after NM updates; restoration restarts resolved first
+and then lets NM repopulate normal per-link DNS. Failure responses include the
+recovery receipt immediately. **Restore DNS setup** is always available in the
+website form and Technical details, even when DNS status cannot be read.
+DNS reloads are bounded and test filter/stub responses, retrying briefly while
+services start. Setup failure removes its snippets and restores original DNS
+configuration. Rule-update failure restores previous DNS rules and hosts entries.
+**Technical details → Restore DNS setup** removes only verified managed
+files, restores the original resolver symlink, and returns to the previous provider. Incomplete setup has a recovery
+receipt; modified managed files require review. Restoration leaves exact hosts
+blocks in place and shows wildcard rules as needing setup. On Arch install
+missing dnsmasq with a full supported package transaction before setup; manifests
+include dnsmasq for future fresh installs without enabling its standalone service.
+
+**Firewall → DNS & website protection** offers four saved modes:
+Automatic (network/VPN DNS), Custom DNS (one to eight numeric IPv4/IPv6 server
+addresses), Block malicious sites, and Block adult + malicious sites. Protection
+presets use [Cloudflare for Families](https://developers.cloudflare.com/1.1.1.1/ip-addresses/):
+`1.1.1.2` / `1.0.0.2` plus matching IPv6 servers for malicious domains;
+`1.1.1.3` / `1.0.0.3` plus matching IPv6 servers for adult and malicious domains.
+They filter known malware/phishing and optionally adult domains; no provider can
+promise every harmful site or filter content within a shared domain. Custom DNS
+uses the chosen provider's policy. No separate application or extension is needed;
+these presets still use an external DNS service. This bridge uses ordinary DNS,
+without adding DNS-over-HTTPS/TLS.
+
+Custom and protection modes write NetworkManager's `global-dns-domain-*`
+configuration so connection/DHCP/IPv6/VPN DNS cannot remain an unfiltered fallback
+for system lookups. They replace private network/VPN DNS domains too, so private
+names may require Automatic. Automatic removes the managed global override while
+keeping the local filter and manual blocks. Restore DNS setup removes the bridge
+and returns to the original configuration. Independent browser secure DNS,
+VPN clients and proxies can bypass the system resolver.
+
+Apply previews the selected mode and custom addresses, then performs one
+administrator job under the website lock with revision checking. It checks the
+effective NetworkManager config plus filter/stub DNS responses. Failures restore
+the previous mode and receipt. An interrupted change records both managed
+configurations so Restore remains possible. External config overrides and edited
+managed files require review. DNS mode/server state stays local, outside GitHub
+sync. Installing the UI does not select or activate a provider.
+
+`settings/website_blocks.py` normalizes/validates names and IDNA, caps the list at
+200, serializes website/DNS setup changes and checks hosts plus DNS revisions.
+Only its marked hosts section changes; unrelated entries stay intact. The previous
+hosts version is kept privately in `/etc/hosts.hyprshell-websites.bak`. Atomic
+replacement retains ownership, mode and xattrs/SELinux labels. DNS receipts are
+private under `/var/lib/hyprshell/website-dns`, with hashes detecting manual changes.
+No query logging or browsing history collection is enabled.
+
+The filter covers apps using system DNS. Independent DNS, proxies, cached
+results and direct IP connections can bypass it. Restart browsers after changes
+when needed. Website blocks stay independent of firewalld’s On/Off switch.
+[Dnsmasq local-domain behavior](https://dnsmasq.org/docs/dnsmasq-man.html),
+[NetworkManager DNS plugins](https://networkmanager.dev/docs/api/latest/NetworkManager.conf.html),
 [hosts(5)](https://man7.org/linux/man-pages/man5/hosts.5.html).
 
-`settings/website_blocks.py` validates/normalizes names (including IDNA), limits
-the list to 200 domains, serializes edits with a private lock and checks the full
-hosts-file revision. Only the marked section changes; other entries stay intact.
-Malformed managed sections and symlink hosts files are refused. Saving retains a
-root-private previous copy at `/etc/hosts.hyprshell-websites.bak`; replacement is
-atomic, preserves file permissions/ownership and xattrs (including SELinux context),
-and checks for external edits before writing. Domain choices and backups live
-outside desktop preferences and GitHub sync. No actual website is blocked merely
-by installing this feature: the user must choose Save in the authenticated form.
-
-Checks: `test_website_blocks.py` uses synthetic temporary hosts/lock files;
-`test_firewall.py` exercises native website Add/Edit/Remove and removal while
-firewalld is off, inside the same one-authentication-job workflow. Validation does
-not write this machine’s hosts file, change DNS settings, or visit any websites.
+Checks: `test_website_blocks.py`, `test_website_dns.py` and `test_firewall.py` use
+synthetic hosts, snippets, services and DNS replies. Native tests cover the On
+default, setup confirmation retaining the form draft, remembered edits and
+website removal while firewalld is off, Custom/Family/Automatic application and
+website draft preservation. Backend tests cover validation, stale revisions, mode
+rollback, external overrides and interrupted changes. Actual package installation and live DNS
+activation need a desktop-session check; simulated tests do not certify them.

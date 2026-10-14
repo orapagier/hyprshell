@@ -111,7 +111,7 @@ FloatingWindow {
             {section: -6, title: "Keyboard shortcuts", symbol: "󰌌", keywords: "keybindings hotkeys"}
         ]},
         {group: "System", pages: [
-            {section: -22, title: "Firewall", symbol: "󰒃", keywords: "firewalld security rules ports services zones block incoming tcp udp"},
+            {section: -22, title: "Firewall", symbol: "󰒃", keywords: "firewalld security rules ports services zones block incoming tcp udp website dns custom cloudflare adult porn malware malicious phishing protection"},
             {section: -16, title: "Accessibility", symbol: "󰋁", keywords: "large text size contrast reduced motion animations"},
             {section: -17, title: "Language & region", symbol: "󰗊", keywords: "locale timezone date time number formats"},
             {section: -10, title: "Power & battery", symbol: "󰁹", keywords: "brightness sleep lid profiles"},

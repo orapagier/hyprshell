@@ -157,6 +157,19 @@ class FirewallTests(unittest.TestCase):
                 with self.assertRaises(ValueError): firewall.context(payload)
 
 
+    def test_dns_modes_require_confirmation_and_survive_firewall_status_failure(self):
+        with patch.object(firewall.website_blocks, 'dns_change') as change:
+            for operation in ('setup-website-dns', 'restore-website-dns', 'configure-website-dns'):
+                with self.assertRaises(ValueError): firewall.request({'operation': operation})
+            change.assert_not_called()
+            payload = {'operation': 'configure-website-dns', 'mode': 'family', 'confirmed': True, 'expectedWebsite': 'revision'}
+            with patch.object(firewall, 'request_firewall', side_effect=ValueError('firewall unavailable')), patch.object(firewall.website_blocks, 'status', return_value={'websiteRevision': 'new', 'dnsMode': 'family', 'websites': []}):
+                result = firewall.request(payload)
+            change.assert_called_once_with('configure-website-dns', payload)
+            self.assertTrue(result['ok'])
+            self.assertEqual(result['dnsMode'], 'family')
+
+
 @unittest.skipUnless(shutil.which('quickshell'), 'Native Quickshell required')
 class NativeTests(unittest.TestCase):
     def test_page_navigation_confirmation_drafts_and_access_failure(self):
@@ -208,7 +221,22 @@ request = json.loads(arguments[1])
 with (root / 'auth-jobs').open('a') as log: log.write(request['operation'] + '\\n')
 if (root / 'cancel-auth').exists(): sys.exit(126)
 sys.path.insert(0, str(Path(script).parent))
-import website_blocks
+import website_blocks, website_dns
+website_dns.status = lambda: {{'dnsFilterReady': (root / 'dns-ready').exists(), 'dnsFilterInstalled': (root / 'dns-ready').exists() or (root / 'dns-recovery').exists(), 'dnsFilterRevision': ('ready' if (root / 'dns-ready').exists() else 'notready') + ((root / 'dns-mode').read_text() if (root / 'dns-mode').exists() else ''), 'dnsMode': json.loads((root / 'dns-mode').read_text())['mode'] if (root / 'dns-mode').exists() else 'automatic', 'dnsServers': json.loads((root / 'dns-mode').read_text())['servers'] if (root / 'dns-mode').exists() else []}}
+def setup(domains):
+    if not (root / 'dns-failed-once').exists():
+        (root / 'dns-failed-once').touch(); (root / 'dns-recovery').touch()
+        raise ValueError('DNS setup and automatic restoration failed. Use Restore DNS setup.')
+    (root / 'dns-ready').touch()
+def restore():
+    (root / 'dns-ready').unlink(missing_ok=True); (root / 'dns-recovery').unlink(missing_ok=True)
+def configure(domains, mode, servers):
+    mode, servers = website_dns.selection(mode, servers)
+    (root / 'dns-mode').write_text(json.dumps({{'mode': mode, 'servers': servers}}))
+website_dns.configure = configure
+website_dns.setup = setup
+website_dns.restore = restore
+website_dns.apply = lambda domains: (root / 'dns-rules').write_text(json.dumps(domains))
 website_blocks.HOSTS = root / 'hosts'
 website_blocks.LOCK = root / 'website-lock'
 if not website_blocks.HOSTS.exists(): website_blocks.HOSTS.write_text('127.0.0.1 localhost\\n::1 localhost\\n')
@@ -252,7 +280,7 @@ ShellRoot {
             if (page) { test.fail("eager page"); return; }
             window.searchQuery = "firewall";
             if (window.searchResults.length !== 1 || window.searchResults[0].section !== -22) { test.fail("search"); return; }
-            window.width = 720;
+            window.implicitWidth = 720;
             window.section = -22; test.phase = 2;
         } else if (test.phase === 2 && page && page.loaded && !page.busy) {
             if (page.zone !== "public" || !page.snapshot.running) { test.fail("default zone parsing"); return; }
@@ -292,11 +320,49 @@ ShellRoot {
             find(page, "addFirewallRule").clicked();
             find(page, "firewallRuleKind").currentIndex = 3;
             find(page, "firewallWebsite").text = "https://www.example.com/page";
+            if (!find(page, "firewallSubdomains").checked || find(page, "saveFirewallRule").enabled) { test.fail("subdomain default or setup gate"); return; }
+            find(page, "setupWebsiteDns").clicked();
+            find(page, "confirmFirewall").clicked(); test.phase = 21;
+        } else if (test.phase === 21 && page && !page.busy && !page.success) {
+            if (!page.editing || !page.snapshot.dnsFilterInstalled || !find(page, "repairWebsiteDns").visible || find(page, "setupWebsiteDns").visible) { test.fail("recovery unavailable after failure"); return; }
+            let missingStatus = Object.assign({}, page.snapshot);
+            delete missingStatus.dnsFilterInstalled;
+            delete missingStatus.dnsFilterReady;
+            page.snapshot = missingStatus;
+            page.details = true; test.phase = 23;
+        } else if (test.phase === 23 && page && !page.busy) {
+            if (!find(page, "repairWebsiteDns").visible || !find(page, "restoreWebsiteDns").visible) { test.fail("recovery hidden without DNS status"); return; }
+            find(page, "repairWebsiteDns").clicked();
+            find(page, "confirmFirewall").clicked(); test.phase = 22;
+        } else if (test.phase === 22 && page && !page.busy && page.success) {
+            if (page.snapshot.dnsFilterInstalled || !page.editing) { test.fail("DNS restore"); return; }
+            find(page, "setupWebsiteDns").clicked();
+            find(page, "confirmFirewall").clicked(); test.phase = 20;
+        } else if (test.phase === 20 && page && !page.busy && page.snapshot.dnsFilterReady) {
+            if (!page.editing || find(page, "firewallWebsite").text !== "https://www.example.com/page") { test.fail("setup lost draft"); return; }
+            let mode = find(page, "dnsMode"); mode.currentIndex = 1; mode.activated(1);
+            let servers = find(page, "customDnsServers"); servers.text = "1.1.1.1, 1.0.0.1"; servers.textEdited();
+            if (!page.dnsDirty || !find(page, "applyDnsMode").enabled) { test.fail("custom DNS form"); return; }
+            find(page, "applyDnsMode").clicked();
+            if (!page.pending || page.pending.operation !== "configure-website-dns") { test.fail("DNS confirmation"); return; }
+            find(page, "confirmFirewall").clicked(); test.phase = 24;
+        } else if (test.phase === 24 && page && !page.busy) {
+            if (!page.success || page.snapshot.dnsMode !== "custom" || page.snapshot.dnsServers[0] !== "1.1.1.1" || page.dnsDirty || !page.editing) { test.fail("custom DNS result or website draft"); return; }
+            let mode = find(page, "dnsMode"); mode.currentIndex = 3; mode.activated(3);
+            find(page, "applyDnsMode").clicked(); find(page, "confirmFirewall").clicked(); test.phase = 25;
+        } else if (test.phase === 25 && page && !page.busy) {
+            if (!page.success || page.snapshot.dnsMode !== "family" || page.snapshot.dnsServers[0] !== "1.1.1.3") { test.fail("family DNS result"); return; }
+            let mode = find(page, "dnsMode"); mode.currentIndex = 0; mode.activated(0);
+            find(page, "applyDnsMode").clicked(); find(page, "confirmFirewall").clicked(); test.phase = 26;
+        } else if (test.phase === 26 && page && !page.busy) {
+            if (!page.success || page.snapshot.dnsMode !== "automatic" || !page.snapshot.dnsFilterReady || !page.editing) { test.fail("automatic DNS result"); return; }
             find(page, "saveFirewallRule").clicked(); test.phase = 16;
         } else if (test.phase === 16 && page && !page.busy && !page.dirty) {
             let row = page.rules.find(row => row.kind === "website" && row.value === "example.com");
-            if (!page.success || !row) { test.fail("add website"); return; }
+            if (!page.success || !row || !row.subdomains) { test.fail("add website"); return; }
             find(page, "editFirewall-" + row.id).clicked();
+            if (!find(page, "firewallSubdomains").checked) { test.fail("edit lost subdomain option"); return; }
+            find(page, "firewallSubdomains").checked = false;
             find(page, "firewallWebsite").text = "other.example";
             find(page, "saveFirewallRule").clicked(); test.phase = 17;
         } else if (test.phase === 17 && page && !page.busy && !page.dirty) {
@@ -345,5 +411,5 @@ ShellRoot {
             calls = [json.loads(line) for line in (root / 'calls').read_text().splitlines()]
             self.assertEqual(sum('--add-service=http' in row for row in calls), 2)
             self.assertEqual(sum('--add-service=http' in row and '--permanent' in row for row in calls), 1)
-            self.assertEqual((root / 'auth-jobs').read_text().splitlines(), ['status', 'add-service', 'edit-rule', 'status', 'edit-rule', 'remove-port', 'add-website', 'edit-website', 'disable', 'remove-website', 'enable', 'status', 'status'])
+            self.assertEqual((root / 'auth-jobs').read_text().splitlines(), ['status', 'add-service', 'edit-rule', 'status', 'edit-rule', 'remove-port', 'setup-website-dns', 'restore-website-dns', 'setup-website-dns', 'configure-website-dns', 'configure-website-dns', 'configure-website-dns', 'add-website', 'edit-website', 'disable', 'remove-website', 'enable', 'status', 'status'])
             self.assertFalse((root / 'config/hyprshell/settings.json').exists())

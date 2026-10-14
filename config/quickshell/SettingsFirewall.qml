@@ -10,6 +10,17 @@ ColumnLayout {
     property var snapshot: ({})
     property var pending: null
     property var original: null
+    property bool dnsDirty: false
+    property string dnsModeDraft: "automatic"
+    property string dnsServersDraft: ""
+    readonly property var dnsModes: ["automatic", "custom", "malicious", "family"]
+    readonly property var dnsLabels: ["Automatic (network DNS)", "Custom DNS", "Block malicious sites", "Block adult + malicious sites"]
+    function resetDnsDraft() {
+        dnsDirty = false;
+        dnsModeDraft = snapshot.dnsMode || "automatic";
+        dnsServersDraft = (snapshot.dnsServers || []).join(", ");
+    }
+    onSnapshotChanged: if (!dnsDirty) resetDnsDraft()
     property bool editing: false
     property bool details: false
     property bool help: false
@@ -21,7 +32,7 @@ ColumnLayout {
     signal reviewRequested(var card)
     property bool startingRequest: false
     readonly property bool busy: worker.running || startingRequest
-    readonly property bool dirty: editing || pending !== null
+    readonly property bool dirty: editing || dnsDirty || pending !== null
     readonly property var rules: (snapshot.rules || []).concat(snapshot.websites || [])
     readonly property var serviceIds: {
         let common = ["ssh", "http", "https", "samba"];
@@ -48,6 +59,7 @@ ColumnLayout {
         service.currentIndex = row && row.kind === "service" ? serviceIds.indexOf(row.value) : 0;
         port.text = row && row.kind === "port" ? row.value.split("/")[0] : "";
         protocol.currentIndex = row && row.kind === "port" && row.value.endsWith("/udp") ? 1 : 0;
+        subdomains.checked = row && row.kind === "website" ? row.subdomains === true : true;
         website.text = row && row.kind === "website" ? row.value : "";
         address.text = row && row.kind === "block" ? row.value : "";
         editing = true;
@@ -56,7 +68,7 @@ ColumnLayout {
     function saveRule() {
         let type = ["service", "port", "block", "website"][kind.currentIndex];
         let value = type === "service" ? serviceIds[service.currentIndex] : type === "port" ? port.text.trim() + "/" + protocol.currentText.toLowerCase() : type === "website" ? website.text.trim() : address.text.trim();
-        request({operation: original ? (original.kind === "website" ? "edit-website" : "edit-rule") : ({service: "add-service", port: "add-port", block: "block-source", website: "add-website"})[type], kind: type, value: value, old: original ? original.value : "", expectedWebsite: snapshot.websiteRevision, id: original ? original.id : "", zone: zone, scope: "both", expected: snapshot.revision, confirmed: true});
+        request({operation: original ? (original.kind === "website" ? "edit-website" : "edit-rule") : ({service: "add-service", port: "add-port", block: "block-source", website: "add-website"})[type], kind: type, subdomains: subdomains.checked, value: value, old: original ? original.value : "", expectedWebsite: snapshot.websiteRevision, id: original ? original.id : "", zone: zone, scope: "both", expected: snapshot.revision, confirmed: true});
     }
     function removeRule(row) {
         pending = {operation: ({service: "remove-service", port: "remove-port", block: "remove-rich", rich: "remove-rich", website: "remove-website"})[row.kind], value: row.raw, expectedWebsite: snapshot.websiteRevision, zone: zone, scope: "both", expected: snapshot.revision, confirmed: true, title: row.title + (row.kind === "rich" ? "\n" + row.raw : "")};
@@ -75,10 +87,12 @@ ColumnLayout {
                 try {
                     let result = JSON.parse(text);
                     page.success = result.ok; page.message = result.message || "";
+                    if (!result.ok && (result.websiteRevision !== undefined || result.dnsFilterInstalled !== undefined)) page.snapshot = Object.assign({}, page.snapshot, result);
                     if (result.ok && (result.running !== undefined || result.websiteRevision !== undefined)) {
                         page.snapshot = result.running !== undefined ? result : Object.assign({}, page.snapshot, result); page.zone = result.zone || ""; page.loaded = true;
                     } else if (!result.ok && page.lastOperation === "status") page.loaded = false;
-                    if (result.ok && page.lastOperation !== "status") page.discard();
+                    if (result.ok && ["configure-website-dns", "restore-website-dns"].indexOf(page.lastOperation) >= 0) page.resetDnsDraft();
+                    if (result.ok && ["status", "setup-website-dns", "restore-website-dns", "configure-website-dns"].indexOf(page.lastOperation) < 0) page.discard();
                     else page.pending = null;
                 } catch (e) { page.success = false; page.loaded = false; page.message = "Could not read the firewall status. Try Refresh."; }
             }
@@ -105,16 +119,59 @@ ColumnLayout {
         Label { visible: page.loaded && !page.snapshot.running && !page.snapshot.firewallUnavailable; text: "Your network rules are kept. Turn on the firewall to edit them. Website blocks remain active."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label { visible: !page.loaded && !page.busy; text: "Refresh to try again. The switch becomes available when the system reports its status."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
+    Label { visible: page.busy && ["setup-website-dns", "configure-website-dns"].indexOf(page.lastOperation) >= 0; text: "Applying DNS setup… Package installation may take a few minutes."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     Label { objectName: "firewallMessage"; visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
     Label { visible: !!page.snapshot.websiteError; text: page.snapshot.websiteError || ""; color: Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
     SettingsCard {
+        title: "DNS & website protection"
+        subtitle: "Choose DNS for this laptop. Manual website blocks work alongside it."
+        Layout.fillWidth: true
+        Label { objectName: "dnsModeStatus"; text: !page.loaded || !page.snapshot.websiteRevision ? "Refresh to read DNS settings." : page.snapshot.dnsFilterInstalled && !page.snapshot.dnsFilterReady ? "DNS setup needs recovery. Restore it before applying a mode." : "Saved mode: " + page.dnsLabels[Math.max(0, page.dnsModes.indexOf(page.snapshot.dnsMode || "automatic"))]; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        SettingsComboBox {
+            objectName: "dnsMode"
+            Layout.fillWidth: true
+            model: page.dnsLabels
+            currentIndex: page.dnsModes.indexOf(page.dnsModeDraft)
+            enabled: page.loaded && !page.busy && !page.pending
+            Accessible.name: "DNS mode"
+            onActivated: { page.dnsModeDraft = page.dnsModes[currentIndex]; page.dnsDirty = true; }
+        }
+        SettingsTextField {
+            objectName: "customDnsServers"
+            visible: page.dnsModeDraft === "custom"
+            Layout.fillWidth: true
+            placeholderText: "DNS IP addresses, e.g. 1.1.1.1, 1.0.0.1"
+            text: page.dnsServersDraft
+            enabled: !page.busy && !page.pending
+            selectByMouse: true
+            Accessible.name: "Custom DNS server addresses"
+            onTextEdited: { page.dnsServersDraft = text; page.dnsDirty = true; }
+        }
+        Label { text: page.dnsModeDraft === "automatic" ? "Use DNS from your network and VPN. Any local website blocks remain active." : page.dnsModeDraft === "custom" ? "Enter IPv4 or IPv6 addresses separated by commas or spaces. Filtering depends on your chosen DNS provider." : "Uses Cloudflare for Families to filter known malware and phishing domains" + (page.dnsModeDraft === "family" ? " and adult domains." : "."); color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { visible: page.dnsModeDraft !== "automatic"; text: "Applies across networks and replaces network/VPN DNS for system lookups. Private network names may require Automatic mode. No separate app is needed."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: "DNS filtering cannot catch every harmful site or filter content inside a shared website. Browsers with their own secure DNS, VPNs and proxies may bypass it."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        RowLayout {
+            SettingsButton {
+                objectName: "applyDnsMode"
+                text: "Apply DNS mode…"
+                enabled: page.loaded && !!page.snapshot.websiteRevision && page.dnsDirty && !page.busy && !page.pending && !(page.snapshot.dnsFilterInstalled && !page.snapshot.dnsFilterReady) && (page.dnsModeDraft !== "custom" || !!page.dnsServersDraft.trim())
+                onClicked: {
+                    page.pending = {operation: "configure-website-dns", mode: page.dnsModeDraft, servers: page.dnsServersDraft, expectedWebsite: page.snapshot.websiteRevision, confirmed: true, title: page.dnsLabels[page.dnsModes.indexOf(page.dnsModeDraft)] + (page.dnsModeDraft === "custom" ? " (" + page.dnsServersDraft + ")" : "")};
+                    Qt.callLater(() => page.reviewRequested(confirmation));
+                }
+            }
+            SettingsButton { objectName: "cancelDnsDraft"; text: "Cancel changes"; visible: page.dnsDirty; enabled: !page.busy && !page.pending; onClicked: page.resetDnsDraft() }
+            SettingsButton { objectName: "recoverDnsMode"; text: "Restore DNS setup…"; visible: !!page.snapshot.dnsFilterInstalled; enabled: !page.busy && !page.pending; onClicked: { page.pending = {operation: "restore-website-dns", confirmed: true}; Qt.callLater(() => page.reviewRequested(confirmation)); } }
+        }
+    }
+    SettingsCard {
         id: confirmation
         visible: page.pending !== null
-        title: page.pending && page.pending.operation === "disable" ? "Turn off firewall?" : page.pending && page.pending.operation === "enable" ? "Turn on firewall?" : "Remove this rule?"
+        title: page.pending && page.pending.operation === "configure-website-dns" ? "Apply DNS mode?" : page.pending && page.pending.operation === "setup-website-dns" ? "Set up DNS filter?" : page.pending && page.pending.operation === "restore-website-dns" ? "Restore previous DNS setup?" : page.pending && page.pending.operation === "disable" ? "Turn off firewall?" : page.pending && page.pending.operation === "enable" ? "Turn on firewall?" : "Remove this rule?"
         Layout.fillWidth: true
-        Label { text: !page.pending ? "" : page.pending.operation === "disable" ? "Incoming connections will no longer be filtered by firewalld. Your rules are kept. It will stay off after restart." : page.pending.operation === "enable" ? "The firewall will use your saved rules now and after restart. You may be asked for your administrator password." : "Remove “" + page.pending.title + "”? The change is saved automatically. Website blocks are separate from network permissions."; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+        Label { text: !page.pending ? "" : page.pending.operation === "configure-website-dns" ? "Apply “" + page.pending.title + "”? This is saved across restarts. DNS will be checked and the previous mode restored if the check fails. Initial setup uses the small dnsmasq system package. You may be asked for your administrator password." : page.pending.operation === "setup-website-dns" ? "Install the small dnsmasq package if needed and connect it to NetworkManager and systemd-resolved. Wi-Fi and VPN DNS servers remain managed by your connections. Setup tests DNS and restores the previous configuration if it fails." : page.pending.operation === "restore-website-dns" ? "Remove Hyprshell’s DNS filter setup and use your previous DNS configuration. Exact website blocks remain; all-subdomain rules need the filter to be set up again." : page.pending.operation === "disable" ? "Incoming connections will no longer be filtered by firewalld. Your rules are kept. It will stay off after restart." : page.pending.operation === "enable" ? "The firewall will use your saved rules now and after restart. You may be asked for your administrator password." : "Remove “" + page.pending.title + "”? The change is saved automatically. Website blocks are separate from network permissions."; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
         RowLayout {
-            SettingsButton { objectName: "confirmFirewall"; text: !page.pending ? "Confirm" : page.pending.operation === "disable" ? "Turn off" : page.pending.operation === "enable" ? "Turn on" : "Remove rule"; enabled: !page.busy; onClicked: page.request(page.pending) }
+            SettingsButton { objectName: "confirmFirewall"; text: !page.pending ? "Confirm" : page.pending.operation === "configure-website-dns" ? "Apply DNS" : page.pending.operation === "setup-website-dns" ? "Set up filter" : page.pending.operation === "restore-website-dns" ? "Restore DNS" : page.pending.operation === "disable" ? "Turn off" : page.pending.operation === "enable" ? "Turn on" : "Remove rule"; enabled: !page.busy; onClicked: page.request(page.pending) }
             SettingsButton { objectName: "cancelFirewall"; text: "Cancel"; enabled: !page.busy; onClicked: page.pending = null }
         }
     }
@@ -135,10 +192,19 @@ ColumnLayout {
         SettingsTextField { id: address; objectName: "firewallSource"; visible: kind.currentIndex === 2; Layout.fillWidth: true; placeholderText: "Numeric IP address, e.g. 192.0.2.10"; enabled: !page.busy; selectByMouse: true }
         Label { visible: kind.currentIndex === 2; text: "Stops incoming traffic from this address in the selected network. Existing advanced policies can also affect access."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         SettingsTextField { id: website; objectName: "firewallWebsite"; visible: kind.currentIndex === 3; Layout.fillWidth: true; placeholderText: "Website name, e.g. example.com"; enabled: !page.busy; selectByMouse: true }
-        Label { visible: kind.currentIndex === 3; text: "Blocks this name and its www address on this laptop. Other subdomains need their own rules. Restart your browser if it has cached the address; apps using their own DNS may bypass this block."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        SettingsSwitch { id: subdomains; objectName: "firewallSubdomains"; visible: kind.currentIndex === 3; text: "Block all subdomains"; checked: true; enabled: !page.busy; Layout.fillWidth: true }
+        Label { visible: kind.currentIndex === 3; text: subdomains.checked ? "Includes every subdomain, such as videos.example.com. Requires the DNS filter below." : "Blocks this website and its www name only."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        RowLayout {
+            visible: kind.currentIndex === 3
+            Layout.fillWidth: true
+            Label { text: page.snapshot.dnsFilterReady ? "DNS filter is set up" : page.snapshot.dnsFilterInstalled ? "DNS setup needs recovery" : "DNS filter is not set up"; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            SettingsButton { objectName: "setupWebsiteDns"; text: "Set up DNS filter…"; visible: !page.snapshot.dnsFilterReady && !page.snapshot.dnsFilterInstalled; enabled: !page.busy && !page.pending; onClicked: { page.pending = {operation: "setup-website-dns", confirmed: true}; Qt.callLater(() => page.reviewRequested(confirmation)); } }
+        }
+        SettingsButton { objectName: "repairWebsiteDns"; text: "Restore DNS setup…"; visible: kind.currentIndex === 3; enabled: !page.busy && !page.pending; onClicked: { page.pending = {operation: "restore-website-dns", confirmed: true}; Qt.callLater(() => page.reviewRequested(confirmation)); } }
+        Label { visible: kind.currentIndex === 3; text: "Website blocks apply through system DNS. Restart your browser if it caches a result; apps using their own DNS can bypass them."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label { visible: kind.currentIndex !== 3 && !page.snapshot.running; text: "Turn on the firewall to add or edit network rules. Website blocks can be changed while it is off."; color: Style.Theme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap }
         RowLayout {
-            SettingsButton { objectName: "saveFirewallRule"; text: page.busy ? "Saving…" : "Save rule"; enabled: page.loaded && !page.busy && (kind.currentIndex === 3 ? !!website.text.trim() && !!page.snapshot.websiteRevision : page.snapshot.running && (kind.currentIndex === 0 ? service.currentIndex >= 0 : kind.currentIndex === 1 ? !!port.text.trim() : !!address.text.trim())); onClicked: page.saveRule() }
+            SettingsButton { objectName: "saveFirewallRule"; text: page.busy ? "Saving…" : "Save rule"; enabled: page.loaded && !page.busy && (kind.currentIndex === 3 ? !!website.text.trim() && !!page.snapshot.websiteRevision && (!subdomains.checked || !!page.snapshot.dnsFilterReady) : page.snapshot.running && (kind.currentIndex === 0 ? service.currentIndex >= 0 : kind.currentIndex === 1 ? !!port.text.trim() : !!address.text.trim())); onClicked: page.saveRule() }
             SettingsButton { objectName: "cancelFirewallEdit"; text: "Cancel"; enabled: !page.busy; onClicked: page.discard() }
         }
     }
@@ -162,7 +228,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 6
                 Label { text: ruleRow.modelData.title; color: Style.Theme.text; font.bold: true; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
-                Label { text: ruleRow.modelData.kind === "website" ? "Website block · all networks" : !ruleRow.modelData.now ? "Saved; takes effect after restart" : !ruleRow.modelData.saved ? "Active only until restart" : (ruleRow.modelData.kind === "block" ? "Blocked" : ruleRow.modelData.kind === "rich" ? "Advanced" : "Allowed"); color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Label { text: ruleRow.modelData.kind === "website" ? (ruleRow.modelData.subdomains ? (ruleRow.modelData.now ? "Website and all subdomains · all networks" : "All-subdomain block needs DNS filter setup") : "Website and www name · all networks") : !ruleRow.modelData.now ? "Saved; takes effect after restart" : !ruleRow.modelData.saved ? "Active only until restart" : (ruleRow.modelData.kind === "block" ? "Blocked" : ruleRow.modelData.kind === "rich" ? "Advanced" : "Allowed"); color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 Flow {
                     Layout.fillWidth: true; spacing: 8
                     SettingsButton { objectName: "editFirewall-" + ruleRow.modelData.id; text: "Edit"; visible: ruleRow.modelData.editable; enabled: !page.busy && !page.pending; onClicked: page.openEditor(ruleRow.modelData) }
@@ -175,7 +241,8 @@ ColumnLayout {
         SettingsButton { text: page.help ? "Hide help" : "How does this work?"; onClicked: page.help = !page.help }
         SettingsButton { text: page.details ? "Hide details" : "Technical details"; onClicked: page.details = !page.details }
     }
-    Label { visible: page.help; text: "Leave the firewall on for normal use. Browsing, email and downloads usually need no extra rule. Add an Allow rule when other devices need to reach a service running here. Block an IP address stops incoming traffic from that device. Block a website stops hostname lookup for that site and its www name, separately from firewalld. Website blocks remain active when firewalld is off. Edit changes a rule; Remove deletes it. Other rules and network policies may also affect access."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    Label { visible: page.help; text: "Leave the firewall on for normal use. Browsing, email and downloads usually need no extra rule. Add an Allow rule when other devices need to reach a service running here. Block an IP address stops incoming traffic from that device. Block a website covers its domain and www name. With Block all subdomains switched on, the DNS filter covers the entire domain family. Website blocks remain active when firewalld is off. Edit changes a rule; Remove deletes it. Other rules and network policies may also affect access."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     SettingsComboBox { objectName: "firewallAdvancedZone"; visible: page.details && page.loaded && page.snapshot.running; Layout.fillWidth: true; model: page.snapshot.zones || []; currentIndex: model.indexOf(page.zone); enabled: !page.busy && !page.dirty; Accessible.name: "Advanced firewall zone"; onActivated: { page.zone = currentText; page.refresh(); } }
+    SettingsButton { objectName: "restoreWebsiteDns"; visible: page.details; text: "Restore DNS setup…"; enabled: !page.busy && !page.pending; onClicked: { page.pending = {operation: "restore-website-dns", confirmed: true}; Qt.callLater(() => page.reviewRequested(confirmation)); } }
     Label { visible: page.details; text: "Current rules:\n" + (page.snapshot.details || "Unavailable") + "\n\nSaved rules:\n" + ((page.snapshot.saved || {}).details || "Unavailable"); color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
 }
