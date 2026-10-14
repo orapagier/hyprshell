@@ -198,6 +198,22 @@ def wait_for_confirmation():
     return sys.stdin.readline().strip() if ready and time.monotonic() < deadline else 'revert'
 
 
+def project(request):
+    layout = request.get('layout')
+    if layout not in ('duplicate', 'extend'):
+        raise ValueError('Unknown projector layout')
+    current = status()
+    if len(current['monitors']) < 2:
+        raise ValueError('Connect a projector or second display first.')
+    entries = current['entries']
+    source = next((e['output'] for e in entries if re.match(r'^(eDP|LVDS|DSI)-', e['output'])), entries[0]['output'])
+    proposed = [dict(e, mirror=source if layout == 'duplicate' and e['output'] != source else '',
+                     position=e['position'] if layout == 'duplicate' else 'auto') for e in entries]
+    # Reuse validation, locking, persistence and failure rollback; projection
+    # choices are committed immediately without a preview or user decision.
+    return preview({'entries': proposed, 'expected': current['saved']}, lambda result: None, wait=lambda: 'keep')
+
+
 def interrupted(signum, frame):
     raise RuntimeError('Display preview interrupted; restoring previous settings.')
 
@@ -216,6 +232,8 @@ def main():
             result = status()
         elif request['operation'] == 'preview':
             result = preview(request, emit)
+        elif request['operation'] == 'project':
+            result = project(request)
         else:
             raise ValueError('Unknown display action')
         emit(result)

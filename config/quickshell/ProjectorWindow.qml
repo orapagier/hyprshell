@@ -4,10 +4,13 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Io
 import "style" as Style
 
 PanelWindow {
     id: window
+    property string error: ""
+    readonly property bool busy: worker.running
     visible: false
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
@@ -16,8 +19,28 @@ PanelWindow {
     WlrLayershell.namespace: "hyprshell-projector"
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     function open() {
+        error = "";
         visible = true;
-        if (!page.busy) page.request("status");
+    }
+    function choose(layout) {
+        if (worker.running) return;
+        error = "";
+        worker.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/displays.py").toString().replace(/^file:\/\//, "")), "--request-json", JSON.stringify({operation: "project", layout: layout})];
+        worker.running = true;
+    }
+    Process {
+        id: worker
+        objectName: "projectorWorker"
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    let result = JSON.parse(text);
+                    if (result.ok) window.visible = false;
+                    else window.error = result.message || "Could not change displays.";
+                } catch (e) { window.error = "Could not change displays."; }
+            }
+        }
+        stderr: StdioCollector { onStreamFinished: if (text) window.error = text.trim() }
     }
     MouseArea {
         anchors.fill: parent
@@ -26,7 +49,7 @@ PanelWindow {
     Rectangle {
         id: card
         anchors.centerIn: parent
-        width: Math.min(460, window.width - 40)
+        width: Math.min(320, window.width - 40)
         height: contents.implicitHeight + 40
         radius: 22
         color: Style.Theme.background
@@ -39,17 +62,29 @@ PanelWindow {
             anchors.top: parent.top
             anchors.margins: 20
             spacing: 12
-            SettingsDisplays {
-                id: page
-                objectName: "projectorPage"
-                projectionOnly: true
-                visible: window.visible
+            RowLayout {
                 Layout.fillWidth: true
+                SettingsButton {
+                    objectName: "duplicateDisplays"
+                    text: "Duplicate"
+                    Layout.fillWidth: true
+                    enabled: !worker.running
+                    onClicked: window.choose("duplicate")
+                }
+                SettingsButton {
+                    objectName: "extendDisplays"
+                    text: "Extend"
+                    Layout.fillWidth: true
+                    enabled: !worker.running
+                    onClicked: window.choose("extend")
+                }
             }
-            SettingsButton {
-                text: "Close · Esc"
-                Layout.alignment: Qt.AlignRight
-                onClicked: window.visible = false
+            Label {
+                visible: !!window.error
+                text: window.error
+                color: Style.Theme.danger
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
             }
         }
     }

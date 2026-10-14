@@ -35,6 +35,40 @@ class DisplaysTests(unittest.TestCase):
             result = displays.preview(self.request, self.events.append, wait=lambda: decision)
         return result, hypr
 
+    def test_projector_choices_apply_and_save_without_waiting(self):
+        tv = dict(self.monitor, name='HDMI-A-1', id=1, x=1920)
+        laptop = dict(self.monitor, id=0)
+        with patch.object(displays, 'monitors', return_value=[tv, laptop]), \
+                patch.object(displays, 'hypr', return_value='ok') as hypr, \
+                patch.object(displays, 'wait_for_confirmation', side_effect=AssertionError('must not wait')):
+            displays.project({'layout': 'duplicate'})
+            saved = {e['output']: e for e in displays.read_saved()['entries']}
+            self.assertEqual(saved['HDMI-A-1']['mirror'], 'eDP-1')
+            self.assertEqual(saved['eDP-1']['mirror'], '')
+            self.assertEqual(saved['HDMI-A-1']['mode'], displays.live_entry(tv)['mode'])
+            displays.project({'layout': 'extend'})
+            self.assertTrue(all(e['mirror'] == '' and e['position'] == 'auto'
+                                for e in displays.read_saved()['entries']))
+            self.assertFalse(any(call.args == ('reload',) for call in hypr.call_args_list))
+
+    def test_projector_requires_second_display_and_valid_layout(self):
+        with patch.object(displays, 'monitors', return_value=[self.monitor]), patch.object(displays, 'hypr') as hypr:
+            with self.assertRaisesRegex(ValueError, 'Connect a projector'):
+                displays.project({'layout': 'duplicate'})
+            with self.assertRaisesRegex(ValueError, 'Unknown projector layout'):
+                displays.project({'layout': 'invalid'})
+            hypr.assert_not_called()
+
+    def test_projector_failed_save_restores_previous_layout(self):
+        tv = dict(self.monitor, name='HDMI-A-1', id=1, x=1920)
+        with patch.object(displays, 'monitors', return_value=[self.monitor, tv]), \
+                patch.object(displays, 'hypr', return_value='ok') as hypr, \
+                patch.object(displays, 'persist', side_effect=OSError('save failed')):
+            with self.assertRaisesRegex(OSError, 'save failed'):
+                displays.project({'layout': 'duplicate'})
+            self.assertIn(unittest.mock.call('reload'), hypr.call_args_list)
+            self.assertNotIn('mirror = "eDP-1"', hypr.call_args_list[-1].args[1])
+
     def test_confirm_persists_and_backup_retains_previous_files(self):
         result, hypr = self.transaction('keep')
         self.assertIn('saved', result['message'])

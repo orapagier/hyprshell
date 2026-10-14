@@ -1,5 +1,6 @@
-"""Verify projection controls and confirmation with isolated display helpers."""
+"""Verify one-click projection and advanced display controls with isolated helpers."""
 import os
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -28,7 +29,8 @@ class ProjectorUiTests(unittest.TestCase):
                 source = '\n'.join(line for line in source.splitlines()
                                    if 'exclusionMode:' not in line and 'WlrLayershell.' not in line) + '\n'
                 projector.write_text(source)
-                (payload / 'settings/displays.py').write_text('''import json, sys
+                (payload / 'settings/displays.py').write_text('''import json, sys, os
+from pathlib import Path
 p = json.loads(sys.argv[2])
 def emit(data):
     print(json.dumps(dict(ok=True, **data)), flush=True)
@@ -37,6 +39,12 @@ if p['operation'] == 'status':
         availableModes=['1920x1080@60.00Hz', '1920x1080@120.00Hz', '1280x720@60.00Hz'])],
         entries=[dict(output='eDP-1', mode='1920x1080@60.00Hz', scale=1, transform=0, position='auto', mirror='')],
         saved=dict(version=1, entries=[])))
+elif p['operation'] == 'project':
+    assert p['layout'] in ('duplicate', 'extend')
+    log = Path(os.environ['XDG_CONFIG_HOME']) / 'projector-requests.json'
+    previous = json.loads(log.read_text()) if log.exists() else []
+    log.write_text(json.dumps(previous + [p]))
+    emit(dict(pending=False, message='Display settings saved.'))
 else:
     emit(dict(pending=True, seconds=15))
     decision = sys.stdin.readline().strip()
@@ -55,5 +63,9 @@ else:
                 output = result.stdout + result.stderr
                 self.assertIn(marker, output, output)
                 self.assertEqual(result.returncode, 0, output)
+                if fixture == 'ProjectorNative':
+                    self.assertEqual(json.loads((root / 'config/projector-requests.json').read_text()),
+                                     [dict(operation='project', layout='duplicate'),
+                                      dict(operation='project', layout='extend')])
                 for error in ('ReferenceError', 'TypeError', 'Binding loop', 'Unable to assign', '_FAILED'):
                     self.assertNotIn(error, output, output)
