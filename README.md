@@ -38,6 +38,7 @@ describe the established Arch installation unless stated otherwise.
 
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -54,6 +55,29 @@ describe the established Arch installation unless stated otherwise.
 - [Updating, backups, and restoring files](#updating-backups-and-restoring-files)
 - [Troubleshooting](#troubleshooting)
 - [Project structure and development](#project-structure-and-development)
+
+## Screenshots
+
+<!-- desktop-screenshots:start -->
+Captured from a running Hyprshell desktop.
+
+### Hyprshell desktop and hyprbar
+
+![Hyprshell desktop and hyprbar](docs/assets/hyprshell-desktop.png)
+
+### Hyprshell application launcher
+
+![Hyprshell application launcher](docs/assets/hyprshell-launcher.png)
+
+### Hyprshell desktop settings
+
+![Hyprshell desktop settings](docs/assets/hyprshell-settings.png)
+<!-- desktop-screenshots:end -->
+
+To capture the running desktop, launcher, and settings, run
+`python3 tools/capture_desktop.py` from a terminal in your Hyprland session.
+The helper gives you time to arrange each view, asks you to review the images,
+then saves them in `docs/assets/` and updates this gallery.
 
 ## Features
 
