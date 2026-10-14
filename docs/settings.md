@@ -505,6 +505,17 @@ The Super+K QML overlay reads active Hyprland bindings on opening and refreshes
 every 1.5 seconds while open, preserving the current search. Its action labels
 come from the binding description. It remains a centered layer-shell overlay
 with keyboard focus, Escape dismissal, and dismissal on pointer movement outside.
+Every returned registration is retained, including duplicate combinations with
+different actions, submaps, extra modifiers, keycodes, mouse bindings and
+release triggers. Context and trigger labels are searchable. Media keys have
+readable labels while retaining their XF86 names for search. Local controls for
+Settings, the launcher, menus, shortcut recording, standard shell navigation,
+and this setup's Kitty copy/paste mappings are listed with their scope; these
+are not global shortcuts. Application-provided defaults outside this setup are
+owned by each application. The footer counts matching and total entries.
+An IPC error stays visible even when local entries or a previous desktop list
+remain available. No configured shortcuts are filtered through the narrower
+Settings shortcut editor's remapping rules.
 
 Preferences live in `hyprshell/keybindings.json`; the backend generates
 `hyprshell/keybindings.lua`. The bundled `hypr/keybindings.lua` captures original
@@ -574,11 +585,11 @@ override under the settings lock, preserving concurrent changes and all other
 preferences. The shell captures the focused workspace when the key is pressed
 and queues repeated presses while the writer is busy.
 
-With the power menu open, press L to lock, X to shut down, R to reboot, S to
-sleep, or O to log out. Alt+P opens the menu first; Alt may remain held while
-pressing the action key or be released. The menu consumes these action keys
-only while it is open, and ignores auto-repeat. These sequences are listed in
-Super+K and beside the corresponding power buttons. Escape cancels the menu.
+Use **Super+Alt+L** to lock, **Super+Alt+X** to shut down, **Super+Alt+R** to
+reboot, **Super+Alt+S** to sleep, or **Super+Alt+O** to log out. These are global
+bindings, listed in Super+K and beside the corresponding power buttons. **Alt+P**
+opens the power menu; **Escape** closes it. The menu does not handle bare action
+letters, so Alt+P followed by a letter is not a power shortcut.
 
 ## Displays
 

@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Io
 import QtQuick.Window
+import "KeybindingsGuide.js" as Guide
 
 ColumnLayout {
     id: page
@@ -15,29 +16,10 @@ ColumnLayout {
         readonly property color highlightedText: "#161824"
         readonly property color base: "#161824"
     }
-    readonly property var powerShortcuts: [
-        {shortcut: "Alt + P + L", action: "Lock screen"},
-        {shortcut: "Alt + P + X", action: "Shutdown"},
-        {shortcut: "Alt + P + R", action: "Reboot"},
-        {shortcut: "Alt + P + S", action: "Sleep"},
-        {shortcut: "Alt + P + O", action: "Logout"}
-    ]
     property var bindings: []
     property string error: ""
-    readonly property var entries: bindings.concat(powerShortcuts).filter(b => {
-        let haystack = (b.shortcut + " " + b.action).toLowerCase();
-        return search.text.toLowerCase().trim().split(/\s+/).every(word => haystack.includes(word));
-    })
+    readonly property var entries: Guide.matching(bindings, search.text)
     spacing: 12
-    function shortcut(binding) {
-        let parts = [];
-        for (let modifier of [[64, "Super"], [4, "Ctrl"], [8, "Alt"], [1, "Shift"]])
-            if (binding.modmask & modifier[0]) parts.push(modifier[1]);
-        let key = binding.key || (binding.keycode ? "Keycode " + binding.keycode : "Unknown key");
-        key = ({"Super_L":"Super", "mouse:272":"Left mouse", "mouse:273":"Right mouse", "mouse_down":"Scroll down", "mouse_up":"Scroll up"})[key] || key;
-        parts.push(key.length === 1 ? key.toUpperCase() : key);
-        return parts.join(" + ");
-    }
     Timer { interval: 1500; running: true; repeat: true; onTriggered: if (!bindingReader.running) bindingReader.running = true }
     Process {
         id: bindingReader
@@ -46,18 +28,26 @@ ColumnLayout {
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
+                    let rows = JSON.parse(text);
+                    if (!Array.isArray(rows)) throw new Error("Expected a binding list");
+                    page.bindings = Guide.desktopBindings(rows);
                     page.error = "";
-                    page.bindings = JSON.parse(text).map(b => ({
-                        shortcut: page.shortcut(b),
-                        action: b.description || [b.dispatcher, b.arg].filter(Boolean).join(" ") || "Custom action"
-                    })).sort((a, b) => a.shortcut.localeCompare(b.shortcut));
                 } catch (e) { page.error = "Could not load keybindings"; }
             }
         }
         onExited: (code, status) => { if (code !== 0) page.error = "Could not load keybindings"; }
     }
+    Text {
+        objectName: "keybindingsError"
+        Layout.fillWidth: true
+        visible: !!page.error
+        text: page.error + ". Desktop shortcuts could not be refreshed; " + (page.bindings.length ? "showing the last successful list." : "only local controls are shown.")
+        color: "#f38ba8"; wrapMode: Text.Wrap
+        font.family: "Noto Sans"; font.pixelSize: 12
+    }
     TextField {
         id: search
+        objectName: "keybindingsSearch"
         Layout.fillWidth: true
         implicitHeight: 46
         leftPadding: 15; rightPadding: 15
@@ -79,6 +69,7 @@ ColumnLayout {
     }
     ListView {
         id: list
+        objectName: "keybindingsList"
         Layout.fillWidth: true
         Layout.fillHeight: true; Layout.minimumHeight: 120
         model: page.entries
@@ -106,6 +97,12 @@ ColumnLayout {
                     color: theme.windowText; font.family: "Noto Sans"; font.pixelSize: 13; font.weight: Font.Medium
                     wrapMode: Text.Wrap
                 }
+                Text {
+                    width: parent.width
+                    text: row.modelData.context + (row.modelData.details ? " · " + row.modelData.details : "")
+                    color: theme.windowText; opacity: 0.6
+                    font.family: "Noto Sans"; font.pixelSize: 11; wrapMode: Text.Wrap
+                }
                 Flow {
                     width: parent.width; spacing: 5
                     Repeater {
@@ -132,7 +129,7 @@ ColumnLayout {
     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Qt.rgba(theme.windowText.r, theme.windowText.g, theme.windowText.b, 0.08) }
     RowLayout {
         Layout.fillWidth: true
-        Text { text: page.entries.length + " shortcuts"; color: theme.windowText; opacity: 0.55; font.family: "Noto Sans"; font.pixelSize: 11; Layout.fillWidth: true }
+        Text { text: page.entries.length + " of " + (page.bindings.length + Guide.localBindings.length) + " shortcuts"; color: theme.windowText; opacity: 0.55; font.family: "Noto Sans"; font.pixelSize: 11; Layout.fillWidth: true }
         Text { text: "↑ ↓  Browse   ·   Esc  Close"; color: theme.windowText; opacity: 0.55; font.family: "Noto Sans"; font.pixelSize: 11 }
     }
 }

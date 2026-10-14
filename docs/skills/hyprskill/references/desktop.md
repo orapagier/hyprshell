@@ -14,6 +14,7 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | Saved appearance, bar items, locking | `hyprshell/settings.json` / `config/hyprshell/settings.json` |
 | Shell composition and bar | `quickshell/shell.qml`, `Bar.qml`, `DesktopServices.qml` |
 | Menus | `quickshell/*Menu.qml`, `MenuController.qml`, `MenuPopover.qml` |
+| Shortcut guide / Super+K | `quickshell/KeybindingsMenu.qml`, `KeybindingsGuide.js`; preserves every runtime binding, with submap/trigger labels plus scoped shell controls and configured Kitty copy/paste; independent of the narrower Settings editor; `tests/test_keybindings_guide.py` audits Lua registration/remaps without executing actions |
 | Notifications | `quickshell/NotificationInbox.qml`, `NotificationCard.qml`; Quickshell owns `org.freedesktop.Notifications`; inbox history uses `Quickshell.statePath("notifications.json")` |
 | Settings UI | `quickshell/Settings*.qml`, `SettingsModel.js`, `SettingsStore.qml` |
 | Settings transactions and schema | `quickshell/settings/backend.py`, `defaults.json`; checkout `docs/settings.md` explains inheritance and extension points |

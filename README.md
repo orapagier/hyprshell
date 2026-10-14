@@ -109,7 +109,7 @@ To add or refresh only the tiled windows view, use
 | System tray | Application-provided tray icons. |
 | Power menu | Lock, sleep, logout, reboot, and shutdown actions. |
 | Settings | A live bar preview, drag-to-reorder modules, desktop and application appearance, displays, input, power, default apps, login startup, and a shortcut editor. |
-| Shortcut overlay | Search active Hyprland shortcuts with `Super+K`. |
+| Shortcut overlay | Search every active Hyprland binding and scoped shell/terminal controls with `Super+K`, including mouse, media, submap and release details. |
 | Optional management tools | Screen locking, scheduled file cleanup, and GitHub configuration sync. |
 
 The interface and service bindings use QML and JavaScript. A small C helper
