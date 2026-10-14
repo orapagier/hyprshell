@@ -7,6 +7,7 @@ import Quickshell.Io
 
 ColumnLayout {
     id: page
+    property bool projectionOnly: false
     property var monitors: []
     property var entries: []
     property var saved: ({version: 1, entries: []})
@@ -119,12 +120,12 @@ ColumnLayout {
     }
     SettingsCard {
         Layout.fillWidth: true
-        title: page.pending ? "Keep these settings?" : "Connected displays"
+        title: page.pending ? "Keep these settings?" : (page.projectionOnly ? "Projector options" : "Connected displays")
         subtitle: page.pending ? "Reverting in " + page.seconds + " seconds unless you keep the changes." : "Duplicate shows the same desktop and cursor on your laptop and TV. Extend gives each screen its own desktop. Choose a layout, then apply and keep the changes."
         ColumnLayout {
             Layout.fillWidth: true
-            visible: page.monitors.length > 1
-            enabled: !page.busy
+            visible: page.projectionOnly || page.monitors.length > 1
+            enabled: page.monitors.length > 1 && !page.busy
             Label { text: "Screen to duplicate"; color: Style.Theme.muted }
             SettingsComboBox {
                 id: duplicateSource
@@ -147,9 +148,10 @@ ColumnLayout {
         }
         Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label { visible: page.loaded && !page.monitors.length; text: "No active displays found."; color: Style.Theme.muted }
+        Label { visible: page.projectionOnly && page.loaded && page.monitors.length === 1; text: "Connect a projector or second display to use Duplicate or Extend, then refresh."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
     Repeater {
-        model: page.monitors
+        model: page.projectionOnly ? [] : page.monitors
         delegate: SettingsCard {
             id: card
             required property var modelData

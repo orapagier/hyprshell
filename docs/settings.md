@@ -603,7 +603,11 @@ letters, so Alt+P followed by a letter is not a power shortcut.
 
 Open **Displays** in Settings. Each active monitor shows its advertised resolutions
 and refresh rates, scale, rotation (including flipped orientations), and position.
-Press **Super+P** to open Displays directly (**Alt+S** still opens Settings).
+Press **Super+P** to open the dedicated Projector options window with Duplicate
+(mirror) and Extend (**Alt+S** still opens Settings). Connect a second display,
+refresh, choose a layout, then Apply and Keep the changes. Closing during the
+confirmation restores the previous layout. Settings → Displays retains the
+resolution, scale, rotation, and placement controls.
 Pseudotiling is available on **Super+Shift+P**. With a TV or another
 screen connected, select your laptop under **Screen to duplicate** and click
 **Duplicate (mirror)** to show the same desktop and cursor on both screens.

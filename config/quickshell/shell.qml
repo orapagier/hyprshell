@@ -20,6 +20,7 @@ ShellRoot {
     readonly property int currentWorkspace: Hyprland.focusedMonitor && Hyprland.focusedMonitor.activeWorkspace ? Hyprland.focusedMonitor.activeWorkspace.id : 0
     property var pendingBarToggles: []
     SettingsStore { id: preferences }
+    ProjectorWindow { id: projectorWindow }
     SettingsController {
         id: settingsController
         store: preferences
@@ -226,7 +227,10 @@ ShellRoot {
         }
         function displays(): void {
             for (let panel of panels.instances) panel.closeMenu();
-            settingsController.openDisplays();
+            projectorWindow.open();
+            let existing = Hyprland.toplevels.values.find(t => t.title === projectorWindow.title);
+            if (existing)
+                Hyprland.dispatch("hl.dsp.focus({ window = 'address:" + existing.address + "' })");
         }
         function toggleBar(): void {
             let workspace = shell.currentWorkspace;
