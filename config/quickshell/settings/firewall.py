@@ -21,9 +21,9 @@ def command(arguments):
     if result.returncode:
         error = (result.stderr + result.stdout).lower()
         if 'not_running' in error or 'not running' in error:
-            raise ValueError('firewalld is stopped. Use Enable and start, then Refresh.')
+            raise ValueError('The firewall is stopped. Choose Turn on firewall, then Check again.')
         if any(term in error for term in ('dbus_error', 'not permitted', 'not authorized', 'authorization', 'permission', 'accessdenied')):
-            raise ValueError('Cannot access firewalld. Run Settings in your desktop session and complete the administrator prompt; check the authorization agent if access is denied.')
+            raise ValueError('Cannot access the firewall. Open Settings in your desktop session and complete any administrator prompt. If access is still denied, the firewall service or password prompt needs checking.')
         raise ValueError('Firewall operation failed. Refresh and check the rule and zone before retrying.')
     return result.stdout.strip()
 
@@ -33,6 +33,12 @@ def token(value):
 
 
 def snapshot(zone, scope):
+    if scope == 'both':
+        current = snapshot(zone, 'runtime')
+        saved = snapshot(zone, 'permanent')
+        current['saved'] = saved
+        current['revision'] = hashlib.sha256((current['revision'] + saved['revision']).encode()).hexdigest()
+        return current
     args = ['--zone=' + zone] + (['--permanent'] if scope == 'permanent' else [])
     result = {'details': command([*args, '--list-all']),
               'services': command([*args, '--list-services']).split(),
@@ -44,10 +50,14 @@ def snapshot(zone, scope):
 
 def context(payload):
     scope = payload.get('scope', 'runtime')
-    if scope not in ('runtime', 'permanent'):
+    if scope not in ('runtime', 'permanent', 'both'):
         raise ValueError('Choose current or saved rules.')
     zones = command((['--permanent'] if scope == 'permanent' else []) + ['--get-zones']).split()
-    zone = payload.get('zone') or command(['--get-default-zone'])
+    zone = payload.get('zone')
+    if not zone:
+        active = command(['--get-active-zones'])
+        active_zones = [line.strip() for line in active.splitlines() if line and not line[0].isspace()]
+        zone = active_zones[0] if len(active_zones) == 1 else command(['--get-default-zone'])
     if not token(zone) or zone not in zones:
         raise ValueError('Choose an existing firewall zone and Refresh.')
     return zone, scope, zones
@@ -98,16 +108,30 @@ def request(payload):
         rule = f'rule family="ipv{address.version}" priority="-100" source address="{address}" drop'
         option = '--add-rich-rule=' + rule
     else:
-        if not isinstance(value, str) or value not in current['rich']:
+        if not isinstance(value, str) or value not in current['rich'] + current.get('saved', {}).get('rich', []):
             raise ValueError('Choose an existing rich rule from the refreshed list.')
         option = '--remove-rich-rule=' + value
-    if operation == 'remove-service' and value not in current['services']:
+    if operation == 'remove-service' and value not in current['services'] + current.get('saved', {}).get('services', []):
         raise ValueError('This service is already absent. Refresh.')
-    if operation == 'remove-port' and value not in current['ports']:
+    if operation == 'remove-port' and value not in current['ports'] + current.get('saved', {}).get('ports', []):
         raise ValueError('This port is already absent. Refresh.')
-    command(['--zone=' + zone, *(['--permanent'] if scope == 'permanent' else []), option])
+    applied = []
+    for target in (['permanent', 'runtime'] if scope == 'both' else [scope]):
+        view = current.get('saved', {}) if target == 'permanent' and scope == 'both' else current
+        key = {'remove-service': 'services', 'remove-port': 'ports', 'remove-rich': 'rich'}.get(operation)
+        if key and value not in view[key]:
+            continue
+        try:
+            command(['--zone=' + zone, *(['--permanent'] if target == 'permanent' else []), option])
+        except ValueError as error:
+            if applied:
+                raise ValueError('The change was saved for future restarts, but could not be applied now. Refresh to check the result and retry. ' + str(error)) from None
+            raise
+        applied.append(target)
     message = ('Saved rule changed. It takes effect after reload/restart; apply the same change to Current rules for immediate effect.'
                if scope == 'permanent' else 'Current rule changed. It lasts until firewall reload or restart; repeat in Saved rules to retain it.')
+    if scope == 'both':
+        message = 'Change applied now and saved for future restarts.'
     try:
         return {**request({'operation': 'status', 'zone': zone, 'scope': scope}), 'message': message}
     except ValueError:

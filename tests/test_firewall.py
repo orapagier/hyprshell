@@ -63,9 +63,45 @@ class FirewallTests(unittest.TestCase):
             firewall.request({'operation': 'enable', 'confirmed': True})
             self.assertEqual(run.call_args.args[0][-5:], ['sudo', 'systemctl', 'enable', '--now', 'firewalld.service'])
 
+    def test_combined_changes_touch_only_one_rule_in_each_view(self):
+        current = {**self.snapshot(), 'saved': self.snapshot()}
+        with patch.object(firewall, 'context', return_value=('public', 'both', ['public'])), patch.object(firewall, 'snapshot', return_value=current), patch.object(firewall, 'command', side_effect=self.fake) as command:
+            result = firewall.request({'operation': 'add-port', 'value': '9000/udp', 'confirmed': True, 'expected': 'current'})
+            mutations = [call.args[0] for call in command.call_args_list if '--add-port=9000/udp' in call.args[0]]
+            self.assertEqual(mutations, [['--zone=public', '--permanent', '--add-port=9000/udp'], ['--zone=public', '--add-port=9000/udp']])
+            self.assertTrue(result['ok'])
+            self.assertNotIn('--reload', repr(command.call_args_list))
+            self.assertNotIn('--runtime-to-permanent', repr(command.call_args_list))
+
+    def test_partial_failure_reports_saved_change_without_claiming_success(self):
+        current = {**self.snapshot(), 'saved': self.snapshot()}
+        with patch.object(firewall, 'context', return_value=('public', 'both', ['public'])), patch.object(firewall, 'snapshot', return_value=current), patch.object(firewall, 'command', side_effect=['', ValueError('denied')]):
+            with self.assertRaisesRegex(ValueError, 'saved for future restarts, but could not be applied now'):
+                firewall.request({'operation': 'add-port', 'value': '9000/udp', 'confirmed': True, 'expected': 'current'})
+
+    def test_remove_permission_present_in_only_one_view(self):
+        current = {**self.snapshot(), 'saved': {**self.snapshot(), 'ports': []}}
+        with patch.object(firewall, 'context', return_value=('public', 'both', ['public'])), patch.object(firewall, 'snapshot', return_value=current), patch.object(firewall, 'command', side_effect=self.fake) as command:
+            firewall.request({'operation': 'remove-port', 'value': '8080/tcp', 'confirmed': True, 'expected': 'current'})
+            mutations = [call.args[0] for call in command.call_args_list if '--remove-port=8080/tcp' in call.args[0]]
+            self.assertEqual(mutations, [['--zone=public', '--remove-port=8080/tcp']])
+
+    def test_saved_changes_affect_combined_revision(self):
+        outputs = ['public', 'ssh', '', '', 'public', 'ssh', '', '']
+        with patch.object(firewall, 'command', side_effect=outputs):
+            first = firewall.snapshot('public', 'both')
+        with patch.object(firewall, 'command', side_effect=outputs[:4] + ['public', 'ssh http', '', '']):
+            second = firewall.snapshot('public', 'both')
+        self.assertNotEqual(first['revision'], second['revision'])
+
+    def test_single_active_zone_selected_instead_of_unrelated_default(self):
+        with patch.object(firewall, 'command', side_effect=['public home', 'home\n  interfaces: wlan0']) as command:
+            self.assertEqual(firewall.context({'scope': 'both'}), ('home', 'both', ['public', 'home']))
+            self.assertEqual(command.call_count, 2)
+
     def test_context_rejects_invented_zone_and_scope(self):
         with patch.object(firewall, 'command', return_value='public home'):
-            for payload in ({'scope': 'both'}, {'zone': '--bad'}, {'zone': 'trusted'}):
+            for payload in ({'scope': 'invalid'}, {'zone': '--bad'}, {'zone': 'trusted'}):
                 with self.assertRaises(ValueError): firewall.context(payload)
 
 
@@ -122,15 +158,16 @@ ShellRoot {
             if (window.searchResults.length !== 1 || window.searchResults[0].section !== -22) { test.fail("search"); return; }
             window.section = -22; test.phase = 2;
         } else if (test.phase === 2 && page && page.loaded && !page.busy) {
-            find(page, "firewallService").text = "http";
-            find(page, "addFirewallService").clicked();
-            if (!page.pending || page.busy) { test.fail("confirmation"); return; }
+            if (page.advanced || page.scope !== "both" || page.zone !== "public") { test.fail("beginner defaults"); return; }
+            find(page, "firewallPreset").currentIndex = 1;
+            find(page, "allowFirewallPreset").clicked();
+            if (!page.pending || page.busy || !page.reviewText().includes("Website hosted here") || !page.reviewText().includes("stays after restart")) { test.fail("confirmation"); return; }
             window.section = -2; test.phase = 3;
         } else if (test.phase === 3) {
             if (!page || !page.dirty || !window.manualDirty) { test.fail("draft not retained"); return; }
             window.section = -22; find(page, "confirmFirewall").clicked(); test.phase = 4;
         } else if (test.phase === 4 && page && !page.busy && !page.dirty) {
-            if (!page.success || !page.message.includes("Current rule changed")) { test.fail("apply"); return; }
+            if (!page.success || !page.message.includes("Change applied now and saved")) { test.fail("apply"); return; }
             window.section = -2; test.phase = 5;
         } else if (test.phase === 5) {
             if (page) { test.fail("clean page retained"); return; }
@@ -153,5 +190,6 @@ ShellRoot {
             for error in ('FIREWALL_FAILED', 'TypeError', 'ReferenceError', 'Unable to assign', 'Binding loop'):
                 self.assertNotIn(error, output, output)
             calls = [json.loads(line) for line in (root / 'calls').read_text().splitlines()]
-            self.assertEqual(sum('--add-service=http' in row for row in calls), 1)
+            self.assertEqual(sum('--add-service=http' in row for row in calls), 2)
+            self.assertEqual(sum('--add-service=http' in row and '--permanent' in row for row in calls), 1)
             self.assertFalse((root / 'config/hyprshell/settings.json').exists())

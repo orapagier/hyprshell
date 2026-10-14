@@ -1183,33 +1183,41 @@ override the conventional forwarded keys.
 
 ## Firewall controls
 
-**System → Firewall** reads firewalld on demand and shows active zone/interface
-bindings, zone details, allowed services and ports, and rich rules. Choose the
-zone used by your connection. Add/remove a named service or TCP/UDP port/range;
-block an IPv4/IPv6 address or CIDR network with a negative-priority source drop
-rule, or remove an existing rich rule. Every mutation requires review and Apply.
-The helper validates values, passes argument arrays without a shell, and checks
-the displayed zone revision before changing it. Administrator authorization uses
-firewalld/Polkit; access failures are shown as unavailable rather than stopped.
+**System → Firewall** starts with a plain-language explanation: incoming rules
+are needed when other devices access a service hosted on this laptop. Ordinary
+browsing, email and downloads usually need no incoming permission. Named choices
+cover remote login (SSH), HTTP/HTTPS hosting and Samba sharing, explaining what
+each permits. Custom ports use a number/range field and a separate TCP/UDP choice.
+Existing permissions have descriptive names and timing labels. Confirmation uses
+plain language and scrolls into view before a change is applied.
 
-**Current rules** take effect immediately and last until reload/restart.
-**Saved rules** survive restart but become effective only after reload/restart.
-Apply the same change in each view to keep it now and after restart. This UI
-never reloads the firewall or copies all current rules over saved rules. Removing
-one allowance does not guarantee blocking when another rule or the zone target
-also permits traffic. Existing rich rules with earlier priorities or policy
-rules can take precedence over the source block. Draft input and confirmation
-survive page navigation and closing Settings within the running shell. Discard
-or apply to clear them.
+The default **Apply now and keep after restart** changes only the selected rule
+in saved and current configurations, with no firewall reload or bulk overwrite.
+Both configurations contribute to the stale-rule revision check. If saving works
+but immediate activation fails, the error explains the partial result and asks
+for Refresh/retry. Permissions present in only one configuration can be removed
+without failing on their absence in the other. A single active zone is selected
+automatically; multiple/no active zones prompt checking bindings in Advanced.
 
-**Enable and start** opens an explicit authenticated Kitty terminal for
-`sudo systemctl enable --now firewalld.service`; Refresh verifies completion.
-Opening Settings does not enable a firewall or change existing rules. firewalld
-is already a base package on Fedora and Arch. Other firewall managers are not
-replaced. System firewall rules, interfaces and source addresses are not desktop
-preferences and stay outside GitHub sync. Advanced outgoing restrictions,
-forwarding, connection-zone assignments and policies use firewalld/NetworkManager
-tools. [Official firewall-cmd documentation](https://firewalld.org/documentation/man-pages/firewall-cmd.html).
+**Advanced options** contains zone selection, temporary/save-only timing, named
+service entry, IP/CIDR source blocks, rich-rule removal and raw current/saved
+configuration. Selecting a zone edits its rules without moving connections.
+Temporary changes last until reload/restart; save-only changes do not apply
+immediately. Removing one permission does not guarantee blocking when another
+rule or the zone target permits traffic. Earlier rich rules or policies may take
+precedence over the source block.
+
+All mutations require confirmation. The helper validates values and passes
+argument arrays without a shell. Administrator authorization uses firewalld/Polkit.
+Unavailable status is not presented as a stopped firewall. Drafts and pending
+confirmation survive navigation and closing Settings while the shell is running.
+**Turn on firewall** opens an authenticated Kitty terminal for
+`sudo systemctl enable --now firewalld.service`; Check again verifies completion.
+Opening Settings does not change system rules. firewalld remains a base package
+on Fedora and Arch. System firewall rules and addresses stay outside GitHub sync.
+Advanced outgoing restrictions, forwarding, connection zone assignments and
+policies use firewalld/NetworkManager tools.
+[Official firewall-cmd documentation](https://firewalld.org/documentation/man-pages/firewall-cmd.html).
 
 Checks: `python3 -m unittest discover -s tests -p test_firewall.py -v`.
 Tests use fake firewall commands and a native offscreen Settings window; no real
