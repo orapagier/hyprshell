@@ -96,6 +96,8 @@ Item {
     // This monitors speaker output; it never records the microphone.
     PwNodePeakMonitor { id: meter; node: services.sink; enabled: !!services.sink }
     PwNodeLinkTracker { id: outputLinks; node: services.sink }
+    // Link states stay unavailable until bound, including non-MPRIS players such as mpv.
+    PwObjectTracker { objects: outputLinks.linkGroups }
     readonly property var player: Mpris.players.values.find(p => p.isPlaying) || null
     readonly property var audioStreams: outputLinks.linkGroups.filter(g => g.state === PwLinkState.Active && g.source && g.source.isStream).map(g => g.source)
     readonly property var stream: audioStreams.length ? audioStreams[audioStreams.length - 1] : null

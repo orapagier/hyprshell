@@ -50,6 +50,8 @@ resize modes, crop gravities, and animated wallpaper frames are not tracked.
   Quickshell directory (requires `cc` and the two development libraries).
   It stops when playback becomes inactive. Output-device changes reconnect the monitor.
   The topbar opens only the output monitor; `PwNodePeakMonitor` still detects non-MPRIS playback.
+  Output link groups are bound with `PwObjectTracker` before checking their active
+  state, so players such as mpv can show the spectrum without an MPRIS plugin.
 - Settings microphone test: the same FFT helper and `AudioSpectrumBars.qml`
   renderer show twelve live input bands. An explicit `--source` argument selects
   the microphone only after starting the test. Muting flattens the bars immediately;
