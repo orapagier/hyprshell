@@ -1185,7 +1185,7 @@ override the conventional forwarded keys.
 
 **System → Firewall** has one On/Off switch and a Rules list with Add rule,
 Edit and Remove actions. Add/Edit opens one form: allow a named service, allow a
-port with TCP/UDP, or block an IP address/network. Save applies the selected rule
+port with TCP/UDP, block an IP address/network, or block a website name. Save applies the selected rule
 now and saves it for restart. Common services appear first. Invalid input stays
 in the form for correction; Refresh keeps a draft. Rules show whether they are
 active, saved only or temporary. Remove and switching the firewall require a
@@ -1225,3 +1225,31 @@ session. Tests simulate service state and commands rather than touching real rul
 Checks: `python3 -m unittest discover -s tests -p test_firewall.py -v`.
 Tests use fake firewall commands and a native offscreen Settings window; no real
 rule, administrator authentication or service activation is performed.
+
+### Website names in Firewall settings
+
+**Add rule → Block a website** accepts a domain or an http/https link. Links
+become a domain-wide block; leading www is normalized, and the domain plus its
+www name get IPv4/IPv6 sink entries in a marked `/etc/hosts` section. Names have
+Edit/Remove actions in the same rule list. Other subdomains need their own rules.
+These are hostname-lookup blocks, not firewalld incoming-IP rules, and remain
+active while firewalld is off. The editor makes that distinction explicit. Apps
+using separate DNS lookup, direct IPs, proxies or cached results may bypass them;
+this is a convenient local block rather than enforced content filtering. Restart
+the browser after changes when it continues using a cached result. See
+[hosts(5)](https://man7.org/linux/man-pages/man5/hosts.5.html).
+
+`settings/website_blocks.py` validates/normalizes names (including IDNA), limits
+the list to 200 domains, serializes edits with a private lock and checks the full
+hosts-file revision. Only the marked section changes; other entries stay intact.
+Malformed managed sections and symlink hosts files are refused. Saving retains a
+root-private previous copy at `/etc/hosts.hyprshell-websites.bak`; replacement is
+atomic, preserves file permissions/ownership and xattrs (including SELinux context),
+and checks for external edits before writing. Domain choices and backups live
+outside desktop preferences and GitHub sync. No actual website is blocked merely
+by installing this feature: the user must choose Save in the authenticated form.
+
+Checks: `test_website_blocks.py` uses synthetic temporary hosts/lock files;
+`test_firewall.py` exercises native website Add/Edit/Remove and removal while
+firewalld is off, inside the same one-authentication-job workflow. Validation does
+not write this machine’s hosts file, change DNS settings, or visit any websites.

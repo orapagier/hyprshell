@@ -207,6 +207,11 @@ script, arguments = sys.argv[2], sys.argv[3:]
 request = json.loads(arguments[1])
 with (root / 'auth-jobs').open('a') as log: log.write(request['operation'] + '\\n')
 if (root / 'cancel-auth').exists(): sys.exit(126)
+sys.path.insert(0, str(Path(script).parent))
+import website_blocks
+website_blocks.HOSTS = root / 'hosts'
+website_blocks.LOCK = root / 'website-lock'
+if not website_blocks.HOSTS.exists(): website_blocks.HOSTS.write_text('127.0.0.1 localhost\\n::1 localhost\\n')
 os.geteuid = lambda: 0
 original_run = subprocess.run
 def run(args, **kwargs):
@@ -284,11 +289,29 @@ ShellRoot {
             find(page, "confirmFirewall").clicked(); test.phase = 6;
         } else if (test.phase === 6 && page && !page.busy && !page.dirty) {
             if (page.rules.some(row => row.value === "9090/tcp")) { test.fail("remove"); return; }
+            find(page, "addFirewallRule").clicked();
+            find(page, "firewallRuleKind").currentIndex = 3;
+            find(page, "firewallWebsite").text = "https://www.example.com/page";
+            find(page, "saveFirewallRule").clicked(); test.phase = 16;
+        } else if (test.phase === 16 && page && !page.busy && !page.dirty) {
+            let row = page.rules.find(row => row.kind === "website" && row.value === "example.com");
+            if (!page.success || !row) { test.fail("add website"); return; }
+            find(page, "editFirewall-" + row.id).clicked();
+            find(page, "firewallWebsite").text = "other.example";
+            find(page, "saveFirewallRule").clicked(); test.phase = 17;
+        } else if (test.phase === 17 && page && !page.busy && !page.dirty) {
+            if (!page.success || !page.rules.some(row => row.value === "other.example") || page.rules.some(row => row.value === "example.com")) { test.fail("edit website"); return; }
             find(page, "firewallSwitch").clicked();
             if (!page.pending || page.pending.operation !== "disable") { test.fail("off confirmation"); return; }
             find(page, "confirmFirewall").clicked(); test.phase = 7;
         } else if (test.phase === 7 && page && !page.busy && !page.dirty) {
             if (!page.loaded || page.snapshot.running || find(page, "firewallSwitch").checked) { test.fail("off status"); return; }
+            let row = page.rules.find(row => row.kind === "website");
+            if (!row) { test.fail("website block lost when firewall off"); return; }
+            find(page, "removeFirewall-" + row.id).clicked();
+            find(page, "confirmFirewall").clicked(); test.phase = 18;
+        } else if (test.phase === 18 && page && !page.busy && !page.dirty) {
+            if (!page.success || page.rules.some(row => row.kind === "website")) { test.fail("remove website while off"); return; }
             find(page, "firewallSwitch").clicked();
             find(page, "confirmFirewall").clicked(); test.phase = 8;
         } else if (test.phase === 8 && page && !page.busy && !page.dirty) {
@@ -322,5 +345,5 @@ ShellRoot {
             calls = [json.loads(line) for line in (root / 'calls').read_text().splitlines()]
             self.assertEqual(sum('--add-service=http' in row for row in calls), 2)
             self.assertEqual(sum('--add-service=http' in row and '--permanent' in row for row in calls), 1)
-            self.assertEqual((root / 'auth-jobs').read_text().splitlines(), ['status', 'add-service', 'edit-rule', 'status', 'edit-rule', 'remove-port', 'disable', 'enable', 'status', 'status'])
+            self.assertEqual((root / 'auth-jobs').read_text().splitlines(), ['status', 'add-service', 'edit-rule', 'status', 'edit-rule', 'remove-port', 'add-website', 'edit-website', 'disable', 'remove-website', 'enable', 'status', 'status'])
             self.assertFalse((root / 'config/hyprshell/settings.json').exists())

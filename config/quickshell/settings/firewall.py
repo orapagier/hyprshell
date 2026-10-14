@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import website_blocks
 
 
 class FirewallStopped(ValueError):
@@ -160,7 +161,7 @@ def edit_rule(payload, zone, scope, current):
         return {'ok': True, 'message': 'Rule updated. Refresh to see the result.'}
 
 
-def request(payload):
+def request_firewall(payload):
     if not isinstance(payload, dict):
         raise ValueError('Invalid firewall request.')
     operation = payload.get('operation')
@@ -211,7 +212,7 @@ def request(payload):
         try:
             address = ipaddress.ip_network(value, strict=False)
         except (ValueError, TypeError):
-            raise ValueError('Enter an IPv4/IPv6 address or CIDR network.') from None
+            raise ValueError('This option needs a numeric IP address. To block a name such as example.com, choose Block a website.') from None
         rule = f'rule family="ipv{address.version}" priority="-100" source address="{address}" drop'
         option = '--add-rich-rule=' + rule
     else:
@@ -243,6 +244,24 @@ def request(payload):
         return {**request({'operation': 'status', 'zone': zone, 'scope': scope}), 'message': message}
     except ValueError:
         return {'ok': True, 'message': message + ' Refresh to read the result.'}
+
+
+def request(payload):
+    if not isinstance(payload, dict):
+        raise ValueError('Invalid firewall request.')
+    if payload.get('operation') in ('add-website', 'edit-website', 'remove-website'):
+        website = website_blocks.change(payload)
+        try:
+            result = request_firewall({'operation': 'status', 'scope': 'both', 'zone': payload.get('zone', '')})
+        except ValueError:
+            result = {'ok': True, 'firewallUnavailable': True, 'running': False, 'rules': []}
+        return {**result, **website, 'ok': True}
+    result = request_firewall(payload)
+    try:
+        result.update(website_blocks.status())
+    except (ValueError, OSError) as error:
+        result.update({'websites': [], 'websiteRevision': '', 'websiteError': 'Website rules could not be read. ' + (str(error) if isinstance(error, ValueError) else 'Check access to the system hosts file.')})
+    return result
 
 
 def main():
