@@ -74,10 +74,12 @@ Captured from a running Hyprshell desktop.
 ![Hyprshell desktop settings](docs/assets/hyprshell-settings.png)
 <!-- desktop-screenshots:end -->
 
-To capture the running desktop, launcher, and settings, run
+To capture the running desktop, launcher, settings, and tiled windows, run
 `python3 tools/capture_desktop.py` from a terminal in your Hyprland session.
 The helper gives you time to arrange each view, asks you to review the images,
 then saves them in `docs/assets/` and updates this gallery.
+To add or refresh only the tiled windows view, use
+`python3 tools/capture_desktop.py --view tiled`; existing screenshots are retained.
 
 ## Features
 
