@@ -57,10 +57,5 @@ for package in "${packages[@]}"; do
 done
 if ((${#missing[@]})); then sudo dnf install "${options[@]}" "${missing[@]}"; fi
 [[ "$MODE" != --download-only ]] || exit 0
-for codec in h264 hevc; do
-    if ! ffmpeg -hide_banner -decoders 2>/dev/null | awk -v codec="$codec" '$2 == codec { found=1 } END { exit !found }'; then
-        printf '%s software decoder verification failed.\n' "$codec" >&2
-        exit 1
-    fi
-done
+bash "$HELPER_DIR/check_media.sh"
 printf 'Media packages ready; restart media apps. Run vainfo in the desktop session to verify GPU decoding.\n'

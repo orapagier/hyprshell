@@ -1,4 +1,4 @@
-# Fedora Everything (traditional DNF installation), x86_64.
+# Fedora (any traditional DNF-based edition or desktop Spin), x86_64.
 # Hardware entries form a superset; setup.sh selects vendor firmware/microcode
 # through tools/hardware_plan.py. GPU media drivers are resolved separately.
 # Hyprland ecosystem packages may require an explicitly selected COPR.

@@ -22,8 +22,30 @@ class InstallerTests(unittest.TestCase):
                         XDG_STATE_HOME=str(self.state), PYTHONDONTWRITEBYTECODE='1')
 
     def run_setup(self, *args, check=True):
+        env = self.env
+        if '--config-only' in args and not shutil.which('Hyprland', path=env['PATH']):
+            # Config-copy tests also run in CI without a native desktop runtime.
+            version_bin = self.root / 'version fixture'
+            version_bin.mkdir(exist_ok=True)
+            hyprland = version_bin / 'Hyprland'
+            hyprland.write_text("#!/bin/sh\nprintf '%s\\n' '{\"version\":\"0.56.2\"}'\n")
+            hyprland.chmod(0o755)
+            env = dict(env, PATH=str(version_bin) + os.pathsep + env['PATH'])
         return subprocess.run(['bash', str(ROOT / 'setup.sh'), '--distro', 'arch', *args],
-                              env=self.env, text=True, capture_output=True, check=check)
+                              env=env, text=True, capture_output=True, check=check)
+
+    def test_config_only_rejects_old_hyprland_before_copying_on_both_distros(self):
+        self.mock_package_database()
+        mock_bin = Path(self.env['PATH'].split(os.pathsep)[0])
+        hyprland = mock_bin / 'Hyprland'
+        hyprland.write_text("#!/bin/sh\nprintf '%s\\n' '{\"version\":\"0.55.0\"}'\n")
+        hyprland.chmod(0o755)
+        for distro in ('arch', 'fedora'):
+            result = subprocess.run(['bash', str(ROOT / 'setup.sh'), '--distro', distro,
+                                     '--config-only'], env=self.env, text=True, capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Hyprland 0.56+ is required', result.stderr)
+            self.assertFalse(self.home.exists())
 
     def install(self):
         return self.run_setup('--config-only')

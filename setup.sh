@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the native Hyprshell desktop on Arch Linux or Fedora Everything.
+# Install the native Hyprshell desktop on Arch Linux or traditional DNF-based Fedora.
 set -Eeuo pipefail
 umask 022
 
@@ -19,7 +19,7 @@ usage() {
   cat <<'HELP'
 Usage: ./setup.sh [options]
 
-Run as your normal user, with sudo access, on Arch Linux or Fedora Everything.
+Run as your normal user, with sudo access, on Arch Linux or traditional DNF-based Fedora.
   --dry-run          Check installed packages and show the plan; change nothing
   --config-only      Update desktop files while preserving existing preferences
   --update           Update desktop files and validate them; no system upgrade
@@ -216,6 +216,7 @@ if (( DRY_RUN )); then
     else
       if command -v pacman >/dev/null; then check_packages; fi
       printf 'Full Arch upgrade; ensure desktop packages: %s\n' "${PACKAGES[*]}"
+      printf 'Media: distribution FFmpeg and hardware-selected acceleration; verify H.264/HEVC software decoders\n'
     fi
     if [[ -n "$LOGIN_UNIT" ]]; then
       printf 'Login screen: preserve existing login manager; enable %s for graphical login\n' "$LOGIN_UNIT"
@@ -249,7 +250,7 @@ fi
 (( EUID != 0 )) || die 'Run as your normal desktop user, not root or sudo ./setup.sh'
 if [[ "$MODE" == install ]]; then
   [[ "$OS_ID" == "$DISTRO" ]] || die 'The selected distribution does not match this operating system'
-  [[ ! -e /run/ostree-booted ]] || die 'Fedora Atomic/OSTree is not supported; use a traditional Fedora Everything installation'
+  [[ ! -e /run/ostree-booted ]] || die 'Fedora Atomic/OSTree is not supported; use a traditional DNF-based Fedora installation'
   [[ $(uname -m) == x86_64 ]] || die 'This setup currently supports x86_64'
   if [[ "$DISTRO" == fedora ]]; then
     FEDORA_RELEASE=$(. /etc/os-release; printf '%s' "${VERSION_ID:-}")
@@ -296,6 +297,7 @@ if [[ "$MODE" == install ]]; then
     log 'Upgrading Arch and installing missing desktop dependencies'
     # Always upgrade together with installation to avoid partial upgrades.
     sudo pacman -Syu --needed --noconfirm "${MISSING_PACKAGES[@]}"
+    bash "$REPO_DIR/tools/check_media.sh"
   fi
 
   python3 - <<'PY'
@@ -311,12 +313,12 @@ fi
 
 command -v python3 >/dev/null || die 'Python 3 is required for --config-only'
 # Reject an incompatible desktop before replacing configuration on config-only too.
-if [[ "$MODE" == config-only && "$DISTRO" == fedora ]]; then
+if [[ "$MODE" == config-only ]]; then
   python3 - <<'PY_VERSION'
 import json, re, subprocess
 info = json.loads(subprocess.check_output(['Hyprland', '--version-json'], text=True))
 if tuple(map(int, re.findall(r'\d+', info['version'])[:3])) < (0, 56, 0):
-    raise SystemExit('Hyprland 0.56+ is required before installing the Lua config; see docs/fedora.md.')
+    raise SystemExit('Hyprland 0.56+ is required before installing the Lua config; install compatible distribution packages.')
 PY_VERSION
 fi
 # The bundled default.jpg is selected by hypr/wallpaper-start.sh.

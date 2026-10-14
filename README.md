@@ -1,6 +1,6 @@
 # Hyprshell
 
-Hyprshell is a configurable desktop shell for **Hyprland on Arch Linux and Fedora Everything**, built
+Hyprshell is a configurable desktop shell for **Hyprland on Arch Linux and Fedora**, built
 with **Quickshell**. It brings the application launcher, status bar, desktop
 menus, notification inbox, and settings into one native Qt 6 interface.
 
@@ -29,10 +29,10 @@ configure the animated Hyprshell Glass splash for a supported existing boot setu
 Full setup also installs the matching animated SDDM login theme. Fresh installs
 use the author’s personal configuration; existing user preferences are retained.
 
-The **Fedora Everything port** has separate package manifests, DNF-backed
+The **Fedora setup** has separate package manifests, DNF-backed
 Settings controls, and dracut boot splash support. See [Fedora installation
-and validation](docs/fedora.md) for the minimal-install workflow, the default
-COPR and opt-out, and current validation limits. See [daily-driver setup](docs/daily-driver.md)
+and validation](docs/fedora.md) for installation on Workstation, desktop Spins,
+Server, or Everything, the default COPR and opt-out, and current validation limits. See [daily-driver setup](docs/daily-driver.md)
 for system services, firmware, application defaults, and hardware checks. The instructions below
 describe the established Arch installation unless stated otherwise.
 
@@ -42,7 +42,7 @@ describe the established Arch installation unless stated otherwise.
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Installing alongside an existing desktop](#installing-alongside-an-existing-desktop)
-- [Fedora Everything port](docs/fedora.md)
+- [Fedora installation](docs/fedora.md)
 - [A consistent desktop experience](#a-consistent-desktop-experience)
 - [First login and machine-specific configuration](#first-login-and-machine-specific-configuration)
 - [Using the desktop](#using-the-desktop)
@@ -91,11 +91,13 @@ preferences only for new users. See [reviewed updates and profiles](docs/updates
 
 ## Requirements
 
-The supported installation target is:
+The supported installation targets and requirements are:
 
-- An installed **x86_64 Arch Linux** system.
+- An installed **x86_64 Arch Linux** or **traditional DNF-based Fedora 44** system.
+  Fedora Workstation, desktop Spins, Server, and Everything use the same Fedora
+  setup; Everything is not required.
 - A normal user account with `sudo` access.
-- Internet access and working Arch package mirrors.
+- Internet access and working package repositories for your distribution.
 - **Hyprland 0.56 or newer**, using its Lua configuration API.
 - Hyprland GUI utilities (`hyprland-guiutils`), installed by the setup script
   if missing.
@@ -105,7 +107,8 @@ The supported installation target is:
 - Graphics drivers suitable for Hyprland.
 
 The installer uses official Arch repositories and pacman on Arch, and DNF on
-traditional Fedora Everything 44. Both targets use x86_64.
+traditional DNF-based Fedora 44, regardless of edition or desktop Spin. Both
+targets use x86_64.
 
 Some modules depend on hardware: Bluetooth needs a supported adapter, battery
 information needs a battery exposed by the system, and brightness controls need
@@ -115,10 +118,21 @@ a controllable backlight. Media information depends on application support.
 
 ### 1. Get the repository
 
-Run the following as your normal desktop user:
+Install the checkout tools as your normal desktop user. On Arch Linux:
 
 ```bash
 sudo pacman -Syu --needed git python
+```
+
+On Fedora:
+
+```bash
+sudo dnf install git python3 sudo
+```
+
+Then clone the repository on either distribution:
+
+```bash
 git clone https://github.com/orapagier/hyprshell.git
 cd hyprshell
 ```
@@ -200,6 +214,27 @@ setup must be rerun from a normal system session. A TTY without a user D-Bus
 session remains supported: installed audio packages are checked and user audio
 services are enabled for the next login. Config-only updates skip system planning.
 
+### Arch and Fedora feature parity
+
+Both distributions install the same desktop payload and provide the same
+Hyprshell features. Package names and system integration follow each distribution:
+
+| Feature | Arch Linux | Fedora |
+| --- | --- | --- |
+| Bar, launcher, Settings, notifications, shortcuts, lock and wallpapers | Shared Hyprland/Quickshell configuration | Same configuration |
+| Apps, printing/scanning, keyring, backups, clipboard tools and GitHub sync | Shared app selection and service planning | Same selection and planning |
+| Firmware, microcode and GPU acceleration | Hardware-selected Arch packages, Mesa and FFmpeg | Hardware-selected Fedora packages and RPM Fusion codecs |
+| Power profiles | power-profiles-daemon by default; preserve existing providers | tuned-ppd by default; preserve existing providers |
+| Package management in setup and Settings | pacman | DNF |
+| Glass login and boot appearance | SDDM and Plymouth with supported mkinitcpio layouts | SDDM and Plymouth with supported dracut layouts |
+| Optional containers and terminal decoration | `--extra`: Distrobox, Podman, cmatrix | Same optional tools |
+
+Both preserve existing desktops, login managers and user preferences, check
+Hyprland compatibility before deploying configs, and verify H.264/HEVC software
+decoders after full package setup. Boot layouts, proprietary drivers and actual
+hardware behavior still need the checks described below; shared features do not
+imply that every machine or desktop combination has completed acceptance testing.
+
 ### Hardware-aware packages and media support
 
 Full setup includes media codecs and chooses acceleration packages from the
@@ -230,7 +265,7 @@ Fedora setup enables RPM Fusion free/nonfree, installs `libavcodec-freeworld`
 transactions before the system upgrade. Only conflicting Intel/Mesa acceleration
 counterparts are swapped. Arch uses its distribution FFmpeg and GPU packages.
 mpv defaults to `hwdec=auto-safe`, with software fallback. Both H.264 and HEVC
-software decoders are checked by the Fedora media helper.
+software decoders are checked during full setup on both distributions.
 
 Installed packages/providers are checked first. Arch uses `--needed` with a full
 system upgrade; Fedora rechecks after upgrading and installs missing dependencies.
@@ -274,7 +309,8 @@ desktop to return to it. Log out before switching sessions. Hyprshell's bar,
 launcher, and desktop controls run in the Hyprland session.
 
 The installation limits remain x86_64 Arch Linux and traditional DNF-based
-Fedora 44, with Fedora Everything 44 as the documented Fedora target.
+Fedora 44 across its DNF-based editions and Spins. Hyprshell can be installed
+alongside any existing desktop environment; it runs as a separate Hyprland session.
 Preservation of existing desktops is confirmed by installer/configuration
 review; fresh coexistence tests for the desktops listed above are pending.
 Identical behavior across desktops and hardware is not yet certified;

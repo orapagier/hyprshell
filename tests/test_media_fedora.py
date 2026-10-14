@@ -20,6 +20,7 @@ class MediaSetupTests(unittest.TestCase):
         self.helper.write_text((ROOT / 'tools/install_media_fedora.sh').read_text()
                                .replace('/etc/os-release', str(release))
                                .replace('/run/ostree-booted', str(self.root / 'ostree')))
+        (self.root / 'check_media.sh').symlink_to(ROOT / 'tools/check_media.sh')
         (self.root / 'hardware_plan.py').write_text('import os,sys\n'
             'print(os.environ.get("MEDIA_PACKAGES", "intel-media-driver") if sys.argv[-1] == "media" else "Hardware fixture")\n')
         self.env = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.environ['PATH'],

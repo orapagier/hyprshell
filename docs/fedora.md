@@ -1,8 +1,15 @@
-# Fedora Everything port
+# Fedora installation
 
-This port targets **Fedora Everything 44, x86_64, installed as a traditional
-DNF system**. Start with the Everything network installer and a minimal
-installation, a normal user with sudo access, and working networking.
+This setup supports **traditional DNF-based Fedora 44, x86_64**, across
+Workstation, desktop Spins, Server, and Everything. It can be installed alongside
+any existing desktop environment as a separate Hyprland session; Everything is
+not required. Existing desktops and login managers are preserved. See
+[installing alongside an existing desktop](../README.md#installing-alongside-an-existing-desktop)
+for shared preferences and service changes.
+
+The Everything network installer with a minimal installation is one starting
+option. An existing Fedora installation works too. You need a normal user with
+sudo access and working networking.
 Hyprshell installs the desktop after Fedora is installed; it does not
 partition disks or install Fedora. It detects hardware to select firmware,
 microcode, Mesa/Intel media support, and driver modules for a Fedora kernel.
