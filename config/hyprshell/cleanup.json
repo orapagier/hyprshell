@@ -1,6 +1,6 @@
 {
-  "schedule": "monthly",
-  "days": 30,
+  "schedule": "weekly",
+  "days": 7,
   "keep": 3,
   "thumbnails": true,
   "temporary": true,
