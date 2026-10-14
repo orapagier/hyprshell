@@ -136,9 +136,10 @@ class KeybindingsGuideTests(unittest.TestCase):
             test.write_text('import QtQuick\nimport QtTest\nimport "' + guide + '" as Guide\n'
                 'TestCase { name: "ConfiguredGuide"; function test_all_configured_bindings() {\n'
                 'let rows = ' + json.dumps(rows) + '; let entries = Guide.desktopBindings(rows);\n'
-                'compare(entries.length, rows.length);\n'
-                'for (let row of rows) verify(entries.some(e => e.shortcut === Guide.shortcut(row) && e.action === row.description));\n'
-                'compare(Guide.matching(entries, "").length, rows.length + Guide.localBindings.length);\n'
+                'compare(entries.reduce((count, entry) => count + entry.variants.length, 0), rows.length);\n'
+                'for (let row of rows) verify(entries.some(e => e.keyLabels.includes(Guide.shortcut(row)) && e.action === row.description));\n'
+                'compare(new Set(entries.map(e => e.context + "\\n" + e.action)).size, entries.length);\n'
+                'compare(Guide.matching(entries, "").length, entries.length + Guide.localBindings.length);\n'
                 '} }\n')
             env = dict(os.environ, QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
             runner = subprocess.check_output([sys.executable, str(ROOT / 'tools/check_runtime.py'), '--qmltestrunner'], text=True).strip()

@@ -33,6 +33,11 @@ const laptopMediaKeys = {
     XF86AudioRaiseVolume: "Fn + F3", XF86AudioMute: "Fn + F4",
     XF86MonBrightnessDown: "Fn + F6", XF86MonBrightnessUp: "Fn + F7"
 };
+const mediaKeyNames = {
+    XF86AudioMicMute: "Microphone mute", XF86AudioLowerVolume: "Volume down",
+    XF86AudioRaiseVolume: "Volume up", XF86AudioMute: "Speaker mute",
+    XF86MonBrightnessDown: "Brightness down", XF86MonBrightnessUp: "Brightness up"
+};
 
 function shortcut(binding) {
     let parts = [];
@@ -44,28 +49,24 @@ function shortcut(binding) {
     let key = binding.key || (binding.keycode ? "Keycode " + binding.keycode : binding.catch_all ? "Any key" : "Unknown key");
     if ((key === "Super_L" || key === "Super_R") && binding.modmask === 64)
         return key === "Super_R" ? "Right Super" : "Super";
-    key = ({"Super_L":"Left Super", "Super_R":"Right Super", "left":"Left", "right":"Right",
+    key = laptopMediaKeys[key] || ({"Super_L":"Left Super", "Super_R":"Right Super", "left":"Left", "right":"Right",
         "up":"Up", "down":"Down", "BackSpace":"Backspace", "Prior":"Page Up", "Next":"Page Down",
-        "Print":"Print Screen", "Caps_Lock":"Caps Lock", "Num_Lock":"Num Lock", "Scroll_Lock":"Scroll Lock",
+        "Print":"Print Screen", "Insert":"Print Screen", "Caps_Lock":"Caps Lock", "Num_Lock":"Num Lock", "Scroll_Lock":"Scroll Lock",
         "KP_Enter":"Numpad Enter", "mouse:272":"Left mouse",
         "mouse:273":"Right mouse", "mouse:274":"Middle mouse", "mouse_down":"Scroll down",
         "mouse_up":"Scroll up", "mouse_left":"Scroll left", "mouse_right":"Scroll right",
-        "Return":"Enter", "space":"Space", "XF86AudioRaiseVolume":"Volume up (XF86AudioRaiseVolume)",
-        "XF86AudioLowerVolume":"Volume down (XF86AudioLowerVolume)", "XF86AudioMute":"Speaker mute (XF86AudioMute)",
-        "XF86AudioMicMute":"Microphone mute (XF86AudioMicMute)", "XF86MonBrightnessUp":"Brightness up (XF86MonBrightnessUp)",
-        "XF86MonBrightnessDown":"Brightness down (XF86MonBrightnessDown)", "XF86AudioNext":"Next track (XF86AudioNext)",
-        "XF86AudioPrev":"Previous track (XF86AudioPrev)", "XF86AudioPlay":"Play (XF86AudioPlay)",
-        "XF86AudioPause":"Pause (XF86AudioPause)"})[key] || key;
+        "Return":"Enter", "space":"Space", "XF86AudioNext":"Next track key",
+        "XF86AudioPrev":"Previous track key", "XF86AudioPlay":"Play key",
+        "XF86AudioPause":"Pause key"})[key] || key;
     parts.push(key.length === 1 ? key.toUpperCase() : key);
     return parts.join(" + ");
 }
 
 function desktopBindings(rows) {
-    // Keep every registration: duplicate combinations may have different actions,
-    // submaps, press/release triggers, or mouse behavior.
-    return rows.map(b => {
+    // One card per action and context, with all registrations retained as variants.
+    let groups = [];
+    rows.forEach(b => {
         let details = [];
-        if (laptopMediaKeys[b.key]) details.push("Laptop key: " + laptopMediaKeys[b.key]);
         if (b.key === "Insert") details.push("This laptop's Print Screen key sends Insert");
         if (b.release) details.push("On release");
         if (b.repeat || b.repeating) details.push("Repeats while held");
@@ -74,17 +75,30 @@ function desktopBindings(rows) {
         if (b.non_consuming) details.push("Also passes to the application");
         if (b.longPress || b.longpress) details.push("Long press");
         if (b.catch_all) details.push("Any key");
-        return {shortcut: shortcut(b),
-            action: b.description || [b.dispatcher, b.arg].filter(Boolean).join(" ") || "Custom action",
-            context: b.submap ? "Desktop · submap " + b.submap : "Desktop",
-            details: details.join(" · ")};
+        let action = b.description || [b.dispatcher, b.arg].filter(Boolean).join(" ") || "Custom action";
+        let context = b.submap ? "Desktop · submap " + b.submap : "Desktop";
+        let group = groups.find(g => g.action === action && g.context === context);
+        if (!group) {
+            group = {action: action, context: context, variants: []};
+            groups.push(group);
+        }
+        group.variants.push({shortcut: shortcut(b), details: details.join(" · "), key: b.key || ""});
+    });
+    return groups.map(group => {
+        group.keyLabels = [...new Set(group.variants.map(v => v.shortcut))].sort((a, b) => a.localeCompare(b));
+        group.shortcut = group.keyLabels.join(" / ");
+        group.searchTerms = group.variants.map(v => v.key + " " + (mediaKeyNames[v.key] || "")).join(" ");
+        let descriptions = [...new Set(group.variants.map(v => v.details))];
+        if (descriptions.length === 1) group.details = descriptions[0];
+        else group.details = [...new Set(group.variants.map(v => v.shortcut + ": " + (v.details || "On press")))].join(" · ");
+        return group;
     }).sort((a, b) => a.shortcut.localeCompare(b.shortcut) || a.context.localeCompare(b.context));
 }
 
 function matching(bindings, query) {
     let words = query.toLowerCase().trim().split(/\s+/);
     return bindings.concat(localBindings).filter(b => {
-        let haystack = [b.shortcut, b.action, b.context, b.details || ""].join(" ").toLowerCase();
+        let haystack = [b.shortcut, b.action, b.context, b.details || "", b.searchTerms || ""].join(" ").toLowerCase();
         return words.every(word => haystack.includes(word));
     });
 }

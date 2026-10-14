@@ -106,7 +106,7 @@ ColumnLayout {
                 Flow {
                     width: parent.width; spacing: 5
                     Repeater {
-                        model: row.modelData.shortcut.split(" + ")
+                        model: row.modelData.keyLabels && row.modelData.keyLabels.length > 1 ? row.modelData.keyLabels : row.modelData.shortcut.split(" + ")
                         delegate: Rectangle {
                             required property string modelData
                             implicitWidth: keyLabel.implicitWidth + 14
