@@ -376,9 +376,95 @@ if the eligible files changed, preview again. Scheduled runs apply the same
 rules without prompting. Results are recorded in
 `$XDG_STATE_HOME/hyprshell/cleanup-last.json` and the service journal.
 
-The page also reports the existing system `paccache.timer` status. Package-cache
-cleanup stays with that timer; it is independent of the user cleanup schedule
-and manual file preview.
+The page also reports the existing system `paccache.timer` status. Its package
+retention remains independent of the user cleanup schedule.
+
+#### Manual file and system maintenance
+
+**Your files · manual cleanup** adds per-directory switches for Chromium,
+Firefox and Brave caches, user DNF metadata, npm download cache, thumbnails,
+Flatpak download metadata, graphics/font/Qt caches, desktop Trash and older
+Hyprshell recovery backups. Nothing is selected by default. Each switch names
+the directory, affected component and consequences: rebuildable content,
+troubleshooting history, recovery history or personal recovery copies. Application
+profiles, cookies, saved logins, documents, installed software, cached OpenCode
+tools, VM disks and container volumes remain outside automatic deletion.
+
+Manual age defaults to seven days; zero includes recent files. Keep newest
+backup sets defaults to five, with at least one always retained. These choices
+do not save or modify the existing scheduler. Browsers and package download
+tools must be closed: an active related process skips that cache, and an activity
+change invalidates the confirmation. Recently accessed, modified or changed
+regular files are retained when an age is set. Symlinks, other users' files and
+mounted child directories are skipped; empty directories remain.
+
+**Backup / temporary copies in a chosen folder** accepts an existing non-hidden
+folder below home, such as Documents or Downloads. Only `.bak`, `.backup`,
+`.orig`, `.rej`, `.tmp` and names ending in `~` are candidates. Full home,
+hidden folders, the `repos` folder, discovered Git/Hg/SVN repositories and
+symlinked ancestors are refused or excluded. `.old` database files and editor
+swap files are not classified as disposable. Even eligible copies can contain
+valuable recovery data; review their paths before confirming.
+
+**Analyze & preview** shows per-category sizes and impacts plus individual files
+in pages of 200. Uncheck files to retain them; exclusions persist across pages.
+Files on unvisited pages remain selected. **Open full file list** opens the local
+text manifest for user cleanup. Confirmation checks the complete file identity
+and eligibility again, expires after five minutes and cannot be reused after
+cleanup starts. A changed preview fails before deletion. Each file is checked
+again immediately before unlinking. Partial failures identify failed operations
+and require a new preview before retrying. File contents are never read by the
+scanner. Local previews, paths and results remain outside GitHub sync.
+
+**System files · administrator access** has separate switches for package caches,
+policy-expired `/tmp` and `/var/tmp` files, journal archives, old crash dumps and
+older Hyprshell boot/login appearance recovery sets. Opening Settings/catalogs
+does not authenticate, scan protected directories or mutate the machine. Each
+system preview, file-list page and confirmed cleanup uses a short authenticated
+`pkexec` job. Preview state is root-owned and private, separated by desktop UID;
+there is no persistent administrator worker or password storage.
+
+System commands are fixed by category; neither arbitrary directories nor shell
+commands are accepted. Fedora uses `dnf clean all`; Arch uses `paccache -rk2`
+(skipped if unavailable). Temporary cleanup invokes only `systemd-tmpfiles
+--clean --prefix=/tmp --prefix=/var/tmp`, preserving configured exclusions and
+avoiding boot-only removal or purge. Journal cleanup rotates logs and vacuums
+archives to at most 14 days and 100 MiB; active logs may exceed that size. These
+tools use their own retention policies, independent of the manual age control.
+Their preview sizes are observed usage, not promises that every shown byte will
+be reclaimed; journal growth does not invalidate the confirmed fixed policy.
+Crash dumps and retained recovery files use the individual-file preview rules.
+
+**Empty desktop Trash** delegates to `gio trash --empty`, including Trash on
+mounted drives. Its displayed estimate covers home Trash only. Restoring trashed
+files becomes impossible after emptying. Native Trash handling keeps its file
+and metadata lifecycle consistent.
+
+#### Reset and factory reset
+
+**Reset Hyprshell settings** previews changes to the preferences in
+`hyprshell/settings.json`, requires typing `RESET`, creates a recoverable desktop
+settings checkpoint and uses the normal validated transaction with rollback.
+It restores shipped defaults for the bar, item appearance, compositor overrides,
+input, notifications, locking, power, accessibility and clipboard capture.
+Unapplied Settings drafts must be saved or discarded first. Recover the previous
+preferences from **Updates & recovery → Desktop settings recovery**. Separate
+theme/display/shortcut/default-app preferences, manual desktop configuration,
+installed apps and personal data are preserved. This is a settings reset, not a
+clean OS installation. A checkpoint on the same disk does not survive formatting.
+
+**Full factory reset / clean OS installation** explains preparing and verifying
+an external backup, booting installation media, reviewing exact partitions before
+formatting and reinstalling the OS. Formatting erases accounts, apps, settings,
+documents, VM disks and containers on those partitions. Keeping home retains old
+data and is not a complete reset. Hyprshell has no universal laptop factory image
+and this panel does not execute disk erasure or an OS reinstall. Cache cleanup
+cannot produce the same result.
+
+Checks: `test_system_cleanup.py` uses temporary files and mocked system commands;
+`test_system_cleanup_ui.py` drives actual native controls in an isolated home,
+including preview/exclusions and checkpointed settings reset. Neither runs real
+administrator maintenance, wipes disks or resets the laptop's preferences.
 
 
 ### GitHub sync

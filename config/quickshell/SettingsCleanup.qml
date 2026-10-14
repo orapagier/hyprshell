@@ -3,6 +3,7 @@ import "style" as Style
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell.Io
+import Quickshell
 
 ColumnLayout {
     id: page
@@ -15,12 +16,14 @@ ColumnLayout {
     property bool loaded: false
     property var initial: ({})
     readonly property bool dirty: loaded && JSON.stringify(settings) !== JSON.stringify(initial)
-    readonly property bool busy: worker.running
+    property bool resetReady: true
+    signal restored(var settings)
+    readonly property bool busy: worker.running || manualCleanup.busy || systemCleanup.busy || factoryReset.busy
     spacing: 20
     onVisibleChanged: if (visible && !dirty) request("status", "")
     Component.onCompleted: if (visible) request("status", "")
     function request(operation, value) {
-        if (busy) return;
+        if (worker.running || (operation !== "status" && busy)) return;
         action = operation;
         if (operation !== "clean") preview = null;
         worker.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/cleanup.py").toString().replace(/^file:\/\//, "")), "--" + operation];
@@ -129,10 +132,20 @@ ColumnLayout {
     }
     SettingsCard {
         Layout.fillWidth: true
-        title: "Package cache"
-        subtitle: "System package caches are managed separately by your distribution's package tools. They are not included in the file deletion preview above."
+        title: "Automatic cleanup status"
+        subtitle: "The user cleanup timer and the distribution's existing package-cache timer keep their separate policies. Manual system maintenance is available below."
         Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "paccache.timer: " + page.paccache; color: Style.Theme.text }
         Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Hyprshell cleanup timer: " + page.timerStatus; color: Style.Theme.muted }
     }
+    SettingsCleanupTargets { id: manualCleanup; objectName: "manualCleanupTargets"; Layout.fillWidth: true; enabled: !worker.running && !systemCleanup.busy && !factoryReset.busy }
+    SettingsCleanupTargets { id: systemCleanup; objectName: "administratorCleanupTargets"; administrator: true; Layout.fillWidth: true; enabled: !worker.running && !manualCleanup.busy && !factoryReset.busy }
+    SettingsCard {
+        Layout.fillWidth: true
+        title: "Personal data and installed software"
+        subtitle: "The categories above cover disposable files and reviewed recovery history."
+        SettingsLabel { Layout.fillWidth: true; wrapMode: Text.Wrap; text: "Downloads, documents, browser profiles, credentials, repositories, personal-file backups, Windows VM disks and container volumes are preserved. They may use substantial storage, but can contain your work. Unused apps, VM disks and container resources should be removed through the application that manages them."; color: Style.Theme.muted }
+        SettingsButton { text: "Open home folder for manual review"; onClicked: Qt.openUrlExternally("file://" + Quickshell.env("HOME").split("/").map(encodeURIComponent).join("/")) }
+    }
+    SettingsFactoryReset { id: factoryReset; Layout.fillWidth: true; ready: page.resetReady; enabled: !worker.running && !manualCleanup.busy && !systemCleanup.busy; onRestored: settings => page.restored(settings) }
     Label { Layout.fillWidth: true; text: page.message; wrapMode: Text.WrapAnywhere; color: Style.Theme.warning }
 }

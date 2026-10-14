@@ -36,7 +36,7 @@ FloatingWindow {
         if (section === -8) return "Colors save immediately · Apply font and cursor to save them";
         if (section === -7) return "Apply and confirm display changes before they are saved";
         if (section === -6) return "Use Save shortcut to apply your edits";
-        if (section === -4) return "Use Save cleanup settings to apply your edits";
+        if (section === -4) return "Save schedules separately · Preview and confirm manual cleanup or reset";
         if (section === -17) return "Use Save for next login to save language and region";
         if (section === -19) return "Use Apply changes to save workspaces and rules";
         if (section === -14) return "Backup plans require Save · Recovery and updates require an explicit action";
@@ -934,6 +934,15 @@ FloatingWindow {
                             id: cleanupPage
                             visible: window.section === -4
                             Layout.fillWidth: true
+                            resetReady: !window.dirty && !window.manualDirty && !window.saving && window.success && window.store.loaded
+                            onRestored: settings => {
+                                window.editingSession = false;
+                                window.initial = Model.copy(settings);
+                                window.draft = Model.copy(settings);
+                                window.store.config = Model.copy(settings);
+                                window.store.reload();
+                                window.editingSession = true;
+                            }
                         }
                         SettingsHyprskill {
                             id: hyprskillPage
