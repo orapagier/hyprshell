@@ -1183,41 +1183,39 @@ override the conventional forwarded keys.
 
 ## Firewall controls
 
-**System → Firewall** starts with a plain-language explanation: incoming rules
-are needed when other devices access a service hosted on this laptop. Ordinary
-browsing, email and downloads usually need no incoming permission. Named choices
-cover remote login (SSH), HTTP/HTTPS hosting and Samba sharing, explaining what
-each permits. Custom ports use a number/range field and a separate TCP/UDP choice.
-Existing permissions have descriptive names and timing labels. Confirmation uses
-plain language and scrolls into view before a change is applied.
+**System → Firewall** has one On/Off switch and a Rules list with Add rule,
+Edit and Remove actions. Add/Edit opens one form: allow a named service, allow a
+port with TCP/UDP, or block an IP address/network. Save applies the selected rule
+now and saves it for restart. Common services appear first. Invalid input stays
+in the form for correction; Refresh keeps a draft. Rules show whether they are
+active, saved only or temporary. Remove and switching the firewall require a
+short confirmation. Help and technical details are collapsed by default.
 
-The default **Apply now and keep after restart** changes only the selected rule
-in saved and current configurations, with no firewall reload or bulk overwrite.
-Both configurations contribute to the stale-rule revision check. If saving works
-but immediate activation fails, the error explains the partial result and asks
-for Refresh/retry. Permissions present in only one configuration can be removed
-without failing on their absence in the other. A single active zone is selected
-automatically; multiple/no active zones prompt checking bindings in Advanced.
+The switch uses `pkexec /usr/bin/systemctl enable|disable --now firewalld.service`
+with the desktop authorization prompt, then reads actual status. Turning off
+preserves saved rules and keeps the firewall off after restart. Stopped, checking,
+unknown and running states are distinct. Rule editing is available while running;
+when off, the page explains that rules are kept and become available after turning
+on. Neither opening Settings nor tests change the machine’s firewall state.
 
-**Advanced options** contains zone selection, temporary/save-only timing, named
-service entry, IP/CIDR source blocks, rich-rule removal and raw current/saved
-configuration. Selecting a zone edits its rules without moving connections.
-Temporary changes last until reload/restart; save-only changes do not apply
-immediately. Removing one permission does not guarantee blocking when another
-rule or the zone target permits traffic. Earlier rich rules or policies may take
-precedence over the source block.
+Single-active-zone selection strips firewalld’s ` (default)` display annotation.
+Multiple active networks expose a network selector; all zones remain selectable
+under Technical details. A removed/stale selected zone falls back to automatic
+selection on Refresh. Selection never reassigns a network connection’s zone.
 
-All mutations require confirmation. The helper validates values and passes
-argument arrays without a shell. Administrator authorization uses firewalld/Polkit.
-Unavailable status is not presented as a stopped firewall. Drafts and pending
-confirmation survive navigation and closing Settings while the shell is running.
-**Turn on firewall** opens an authenticated Kitty terminal for
-`sudo systemctl enable --now firewalld.service`; Check again verifies completion.
-Opening Settings does not change system rules. firewalld remains a base package
-on Fedora and Arch. System firewall rules and addresses stay outside GitHub sync.
-Advanced outgoing restrictions, forwarding, connection zone assignments and
-policies use firewalld/NetworkManager tools.
-[Official firewall-cmd documentation](https://firewalld.org/documentation/man-pages/firewall-cmd.html).
+Each mutation validates arguments and the combined current/saved revision.
+Edits add the replacement before removing the original, and undo completed steps
+on failure without deleting a pre-existing replacement. Rollback failures are
+reported as partial edits. Add/remove partial failures identify the saved change.
+There is no reload or bulk overwrite. Custom rich rules can be inspected and
+removed; only simple Hyprshell source-drop rules are editable as blocked addresses.
+Complex rules retain their semantics. Other zone targets, forwarding and policies
+can also affect traffic; full details remain available for inspection.
+
+System firewall rules stay outside GitHub desktop sync. Drafts survive navigation
+and closing Settings while the shell is running. firewalld and Polkit remain base
+desktop dependencies. Live authentication/service transitions require a desktop
+session. Tests simulate service state and commands rather than touching real rules.
 
 Checks: `python3 -m unittest discover -s tests -p test_firewall.py -v`.
 Tests use fake firewall commands and a native offscreen Settings window; no real

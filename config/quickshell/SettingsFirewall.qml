@@ -9,192 +9,165 @@ ColumnLayout {
     id: page
     property var snapshot: ({})
     property var pending: null
-    signal reviewRequested(var card)
+    property var original: null
+    property bool editing: false
+    property bool details: false
+    property bool help: false
     property string zone: ""
-    property string scope: "both"
-    property bool advanced: false
     property string message: ""
+    property string lastOperation: "status"
     property bool success: true
     property bool loaded: false
+    signal reviewRequested(var card)
     readonly property bool busy: worker.running
-    readonly property bool dirty: service.text.length > 0 || port.text.length > 0 || source.text.length > 0 || pending !== null
-    readonly property var commonServices: [
-        {name: "ssh", title: "Remote login (SSH)", description: "Let another computer connect to this laptop’s SSH server. You do not need this to log in to another computer."},
-        {name: "http", title: "Website hosted here (HTTP)", description: "Let other devices visit a website served by this laptop on port 80. Browsing websites does not need this."},
-        {name: "https", title: "Secure website hosted here (HTTPS)", description: "Let other devices visit a secure website served by this laptop on port 443."},
-        {name: "samba", title: "Windows file sharing (Samba)", description: "Let other devices access shared folders served by this laptop. Your sharing app must be configured separately."}
-    ].filter(row => (snapshot.catalog || []).indexOf(row.name) >= 0)
-    readonly property var allowedServices: rules("services")
-    readonly property var allowedPorts: rules("ports")
+    readonly property bool dirty: editing || pending !== null
+    readonly property var rules: snapshot.rules || []
+    readonly property var serviceIds: {
+        let common = ["ssh", "http", "https", "samba"];
+        let catalog = snapshot.catalog || [];
+        return common.filter(value => catalog.indexOf(value) >= 0).concat(catalog.filter(value => common.indexOf(value) < 0));
+    }
+    readonly property var activeNetworks: (snapshot.active || "").split("\n").filter(line => line && line[0] !== " ").map(line => line.split(" ")[0])
     spacing: 16
     Component.onCompleted: if (visible) refresh()
     onVisibleChanged: if (visible && !busy && !dirty) refresh()
-    function rules(key) {
-        let current = snapshot[key] || [];
-        return scope === "both" ? Array.from(new Set(current.concat((snapshot.saved || {})[key] || []))) : current;
-    }
-    function serviceName(value) { let row = commonServices.find(row => row.name === value); return row ? row.title : value; }
-    function lifetime(key, value) {
-        if (scope !== "both") return "";
-        let now = (snapshot[key] || []).indexOf(value) >= 0;
-        let saved = ((snapshot.saved || {})[key] || []).indexOf(value) >= 0;
-        return now && saved ? "Allowed now and after restart" : now ? "Allowed now only" : "Saved for after restart; not allowed now by this rule";
-    }
-    function refresh() { request({operation: "status", zone: zone, scope: scope}); }
-    function discard() { service.text = ""; port.text = ""; source.text = ""; pending = null; }
+    function name(value) { return ({ssh: "Remote login (SSH)", http: "Web server (HTTP)", https: "Secure web server (HTTPS)", samba: "File sharing (Samba)", "dhcpv6-client": "IPv6 network setup", mdns: "Device discovery"})[value] || value; }
+    function refresh() { request({operation: "status", zone: zone, scope: "both"}); }
+    function discard() { editing = false; original = null; pending = null; }
     function request(payload) {
         if (busy) return;
+        lastOperation = payload.operation;
         worker.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/firewall.py").toString().replace(/^file:\/\//, "")), "--request-json", JSON.stringify(payload)];
         worker.running = true;
     }
-    function review(operation, value) {
-        pending = {operation: operation, value: value, zone: zone, scope: scope, expected: snapshot.revision, confirmed: true};
-        Qt.callLater(() => reviewRequested(reviewCard));
+    function openEditor(row) {
+        original = row; pending = null;
+        kind.currentIndex = row ? ["service", "port", "block"].indexOf(row.kind) : 0;
+        service.currentIndex = row && row.kind === "service" ? serviceIds.indexOf(row.value) : 0;
+        port.text = row && row.kind === "port" ? row.value.split("/")[0] : "";
+        protocol.currentIndex = row && row.kind === "port" && row.value.endsWith("/udp") ? 1 : 0;
+        address.text = row && row.kind === "block" ? row.value : "";
+        editing = true;
+        Qt.callLater(() => reviewRequested(editor));
     }
-    function reviewText() {
-        if (!pending) return "";
-        if (pending.operation === "enable") return "Turn on the firewall now and whenever this laptop starts? A terminal will ask for your administrator password.";
-        let text;
-        if (pending.operation === "add-service") text = "Allow other devices to connect for “" + serviceName(pending.value) + "”?";
-        else if (pending.operation === "add-port") text = "Allow other devices to connect on port " + pending.value + "?";
-        else if (pending.operation === "remove-service") text = "Remove permission for “" + serviceName(pending.value) + "”? Devices using it may lose access.";
-        else if (pending.operation === "remove-port") text = "Remove permission for port " + pending.value + "? Devices using it may lose access.";
-        else if (pending.operation === "block-source") text = "Block incoming connections from " + pending.value + "?";
-        else text = "Remove this advanced rule?\n" + pending.value;
-        return text + "\nApplies to network group: " + pending.zone + "\n" + ({both: "Takes effect now and stays after restart.", runtime: "Temporary: lasts until the firewall reloads or restarts.", permanent: "Saved only: takes effect when the firewall reloads or restarts."})[pending.scope] + "\nYou may be asked for your administrator password.";
+    function saveRule() {
+        let type = ["service", "port", "block"][kind.currentIndex];
+        let value = type === "service" ? serviceIds[service.currentIndex] : type === "port" ? port.text.trim() + "/" + protocol.currentText.toLowerCase() : address.text.trim();
+        request({operation: original ? "edit-rule" : ({service: "add-service", port: "add-port", block: "block-source"})[type], kind: type, value: value, id: original ? original.id : "", zone: zone, scope: "both", expected: snapshot.revision, confirmed: true});
+    }
+    function removeRule(row) {
+        pending = {operation: ({service: "remove-service", port: "remove-port", block: "remove-rich", rich: "remove-rich"})[row.kind], value: row.raw, zone: zone, scope: "both", expected: snapshot.revision, confirmed: true, title: row.title + (row.kind === "rich" ? "\n" + row.raw : "")};
+        Qt.callLater(() => reviewRequested(confirmation));
+    }
+    function switchFirewall() {
+        pending = {operation: snapshot.running ? "disable" : "enable", confirmed: true};
+        Qt.callLater(() => reviewRequested(confirmation));
     }
     Process {
         id: worker
-        onExited: (code, status) => { if (code !== 0) { page.success = false; page.loaded = false; page.message = "Could not finish the firewall request. Check again to see its status."; } }
+        onExited: (code, status) => { if (code !== 0) { page.success = false; page.loaded = false; page.message = "The request could not finish. Refresh to check the result."; } }
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
                     let result = JSON.parse(text);
-                    page.success = result.ok;
-                    page.message = result.message || "";
-                    if (result.ok && result.zones !== undefined) {
-                        page.snapshot = result; page.zone = result.zone; page.loaded = true;
-                    } else page.loaded = false;
-                    if (result.ok && page.pending) page.discard();
+                    page.success = result.ok; page.message = result.message || "";
+                    if (result.ok && result.running !== undefined) {
+                        page.snapshot = result; page.zone = result.zone || ""; page.loaded = true;
+                    } else if (!result.ok && page.lastOperation === "status") page.loaded = false;
+                    if (result.ok && page.lastOperation !== "status") page.discard();
                     else page.pending = null;
-                } catch (e) { page.success = false; page.loaded = false; page.message = "Could not read the firewall response. Check again to see its status."; }
+                } catch (e) { page.success = false; page.loaded = false; page.message = "Could not read the firewall status. Try Refresh."; }
             }
         }
         stderr: StdioCollector {}
     }
     SettingsCard {
-        title: "What does a firewall do?"
-        subtitle: "It controls which connections other devices can make to this laptop."
+        title: "Firewall"
+        subtitle: "Controls incoming connections to this laptop."
         Layout.fillWidth: true
-        Label { text: "For everyday browsing, streaming, email and downloads, you usually do not need to add a rule. Add one when you want other devices to reach something running here, such as a shared folder, a game server or a website you host."; color: Style.Theme.text; wrapMode: Text.Wrap; Layout.fillWidth: true }
-        Label { text: "Allowing a connection opens a door for that service. It does not install or start the service. Keep the firewall on and add only permissions you need."; color: Style.Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
-    }
-    Label { objectName: "firewallMessage"; visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    SettingsCard {
-        title: page.loaded ? "Firewall is on" : "Firewall status could not be checked"
-        subtitle: page.loaded ? "Network group being edited: " + page.zone + ". Each group has its own permissions." : "Check its status before changing permissions. An unavailable status does not mean the firewall is off."
-        Layout.fillWidth: true
-        Flow {
-            Layout.fillWidth: true; spacing: 8
-            SettingsButton { objectName: "refreshFirewall"; text: page.busy ? "Checking…" : "Check again"; enabled: !page.busy; onClicked: { page.pending = null; page.refresh(); } }
-            SettingsButton { text: "Turn on firewall…"; visible: !page.loaded; enabled: !page.busy; onClicked: page.review("enable", "firewalld") }
-            SettingsButton { text: "Discard what I typed"; visible: page.dirty; enabled: !page.busy; onClicked: page.discard() }
-        }
-        Label { text: page.scope === "both" ? "Changes work immediately and are kept after restart. You only need to confirm once." : "Advanced mode: " + (page.scope === "runtime" ? "changes are temporary." : "changes are saved for the next firewall reload or restart."); color: Style.Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
-        Label { visible: page.loaded && (page.snapshot.active || "").split("\n").filter(line => line && line[0] !== " ").length !== 1; text: "More than one network group, or none, is active. Open Advanced options to check which group your connection uses before adding a permission."; color: Style.Theme.warning; wrapMode: Text.Wrap; Layout.fillWidth: true }
-    }
-    SettingsCard {
-        id: reviewCard
-        title: "Confirm this change"
-        visible: page.pending !== null
-        Layout.fillWidth: true
-        Label { objectName: "firewallReview"; text: page.reviewText(); color: Style.Theme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
         RowLayout {
-            SettingsButton { objectName: "confirmFirewall"; text: "Confirm change"; enabled: !page.busy; onClicked: page.request(page.pending) }
-            SettingsButton { text: "Cancel"; enabled: !page.busy; onClicked: page.pending = null }
+            Layout.fillWidth: true
+            Label { objectName: "firewallStatus"; text: !page.loaded ? (page.busy ? "Checking…" : "Status unavailable") : page.snapshot.running ? "On" : "Off"; color: !page.loaded ? Style.Theme.muted : page.snapshot.running ? Style.Theme.success : Style.Theme.warning; Layout.fillWidth: true; font.bold: true }
+            SettingsSwitch {
+                objectName: "firewallSwitch"
+                text: ""
+                checked: page.loaded && page.snapshot.running === true
+                enabled: page.loaded && !page.busy && !page.dirty
+                Accessible.name: "Firewall on or off"
+                onClicked: { checked = Qt.binding(() => page.loaded && page.snapshot.running === true); page.switchFirewall(); }
+            }
+            SettingsButton { objectName: "refreshFirewall"; text: "Refresh"; enabled: !page.busy; onClicked: { page.pending = null; page.refresh(); } }
+        }
+        Label { visible: page.loaded && !page.snapshot.running; text: "Your rules are kept. Turn on the firewall to view or change them."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { visible: !page.loaded && !page.busy; text: "Refresh to try again. The switch becomes available when the system reports its status."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    }
+    Label { objectName: "firewallMessage"; visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+    SettingsCard {
+        id: confirmation
+        visible: page.pending !== null
+        title: page.pending && page.pending.operation === "disable" ? "Turn off firewall?" : page.pending && page.pending.operation === "enable" ? "Turn on firewall?" : "Remove this rule?"
+        Layout.fillWidth: true
+        Label { text: !page.pending ? "" : page.pending.operation === "disable" ? "Incoming connections will no longer be filtered by firewalld. Your rules are kept. It will stay off after restart." : page.pending.operation === "enable" ? "The firewall will use your saved rules now and after restart. You may be asked for your administrator password." : "Remove “" + page.pending.title + "”? This changes what other devices can access. The change is saved automatically."; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+        RowLayout {
+            SettingsButton { objectName: "confirmFirewall"; text: !page.pending ? "Confirm" : page.pending.operation === "disable" ? "Turn off" : page.pending.operation === "enable" ? "Turn on" : "Remove rule"; enabled: !page.busy; onClicked: page.request(page.pending) }
+            SettingsButton { objectName: "cancelFirewall"; text: "Cancel"; enabled: !page.busy; onClicked: page.pending = null }
         }
     }
     SettingsCard {
-        title: "1. Choose what other devices may access"
-        subtitle: "Choose a service only if you run it on this laptop. You can remove its permission later."
+        id: editor
+        objectName: "firewallEditor"
+        visible: page.editing
+        title: page.original ? "Edit rule" : "Add rule"
+        subtitle: "Saved automatically when you click Save."
         Layout.fillWidth: true
-        SettingsComboBox { id: preset; objectName: "firewallPreset"; Layout.fillWidth: true; model: page.commonServices.map(row => row.title); enabled: page.loaded && !page.busy }
-        Label { text: page.commonServices[preset.currentIndex] ? page.commonServices[preset.currentIndex].description : "Check the firewall status to see available services."; color: Style.Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
-        SettingsButton { objectName: "allowFirewallPreset"; text: "Allow this service…"; enabled: page.loaded && !page.busy && preset.currentIndex >= 0; onClicked: page.review("add-service", page.commonServices[preset.currentIndex].name) }
+        Label { text: "What should this rule do?"; color: Style.Theme.text }
+        SettingsComboBox { id: kind; objectName: "firewallRuleKind"; Layout.fillWidth: true; model: ["Allow a service", "Allow a port", "Block an address"]; enabled: !page.busy }
+        SettingsComboBox { id: service; objectName: "firewallPreset"; visible: kind.currentIndex === 0; Layout.fillWidth: true; model: page.serviceIds.map(value => page.name(value)); enabled: !page.busy }
+        Label { visible: kind.currentIndex === 0; text: "Allows other devices to reach this service on your laptop. The service must be installed and running separately."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        SettingsTextField { id: port; objectName: "firewallPort"; visible: kind.currentIndex === 1; Layout.fillWidth: true; placeholderText: "Port number from your app, e.g. 8080"; enabled: !page.busy; selectByMouse: true }
+        SettingsComboBox { id: protocol; objectName: "firewallProtocol"; visible: kind.currentIndex === 1; Layout.fillWidth: true; model: ["TCP", "UDP"]; enabled: !page.busy }
+        Label { visible: kind.currentIndex === 1; text: "Use the number and TCP/UDP given in your app’s instructions."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        SettingsTextField { id: address; objectName: "firewallSource"; visible: kind.currentIndex === 2; Layout.fillWidth: true; placeholderText: "Address to block, e.g. 192.0.2.10"; enabled: !page.busy; selectByMouse: true }
+        Label { visible: kind.currentIndex === 2; text: "Stops incoming traffic from this address in the selected network. Existing advanced policies can also affect access."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        RowLayout {
+            SettingsButton { objectName: "saveFirewallRule"; text: page.busy ? "Saving…" : "Save rule"; enabled: page.loaded && !page.busy && (kind.currentIndex === 0 ? service.currentIndex >= 0 : kind.currentIndex === 1 ? !!port.text.trim() : !!address.text.trim()); onClicked: page.saveRule() }
+            SettingsButton { objectName: "cancelFirewallEdit"; text: "Cancel"; enabled: !page.busy; onClicked: page.discard() }
+        }
     }
     SettingsCard {
-        title: "Or allow a specific app’s port"
-        subtitle: "Use this when the app’s instructions give you a port number and TCP or UDP. A port is a numbered connection point."
+        title: "Rules"
+        subtitle: "Changes apply immediately and are kept after restart."
+        visible: !page.editing && page.loaded && page.snapshot.running
         Layout.fillWidth: true
-        SettingsTextField { id: port; objectName: "firewallPort"; Layout.fillWidth: true; placeholderText: "Port number, e.g. 8080 (or a range: 8000-8010)"; enabled: !page.busy; selectByMouse: true }
-        SettingsComboBox { id: protocol; Layout.fillWidth: true; model: ["TCP", "UDP"]; enabled: !page.busy }
-        Label { text: "Match TCP or UDP to the app’s instructions. For example, a web server using port 8080/TCP needs number 8080 and TCP. Browsing that server from this laptop does not need an incoming permission."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        SettingsButton { text: "Allow this port…"; enabled: page.loaded && !page.busy && !!port.text.trim(); onClicked: page.review("add-port", port.text.trim() + "/" + protocol.currentText.toLowerCase()) }
-    }
-    SettingsCard {
-        title: "2. Review existing permissions"
-        subtitle: "These rules let other devices connect to services on this laptop. Removing one permission may still leave access through another rule."
-        Layout.fillWidth: true
-        Label { visible: page.loaded && page.allowedServices.length === 0 && page.allowedPorts.length === 0; text: "No named services or ports are allowed in this group. Advanced rules and the group’s overall policy can also affect access."; color: Style.Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        RowLayout {
+            Layout.fillWidth: true
+            SettingsButton { objectName: "addFirewallRule"; text: "Add rule"; enabled: !page.busy && !page.pending; onClicked: page.openEditor(null) }
+            SettingsComboBox { objectName: "firewallZone"; visible: page.activeNetworks.length > 1; Layout.fillWidth: true; model: page.activeNetworks; currentIndex: model.indexOf(page.zone); enabled: !page.busy && !page.dirty; Accessible.name: "Network rules to edit"; onActivated: { page.zone = currentText; page.refresh(); } }
+        }
+        Label { visible: page.activeNetworks.length > 1; text: "Network: " + page.zone; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { visible: page.rules.length === 0; text: "No rules added in this network. Click Add rule to allow a service or block an address."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Repeater {
-            model: page.allowedServices
+            model: page.rules
             delegate: ColumnLayout {
-                id: serviceRow
-                required property string modelData
+                id: ruleRow
+                required property var modelData
                 Layout.fillWidth: true
-                Label { text: page.serviceName(serviceRow.modelData) + "\n" + page.lifetime("services", serviceRow.modelData); color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                SettingsButton { text: "Remove permission…"; enabled: page.loaded && !page.busy; onClicked: page.review("remove-service", serviceRow.modelData) }
+                spacing: 6
+                Label { text: ruleRow.modelData.title; color: Style.Theme.text; font.bold: true; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+                Label { text: !ruleRow.modelData.now ? "Saved; takes effect after restart" : !ruleRow.modelData.saved ? "Active only until restart" : (ruleRow.modelData.kind === "block" ? "Blocked" : ruleRow.modelData.kind === "rich" ? "Advanced" : "Allowed"); color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Flow {
+                    Layout.fillWidth: true; spacing: 8
+                    SettingsButton { objectName: "editFirewall-" + ruleRow.modelData.id; text: "Edit"; visible: ruleRow.modelData.editable; enabled: !page.busy && !page.pending; onClicked: page.openEditor(ruleRow.modelData) }
+                    SettingsButton { objectName: "removeFirewall-" + ruleRow.modelData.id; text: "Remove"; enabled: !page.busy && !page.pending; onClicked: page.removeRule(ruleRow.modelData) }
+                }
             }
         }
-        Repeater {
-            model: page.allowedPorts
-            delegate: ColumnLayout {
-                id: portRow
-                required property string modelData
-                Layout.fillWidth: true
-                Label { text: "Port " + portRow.modelData + "\n" + page.lifetime("ports", portRow.modelData); color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                SettingsButton { text: "Remove permission…"; enabled: page.loaded && !page.busy; onClicked: page.review("remove-port", portRow.modelData) }
-            }
-        }
     }
-    SettingsButton { objectName: "firewallAdvanced"; text: page.advanced ? "Hide Advanced options" : "Show Advanced options"; enabled: !page.busy; onClicked: page.advanced = !page.advanced }
-    SettingsCard {
-        title: "Advanced: network groups and timing"
-        visible: page.advanced
-        Layout.fillWidth: true
-        Label { text: "firewalld calls a network group a zone. The list below shows which network interfaces or source addresses use each zone. Selecting a zone edits its rules; it does not move your connection to that zone."; color: Style.Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
-        Label { text: page.snapshot.active || "No active zone bindings reported."; color: Style.Theme.text; wrapMode: Text.Wrap; Layout.fillWidth: true; textFormat: Text.PlainText }
-        SettingsComboBox { objectName: "firewallZone"; Layout.fillWidth: true; model: page.snapshot.zones || []; currentIndex: model.indexOf(page.zone); enabled: page.loaded && !page.busy && !page.dirty; onActivated: { page.zone = currentText; page.refresh(); } }
-        SettingsComboBox { objectName: "firewallScope"; Layout.fillWidth: true; model: ["Apply now and keep after restart", "Temporary: apply now only", "Save only: apply after reload or restart"]; currentIndex: ["both", "runtime", "permanent"].indexOf(page.scope); enabled: !page.busy && !page.dirty; onActivated: { page.scope = ["both", "runtime", "permanent"][currentIndex]; page.refresh(); } }
-        Label { text: "Temporary changes disappear when the firewall reloads or restarts. Save-only changes do not work immediately. The default changes only the rule you confirm in both configurations."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        SettingsTextField { id: service; objectName: "firewallService"; Layout.fillWidth: true; placeholderText: "Another firewalld service name"; enabled: !page.busy; selectByMouse: true }
-        SettingsButton { objectName: "addFirewallService"; text: "Allow named service…"; enabled: page.loaded && !page.busy && !!service.text.trim(); onClicked: page.review("add-service", service.text.trim()) }
+    RowLayout {
+        SettingsButton { text: page.help ? "Hide help" : "How does this work?"; onClicked: page.help = !page.help }
+        SettingsButton { text: page.details ? "Hide details" : "Technical details"; onClicked: page.details = !page.details }
     }
-    SettingsCard {
-        title: "Advanced: block an address"
-        subtitle: "Block incoming traffic from a specific IPv4/IPv6 address or network in this zone. Earlier advanced rules or policies can take precedence."
-        visible: page.advanced
-        Layout.fillWidth: true
-        SettingsTextField { id: source; objectName: "firewallSource"; Layout.fillWidth: true; placeholderText: "IP address or CIDR, e.g. 192.0.2.10"; enabled: !page.busy; selectByMouse: true }
-        SettingsButton { text: "Block this address…"; enabled: page.loaded && !page.busy && !!source.text.trim(); onClicked: page.review("block-source", source.text.trim()) }
-        Repeater {
-            model: page.rules("rich")
-            delegate: ColumnLayout {
-                id: richRow
-                required property string modelData
-                Layout.fillWidth: true
-                Label { text: richRow.modelData; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
-                SettingsButton { text: "Remove advanced rule…"; enabled: page.loaded && !page.busy; onClicked: page.review("remove-rich", richRow.modelData) }
-            }
-        }
-    }
-    SettingsCard {
-        title: "Advanced: full details"
-        visible: page.advanced
-        Layout.fillWidth: true
-        Label { text: page.snapshot.details || "Check status to inspect the zone’s policy and full rules."; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
-        Label { visible: page.scope === "both"; text: "Saved for restart:\n" + ((page.snapshot.saved || {}).details || "Unavailable"); color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
-        Label { text: "These controls manage incoming zone rules. Outgoing restrictions, forwarding, policies and connection zone assignments use advanced firewalld/NetworkManager tools. Firewall rules stay on this machine and are outside GitHub desktop sync."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        SettingsButton { text: "Open firewalld documentation"; onClicked: Qt.openUrlExternally("https://firewalld.org/documentation/howto/open-a-port-or-service.html") }
-    }
+    Label { visible: page.help; text: "Leave the firewall on for normal use. Browsing, email and downloads usually need no extra rule. Add an Allow rule when other devices need to reach a service running here. Add a Block rule to stop incoming traffic from an address. Edit changes a rule; Remove deletes it. Other rules and network policies may also affect access."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsComboBox { objectName: "firewallAdvancedZone"; visible: page.details && page.loaded && page.snapshot.running; Layout.fillWidth: true; model: page.snapshot.zones || []; currentIndex: model.indexOf(page.zone); enabled: !page.busy && !page.dirty; Accessible.name: "Advanced firewall zone"; onActivated: { page.zone = currentText; page.refresh(); } }
+    Label { visible: page.details; text: "Current rules:\n" + (page.snapshot.details || "Unavailable") + "\n\nSaved rules:\n" + ((page.snapshot.saved || {}).details || "Unavailable"); color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
 }

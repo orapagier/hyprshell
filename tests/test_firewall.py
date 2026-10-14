@@ -55,13 +55,56 @@ class FirewallTests(unittest.TestCase):
             self.assertNotIn('shell', run.call_args.kwargs)
             self.assertEqual(run.call_args.kwargs['timeout'], 30)
 
-    def test_enable_requires_confirmation_and_only_launches_terminal(self):
-        with patch.object(firewall.subprocess, 'run') as run:
-            with self.assertRaises(ValueError): firewall.request({'operation': 'enable'})
-            run.assert_not_called()
-        with patch.object(firewall.shutil, 'which', return_value='/usr/bin/kitty'), patch.object(firewall.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)) as run:
-            firewall.request({'operation': 'enable', 'confirmed': True})
-            self.assertEqual(run.call_args.args[0][-5:], ['sudo', 'systemctl', 'enable', '--now', 'firewalld.service'])
+    def test_switch_requires_confirmation_and_uses_polkit_for_on_and_off(self):
+        for operation, action in [('enable', 'enable'), ('disable', 'disable')]:
+            with patch.object(firewall.subprocess, 'run') as run:
+                with self.assertRaises(ValueError): firewall.request({'operation': operation})
+                run.assert_not_called()
+            with patch.object(firewall.shutil, 'which', return_value='/usr/bin/pkexec'), patch.object(firewall.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)) as run, patch.object(firewall, 'context', side_effect=firewall.FirewallStopped('stopped')):
+                firewall.request({'operation': operation, 'confirmed': True})
+                self.assertEqual(run.call_args.args[0], ['pkexec', '/usr/bin/systemctl', action, '--now', 'firewalld.service'])
+
+    def test_stopped_firewall_is_off_not_unknown(self):
+        with patch.object(firewall, 'context', side_effect=firewall.FirewallStopped('stopped')):
+            status = firewall.request({'operation': 'status'})
+            self.assertTrue(status['ok']); self.assertFalse(status['running'])
+
+    def test_edit_adds_replacement_before_removing_old_rule(self):
+        current = {**self.snapshot(), 'saved': self.snapshot()}
+        ident = next(row['id'] for row in firewall.rule_rows(current) if row['kind'] == 'port')
+        with patch.object(firewall, 'context', return_value=('public', 'both', ['public'])), patch.object(firewall, 'snapshot', return_value=current), patch.object(firewall, 'command', side_effect=self.fake) as command:
+            firewall.request({'operation': 'edit-rule', 'id': ident, 'kind': 'port', 'value': '9000/udp', 'confirmed': True, 'expected': 'current'})
+            changes = [call.args[0][-1] for call in command.call_args_list if '--add-' in call.args[0][-1] or '--remove-' in call.args[0][-1]]
+            self.assertEqual(changes, ['--add-port=9000/udp', '--remove-port=8080/tcp'] * 2)
+
+    def test_edit_failure_undoes_completed_changes(self):
+        current = {**self.snapshot(), 'saved': self.snapshot()}
+        ident = next(row['id'] for row in firewall.rule_rows(current) if row['kind'] == 'port')
+        with patch.object(firewall, 'context', return_value=('public', 'both', ['public'])), patch.object(firewall, 'snapshot', return_value=current), patch.object(firewall, 'command', side_effect=['', ValueError('denied'), '']) as command:
+            with self.assertRaisesRegex(ValueError, 'completed changes were undone'):
+                firewall.request({'operation': 'edit-rule', 'id': ident, 'kind': 'port', 'value': '9000/udp', 'confirmed': True, 'expected': 'current'})
+            self.assertEqual(command.call_args_list[-1].args[0], ['--zone=public', '--permanent', '--remove-port=9000/udp'])
+
+    def test_edit_preserves_an_existing_replacement_on_rollback(self):
+        current = {**self.snapshot(), 'ports': ['8080/tcp', '9000/udp'], 'saved': {**self.snapshot(), 'ports': ['8080/tcp', '9000/udp']}}
+        ident = next(row['id'] for row in firewall.rule_rows(current) if row['value'] == '8080/tcp')
+        with patch.object(firewall, 'context', return_value=('public', 'both', ['public'])), patch.object(firewall, 'snapshot', return_value=current), patch.object(firewall, 'command', side_effect=['', ValueError('denied'), '']) as command:
+            with self.assertRaisesRegex(ValueError, 'completed changes were undone'):
+                firewall.request({'operation': 'edit-rule', 'id': ident, 'kind': 'port', 'value': '9000/udp', 'confirmed': True, 'expected': 'current'})
+            self.assertNotIn('--remove-port=9000/udp', repr(command.call_args_list))
+            self.assertEqual(command.call_args_list[-1].args[0][-1], '--add-port=8080/tcp')
+
+    def test_complex_source_rules_are_not_misrepresented_as_simple_blocks(self):
+        simple = 'rule family="ipv4" priority="-100" source address="192.0.2.1/32" drop'
+        self.assertEqual(firewall.blocked_address(simple), '192.0.2.1/32')
+        self.assertIsNone(firewall.blocked_address(simple.replace(' drop', ' service name="ssh" drop')))
+
+    def test_invalid_edit_never_changes_old_rule(self):
+        current = {**self.snapshot(), 'saved': self.snapshot()}
+        ident = next(row['id'] for row in firewall.rule_rows(current) if row['kind'] == 'port')
+        with patch.object(firewall, 'context', return_value=('public', 'both', ['public'])), patch.object(firewall, 'snapshot', return_value=current), patch.object(firewall, 'command') as command:
+            with self.assertRaises(ValueError): firewall.request({'operation': 'edit-rule', 'id': ident, 'kind': 'port', 'value': 'bad', 'confirmed': True, 'expected': 'current'})
+            command.assert_not_called()
 
     def test_combined_changes_touch_only_one_rule_in_each_view(self):
         current = {**self.snapshot(), 'saved': self.snapshot()}
@@ -95,9 +138,13 @@ class FirewallTests(unittest.TestCase):
         self.assertNotEqual(first['revision'], second['revision'])
 
     def test_single_active_zone_selected_instead_of_unrelated_default(self):
-        with patch.object(firewall, 'command', side_effect=['public home', 'home\n  interfaces: wlan0']) as command:
+        with patch.object(firewall, 'command', side_effect=['public home', 'home (default)\n  interfaces: wlan0']) as command:
             self.assertEqual(firewall.context({'scope': 'both'}), ('home', 'both', ['public', 'home']))
             self.assertEqual(command.call_count, 2)
+
+    def test_refresh_recovers_a_removed_or_annotated_selected_zone(self):
+        with patch.object(firewall, 'command', side_effect=['public home', 'public home', 'public (default)\n  interfaces: wlan0']):
+            self.assertEqual(firewall.context({'operation': 'status', 'scope': 'both', 'zone': 'public (default)'}), ('public', 'both', ['public', 'home']))
 
     def test_context_rejects_invented_zone_and_scope(self):
         with patch.object(firewall, 'command', return_value='public home'):
@@ -121,20 +168,43 @@ root = Path(os.environ['FIREWALL_TEST_ROOT'])
 args = sys.argv[1:]
 with (root / 'calls').open('a') as log: log.write(json.dumps(args) + '\\n')
 if (root / 'deny').exists(): print('DBUS_ERROR: Operation not permitted', file=sys.stderr); sys.exit(36)
+if (root / 'off').exists(): print('FirewallD is not running', file=sys.stderr); sys.exit(252)
+path = root / ('saved.json' if '--permanent' in args else 'current.json')
+state = json.loads(path.read_text()) if path.exists() else {{'services': ['ssh'], 'ports': ['8080/tcp']}}
 if '--get-zones' in args: print('public home')
 elif '--get-default-zone' in args: print('public')
-elif '--get-active-zones' in args: print('public\\n  interfaces: wlan0')
+elif '--get-active-zones' in args: print('public (default)\\n  interfaces: wlan0')
 elif '--get-services' in args: print('ssh http')
-elif '--list-all' in args: print('public\\n  services: ssh')
-elif '--list-services' in args: print('ssh')
-elif '--list-ports' in args: print('8080/tcp')
-elif '--list-rich-rules' in args: print('rule family="ipv4" source address="192.0.2.1" drop')
-elif '--add-service=http' in args: print('success')
-else: sys.exit(2)
+elif '--list-all' in args: print(json.dumps(state, sort_keys=True))
+elif '--list-services' in args: print(' '.join(state['services']))
+elif '--list-ports' in args: print(' '.join(state['ports']))
+elif '--list-rich-rules' in args: print('')
+else:
+    option = args[-1]
+    for kind, key in [('service', 'services'), ('port', 'ports')]:
+        for action in ['add', 'remove']:
+            prefix = '--' + action + '-' + kind + '='
+            if option.startswith(prefix):
+                value = option[len(prefix):]
+                if action == 'add' and value not in state[key]: state[key].append(value)
+                elif action == 'remove' and value in state[key]: state[key].remove(value)
+                path.write_text(json.dumps(state)); print('success'); sys.exit(0)
+    sys.exit(2)
 ''')
             fake.chmod(0o755)
+            pkexec = commands / 'pkexec'
+            pkexec.write_text(f'''#!{sys.executable}
+import os, sys
+from pathlib import Path
+root = Path(os.environ['FIREWALL_TEST_ROOT'])
+if sys.argv[2] == 'disable': (root / 'off').touch()
+elif sys.argv[2] == 'enable': (root / 'off').unlink(missing_ok=True)
+else: sys.exit(3)
+''')
+            pkexec.chmod(0o755)
             fixture = qml / 'FirewallNative.qml'
             fixture.write_text('''import QtQuick
+import QtQuick.Window
 import Quickshell
 import Quickshell.Io
 import "."
@@ -156,25 +226,59 @@ ShellRoot {
             if (page) { test.fail("eager page"); return; }
             window.searchQuery = "firewall";
             if (window.searchResults.length !== 1 || window.searchResults[0].section !== -22) { test.fail("search"); return; }
+            window.width = 720;
             window.section = -22; test.phase = 2;
         } else if (test.phase === 2 && page && page.loaded && !page.busy) {
-            if (page.advanced || page.scope !== "both" || page.zone !== "public") { test.fail("beginner defaults"); return; }
+            if (page.zone !== "public" || !page.snapshot.running) { test.fail("default zone parsing"); return; }
+            if (page.width < 1 || page.width > loader.width + 1) { test.fail("page width"); return; }
+            for (let child of page.children) {
+                if (child.visible && (child.x < -1 || child.x + child.width > page.width + 1)) { test.fail("horizontal overflow"); return; }
+            }
+            find(page, "addFirewallRule").clicked();
             find(page, "firewallPreset").currentIndex = 1;
-            find(page, "allowFirewallPreset").clicked();
-            if (!page.pending || page.busy || !page.reviewText().includes("Website hosted here") || !page.reviewText().includes("stays after restart")) { test.fail("confirmation"); return; }
+            if (!page.editing || !page.dirty) { test.fail("editor"); return; }
             window.section = -2; test.phase = 3;
         } else if (test.phase === 3) {
             if (!page || !page.dirty || !window.manualDirty) { test.fail("draft not retained"); return; }
-            window.section = -22; find(page, "confirmFirewall").clicked(); test.phase = 4;
+            window.section = -22; find(page, "saveFirewallRule").clicked(); test.phase = 4;
         } else if (test.phase === 4 && page && !page.busy && !page.dirty) {
-            if (!page.success || !page.message.includes("Change applied now and saved")) { test.fail("apply"); return; }
-            window.section = -2; test.phase = 5;
-        } else if (test.phase === 5) {
+            let row = page.rules.find(row => row.kind === "service" && row.value === "http");
+            if (!page.success || !row) { test.fail("add"); return; }
+            find(page, "editFirewall-" + row.id).clicked();
+            find(page, "firewallRuleKind").currentIndex = 1;
+            find(page, "firewallPort").text = "invalid";
+            find(page, "saveFirewallRule").clicked(); test.phase = 12;
+        } else if (test.phase === 12 && page && !page.busy && !page.success) {
+            if (!page.editing || !find(page, "saveFirewallRule").enabled) { test.fail("validation recovery"); return; }
+            find(page, "refreshFirewall").clicked(); test.phase = 13;
+        } else if (test.phase === 13 && page && !page.busy && page.success) {
+            if (!page.editing || find(page, "firewallPort").text !== "invalid") { test.fail("refresh lost draft"); return; }
+            find(page, "firewallPort").text = "9090";
+            find(page, "saveFirewallRule").clicked(); test.phase = 5;
+        } else if (test.phase === 5 && page && !page.busy && !page.dirty) {
+            let row = page.rules.find(row => row.value === "9090/tcp");
+            if (!page.success || !row || page.rules.some(row => row.value === "http")) { test.fail("edit"); return; }
+            find(page, "removeFirewall-" + row.id).clicked();
+            if (!page.pending || page.busy) { test.fail("remove confirmation"); return; }
+            find(page, "confirmFirewall").clicked(); test.phase = 6;
+        } else if (test.phase === 6 && page && !page.busy && !page.dirty) {
+            if (page.rules.some(row => row.value === "9090/tcp")) { test.fail("remove"); return; }
+            find(page, "firewallSwitch").clicked();
+            if (!page.pending || page.pending.operation !== "disable") { test.fail("off confirmation"); return; }
+            find(page, "confirmFirewall").clicked(); test.phase = 7;
+        } else if (test.phase === 7 && page && !page.busy && !page.dirty) {
+            if (!page.loaded || page.snapshot.running || find(page, "firewallSwitch").checked) { test.fail("off status"); return; }
+            find(page, "firewallSwitch").clicked();
+            find(page, "confirmFirewall").clicked(); test.phase = 8;
+        } else if (test.phase === 8 && page && !page.busy && !page.dirty) {
+            if (!page.snapshot.running || !find(page, "firewallSwitch").checked) { test.fail("on status"); return; }
+            window.section = -2; test.phase = 9;
+        } else if (test.phase === 9) {
             if (page) { test.fail("clean page retained"); return; }
-            deny.running = true; test.phase = 6;
-        } else if (test.phase === 6 && !deny.running) { window.section = -22; test.phase = 7; }
-        else if (test.phase === 7 && page && !page.busy && !page.success) {
-            if (page.loaded || !page.message.includes("Cannot access")) { test.fail("access failure"); return; }
+            deny.running = true; test.phase = 10;
+        } else if (test.phase === 10 && !deny.running) { window.section = -22; test.phase = 11; }
+        else if (test.phase === 11 && page && !page.busy && !page.success) {
+            if (page.loaded || !page.message.includes("Cannot access") || find(page, "firewallSwitch").enabled) { test.fail("access failure"); return; }
             if (window.dirty || window.saving) { test.fail("unrelated settings saved"); return; }
             console.warn("FIREWALL_NATIVE_OK"); Qt.quit();
         }
