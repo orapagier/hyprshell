@@ -1228,20 +1228,42 @@ status refresh on the Power page is manual.
 
 ## Complete configuration and personal-file backups
 
-**Complete personal configuration** checkpoints current Settings, display and
+**Settings → Backup & restore** saves current Settings, display and
 shortcut preferences, app/theme/regional/workspace choices, cleanup preferences,
 manual desktop Lua/conf modules, GTK settings, UWSM environment, MIME associations,
 terminal preference and XDG autostart entries. It excludes installed Quickshell
 source, package/system configuration, network credentials and documents. Paths
 are allowlisted, links refused, individual files bounded at 2 MB and each
-checkpoint at 10 MB. Checkpoints are private local state under `backups/` and
-follow System cleanup retention. Manual Lua/startup entries can include your
-custom commands; restore only a checkpoint you trust.
+backup at 10 MB. The same controls remain available in Updates & recovery.
+
+**Back up Hyprshell now** creates a private local backup under
+`$XDG_STATE_HOME/hyprshell/setup-backups/setup-<timestamp>/`. Every completed
+backup records an ISO date/time with timezone, kind, file count, content size
+and SHA-256 checksum in `metadata.json`; `files.json` holds the configuration.
+Files are private and backup directories have mode 0700. A temporary staging
+directory is published only after both files finish writing, so an interrupted
+creation is not listed as a completed backup. New manual backups and before-restore
+backups are outside all System cleanup targets. They remain until removed manually;
+monitor their storage and copy the folder to another drive for disk-failure or
+OS-reinstall protection. Backups and their contents are not exported to GitHub.
+
+The **Choose a backup to restore** picker lists readable dates and times with
+timezone, newest first, and distinguishes Manual backup, Before restore and
+Legacy checkpoint. Selected-backup details show the date/time, file count and
+size. Refresh preserves the selected backup when it still exists. Selecting
+another backup dismisses its predecessor's restore confirmation. Existing
+`backups/configuration-*` checkpoints remain selectable with dates decoded from
+their original IDs; their existing cleanup retention remains unchanged.
+Incomplete or invalid backup metadata is skipped and counted. New backup
+contents must pass the recorded checksum before a restore can be previewed.
+Manual Lua/startup entries can include your custom commands; restore only a
+backup you trust. A configuration backup is not a disk image or a backup of the
+installed shell source or OS packages.
 
 Preview lists changed files and expires after five minutes. Confirmation checks
 both the checkpoint and current-file hashes, regenerates GUI Lua from validated
-JSON, parses Lua syntax without executing it, creates a selectable pre-restore
-checkpoint and atomically restores/deletes files with rollback on write failure.
+JSON, parses Lua syntax without executing it, creates a selectable dated
+before-restore backup and atomically restores/deletes files with rollback on write failure.
 Generated monitor rules are not applied live without a display confirmation.
 Settings runtime preferences reload now; log out and back in for restored
 compositor and application files to take effect. The separate Settings-only

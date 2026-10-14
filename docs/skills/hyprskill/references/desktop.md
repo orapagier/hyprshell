@@ -29,7 +29,7 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | Cleanup / reset | `SettingsCleanup.qml`, `SettingsCleanupTargets.qml`, `SettingsFactoryReset.qml`, `settings/{cleanup,system_cleanup}.py`; existing `hyprshell/cleanup.json` user timer retained; manual per-directory categories, impact descriptions, file exclusions/pages and expiring previews; administrator plans private under `/var/lib/hyprshell-system-cleanup/<uid>`; backed-up settings-only reset and clean-install guidance, never disk erasure; see `docs/settings.md` and `test_system_cleanup*.py` |
 | Workspaces / rules | `SettingsBehavior.qml`, `settings/behavior.py`, `hyprshell/behavior.{json,lua}`; literal app classes, validated compositor rules, backed-up apply/rollback; setup/sync regenerate Lua |
 | Clipboard / peripherals | `ClipboardController.qml`, `SettingsClipboard.qml`, `SettingsPeripherals.qml`, `settings/{clipboard,peripherals,optional_tools}.py`; capture off by default, local bounded cliphist history, manual printing/scanning tools, explicit optional installation and CUPS socket setup |
-| Full configuration / personal files | `SettingsConfigurationRecovery.qml`, `SettingsPersonalBackup.qml`, `settings/{configuration,personal_backup}.py`; local checkpoints/preview/restore, opt-in file snapshots/checksums and user backup timer; all backup/history state and personal paths excluded from sync |
+| Setup backup / personal files | Settings → Backup & restore (`-23`), `SettingsConfigurationRecovery.qml`, `SettingsPersonalBackup.qml`, `settings/{configuration,personal_backup}.py`; dated/timezone-stamped manual setup backups and before-restore backups under `state/hyprshell/setup-backups` are protected from cleanup; picker/preview/checksum/undo, legacy configuration checkpoints retained; opt-in personal-file snapshots/checksums and timer remain separate; all backup/history state and personal paths excluded from sync |
 | Updates / recovery | `quickshell/SettingsRecovery.qml`, `quickshell/settings/recovery.py`; explicit checkupdates with a separate database, detached interactive full upgrade, validated settings checkpoints/restore; local state `hyprshell/{upgrade-last,personal-backup,recovery-preview}.json` |
 | Portals | `xdg-desktop-portal/hyprland-portals.conf` |
 | Launch helpers | `$HOME/.local/bin/{start-quickshell-bar,hyprshell-settings,app-launcher}` / checkout `bin/` |
@@ -68,12 +68,14 @@ share application-theme transactions; app-owned appearance preferences can win.
 Settings-only recovery imports validated `settings.json`. Complete configuration
 checkpoints additionally cover personal desktop Lua, display/app/theme/shortcut
 preferences and application integration files; restoration parses Lua without
-executing it, regenerates GUI files and requires next-login activation. Personal
+executing it, regenerates GUI files and requires next-login activation. Manual setup
+backups have dates/times/checksums in `setup-backups`, outside cleanup targets;
+legacy `backups/configuration-*` checkpoints remain selectable. Personal
 backup status remains a self-report for external tools. The optional personal-file
 engine has manual/scheduled snapshots and checksum verification; it defaults off.
 All history, schedules, destinations and documents stay outside GitHub sync.
 Use `tests/test_{recovery,configuration,personal_backup,optional_daily_driver}.py`
-and native `test_daily_driver_ui.py`; never start real upgrades, restore laptop
+and native `test_{daily_driver,setup_backup}_ui.py`; never start real upgrades, restore laptop
 preferences or copy documents just to validate controls. Upgrades remain explicit
 interactive `sudo pacman -Syu` in Kitty on Arch. Fedora uses
 `sudo dnf upgrade --refresh`; `settings/system_packages.py` owns package

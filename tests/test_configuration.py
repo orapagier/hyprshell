@@ -42,17 +42,82 @@ class ConfigurationTests(unittest.TestCase):
         self.assertFalse(new.exists()); self.assertEqual(main.read_text(), '-- personal configuration\n')
         self.assertEqual((self.config / 'quickshell/shell.qml').read_text(), 'source code is excluded')
         self.assertTrue(list((self.root / 'state/hyprshell/backups').glob('configuration-undo-*')))
+        rows = configuration.status()['checkpoints']
+        self.assertEqual(sum(row['kind'] == 'before-restore' for row in rows), 1)
 
     def test_stale_preview_and_invalid_saved_lua_write_nothing(self):
         ident = self.checkpoint()
         preview = configuration.request({'operation': 'preview', 'id': ident})['preview']
         main = self.config / 'hypr/hyprland.lua'; main.write_text('-- newer manual edit\n')
         with self.assertRaises(ValueError): configuration.request({'operation': 'restore', 'token': preview['token']})
-        folder = self.root / 'state/hyprshell/backups' / ident / 'files.json'
+        folder = configuration.snapshot_folder(ident) / 'files.json'
         data = json.loads(folder.read_text()); data['hypr/hyprland.lua'] = 'this is invalid Lua'; folder.write_text(json.dumps(data))
+        details = folder.parent / 'metadata.json'
+        info = json.loads(details.read_text()); info['checksum'] = configuration.digest(data); details.write_text(json.dumps(info))
         preview = configuration.request({'operation': 'preview', 'id': ident})['preview']
         with self.assertRaises(ValueError): configuration.request({'operation': 'restore', 'token': preview['token']})
         self.assertEqual(main.read_text(), '-- newer manual edit\n')
+
+    def test_backup_dates_times_metadata_and_cleanup_protection(self):
+        ident = self.checkpoint()
+        folder = configuration.snapshot_folder(ident)
+        self.assertEqual(folder.parent, self.root / 'state/hyprshell/setup-backups')
+        self.assertEqual(folder.stat().st_mode & 0o777, 0o700)
+        row = configuration.status()['checkpoints'][0]
+        self.assertRegex(row['label'], r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
+        self.assertIn('UTC', row['label']); self.assertEqual(row['kind'], 'manual')
+        self.assertGreater(row['fileCount'], 0); self.assertGreater(row['bytes'], 0)
+        from datetime import datetime
+        self.assertIsNotNone(datetime.fromisoformat(row['createdAt']).tzinfo)
+        import cleanup
+        import system_cleanup
+        choice = system_cleanup.options(dict(selected=['backups'], days=0, keep=1), False)
+        self.assertEqual(system_cleanup.plan(choice)['entries'], [])
+        with patch.object(cleanup, 'read', return_value=dict(cleanup.DEFAULTS, temporary=False, thumbnails=False)):
+            self.assertEqual(cleanup.scan(cleanup.read()), [])
+        self.assertTrue(folder.is_dir())
+
+    def test_legacy_backups_are_dated_selectable_and_restoreable(self):
+        ident = 'configuration-20260203-040506-123456'
+        folder = self.root / 'state/hyprshell/backups' / ident; folder.mkdir(parents=True)
+        files = configuration.current(); (folder / 'files.json').write_text(json.dumps(files))
+        row = configuration.status()['checkpoints'][0]
+        self.assertEqual(row['id'], ident); self.assertIn('2026-02-03 04:05:06', row['label'])
+        self.assertEqual(row['kind'], 'legacy')
+        self.assertEqual(configuration.read_snapshot(ident), files)
+        result = configuration.request(dict(operation='preview', id=ident))
+        self.assertEqual(result['preview']['id'], ident)
+        self.assertIn(row['label'], result['preview']['label'])
+
+    def test_corrupted_backup_is_rejected_before_any_restore(self):
+        ident = self.checkpoint(); folder = configuration.snapshot_folder(ident)
+        before = configuration.current()
+        files = json.loads((folder / 'files.json').read_text())
+        files['hypr/hyprland.lua'] = '-- silently changed backup'
+        (folder / 'files.json').write_text(json.dumps(files))
+        with self.assertRaisesRegex(ValueError, 'checksum'):
+            configuration.request(dict(operation='preview', id=ident))
+        self.assertEqual(configuration.current(), before)
+
+    def test_incomplete_and_unsafe_backups_are_not_listed(self):
+        folder = self.root / 'state/hyprshell/setup-backups/setup-20260101-010101-000000'
+        folder.mkdir(parents=True); (folder / 'files.json').write_text('{}')
+        result = configuration.status()
+        self.assertEqual(result['checkpoints'], []); self.assertEqual(result['skippedBackups'], 1)
+        with self.assertRaises(ValueError): configuration.read_snapshot('../outside')
+        folder.rename(folder.with_name('original'))
+        folder.symlink_to(folder.with_name('original'), target_is_directory=True)
+        self.assertEqual(configuration.status()['checkpoints'], [])
+
+    def test_failed_backup_does_not_publish_incomplete_snapshot(self):
+        atomic = configuration.backend.atomic
+        def fail_metadata(path, content):
+            if path.name == 'metadata.json': raise OSError('disk full')
+            return atomic(path, content)
+        with patch.object(configuration.backend, 'atomic', side_effect=fail_metadata):
+            with self.assertRaises(OSError): self.checkpoint()
+        self.assertEqual(configuration.status()['checkpoints'], [])
+        self.assertEqual(list((self.root / 'state/hyprshell/setup-backups').iterdir()), [])
 
     def test_generated_rules_are_regenerated_and_unknown_paths_rejected(self):
         files = configuration.current(); files['hyprshell/overrides.lua'] = 'error("never execute this")'

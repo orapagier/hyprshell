@@ -120,7 +120,7 @@ ShellRoot {
             data = json.loads((root / 'config/hyprshell/behavior.json').read_text())
             self.assertEqual(data['workspaces'][0]['id'], 1)
             self.assertEqual(data['rules'][0]['class'], 'org.synthetic.Test')
-            self.assertTrue(list((root / 'state/hyprshell/backups').glob('configuration-*')))
+            self.assertTrue(list((root / 'state/hyprshell/setup-backups').glob('setup-*')))
             self.assertFalse((root / 'state/hyprshell/clipboard/db').exists())
             self.assertFalse((root / 'state/hyprshell/personal-files.json').exists())
         self.run_ui(source, 'OPTIONAL_PAGES_NATIVE_OK', prepare=prepare, verify=verify)

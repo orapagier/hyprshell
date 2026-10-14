@@ -88,7 +88,7 @@ def catalog(system=False):
             'Themes, fonts and desktop settings stay.'),
         row('backups', 'Older Hyprshell configuration backups', [state / 'hyprshell/backups'],
             'Affects desktop recovery history. Retain the newest selected number of backup sets. '
-            'Current settings and personal-file snapshots stay.', 'recovery', policy='backups'),
+            'Current settings, manual setup backups and personal-file snapshots stay.', 'recovery', policy='backups'),
         row('chosen-folder', 'Backup / temporary copies in a chosen folder', [],
             'Affects recovery copies of your own files. Only .bak, .backup, .orig, .rej, .tmp '
             'and names ending in ~ are eligible. Review every path; these copies may be valuable. '

@@ -4,9 +4,13 @@ import argparse
 from datetime import datetime
 import hashlib
 import json
+import os
+from pathlib import Path
 import re
 import secrets
+import shutil
 import subprocess
+import tempfile
 import time
 
 import backend
@@ -91,19 +95,93 @@ def normalized(files):
     return files
 
 
+def snapshot_folder(ident):
+    if not isinstance(ident, str) or not re.fullmatch(r'(?:configuration|setup)-[0-9-]+', ident):
+        raise ValueError('Choose a Hyprshell setup backup from the list.')
+    return roots()[1] / ('setup-backups' if ident.startswith('setup-') else 'backups') / ident
+
+
+def metadata(folder):
+    path = folder / 'metadata.json'
+    if not safe(path) or not path.is_file() or path.stat().st_size > 10000:
+        raise ValueError('Backup information is missing or unsafe.')
+    data = json.loads(path.read_text())
+    if (not isinstance(data, dict) or data.get('version') != 1 or
+            data.get('kind') not in ('manual', 'before-restore') or
+            not isinstance(data.get('createdAt'), str) or
+            not isinstance(data.get('checksum'), str) or not re.fullmatch('[0-9a-f]{64}', data['checksum']) or
+            type(data.get('fileCount')) is not int or not 0 <= data['fileCount'] <= 300 or
+            type(data.get('bytes')) is not int or not 0 <= data['bytes'] <= 10_000_000):
+        raise ValueError('Backup information is invalid.')
+    created = datetime.fromisoformat(data['createdAt'])
+    if created.tzinfo is None:
+        raise ValueError('Backup date is missing its timezone.')
+    return data
+
+
+def save_snapshot(files, kind='manual'):
+    validate(files)
+    base = roots()[1] / 'setup-backups'
+    if not safe(base): raise ValueError('Backup folders must not be symbolic links.')
+    base.mkdir(mode=0o700, parents=True, exist_ok=True)
+    created = datetime.now().astimezone()
+    ident = 'setup-' + created.strftime('%Y%m%d-%H%M%S-%f')
+    details = dict(version=1, createdAt=created.isoformat(timespec='microseconds'), kind=kind,
+                   checksum=digest(files), fileCount=sum(value is not None for value in files.values()),
+                   bytes=sum(len(value.encode()) for value in files.values() if value is not None))
+    staging = tempfile.mkdtemp(prefix='.pending-', dir=base)
+    try:
+        folder = base / ident
+        backend.atomic(Path(staging) / 'files.json', json.dumps(files, indent=2, ensure_ascii=False))
+        backend.atomic(Path(staging) / 'metadata.json', json.dumps(details, indent=2))
+        os.rename(staging, folder)
+    finally:
+        if os.path.exists(staging): shutil.rmtree(staging)
+    return ident
+
+
 def read_snapshot(ident):
-    if not isinstance(ident, str) or not re.fullmatch(r'configuration-[0-9-]+', ident): raise ValueError('Choose a configuration checkpoint.')
-    path = roots()[1] / 'backups' / ident / 'files.json'
+    folder = snapshot_folder(ident)
+    path = folder / 'files.json'
     if not safe(path) or not path.is_file() or path.stat().st_size > 64_000_000: raise ValueError('Checkpoint is missing or unsafe. Refresh the list.')
-    return validate(json.loads(path.read_text()))
+    files = validate(json.loads(path.read_text()))
+    if ident.startswith('setup-') and digest(files) != metadata(folder)['checksum']:
+        raise ValueError('Backup contents failed their checksum. Choose another backup.')
+    return files
+
+
+def backup_info(folder):
+    if folder.name.startswith('setup-'):
+        details = metadata(folder)
+        created = datetime.fromisoformat(details['createdAt']).astimezone()
+        kind = details['kind']
+    else:
+        created = datetime.strptime(folder.name.removeprefix('configuration-'), '%Y%m%d-%H%M%S-%f').astimezone()
+        kind = 'legacy'
+        details = dict(createdAt=created.isoformat(), fileCount=None, bytes=(folder / 'files.json').stat().st_size)
+    kind_label = {'manual': 'Manual backup', 'before-restore': 'Before restore', 'legacy': 'Legacy checkpoint'}[kind]
+    return dict(id=folder.name, label=created.strftime('%Y-%m-%d %H:%M:%S %Z (UTC%z)') + ' · ' + kind_label,
+                createdAt=details['createdAt'], timestamp=created.timestamp(), kind=kind,
+                fileCount=details['fileCount'], bytes=details['bytes'])
 
 
 def status():
     _, state = roots(); rows = []
-    for folder in sorted((state / 'backups').glob('configuration-*'), reverse=True):
-        if re.fullmatch(r'configuration-[0-9-]+', folder.name) and safe(folder) and (folder / 'files.json').is_file():
-            rows.append({'id': folder.name, 'label': folder.name.removeprefix('configuration-')})
-    return {'ok': True, 'checkpoints': rows[:100], 'revision': digest(current())}
+    skipped = 0
+    for parent, pattern in ((state / 'setup-backups', 'setup-*'), (state / 'backups', 'configuration-*')):
+        if not safe(parent): raise ValueError('Backup folders must not be symbolic links.')
+        for folder in parent.glob(pattern):
+            if not re.fullmatch(r'(?:configuration|setup)-[0-9-]+', folder.name): continue
+            try:
+                snapshot_folder(folder.name)
+                if not safe(folder) or not (folder / 'files.json').is_file():
+                    raise ValueError('Incomplete backup')
+                rows.append(backup_info(folder))
+            except (ValueError, OSError, TypeError, KeyError):
+                skipped += 1
+    rows.sort(key=lambda row: (row['timestamp'], row['id']), reverse=True)
+    return {'ok': True, 'checkpoints': rows, 'revision': digest(current()),
+            'backupDirectory': str(state / 'setup-backups'), 'skippedBackups': skipped}
 
 
 def request(payload):
@@ -114,15 +192,15 @@ def request(payload):
         if operation == 'checkpoint':
             if payload.get('expected') != digest(before): raise ValueError('Configuration changed elsewhere. Refresh first.')
             validate(before)
-            ident = 'configuration-' + datetime.now().strftime('%Y%m%d-%H%M%S-%f')
-            backend.atomic(state / 'backups' / ident / 'files.json', json.dumps(before, indent=2, ensure_ascii=False))
-            return {**status(), 'message': 'Complete personal configuration checkpoint saved locally.'}
+            ident = save_snapshot(before)
+            return {**status(), 'createdBackup': ident, 'message': 'Hyprshell setup backup saved with its date, time and checksum. Manual backups are preserved by system cleanup.'}
         if operation == 'preview':
             files = normalized(read_snapshot(payload.get('id')))
             changes = [name for name in sorted(set(before) | set(files)) if before.get(name) != files.get(name)]
             token = secrets.token_hex(24)
             backend.atomic(state / 'configuration-preview.json', json.dumps({'token': token, 'id': payload['id'], 'before': digest(before), 'after': digest(files), 'created': time.time()}))
-            return {**status(), 'preview': {'token': token, 'changes': changes}}
+            details = backup_info(snapshot_folder(payload['id']))
+            return {**status(), 'preview': {'token': token, 'changes': changes, 'id': payload['id'], 'label': details['label']}}
         if operation == 'restore':
             record_path = state / 'configuration-preview.json'
             if not safe(record_path): raise ValueError('Preview this checkpoint again.')
@@ -142,12 +220,11 @@ def request(payload):
             backend.idle_dependencies(restored_settings['locking'], backend.effective_power(restored_settings['power'], True))
             config, _ = roots()
             if digest(current()) != record['before']: raise ValueError('Configuration changed during validation. Preview again.')
-            undo = 'configuration-' + datetime.now().strftime('%Y%m%d-%H%M%S-%f')
-            backend.atomic(state / 'backups' / undo / 'files.json', json.dumps(before, indent=2, ensure_ascii=False))
+            undo = save_snapshot(before, 'before-restore')
             transaction({config / name: files.get(name) for name in set(before) | set(files)}, 'configuration-undo')
             record_path.unlink(missing_ok=True)
             data = json.loads(files['hyprshell/settings.json']) if files.get('hyprshell/settings.json') else backend.DEFAULTS
-            return {**status(), 'restored': backend.validate(data), 'message': 'Personal configuration restored with an undo backup. Settings preferences reload now; log out and back in to apply compositor and application configuration.'}
+            return {**status(), 'createdBackup': undo, 'restored': backend.validate(data), 'message': 'Hyprshell setup restored from ' + backup_info(snapshot_folder(record['id']))['label'] + '. A dated before-restore backup preserves the previous setup. Settings preferences reload now; log out and back in to apply compositor and application configuration.'}
     raise ValueError('Unknown configuration operation.')
 
 
