@@ -37,6 +37,13 @@ Item {
         }
         ui.open();
     }
+    function openDisplays() {
+        open();
+        if (window) {
+            window.searchQuery = "";
+            window.section = -7;
+        }
+    }
     function releaseIfClosed() {
         let ui = editor.item;
         // Process startup is deferred. Dirty edits without a reported error

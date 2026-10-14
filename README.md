@@ -602,7 +602,8 @@ keybindings changes the behavior described here.
 | `Super+Mouse wheel` | Switch to the next or previous workspace. |
 | `Super+Left drag` | Move a window. |
 | `Super+Right drag` | Resize a window. |
-| `Super+P` | Toggle pseudotiling. |
+| `Super+P` | Open Duplicate / Extend display controls. |
+| `Super+Shift+P` | Toggle pseudotiling. |
 | `Super+J` | Toggle the split direction in the dwindle layout. |
 | `Super+S` | Toggle the `magic` special workspace. |
 | `Super+Shift+S` | Move the focused window to that special workspace. |

@@ -584,7 +584,8 @@ Super+K and beside the corresponding power buttons. Escape cancels the menu.
 
 Open **Displays** in Settings. Each active monitor shows its advertised resolutions
 and refresh rates, scale, rotation (including flipped orientations), and position.
-Press **Alt+S** to open Settings, then choose **Displays**. With a TV or another
+Press **Super+P** to open Displays directly (**Alt+S** still opens Settings).
+Pseudotiling is available on **Super+Shift+P**. With a TV or another
 screen connected, select your laptop under **Screen to duplicate** and click
 **Duplicate (mirror)** to show the same desktop and cursor on both screens.
 **Extend** restores separate desktops with automatic placement. Each screen also

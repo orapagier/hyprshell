@@ -210,6 +210,10 @@ ShellRoot {
             for (let panel of panels.instances) panel.closeMenu();
             settingsController.open();
         }
+        function displays(): void {
+            for (let panel of panels.instances) panel.closeMenu();
+            settingsController.openDisplays();
+        }
         function toggleBar(): void {
             let workspace = shell.currentWorkspace;
             if (workspace < 1 || workspace > 99) {
