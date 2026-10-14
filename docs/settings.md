@@ -584,6 +584,15 @@ Super+K and beside the corresponding power buttons. Escape cancels the menu.
 
 Open **Displays** in Settings. Each active monitor shows its advertised resolutions
 and refresh rates, scale, rotation (including flipped orientations), and position.
+Press **Alt+S** to open Settings, then choose **Displays**. With a TV or another
+screen connected, select your laptop under **Screen to duplicate** and click
+**Duplicate (mirror)** to show the same desktop and cursor on both screens.
+**Extend** restores separate desktops with automatic placement. Each screen also
+has a **Use this screen as** dropdown for individual extended/mirrored layouts.
+These buttons prepare edits: click **Apply changes…**, then **Keep changes**.
+Confirmed mirror choices are restored on login and when that connector reconnects.
+Different aspect ratios can stretch the mirrored picture. Resolutions remain
+independent so each display can use its advertised modes.
 **Recommended (automatic)** selects the preferred mode. Resolution choices come
 from the monitor’s advertised modes; a panel advertising only 1920×1080 has
 that resolution plus Recommended. Scale uses the preset dropdown: Automatic, 75%, 100%, 125%, 150%, 175%,

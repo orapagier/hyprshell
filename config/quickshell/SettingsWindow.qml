@@ -104,7 +104,7 @@ FloatingWindow {
             {section: -11, title: "Notifications", symbol: "󰂚", keywords: "delivery popups disturb"}
         ]},
         {group: "Devices", pages: [
-            {section: -7, title: "Displays", symbol: "󰍹", keywords: "monitor resolution scale rotation"},
+            {section: -7, title: "Displays", symbol: "󰍹", keywords: "monitor resolution scale rotation duplicate mirror extend HDMI TV projection"},
             {section: -15, title: "Network", symbol: "󰤨", keywords: "wifi wi-fi hidden enterprise vpn wireguard ethernet connections dns"},
             {section: -12, title: "Sound", symbol: "󰕾", keywords: "audio volume microphone speakers"},
             {section: -9, title: "Mouse & keyboard", symbol: "󰍽", keywords: "input touchpad scrolling typing layouts"},

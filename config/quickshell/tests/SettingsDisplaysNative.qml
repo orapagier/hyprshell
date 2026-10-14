@@ -31,8 +31,16 @@ ShellRoot {
                 let oldMonitors = page.monitors;
                 page.monitors = [{name: "eDP-1", width: 1920, height: 1080, scale: 1, x: 0, y: 0}, {name: "HDMI-A-1", width: 2560, height: 1440, scale: 2, x: 1920, y: 0}];
                 page.entries = [{output: "eDP-1", mode: "preferred", scale: 1, transform: 0, position: "auto"}, {output: "HDMI-A-1", mode: "preferred", scale: 2, transform: 0, position: "auto"}];
+                let duplicate = test.find(page, "duplicateDisplays");
+                let extend = test.find(page, "extendDisplays");
+                if (!duplicate || !extend) { test.fail("layout controls"); return; }
+                duplicate.clicked();
+                if (page.entries[0].mirror !== "" || page.entries[1].mirror !== "eDP-1") { test.fail("duplicate laptop on TV"); return; }
+                extend.clicked();
+                if (page.entries.some(e => e.mirror || e.position !== "auto")) { test.fail("extend clears mirrors"); return; }
+                page.duplicate("eDP-1");
                 page.place(1, "eDP-1", "right");
-                if (page.entries[1].position !== "1920x0" || page.entries[0].position !== "0x0") { test.fail("right placement"); return; }
+                if (page.entries[1].position !== "1920x0" || page.entries[0].position !== "0x0" || page.entries.some(e => e.mirror)) { test.fail("right placement"); return; }
                 page.place(1, "eDP-1", "left");
                 if (page.entries[1].position !== "-1280x0") { test.fail("scaled left placement"); return; }
                 page.monitors = oldMonitors; page.entries = oldEntries;

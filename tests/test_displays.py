@@ -90,6 +90,50 @@ class DisplaysTests(unittest.TestCase):
         self.assertIn(unittest.mock.call('reload'), hypr.call_args_list)
         self.assertFalse((self.config / 'hyprshell/displays.json').exists())
 
+    def test_mirror_confirmation_and_extend_clear_saved_mirror(self):
+        tv = dict(self.monitor, name='HDMI-A-1', id=1, x=1920)
+        laptop = dict(self.monitor, id=0)
+        request = {'expected': self.request['expected'], 'entries': [
+            dict(displays.live_entry(tv), mirror='eDP-1'), displays.live_entry(laptop)]}
+        with patch.object(displays, 'monitors', return_value=[laptop, tv]), patch.object(displays, 'hypr', return_value='ok') as hypr:
+            displays.preview(request, self.events.append, wait=lambda: 'keep')
+            code = hypr.call_args.args[1]
+            self.assertLess(code.index('"eDP-1"'), code.index('"HDMI-A-1"'))
+            self.assertIn('mirror = "eDP-1"', code)
+            request['expected'] = displays.read_saved()
+            request['entries'][0]['mirror'] = ''
+            displays.preview(request, self.events.append, wait=lambda: 'keep')
+            self.assertEqual(hypr.call_args.args[1].count('mirror = ""'), 2)
+            self.assertEqual(displays.read_saved()['entries'][0]['mirror'], '')
+
+    def test_live_mirror_status_and_rollback_preserve_source(self):
+        laptop = dict(self.monitor, id=0)
+        tv = dict(self.monitor, name='HDMI-A-1', id=1, mirrorOf='0')
+        with patch.object(displays, 'monitors', return_value=[laptop, tv]), patch.object(displays, 'hypr', return_value='ok') as hypr:
+            current = displays.status()
+            self.assertEqual(current['entries'][1]['mirror'], 'eDP-1')
+            request = {'expected': current['saved'], 'entries': [dict(e, mirror='') for e in current['entries']]}
+            displays.preview(request, self.events.append, wait=lambda: 'revert')
+            self.assertIn('mirror = "eDP-1"', hypr.call_args.args[1])
+
+    def test_legacy_preferences_render_explicit_unmirror(self):
+        legacy = dict(self.entry)
+        legacy.pop('mirror')
+        self.assertIn('mirror = ""', displays.render({'version': 1, 'entries': [legacy]}))
+
+    def test_invalid_mirror_graphs_and_disconnected_source_rejected(self):
+        for source in ('eDP-1', 'bad";os.execute("bad")', 1):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                displays.validate({'version': 1, 'entries': [dict(self.entry, mirror=source)]})
+        cyclic = [dict(self.entry, mirror='HDMI-A-1'), dict(self.entry, output='HDMI-A-1', mirror='eDP-1')]
+        with self.assertRaises(ValueError):
+            displays.validate({'version': 1, 'entries': cyclic})
+        request = dict(self.request, entries=[dict(self.entry, mirror='DP-9')])
+        with patch.object(displays, 'monitors', return_value=[self.monitor]), patch.object(displays, 'hypr') as hypr:
+            with self.assertRaisesRegex(ValueError, 'not connected'):
+                displays.preview(request, self.events.append, wait=lambda: 'keep')
+            hypr.assert_not_called()
+
     def test_failed_second_write_restores_both_files(self):
         original = {'version': 1, 'entries': [dict(self.entry, scale=1)]}
         displays.persist(original, self.request['expected'])
@@ -142,7 +186,7 @@ class DisplaysTests(unittest.TestCase):
         import subprocess
         generated = self.config / 'hyprshell/displays.lua'
         generated.parent.mkdir(parents=True)
-        generated.write_text(displays.render({'version': 1, 'entries': [dict(self.entry, scale=1.25, transform=1, position='-100x0')]}))
+        generated.write_text(displays.render({'version': 1, 'entries': [dict(self.entry, scale=1.25, transform=1, position='-100x0'), dict(self.entry, output='HDMI-A-1', mirror='eDP-1')]}))
         result = subprocess.run(['Hyprland', '--verify-config', '--config', str(ROOT / 'config/hypr/hyprland.lua')],
                                 capture_output=True, text=True, timeout=15)
         self.assertIn('config ok', result.stdout.lower(), result.stdout + result.stderr)

@@ -38,6 +38,12 @@ ColumnLayout {
         let scale = entry.scale === "auto" ? monitor.scale : entry.scale;
         return resolution.map(v => Math.round(v / scale));
     }
+    function duplicate(source) {
+        entries = entries.map(e => Object.assign({}, e, {mirror: e.output === source ? "" : source}));
+    }
+    function extend() {
+        entries = entries.map(e => Object.assign({}, e, {mirror: "", position: "auto"}));
+    }
     function place(index, anchorName, direction) {
         let anchorIndex = entries.findIndex(e => e.output === anchorName);
         if (anchorIndex < 0) return;
@@ -46,6 +52,8 @@ ColumnLayout {
         let origin = anchor.position === "auto" ? [monitor.x, monitor.y] : anchor.position.split("x").map(Number);
         // Fix the anchor too, so an automatic rule cannot move it after placement.
         edit(anchorIndex, "position", origin[0] + "x" + origin[1]);
+        edit(anchorIndex, "mirror", "");
+        edit(index, "mirror", "");
         let ownSize = dimensions(entries[index], monitors[index]);
         let anchorSize = dimensions(anchor, monitor);
         if (direction === "left") origin[0] -= ownSize[0];
@@ -112,7 +120,24 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: page.pending ? "Keep these settings?" : "Connected displays"
-        subtitle: page.pending ? "Reverting in " + page.seconds + " seconds unless you keep the changes." : "Choose an advertised mode. Positions use logical pixels after scaling and rotation. New displays follow automatic configuration."
+        subtitle: page.pending ? "Reverting in " + page.seconds + " seconds unless you keep the changes." : "Duplicate shows the same desktop and cursor on your laptop and TV. Extend gives each screen its own desktop. Choose a layout, then apply and keep the changes."
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: page.monitors.length > 1
+            enabled: !page.busy
+            Label { text: "Screen to duplicate"; color: Style.Theme.muted }
+            SettingsComboBox {
+                id: duplicateSource
+                objectName: "duplicateSource"
+                Layout.fillWidth: true
+                model: page.monitors.map(m => m.name)
+                currentIndex: Math.max(0, page.monitors.findIndex(m => /^(eDP|LVDS|DSI)-/.test(m.name)))
+            }
+            RowLayout {
+                SettingsButton { objectName: "duplicateDisplays"; text: "Duplicate (mirror)"; onClicked: page.duplicate(duplicateSource.currentText) }
+                SettingsButton { objectName: "extendDisplays"; text: "Extend"; onClicked: page.extend() }
+            }
+        }
         RowLayout {
             Layout.fillWidth: true
             SettingsButton { objectName: "keepDisplays"; text: "Keep changes"; highlighted: true; visible: page.pending; enabled: !page.decisionSent && page.seconds > 0; onClicked: page.decide("keep") }
@@ -142,6 +167,20 @@ ColumnLayout {
             title: modelData.name
             subtitle: modelData.description || "Connected display"
             enabled: !page.busy
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: page.monitors.length > 1
+                Label { text: "Use this screen as"; color: Style.Theme.muted }
+                SettingsComboBox {
+                    objectName: "displayMirror"
+                    Layout.fillWidth: true
+                    readonly property var sources: page.entries.filter(e => e.output !== card.modelData.name && !e.mirror).map(e => e.output)
+                    model: ["Extended desktop"].concat(sources.map(s => "Duplicate " + s))
+                    currentIndex: card.entry.mirror ? sources.indexOf(card.entry.mirror) + 1 : 0
+                    onActivated: page.edit(card.index, "mirror", currentIndex ? sources[currentIndex - 1] : "")
+                }
+            }
+            Label { visible: !!card.entry.mirror; text: "Showing the desktop and cursor from " + (card.entry.mirror || "") + ". Different screen shapes may stretch the picture."; Layout.fillWidth: true; wrapMode: Text.Wrap; color: Style.Theme.muted }
             GridLayout {
                 Layout.fillWidth: true
                 columns: card.width > 600 ? 2 : 1

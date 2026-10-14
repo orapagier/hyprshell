@@ -10,6 +10,7 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | Desktop entry point | `hypr/hyprland.lua` / `config/hypr/hyprland.lua`; loads editable sections, then generated overrides |
 | Monitors, programs, appearance, layouts, input, shortcuts, window rules, startup | `hyprshell/hyprland/*.lua` / `config/hyprshell/hyprland/*.lua`; section filenames describe their purpose |
 | GUI display/appearance overrides | `hypr/hyprland-gui.lua`, required at end of main Lua file |
+| Displays / HDMI TV | `quickshell/SettingsDisplays.qml`, `settings/displays.py`, `hyprshell/displays.{json,lua}`; Alt+S → Displays offers Duplicate (mirror), Extend and per-screen mirror sources; Apply / Keep uses a 15-second rollback, and confirmed connector preferences persist through setup/sync |
 | Saved appearance, bar items, locking | `hyprshell/settings.json` / `config/hyprshell/settings.json` |
 | Shell composition and bar | `quickshell/shell.qml`, `Bar.qml`, `DesktopServices.qml` |
 | Menus | `quickshell/*Menu.qml`, `MenuController.qml`, `MenuPopover.qml` |
