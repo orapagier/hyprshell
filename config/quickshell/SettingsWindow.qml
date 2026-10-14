@@ -61,6 +61,36 @@ FloatingWindow {
     property var scrollPositions: ({})
     property int previousSection: -1
     property string searchQuery: ""
+    property int searchResultIndex: -1
+    onSearchResultsChanged: {
+        searchResultIndex = searchResults.length ? 0 : -1;
+        if (searchQuery.trim()) Qt.callLater(() => moveSearchSelection(0));
+    }
+    function moveSearchSelection(step) {
+        if (!searchResults.length) return;
+        searchResultIndex = searchResultIndex < 0 ? 0
+            : Math.max(0, Math.min(searchResults.length - 1, searchResultIndex + step));
+        let index = searchResultIndex;
+        let button = null;
+        for (let i = 0; i < navigationGroups.count; ++i) {
+            let group = navigationGroups.itemAt(i);
+            if (index < group.pages.length) {
+                button = group.buttons.itemAt(index);
+                break;
+            }
+            index -= group.pages.length;
+        }
+        if (!button) {
+            barItemsExpanded = true;
+            button = barResults.itemAt(index);
+        }
+        if (button) Qt.callLater(() => {
+            let y = button.mapToItem(sidebar.contentItem, 0, 0).y;
+            let view = sidebar.contentItem;
+            view.contentY = Math.max(0, Math.min(view.contentHeight - view.height,
+                Math.max(y + button.height - view.height, Math.min(view.contentY, y))));
+        });
+    }
     property bool barItemsExpanded: false
     readonly property var navigation: [
         {group: "Desktop", pages: [
@@ -567,7 +597,9 @@ FloatingWindow {
                             selectByMouse: true
                             Accessible.name: "Search settings"
                             onTextChanged: window.searchQuery = text
-                            onAccepted: if (window.searchResults.length) window.section = window.searchResults[0].section
+                            onAccepted: if (window.searchResults.length) window.section = window.searchResults[Math.max(0, window.searchResultIndex)].section
+                            Keys.onDownPressed: window.moveSearchSelection(1)
+                            Keys.onUpPressed: window.moveSearchSelection(-1)
                             Keys.onEscapePressed: event => {
                                 if (text.length) { clear(); event.accepted = true; }
                                 else event.accepted = false;
@@ -593,11 +625,13 @@ FloatingWindow {
                             }
                         }
                         Repeater {
+                            id: navigationGroups
                             model: window.navigation
                             delegate: ColumnLayout {
                                 id: navGroup
                                 required property var modelData
                                 readonly property var pages: window.matchingPages(modelData.pages)
+                                property alias buttons: pageResults
                                 visible: pages.length > 0
                                 Layout.fillWidth: true
                                 spacing: 3
@@ -611,6 +645,7 @@ FloatingWindow {
                                     font.weight: Font.DemiBold
                                 }
                                 Repeater {
+                                    id: pageResults
                                     model: navGroup.pages
                                     delegate: SettingsNavButton {
                                         required property var modelData
@@ -618,6 +653,7 @@ FloatingWindow {
                                         text: modelData.title
                                         symbol: modelData.symbol
                                         Layout.fillWidth: true
+                                        keyboardSelected: searchField.activeFocus && window.searchResultIndex >= 0 && window.searchResults[window.searchResultIndex]?.section === modelData.section
                                         highlighted: window.section === modelData.section
                                         onClicked: window.section = modelData.section
                                     }
@@ -635,6 +671,7 @@ FloatingWindow {
                             onClicked: window.barItemsExpanded = !window.barItemsExpanded
                         }
                         Repeater {
+                            id: barResults
                             model: window.barItemsExpanded || window.searchQuery.trim() ? window.matchingPages(window.barNavigation) : []
                             delegate: SettingsNavButton {
                                 required property var modelData
@@ -642,6 +679,7 @@ FloatingWindow {
                                 symbol: modelData.symbol
                                 itemEnabled: modelData.itemEnabled
                                 Layout.fillWidth: true
+                                keyboardSelected: searchField.activeFocus && window.searchResultIndex >= 0 && window.searchResults[window.searchResultIndex]?.section === modelData.section
                                 highlighted: window.section === modelData.section
                                 onClicked: window.section = modelData.section
                             }

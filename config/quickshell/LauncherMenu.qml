@@ -10,12 +10,22 @@ ColumnLayout {
     property bool active: true
     function prepare() {
         search.clear();
-        applications.currentIndex = 0;
+        applications.currentIndex = entries.length ? 0 : -1;
         Qt.callLater(() => { if (page.active) search.forceActiveFocus(); });
     }
     onActiveChanged: if (active) prepare()
     readonly property var sortedEntries: DesktopEntries.applications.values.slice().sort((a,b) => a.name.localeCompare(b.name))
     readonly property var entries: sortedEntries.filter(a => (a.name + " " + a.genericName).toLowerCase().includes(search.text.toLowerCase()))
+    onEntriesChanged: {
+        applications.currentIndex = entries.length ? 0 : -1;
+        applications.positionViewAtBeginning();
+    }
+    function moveSelection(step) {
+        if (!entries.length) return;
+        applications.currentIndex = applications.currentIndex < 0 ? 0
+            : Math.max(0, Math.min(entries.length - 1, applications.currentIndex + step));
+        applications.positionViewAtIndex(applications.currentIndex, ListView.Contain);
+    }
     function launch(entry) {
         if (!entry || !entry.id) return;
         let desktopId = entry.id.endsWith(".desktop") ? entry.id : entry.id + ".desktop";
@@ -44,8 +54,9 @@ ColumnLayout {
         font.family: "DejaVu Sans"; font.pixelSize: 13
         background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#1fffffff" }
         Component.onCompleted: if (page.active) page.prepare()
-        onAccepted: { if (page.entries.length) { page.launch(page.entries[0]); } }
-        Keys.onDownPressed: applications.forceActiveFocus()
+        onAccepted: { if (page.entries.length) page.launch(page.entries[Math.max(0, applications.currentIndex)]); }
+        Keys.onDownPressed: page.moveSelection(1)
+        Keys.onUpPressed: page.moveSelection(-1)
     }
     ListView {
         id: applications
@@ -61,7 +72,7 @@ ColumnLayout {
             width: applications.width
             text: modelData.name
             iconSource: icons.source(modelData.icon) || icons.source("application-x-executable")
-            accent: applications.activeFocus && applications.currentIndex === index ? "#cba6f7" : "#cdd6f4"
+            accent: (applications.activeFocus || search.activeFocus) && applications.currentIndex === index ? "#cba6f7" : "#cdd6f4"
             onClicked: { page.launch(modelData); }
         }
     }

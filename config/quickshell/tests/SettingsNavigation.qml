@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Window
+import QtTest
 import Quickshell
 import ".."
 
@@ -10,6 +11,10 @@ ShellRoot {
     readonly property var widths: [720, 900, 1280]
     SettingsStore { id: prefs }
     SettingsWindow { id: editor; store: prefs }
+    Item {
+        parent: editor.contentItem
+        TestEvent { id: keyboard }
+    }
     function find(object, name, seen) {
         if (!object || seen.indexOf(object) !== -1) return null;
         seen.push(object);
@@ -41,7 +46,14 @@ ShellRoot {
                 if (!search.activeFocus) { test.fail("search did not receive focus on open"); return; }
                 search.text = "keyboard";
                 if (editor.searchResults.length !== 2) { test.fail("keyword search lost a destination"); return; }
-                search.accepted();
+                if (editor.searchResultIndex !== 0 || !test.control("settingsNav-9").keyboardSelected) { test.fail("first match was not automatically selected"); return; }
+                keyboard.keyClick(Qt.Key_Down, Qt.NoModifier, 0);
+                if (editor.searchResultIndex !== 1 || !search.activeFocus) { test.fail("Down did not select next match while retaining search focus"); return; }
+                keyboard.keyClick(Qt.Key_Return, Qt.NoModifier, 0);
+                if (editor.section !== -6) { test.fail("Enter ignored selected match"); return; }
+                keyboard.keyClick(Qt.Key_Up, Qt.NoModifier, 0);
+                if (editor.searchResultIndex !== 0) { test.fail("Up did not return to first match"); return; }
+                keyboard.keyClick(Qt.Key_Return, Qt.NoModifier, 0);
                 if (editor.section !== -9) { test.fail("Enter did not select first search result"); return; }
                 test.phase = 2;
             } else if (test.phase === 2) {
@@ -49,7 +61,7 @@ ShellRoot {
                 test.control("settingsSearch").text = "no-such-preference";
                 test.phase = 3;
             } else if (test.phase === 3) {
-                if (editor.searchResults.length || !test.control("settingsSearchEmpty").visible) { test.fail("missing empty search feedback"); return; }
+                if (editor.searchResultIndex !== -1 || editor.searchResults.length || !test.control("settingsSearchEmpty").visible) { test.fail("missing empty search feedback"); return; }
                 test.control("settingsSearchClear").clicked();
                 if (editor.searchQuery) { test.fail("clear button did not clear search"); return; }
                 editor.section = -2;

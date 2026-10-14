@@ -6,6 +6,7 @@ Button {
     id: control
     property string symbol: "󰒓"
     property bool itemEnabled: true
+    property bool keyboardSelected: false
     implicitHeight: 42
     leftPadding: 13; rightPadding: 13
     hoverEnabled: true
@@ -32,8 +33,8 @@ Button {
     background: Rectangle {
         radius: 8
         color: control.highlighted ? Style.Theme.selection : control.hovered ? Style.Theme.button : "transparent"
-        border.width: control.activeFocus ? 2 : 0
-        border.color: control.activeFocus ? Style.Theme.accentText : Style.Theme.border
+        border.width: control.activeFocus || control.keyboardSelected ? 2 : 0
+        border.color: (control.activeFocus || control.keyboardSelected) ? Style.Theme.accentText : Style.Theme.border
         Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, 140) } }
     }
 }
