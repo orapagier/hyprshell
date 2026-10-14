@@ -730,7 +730,9 @@ descriptions; questions and tasks needing follow-up do not trigger commits.
 There is no background Git saver. Sync reconciles live and checkout changes,
 validates them, creates a local commit if needed, then pushes. Existing commits
 keep their original subjects and bodies, including completed agent task descriptions.
-Sync creates a new commit only for remaining uncommitted edits. A failed push leaves
+Sync creates a new commit only for remaining uncommitted edits, with a subject naming
+the affected components and a body listing added, modified, and removed files.
+A failed push leaves
 the local commit for retry.
 Staged changes, unfinished merges, or conflicting repo/live copies require
 resolution before publishing. Configure a Git commit identity on fresh clones.

@@ -15,6 +15,28 @@ spec.loader.exec_module(syncer)
 
 
 class SyncTests(unittest.TestCase):
+    def test_snapshot_description_identifies_shortcuts_and_file_actions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            subprocess.run(['git', 'init', '-b', 'main', str(repo)], check=True, capture_output=True)
+            run = lambda *args: syncer.git(repo, *args)
+            run('config', 'user.name', 'Test'); run('config', 'user.email', 'test@example.com')
+            shortcuts = repo / 'config/hyprshell/hyprland/shortcuts.lua'
+            shortcuts.parent.mkdir(parents=True)
+            shortcuts.write_text('original')
+            obsolete = shortcuts.with_name('old shortcuts.lua')
+            obsolete.write_text('obsolete')
+            run('add', '.'); run('commit', '-m', 'initial')
+            shortcuts.write_text('updated shortcuts')
+            obsolete.unlink()
+            shortcuts.with_name('new shortcuts.lua').write_text('new')
+            run('add', '-A')
+            message = syncer.commit_message(repo)
+            self.assertIn('Hyprland shortcuts', message.splitlines()[0])
+            self.assertIn('Modify "config/hyprshell/hyprland/shortcuts.lua"', message)
+            self.assertIn('Add "config/hyprshell/hyprland/new shortcuts.lua"', message)
+            self.assertIn('Remove "config/hyprshell/hyprland/old shortcuts.lua"', message)
+
     def test_explicit_sync_commits_live_edits_and_preserves_history(self):
         import os
         with tempfile.TemporaryDirectory() as directory:
@@ -40,6 +62,9 @@ class SyncTests(unittest.TestCase):
                 syncer.sync(repo, config, str(remote), 'example/hyprshell')
                 first = run('rev-parse', 'HEAD')
                 self.assertNotEqual(first, previous)
+                message = run('log', '-1', '--format=%B')
+                self.assertTrue(message.startswith('Update Hyprland configuration\n'))
+                self.assertIn('Modify "config/hypr/current"', message)
                 self.assertEqual((repo / 'config/hypr/current').read_text(), 'Manual monitor adjustment')
                 self.assertEqual(syncer.sync(repo, config, str(remote), 'example/hyprshell'),
                                  'Nothing to sync now.')

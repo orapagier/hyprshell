@@ -207,6 +207,51 @@ def file_hash(path):
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
+def commit_message(repo):
+    """Describe the staged snapshot without guessing intent or rewriting commits."""
+    fields = git(repo, 'diff', '--cached', '--name-status', '--no-renames', '-z').split('\0')
+    changes = list(zip(fields[0::2], fields[1::2]))
+    components = set()
+    for _, name in changes:
+        path = Path(name)
+        if name.startswith('config/hyprshell/hyprland/'):
+            components.add('Hyprland ' + path.stem)
+        elif name.startswith('config/hyprshell/'):
+            components.add(path.stem + ' preferences')
+        elif name.startswith('config/quickshell/settings/'):
+            components.add(path.stem.replace('_', ' ') + ' settings')
+        elif name.startswith('config/quickshell/'):
+            components.add('desktop shell')
+        elif name.startswith('config/hypr/'):
+            components.add('Hyprland configuration')
+        elif name.startswith('config/'):
+            components.add(path.parts[1] + ' configuration')
+        elif name.startswith('docs/') or name in ('README.md', 'CHANGELOG.md'):
+            components.add('documentation')
+        elif name.startswith('tests/'):
+            components.add('tests')
+        elif name.startswith('assets/wallpapers/'):
+            components.add('wallpaper')
+        elif name.startswith('assets/'):
+            components.add('desktop assets')
+        elif name.startswith('bin/'):
+            components.add('desktop utilities')
+        elif name.startswith('tools/') or name == 'setup.sh':
+            components.add('setup tools')
+        elif name.startswith('packages') or name == 'compatibility.json':
+            components.add('package requirements')
+        else:
+            components.add(name)
+    labels = sorted(components)
+    subject = 'Update ' + ', '.join(labels)
+    if len(subject) > 100:
+        subject = f'Update {labels[0]} and {len(labels) - 1} other components' if len(labels) > 1 else 'Update Hyprshell configuration'
+    actions = {'A': 'Add', 'M': 'Modify', 'D': 'Remove', 'T': 'Change type of'}
+    body = '\n'.join(f'- {actions.get(status, "Update")} {json.dumps(name, ensure_ascii=False)}'
+                     for status, name in changes)
+    return subject + '\n\nCaptured local changes during Sync to GitHub:\n' + body
+
+
 def save_local(repo, config, home=None):
     """Reconcile live/repo edits, then commit locally. Never contact GitHub."""
     from github_update import repository_lock
@@ -280,7 +325,7 @@ def save_local(repo, config, home=None):
             committed = bool(git(repo, 'diff', '--cached', '--name-only'))
             if committed:
                 try:
-                    git(repo, 'commit', '-m', 'Save local Hyprshell changes')
+                    git(repo, 'commit', '-m', commit_message(repo))
                 except Exception:
                     git(repo, 'restore', '--staged', '--', *paths)
                     raise
