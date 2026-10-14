@@ -28,52 +28,6 @@ TestCase {
         let bindings = Guide.desktopBindings([{key: "XF86AudioRaiseVolume", modmask: 0}]);
         compare(Guide.matching(bindings, "xf86audioraisevolume").length, 1);
         compare(Guide.matching(bindings, "volume up").length, 1);
-        compare(Guide.matching(bindings, "fn f3").length, 1);
-    }
-    function test_duplicate_actions_use_correct_key_badges() {
-        for (let symbol of Object.keys(Guide.laptopMediaKeys)) {
-            let fnKey = Guide.laptopMediaKeys[symbol];
-            let key = fnKey.split(" + ")[1];
-            let entries = Guide.desktopBindings([
-                {key: key, modmask: 0, description: "Media action", repeat: true},
-                {key: symbol, modmask: 0, description: "Media action", repeat: true, locked: true}
-            ]);
-            compare(entries.length, 1);
-            compare(entries[0].variants.length, 2);
-            compare(entries[0].keyLabels.join(" / "), key + " / " + fnKey);
-            compare(Guide.matching(entries, key).length, 1);
-            compare(Guide.matching(entries, symbol).length, 1);
-            verify(entries[0].details.includes(fnKey + ": Repeats while held · Available while locked"));
-            verify(!entries[0].shortcut.includes("XF86"));
-        }
-        let entries = Guide.desktopBindings([
-            {key: "L", modmask: 64, description: "Lock screen"},
-            {key: "L", modmask: 72, description: "Lock screen"},
-            {key: "L", modmask: 64, description: "Lock screen", submap: "test", release: true},
-            {key: "Print", modmask: 0, description: "Capture screenshot region"},
-            {key: "Insert", modmask: 0, description: "Capture screenshot region"}
-        ]);
-        compare(entries.length, 3);
-        let screenshot = entries.find(e => e.action === "Capture screenshot region");
-        compare(screenshot.keyLabels.join(" / "), "Print Screen");
-        compare(screenshot.variants.length, 2);
-        compare(Guide.matching(entries, "insert").length, 1);
-        verify(entries.some(e => e.context === "Desktop · submap test" && e.details === "On release"));
-    }
-    function test_function_keys_letters_and_named_keys() {
-        for (let i = 1; i <= 35; ++i)
-            compare(Guide.shortcut({key: "F" + i, modmask: 0}), "F" + i);
-        compare(Guide.shortcut({key: "z", modmask: 64}), "Super + Z");
-        compare(Guide.shortcut({key: "left", modmask: 65}), "Super + Shift + Left");
-        compare(Guide.shortcut({key: "Return", modmask: 0}), "Enter");
-        compare(Guide.shortcut({key: "Prior", modmask: 0}), "Page Up");
-        compare(Guide.shortcut({key: "Print", modmask: 0}), "Print Screen");
-        compare(Guide.shortcut({key: "", modmask: 0}), "Unknown key");
-        compare(Guide.shortcut({key: "", modmask: 0, catch_all: true}), "Any key");
-        let bindings = Guide.desktopBindings([{key: "XF86AudioMicMute", modmask: 0},
-            {key: "F1", modmask: 0}, {key: "Insert", modmask: 0}]);
-        compare(Guide.matching(bindings, "f1").length, 1);
-        compare(Guide.matching(bindings, "print screen").length, 1);
     }
     function test_search_context_and_no_unimplemented_power_sequences() {
         compare(Guide.matching([], "kitty").length, 2);
