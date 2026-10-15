@@ -804,7 +804,10 @@ failed saves, rollback, sync, and preservation of topbar settings.
 ## Default applications and login startup
 
 Open **Default apps & startup** for web browser, email, file manager, PDF, text,
-image, music, and video associations. A group can contain several MIME types;
+office documents, spreadsheets, presentations, image, music, and video associations.
+Office groups cover modern, legacy, macro-enabled, and OpenDocument files, with
+installed suites such as Microsoft Office via WinPodX and ONLYOFFICE available
+when they advertise support. A group can contain several MIME types;
 selecting an app sets it for all of them. Different existing apps are shown as
 a mixed group. The choices list installed apps advertising support for at least
 one type, plus any installed current default. **Find apps** adds an exact MIME

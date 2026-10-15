@@ -19,6 +19,18 @@ GROUPS = [
     ('Email', ['x-scheme-handler/mailto']),
     ('File manager', ['inode/directory']),
     ('PDF documents', ['application/pdf']),
+    ('Office documents (.docx, .doc, .docm, .odt)', [
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword', 'application/vnd.ms-word.document.macroEnabled.12',
+        'application/vnd.oasis.opendocument.text']),
+    ('Spreadsheets (.xlsx, .xls, .xlsm, .ods)', [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel', 'application/vnd.ms-excel.sheet.macroEnabled.12',
+        'application/vnd.oasis.opendocument.spreadsheet']),
+    ('Presentations (.pptx, .ppt, .pptm, .odp)', [
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.ms-powerpoint', 'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+        'application/vnd.oasis.opendocument.presentation']),
     ('Text files', ['text/plain']),
     ('Images', ['image/png', 'image/jpeg', 'image/webp']),
     ('Music', ['audio/mpeg', 'audio/flac', 'audio/ogg', 'audio/mp4']),
