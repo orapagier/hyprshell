@@ -36,6 +36,7 @@ Run as your normal user, with sudo access, on Arch Linux or traditional DNF-base
 Hyprland and Quickshell are checked first; missing desktop dependencies are
 installed through pacman or DNF. Fedora enables lionheartp/Hyprland unless
 --no-copr is supplied. Everyday apps and firmware are included; no AUR apps are installed.
+Full setup installs Flatpak, adds Flathub, and installs Brave on both distributions.
 --config-only skips all package installation.
 Full setup previews every subsystem and preserves existing compatible policies.
 Conflicting network/audio backends need review before any privileged changes.
@@ -218,6 +219,7 @@ if (( DRY_RUN )); then
       printf 'Full Arch upgrade; ensure desktop packages: %s\n' "${PACKAGES[*]}"
       printf 'Media: distribution FFmpeg and hardware-selected acceleration; verify H.264/HEVC software decoders\n'
     fi
+    printf 'Flatpak: add system Flathub remote; install Brave (com.brave.Browser) as the default browser\n'
     if [[ -n "$LOGIN_UNIT" ]]; then
       printf 'Login screen: preserve existing login manager; enable %s for graphical login\n' "$LOGIN_UNIT"
     else
@@ -295,6 +297,9 @@ if [[ "$MODE" == install ]]; then
     bash "$REPO_DIR/tools/check_media.sh"
   fi
 
+  log 'Adding Flathub and installing Brave'
+  sudo flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+  sudo flatpak install --system --noninteractive -y flathub com.brave.Browser
 fi
 
 command -v python3 >/dev/null || die 'Python 3 is required for configuration deployment'

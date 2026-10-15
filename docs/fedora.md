@@ -41,13 +41,18 @@ Use the repository/fork containing this port until it is published upstream.
 Run setup as your desktop user, without `sudo ./setup.sh`. `--extra` adds
 Distrobox, Podman and cmatrix. Everyday apps, archive tools, clipboard-history
 tools, media controls and a text editor are included without it. The base manifest installs
-the desktop, Chromium, terminal, file manager, Wi-Fi support, Bluetooth,
+the desktop, Flatpak, terminal, file manager, Wi-Fi support, Bluetooth,
 audio, fonts, helper build dependencies, Hyprlock, XDG utilities, clipboard
 tools, Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic,
 rclone, and yt-dlp. Saved preferences enable Hyprlock after 60 idle minutes and before sleep.
 Backup destinations/schedules must be configured separately after installation.
 Clipboard capture remains disabled. [Daily-driver setup](daily-driver.md) covers
 printing, scanning, keyring login, time sync, firewall, firmware and readiness checks.
+Full setup also adds the system [Flathub remote](https://flathub.org/en/setup/Fedora)
+and installs [Brave](https://brave.com/linux/) (`com.brave.Browser`). New installs
+use `com.brave.Browser.desktop` for web links and the Super+B shortcut launches
+Brave through Flatpak. Arch uses the same Flatpak/Flathub path, without an AUR helper.
+Config-only and update modes leave packages and remotes unchanged.
 Timezone is preserved unless `--timezone REGION/CITY` is supplied.
 
 Full Fedora setup enables the third-party `lionheartp/Hyprland` COPR by default

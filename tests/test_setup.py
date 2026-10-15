@@ -153,9 +153,9 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('Missing desktop packages: hyprland quickshell wpa_supplicant upower', result.stdout)
         targets = queries[-1][1:]
         for required in ('hyprpolkitagent', 'qt6-wayland', 'gcc', 'libpulse', 'fftw',
-                         'pipewire-pulse', 'upower', 'wpa_supplicant', 'ttf-go-nerd', 'cosmic-files', 'plymouth', 'chromium'):
+                         'pipewire-pulse', 'upower', 'wpa_supplicant', 'ttf-go-nerd', 'cosmic-files', 'plymouth', 'flatpak'):
             self.assertIn(required, targets)
-        for unrelated in ('brave-bin', 'firefox', 'yay', 'waybar', 'mako',
+        for unrelated in ('chromium', 'brave-bin', 'firefox', 'yay', 'waybar', 'mako',
                           'rofi', 'fuzzel', 'cosmic-greeter', 'base-devel',
                           'thunar', 'thunar-volman', 'thunar-archive-plugin'):
             self.assertNotIn(unrelated, targets)

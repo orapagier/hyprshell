@@ -53,11 +53,11 @@ def check(after_login=False, root=Path('/'), runner=invoke):
         add(title, 'ok' if all(code == 0 for code in states) else 'unavailable' if None in states else 'attention',
             'Running.' if after_login and all(code == 0 for code in states) else
             'Enabled for login.' if all(code == 0 for code in states) else 'Check user audio services after login.')
-    commands = ('chromium', 'cosmic-files', 'kitty', 'mpv', 'mousepad', 'hyprlock',
+    commands = ('flatpak', 'cosmic-files', 'kitty', 'mpv', 'mousepad', 'hyprlock',
                 'hypridle', 'playerctl', 'gnome-keyring-daemon', 'simple-scan', 'system-config-printer')
     missing = [command for command in commands if not shutil.which(command)]
-    if 'chromium' in missing and shutil.which('chromium-browser'):
-        missing.remove('chromium')
+    if not shutil.which('flatpak') or runner(['flatpak', 'info', 'com.brave.Browser'])[0] != 0:
+        missing.append('Brave (com.brave.Browser from Flathub)')
     add('Everyday applications', 'attention' if missing else 'ok',
         'Missing: ' + ', '.join(missing) if missing else 'Installed.')
     drm = list((root / 'sys/class/drm').glob('card[0-9]*/device'))

@@ -39,8 +39,8 @@ cosmic-files
 gvfs
 gvfs-mtp
 xdg-user-dirs
-# Default web browser
-chromium
+# Brave is installed from Flathub by setup.sh.
+flatpak
 # Networking, pairing, and battery data
 networkmanager
 nm-connection-editor

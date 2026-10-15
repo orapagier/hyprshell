@@ -29,7 +29,7 @@ personal configuration; updates preserve existing preferences. See
 | Desktop | Hyprland 0.56+, UWSM, Quickshell, portals, Polkit agent, fonts, wallpaper and screenshots |
 | Audio | PipeWire, PulseAudio/ALSA compatibility, WirePlumber, general audio and SOF firmware |
 | Network | NetworkManager, Wi-Fi backend, connection editor, wireless firmware and BlueZ |
-| Apps | Chromium, COSMIC Files/GVfs/MTP, Kitty, mpv, Loupe, Papers, Mousepad, File Roller |
+| Apps | Brave (Flathub), Flatpak, COSMIC Files/GVfs/MTP, Kitty, mpv, Loupe, Papers, Mousepad, File Roller |
 | Integration | Browser/folder/media/image/PDF/text defaults, media keys, clipboard tools, archive tools, manuals and shell completion |
 | Lock/power | Hyprlock artwork, Hypridle, brightness and power profiles; personal defaults or retained user locking preferences |
 | Peripherals | CUPS socket, Avahi discovery, printer configuration, SANE and Simple Scan |
@@ -38,8 +38,8 @@ personal configuration; updates preserve existing preferences. See
 | Recovery | Config backups, rsync, Déjà Dup, Restic, rclone and yt-dlp; backup destinations/schedules remain user choices |
 
 Audio/video defaults use `mpv.desktop` on both distributions. The rest of the
-saved application IDs are resolved against installed desktop entries; Chromium's
-different distro IDs are handled by the preference restoration backend.
+saved application IDs are resolved against installed desktop entries. Brave uses
+`com.brave.Browser.desktop` on Fedora and Arch; full setup installs it from Flathub.
 Clipboard history tooling is installed, but capture stays disabled until enabled
 in Settings. Notification popups retain the saved preference (disabled); the
 notification inbox remains available.

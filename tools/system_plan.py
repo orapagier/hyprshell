@@ -18,7 +18,7 @@ GROUPS = {
     'Audio': 'pipewire pipewire-audio pipewire-alsa pipewire-pulse pipewire-pulseaudio wireplumber libpulse pulseaudio-utils pulseaudio-libs-devel fftw fftw-libs-double fftw-devel',
     'Power, battery and locking': 'upower brightnessctl hypridle hyprlock power-profiles-daemon tuned-ppd',
     'Appearance and fonts': 'awww fontconfig ttf-dejavu ttf-go-nerd noto-fonts noto-fonts-emoji pop-icon-theme adwaita-cursors dejavu-sans-fonts dejavu-sans-mono-fonts google-noto-sans-fonts google-noto-emoji-color-fonts adwaita-fonts-all adwaita-icon-theme',
-    'Applications and file integration': 'kitty cosmic-files gvfs gvfs-mtp xdg-user-dirs chromium xdg-utils loupe papers mpv mousepad file-roller playerctl',
+    'Applications and file integration': 'kitty cosmic-files gvfs gvfs-mtp xdg-user-dirs flatpak xdg-utils loupe papers mpv mousepad file-roller playerctl',
     'Media codecs and acceleration': 'ffmpeg ffmpeg-free libavcodec-freeworld libva-utils intel-media-driver libva-intel-driver mesa-va-drivers-freeworld',
     'Screenshots and clipboard': 'grim slurp swappy wl-clipboard cliphist libnotify',
     'Printing and scanning': 'cups system-config-printer simple-scan sane sane-backends avahi nss-mdns',

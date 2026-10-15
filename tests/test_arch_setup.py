@@ -64,11 +64,19 @@ os.execv({sys.executable!r}, [{sys.executable!r}, *sys.argv[1:]])''')
         result = self.run_setup('--extra')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         calls = self.read_calls()
+        self.assertIn(['sudo', 'flatpak', 'remote-add', '--system', '--if-not-exists', 'flathub',
+                       'https://dl.flathub.org/repo/flathub.flatpakrepo'], calls)
+        self.assertIn(['sudo', 'flatpak', 'install', '--system', '--noninteractive', '-y',
+                       'flathub', 'com.brave.Browser'], calls)
+        browser_index = next(i for i, call in enumerate(calls) if call[:3] == ['sudo', 'flatpak', 'install'])
+        config_index = next(i for i, call in enumerate(calls) if call[0] == 'python3' and call[1].endswith('/install_configs.py'))
+        self.assertLess(browser_index, config_index)
+        self.assertFalse(any('chromium' in call for call in calls))
         transaction = next(call for call in calls if call[:3] == ['sudo', 'pacman', '-Syu'])
         self.assertIn('--needed', transaction)
         for package in ('quickshell', 'hyprlock', 'ffmpeg', 'intel-media-driver', 'intel-ucode',
                         'cups', 'simple-scan', 'gnome-keyring', 'deja-dup', 'restic', 'rclone',
-                        'chromium', 'cosmic-files', 'distrobox', 'podman', 'cmatrix', 'sddm'):
+                        'flatpak', 'cosmic-files', 'distrobox', 'podman', 'cmatrix', 'sddm'):
             self.assertIn(package, transaction)
         self.assertNotIn('amd-ucode', transaction)
         media_index = next(i for i, call in enumerate(calls) if call[0] == 'ffmpeg')
