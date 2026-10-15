@@ -31,10 +31,26 @@ HYPR = {
     'rounding': ('decoration.rounding', 0, 100),
     'activeOpacity': ('decoration.active_opacity', 0, 1),
     'inactiveOpacity': ('decoration.inactive_opacity', 0, 1),
+    'fullscreenOpacity': ('decoration.fullscreen_opacity', 0, 1),
+    'effectWorkspaceScope': (None, 'scope', None),
+    'effectWorkspaces': (None, 'workspaces', None),
+    'blurFocus': (None, 'focus', None),
     'blur': ('decoration.blur.enabled', None, None),
     'blurSize': ('decoration.blur.size', 1, 20),
     'blurPasses': ('decoration.blur.passes', 1, 4),
     'blurVibrancy': ('decoration.blur.vibrancy', 0, 1),
+    'blurNoise': ('decoration.blur.noise', 0, 1),
+    'blurContrast': ('decoration.blur.contrast', 0, 2),
+    'blurBrightness': ('decoration.blur.brightness', 0, 2),
+    'blurVibrancyDarkness': ('decoration.blur.vibrancy_darkness', 0, 1),
+    'blurIgnoreOpacity': ('decoration.blur.ignore_opacity', None, None),
+    'blurOptimizations': ('decoration.blur.new_optimizations', None, None),
+    'blurXray': ('decoration.blur.xray', None, None),
+    'blurSpecial': ('decoration.blur.special', None, None),
+    'blurPopups': ('decoration.blur.popups', None, None),
+    'blurPopupsIgnoreAlpha': ('decoration.blur.popups_ignorealpha', 0, 1),
+    'blurInputMethods': ('decoration.blur.input_methods', None, None),
+    'blurInputMethodsIgnoreAlpha': ('decoration.blur.input_methods_ignorealpha', 0, 1),
     'shadows': ('decoration.shadow.enabled', None, None),
     'animations': ('animations.enabled', None, None),
     'pointerSpeed': ('input.sensitivity', -1, 1),
@@ -150,7 +166,16 @@ def validate(data):
         raise ValueError('Unknown Hyprland setting')
     for key, value in hypr.items():
         _, low, high = HYPR[key]
-        if low == 'layouts':
+        if low == 'scope':
+            if value not in ('all', 'selected'):
+                raise ValueError('Choose all or selected workspaces')
+        elif low == 'focus':
+            if value not in ('both', 'focused', 'unfocused'):
+                raise ValueError('Choose which windows receive blur')
+        elif low == 'workspaces':
+            if not isinstance(value, list) or len(value) > 99 or any(type(v) is not int or not 1 <= v <= 99 for v in value) or len(set(value)) != len(value):
+                raise ValueError('Choose unique workspace numbers from 1 to 99')
+        elif low == 'layouts':
             if not isinstance(value, str) or len(value) > 100 or not re.fullmatch(r'[a-z0-9_]+(?:,[a-z0-9_]+){0,3}', value):
                 raise ValueError('Choose one to four comma-separated keyboard layout codes')
             for code in value.split(','):
@@ -163,7 +188,7 @@ def validate(data):
             if type(value) is not bool:
                 raise ValueError(f'{key} must be boolean')
         else:
-            number(value, low, high, high != 1)
+            number(value, low, high, key not in ('blurContrast', 'blurBrightness') and high != 1)
     locking = data.get('locking', {})
     if not isinstance(locking, dict) or set(locking) - set(result['locking']):
         raise ValueError('Unknown screen locking setting')
@@ -406,6 +431,32 @@ def render_hypr(settings, lua, accessibility=None):
     settings = dict(settings)
     if (accessibility or {}).get('reducedMotion'):
         settings['animations'] = False
+    scope = settings.pop('effectWorkspaceScope', 'all')
+    workspaces = settings.pop('effectWorkspaces', [])
+    focus = settings.pop('blurFocus', 'both')
+    rules = []
+    def rule(match, **effects):
+        rules.append({'name': 'hyprshell-glass-' + str(len(rules)), 'match': match, **effects})
+    # Blur parameters are compositor-wide; dynamic rules restrict its visibility.
+    if scope == 'selected':
+        opacity_keys = ('activeOpacity', 'inactiveOpacity', 'fullscreenOpacity')
+        opacity = [settings.get(k, 1) for k in opacity_keys]
+        has_opacity = any(k in settings for k in opacity_keys)
+        for key in opacity_keys:
+            settings[key] = 1
+        rule({'class': '.*'}, no_blur=True)
+        for workspace in workspaces:
+            match = {'workspace': str(workspace)}
+            if has_opacity:
+                rule(match, opacity=' '.join(str(v) + ' override' for v in opacity))
+            if settings.get('blur') is not False:
+                rule(match, no_blur=False)
+    if focus != 'both' and settings.get('blur') is not False:
+        rule({'focus': focus == 'unfocused'}, no_blur=True)
+        if scope == 'all':
+            rule({'focus': focus == 'focused'}, no_blur=False)
+    if (scope == 'selected' or focus != 'both') and settings.get('blur') is not False:
+        settings['blur'] = True
     sides = ('top', 'right', 'bottom', 'left')
     if any('gapsOut' + side.title() in settings for side in sides):
         settings['gapsOut'] = {side: settings.pop('gapsOut' + side.title(), settings.get('gapsOut', 10)) for side in sides}
@@ -414,7 +465,12 @@ def render_hypr(settings, lua, accessibility=None):
             if isinstance(value, dict):
                 return ','.join(str(value[side]) for side in sides)
             return str(value).lower()
-        return '# Generated by Hyprshell\n' + ''.join(f'{HYPR[k][0].replace(".", ":")} = {value_text(v)}\n' for k, v in settings.items())
+        source = '# Generated by Hyprshell\n' + ''.join(f'{HYPR[k][0].replace(".", ":")} = {value_text(v)}\n' for k, v in settings.items())
+        for row in rules:
+            effects = [f'{k} {value_text(v)}' for k, v in row.items() if k not in ('name', 'match')]
+            matches = [f'match:{k} {value_text(v)}' for k, v in row['match'].items()]
+            source += 'windowrule = ' + ', '.join(effects + matches) + '\n'
+        return source
     tree = {}
     for key, value in settings.items():
         parts = HYPR[key][0].split('.')
@@ -428,7 +484,7 @@ def render_hypr(settings, lua, accessibility=None):
         if isinstance(node, str):
             return json.dumps(node)
         return str(node).lower()
-    return '-- Generated by Hyprshell\nhl.config(' + encode(tree) + ')\n'
+    return '-- Generated by Hyprshell\nhl.config(' + encode(tree) + ')\n' + ''.join('hl.window_rule(' + encode(row) + ')\n' for row in rules)
 
 
 def atomic(path, content):

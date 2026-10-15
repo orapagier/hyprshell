@@ -453,6 +453,70 @@ class SettingsTests(unittest.TestCase):
                 main.unlink()
                 self.path.unlink()
 
+    def test_scoped_glass_rules_follow_focus_and_workspace_and_parse(self):
+        settings = {
+            'effectWorkspaceScope': 'selected', 'effectWorkspaces': [2, 7],
+            'blurFocus': 'unfocused', 'activeOpacity': 0.9, 'inactiveOpacity': 0.6,
+            'fullscreenOpacity': 1, 'blur': True, 'blurNoise': 0.02,
+            'blurContrast': 1.25, 'blurBrightness': 0.75, 'blurVibrancyDarkness': 0.3,
+            'blurIgnoreOpacity': True, 'blurOptimizations': True, 'blurXray': False,
+            'blurSpecial': False, 'blurPopups': True, 'blurPopupsIgnoreAlpha': 0.2,
+            'blurInputMethods': True, 'blurInputMethodsIgnoreAlpha': 0.1,
+        }
+        self.data['hyprland'] = settings
+        self.assertEqual(backend.validate(self.data)['hyprland'], settings)
+        source = backend.render_hypr(settings, True)
+        self.config.mkdir(parents=True, exist_ok=True)
+        path = self.config / 'scoped-glass.lua'; path.write_text(source)
+        result = subprocess.run(['Hyprland', '--verify-config', '--config', str(path)],
+                                capture_output=True, text=True, timeout=15)
+        self.assertIn('config ok', result.stdout.lower(), result.stdout + result.stderr)
+        main = self.config / 'hypr/hyprland.lua'
+        main.parent.mkdir(parents=True); main.write_text('-- Personal configuration\n')
+        backend.save(self.data)
+        self.assertEqual(json.loads(self.path.read_text())['hyprland'], settings)
+        self.assertEqual((self.config / 'hyprshell/overrides.lua').read_text(), source)
+        self.assertIn('active_opacity = 1', source)
+        self.assertIn('opacity = "0.9 override 0.6 override 1 override"', source)
+        self.assertIn('workspace = "2"', source)
+        self.assertIn('workspace = "7"', source)
+        self.assertTrue(source.rstrip().endswith('match = {focus = true}, no_blur = true})'))
+        conf = backend.render_hypr(settings, False)
+        self.assertIn('windowrule = no_blur false, match:workspace 7', conf)
+        self.assertIn('windowrule = no_blur true, match:focus true', conf)
+        # Clear transparency wins over retained blur tuning and focus choices.
+        settings['blur'] = False
+        self.assertIn('enabled = false', backend.render_hypr(settings, True))
+        self.assertNotIn('no_blur = false', backend.render_hypr(settings, True))
+        # Returning to all workspaces removes the workspace rules and restores opacities.
+        settings['effectWorkspaceScope'] = 'all'
+        settings['blurFocus'] = 'both'
+        source = backend.render_hypr(settings, True)
+        self.assertNotIn('hl.window_rule', source)
+        self.assertIn('active_opacity = 0.9', source)
+        self.assertIn('inactive_opacity = 0.6', source)
+
+    def test_glass_scope_validation_and_empty_selection(self):
+        for key, values in {
+            'effectWorkspaceScope': ['other', True],
+            'effectWorkspaces': ['1,2', [0], [100], [True], [1, 1], [1.5]],
+            'blurFocus': ['other', False],
+            'fullscreenOpacity': [-0.1, 1.1, True],
+            'blurContrast': [-1, 2.1, True],
+            'blurBrightness': [-1, 2.1, float('nan')],
+            'blurNoise': [-0.1, 1.1],
+            'blurIgnoreOpacity': [1, 'true'],
+        }.items():
+            for value in values:
+                with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                    backend.validate({'version': 1, 'hyprland': {key: value}})
+        source = backend.render_hypr({'effectWorkspaceScope': 'selected', 'effectWorkspaces': []}, True)
+        self.assertIn('no_blur = true', source)
+        self.assertNotIn('no_blur = false', source)
+        source = backend.render_hypr({'blurFocus': 'focused'}, True)
+        self.assertIn('match = {focus = false}, no_blur = true', source)
+        self.assertIn('match = {focus = true}, no_blur = false', source)
+
     def test_invalid_glass_values_write_nothing(self):
         for key, values in {
             'blurSize': (0, 21, 1.5, True),

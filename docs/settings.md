@@ -1472,3 +1472,41 @@ website removal while firewalld is off, Custom/Family/Automatic application and
 website draft preservation. Backend tests cover validation, stale revisions, mode
 rollback, external overrides and interrupted changes. Actual package installation and live DNS
 activation need a desktop-session check; simulated tests do not certify them.
+
+
+## Window transparency and glass scope
+
+**Windows → Effect workspaces** chooses all workspaces or a saved selection of
+numbered workspaces (1–99). Pick each workspace and toggle **Apply effects**;
+the summary lists the complete selection. An empty selection disables effects.
+Switching back to all workspaces retains the selection for later. Existing
+preferences remain unchanged until edited.
+
+Focused, unfocused and fullscreen windows have separate transparency sliders.
+**Glass & blur → Background blur** selects frosted glass or clear transparency.
+**Blur applies to** selects both focus states, focused only or unfocused only.
+Blur strength, passes and vibrancy remain adjustable. **Advanced glass & blur**
+adds grain, contrast, brightness, dark-area vibrancy, opacity-independent blur,
+optimizations, X-ray wallpaper blur, special-workspace blur, application popup
+blur and input-method blur, with separate alpha thresholds. Each control can
+return to **Use config**. All changes use the existing validated autosave,
+conflict detection, backups and rollback; they are included in setup and sync
+through the existing settings payload and override generator.
+
+Hyprland shares blur strength and color parameters across windows/workspaces;
+dynamic window rules restrict where the shared effect is visible. With selected
+workspaces, unselected windows use compositor opacity 1 and no blur; selected
+windows use the opacity choices (unset states default to 1 in this mode).
+Application-owned transparency can remain, and application-specific rules can
+take priority. Window opacity fades the entire app, including text; opaque text
+over a transparent background requires support from the application itself.
+Special-workspace and popup blur toggles are compositor-wide and do not have
+per-focus or numbered-workspace filtering. Increasing passes or enabling special
+workspace blur may increase GPU use. New controls do not change saved appearance
+merely by opening the page.
+
+Validation: `test_settings.py` checks schema rejection, generated scope/focus
+rules, resetting scope, empty selections, Lua parsing with the installed
+compositor and transaction rollback. `tst_SettingsAppearance.qml` exercises native
+workspace selection, focus/style changes, retained choices, advanced sliders,
+reset and narrow layouts. These checks do not establish live session rendering.

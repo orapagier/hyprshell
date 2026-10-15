@@ -14,6 +14,8 @@ spec.loader.exec_module(search)
 class SettingsSearchTests(unittest.TestCase):
     def test_requested_headings_nested_pages_and_bar_items(self):
         index = search.build_index()
+        for caption in ('Effect workspaces', 'Fullscreen windows', 'Advanced glass & blur', 'Glass grain', 'Blur application popups'):
+            self.assertIn(caption, index['-2'])
         self.assertIn('System updates', index['-14'])
         self.assertIn('Popdown glass', index['-1'])
         self.assertIn('Popdown glass', index['*'])

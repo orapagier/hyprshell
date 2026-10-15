@@ -19,7 +19,7 @@ Item {
     TestCase {
         name: "SettingsAppearance"
         when: windowShown
-        function cleanup() { page.settings = {}; page.width = 820; }
+        function cleanup() { page.settings = {}; page.width = 820; page.selectedWorkspace = 1; }
         function slider(key) { return findChild(findChild(page, key + "Control"), "effectSlider"); }
         function test_transparencyDragChangesOpacityAndResetRestoresConfig() {
             let control = findChild(page, "activeOpacityControl");
@@ -58,11 +58,59 @@ Item {
             compare(slider("blurSize").value, 12);
             compare(slider("blurVibrancy").value, 40);
         }
+        function test_workspaceSelectionRetainsChoicesAcrossScopeChanges() {
+            let scope = findChild(page, "effectWorkspaceScopeControl");
+            scope.currentIndex = 2;
+            scope.activated(2);
+            compare(page.settings.effectWorkspaceScope, "selected");
+            let toggle = findChild(page, "effectWorkspaceEnabledControl");
+            mouseClick(toggle);
+            compare(page.settings.effectWorkspaces.join(","), "1");
+            let workspace = findChild(page, "effectWorkspaceControl");
+            workspace.currentIndex = 6;
+            workspace.activated(6);
+            verify(!toggle.checked);
+            mouseClick(toggle);
+            compare(page.settings.effectWorkspaces.join(","), "1,7");
+            scope.currentIndex = 1;
+            scope.activated(1);
+            compare(page.settings.effectWorkspaces.join(","), "1,7");
+            verify(!toggle.visible);
+            scope.currentIndex = 2;
+            scope.activated(2);
+            verify(toggle.checked);
+        }
+        function test_focusGlassAndAdvancedChoices() {
+            let focus = findChild(page, "blurFocusControl");
+            focus.currentIndex = 3;
+            focus.activated(3);
+            compare(page.settings.blurFocus, "unfocused");
+            let mode = findChild(page, "blurMode");
+            mode.currentIndex = 2;
+            mode.activated(2);
+            compare(page.settings.blur, false);
+            verify(!slider("blurNoise").enabled);
+            mode.currentIndex = 1;
+            mode.activated(1);
+            compare(page.settings.blur, true);
+            compare(page.settings.blurFocus, "unfocused");
+            let contrast = findChild(page, "blurContrastControl");
+            contrast.commitDisplayValue(125);
+            compare(page.settings.blurContrast, 1.25);
+            contrast.edited("");
+            compare(page.settings.blurContrast, undefined);
+        }
         function test_responsiveLayoutHasNoHorizontalOverflow() {
             for (let width of [820, 480]) {
                 page.width = width;
                 wait(30);
-                for (let key of ["activeOpacity", "inactiveOpacity", "blurSize", "blurVibrancy", "rounding", "gapsOut"]) {
+                for (let name of ["blurMode", "blurFocusControl", "effectWorkspaceScopeControl"]) {
+                    let control = findChild(page, name);
+                    let position = control.mapToItem(page, 0, 0);
+                    verify(position.x >= 0);
+                    verify(position.x + control.width <= page.width + 1);
+                }
+                for (let key of ["activeOpacity", "inactiveOpacity", "blurSize", "blurVibrancy", "rounding", "gapsOut", "fullscreenOpacity", "blurNoise", "blurBrightness"]) {
                     let control = findChild(page, key + "Control");
                     let position = control.mapToItem(page, 0, 0);
                     verify(position.x >= 0);
