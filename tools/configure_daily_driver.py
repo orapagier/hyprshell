@@ -42,6 +42,31 @@ def pam_keyring(text):
     return '\n'.join(lines) + '\n'
 
 
+def configure_inotify(root=Path('/'), runner=invoke):
+    payload = Path(__file__).resolve().parents[1] / 'config/sysctl.d/90-hyprshell-inotify.conf'
+    text = payload.read_text()
+    pattern = r'^\s*-?fs[./]inotify[./]max_user_instances\s*=\s*(\d+)\b'
+    minimum = int(re.search(pattern, text, re.MULTILINE).group(1))
+    current = root / 'proc/sys/fs/inotify/max_user_instances'
+    value = max(minimum, int(current.read_text()) if current.exists() else 0)
+    # Preserve higher administrator limits, including values saved for next boot.
+    sources = [root / 'etc/sysctl.conf']
+    for directory in ('usr/lib/sysctl.d', 'usr/local/lib/sysctl.d', 'run/sysctl.d', 'etc/sysctl.d'):
+        sources.extend((root / directory).glob('*.conf'))
+    for source in sources:
+        if source.is_file():
+            for match in re.finditer(pattern, source.read_text(), re.MULTILINE):
+                value = max(value, int(match.group(1)))
+    text = text.replace(f'= {minimum}', f'= {value}')
+    destination = root / 'etc/sysctl.d' / payload.name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not destination.exists() or destination.read_text() != text:
+        destination.write_text(text)
+        destination.chmod(0o644)
+    # Apply only this key; do not reload unrelated administrator sysctl settings.
+    checked(['sysctl', '-w', f'fs.inotify.max_user_instances={value}'], runner)
+
+
 def configure(root=Path('/'), runner=invoke, policy=None):
     if policy is None:
         from system_plan import environment
@@ -66,6 +91,7 @@ def configure(root=Path('/'), runner=invoke, policy=None):
         if not existing and not list((root / 'etc/firewalld/zones').glob('*.xml')):
             checked(['firewall-cmd', '--permanent', '--add-service=mdns'], runner)
             checked(['firewall-cmd', '--add-service=mdns'], runner)
+    configure_inotify(root, runner)
     pam = root / 'etc/pam.d/sddm'
     if pam.is_file():
         text = pam.read_text()

@@ -54,6 +54,13 @@ support for the particular laptop.
 
 ## Existing systems
 
+Full setup raises `fs.inotify.max_user_instances` to at least 1024, applies it
+immediately, and saves it in `/etc/sysctl.d/90-hyprshell-inotify.conf` for reboots.
+This gives desktop apps and rootless containers more room than the kernel default
+of 128 and helps prevent WinPodX dnsmasq startup failures. Higher live or saved
+limits are retained; watch limits and other sysctl settings are unchanged.
+Config-only updates do not apply administrator-owned system settings.
+
 Setup preserves the selected login manager and enables it for graphical login.
 If none is installed, SDDM is included in the package transaction. A broken
 display-manager alias stops setup before package/config changes instead of

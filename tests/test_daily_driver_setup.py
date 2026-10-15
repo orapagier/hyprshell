@@ -104,6 +104,28 @@ class DailyDriverSetupTests(unittest.TestCase):
         text = 'auth include password-auth\n-auth optional pam_gnome_keyring.so\n-session optional pam_gnome_keyring.so auto_start\n'
         self.assertEqual(system.pam_keyring(text), text)
 
+    def test_inotify_floor_is_persistent_applied_and_idempotent(self):
+        self.apply()
+        target = self.root / 'etc/sysctl.d/90-hyprshell-inotify.conf'
+        self.assertIn('fs.inotify.max_user_instances = 1024', target.read_text())
+        self.assertIn(['sysctl', '-w', 'fs.inotify.max_user_instances=1024'], self.calls)
+        timestamp = target.stat().st_mtime_ns
+        self.apply()
+        self.assertEqual(target.stat().st_mtime_ns, timestamp)
+
+    def test_inotify_keeps_higher_live_and_persistent_limits(self):
+        current = self.root / 'proc/sys/fs/inotify/max_user_instances'
+        current.parent.mkdir(parents=True)
+        current.write_text('2048')
+        system.configure_inotify(self.root, self.runner)
+        self.assertIn(['sysctl', '-w', 'fs.inotify.max_user_instances=2048'], self.calls)
+        custom = self.root / 'etc/sysctl.d/99-custom.conf'
+        original = 'fs.inotify.max_user_instances = 4096\nfs.inotify.max_user_watches = 524288\n'
+        custom.write_text(original)
+        system.configure_inotify(self.root, self.runner)
+        self.assertIn(['sysctl', '-w', 'fs.inotify.max_user_instances=4096'], self.calls)
+        self.assertEqual(custom.read_text(), original)
+
     def test_pam_write_failure_leaves_original_authentication_file_intact(self):
         pam = self.root / 'etc/pam.d/sddm'
         pam.parent.mkdir(parents=True)
