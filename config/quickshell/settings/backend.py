@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 DEFAULTS = json.loads(Path(__file__).with_name('defaults.json').read_text())
 HYPR = {
@@ -339,7 +340,32 @@ def run_locker():
         options = {}
         if args == ['hyprlock']:
             options['cwd'] = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config') / 'hypr'
-        return subprocess.run(args, check=False, **options).returncode
+        return supervise_locker(args, options)
+
+
+# A locker that exits cleanly has unlocked the session; a positive code is a
+# startup/configuration error. A locker killed by a signal (for example
+# hyprlock aborting after a suspend/resume or display power cycle) has instead
+# died while the session must stay locked. Relaunch it so the compositor can
+# hand the lock to the new client instead of showing a dead, clientless screen.
+LOCKER_RESTART_DELAY = 1.0
+LOCKER_HEALTHY_SECONDS = 30.0
+LOCKER_MAX_RESTARTS = 10
+
+
+def supervise_locker(args, options):
+    restarts = 0
+    while True:
+        started = time.monotonic()
+        code = subprocess.run(args, check=False, **options).returncode
+        if code >= 0:
+            return code
+        if time.monotonic() - started >= LOCKER_HEALTHY_SECONDS:
+            restarts = 0
+        restarts += 1
+        if restarts > LOCKER_MAX_RESTARTS:
+            return code
+        time.sleep(LOCKER_RESTART_DELAY)
 
 
 def run_idle(on_battery=False):

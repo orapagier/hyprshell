@@ -49,6 +49,13 @@ hl.config({
     animations = {
         enabled = true,
     },
+
+    misc = {
+        -- Let a restarted hyprlock reclaim the session if the lock client dies
+        -- (for example hyprlock aborting after resume or a display power cycle),
+        -- instead of leaving the session locked with no client.
+        allow_session_lock_restore = true,
+    },
 })
 
 -- Default curves and animations, see https://wiki.hypr.land/Configuring/Advanced-and-Cool/Animations/
