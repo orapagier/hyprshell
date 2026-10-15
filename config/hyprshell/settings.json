@@ -9,7 +9,7 @@
     "workspaceOverrides": {
       "1": true,
       "2": true,
-      "3": false,
+      "3": true,
       "4": true,
       "5": true,
       "6": true
@@ -373,7 +373,17 @@
     "gapsOutTop": 5,
     "gapsOutBottom": 5,
     "gapsOutLeft": 5,
-    "gapsOutRight": 5
+    "gapsOutRight": 5,
+    "activeOpacity": 1,
+    "blurSize": 1,
+    "blur": true,
+    "blurFocus": "focused",
+    "blurPasses": 1,
+    "blurVibrancy": 0,
+    "blurIgnoreOpacity": true,
+    "blurOptimizations": true,
+    "blurPopups": true,
+    "blurInputMethods": true
   },
   "locking": {
     "enabled": true,
