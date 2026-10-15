@@ -21,6 +21,7 @@ ShellRoot {
     property var pendingBarToggles: []
     SettingsStore { id: preferences }
     ProjectorWindow { id: projectorWindow }
+    PresentationView { id: presentationView }
     SettingsController {
         id: settingsController
         store: preferences

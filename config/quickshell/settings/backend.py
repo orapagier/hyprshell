@@ -313,6 +313,9 @@ def render_idle(settings, power=None):
         text += '    lock_cmd = ' + command + '\n'
         if settings['beforeSleep']:
             text += '    before_sleep_cmd = loginctl lock-session\n'
+            # Auto detection sees our Python wrapper rather than hyprlock.
+            # Wait for the compositor's lock notification before suspending.
+            text += '    inhibit_sleep = 3\n'
     if power_idle_enabled(power):
         text += '    after_sleep_cmd = ' + power_command + ' --resume\n'
     text += '}\n'
@@ -368,8 +371,7 @@ def run_locker():
         return supervise_locker(args, options)
 
 
-# A locker that exits cleanly has unlocked the session; a positive code is a
-# startup/configuration error. A locker killed by a signal (for example
+# A locker that exits cleanly has unlocked the session. A locker killed by a signal (for example
 # hyprlock aborting after a suspend/resume or display power cycle) has instead
 # died while the session must stay locked. Relaunch it so the compositor can
 # hand the lock to the new client instead of showing a dead, clientless screen.
@@ -383,7 +385,10 @@ def supervise_locker(args, options):
     while True:
         started = time.monotonic()
         code = subprocess.run(args, check=False, **options).returncode
-        if code >= 0:
+        # Hyprlock can also report a failed lock acquisition with exit 1 when
+        # suspend interrupts startup. Retry it within the same bounded budget;
+        # preserve positive exit handling for custom locker commands.
+        if code == 0 or (code > 0 and Path(args[0]).name != 'hyprlock'):
             return code
         if time.monotonic() - started >= LOCKER_HEALTHY_SECONDS:
             restarts = 0

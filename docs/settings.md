@@ -364,6 +364,13 @@ Hyprshell management. The generated `hyprshell/hypridle.conf` belongs to Hyprshe
 `hypr/hypridle.conf` and locker configuration files are preserved. This controller
 runs for the lifetime of the Hyprshell session.
 
+When locking before sleep is enabled, Hypridle explicitly waits for the
+compositor's lock notification (`inhibit_sleep = 3`); automatic detection cannot
+recognize Hyprlock behind the Python backend. The locker supervisor retries
+Hyprlock's nonzero exits, including failed acquisition during suspend, with a
+bounded retry budget. A successful unlock stops supervision; custom lockers
+retain their existing positive-exit handling.
+
 The backend's `--lock` executes the configured argv directly and serializes
 foreground locker requests. `--idle` generates Hypridle configuration with only
 fixed helper commands; user commands are never interpolated into Hyprlang or Lua.

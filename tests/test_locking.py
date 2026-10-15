@@ -37,9 +37,11 @@ class LockingTests(unittest.TestCase):
         self.assertIn('timeout = 420', config)
         self.assertNotIn('unwanted', config)
         self.assertIn('before_sleep_cmd = loginctl lock-session', config)
+        self.assertIn('inhibit_sleep = 3', config)
         config = backend.render_idle(dict(settings, idleMinutes=0, beforeSleep=False))
         self.assertNotIn('listener', config)
         self.assertNotIn('before_sleep_cmd', config)
+        self.assertNotIn('inhibit_sleep', config)
 
     def test_lock_executes_quoted_arguments_without_shell(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -81,11 +83,24 @@ class LockingTests(unittest.TestCase):
             self.assertEqual(run.call_count, 3)
             self.assertEqual(rest.call_count, 2)
 
-    def test_startup_error_is_not_relaunched(self):
+    def test_hyprlock_failed_acquisition_is_retried(self):
+        with patch.object(backend.time, 'sleep'), \
+             patch.object(backend.subprocess, 'run',
+                          side_effect=[Mock(returncode=1), Mock(returncode=0)]) as run:
+            self.assertEqual(backend.supervise_locker(['hyprlock'], {}), 0)
+            self.assertEqual(run.call_count, 2)
+
+    def test_persistent_hyprlock_error_has_bounded_retries(self):
+        with patch.object(backend.time, 'sleep'), \
+             patch.object(backend.subprocess, 'run', return_value=Mock(returncode=1)) as run:
+            self.assertEqual(backend.supervise_locker(['/usr/bin/hyprlock'], {}), 1)
+            self.assertEqual(run.call_count, backend.LOCKER_MAX_RESTARTS + 1)
+
+    def test_custom_locker_startup_error_is_not_relaunched(self):
         with tempfile.TemporaryDirectory() as directory, \
              patch.dict(os.environ, XDG_STATE_HOME=directory), \
-             patch.object(backend, 'read_locking', return_value={'command': 'hyprlock'}), \
-             patch.object(backend.shutil, 'which', return_value='/bin/hyprlock'), \
+             patch.object(backend, 'read_locking', return_value={'command': 'custom-locker'}), \
+             patch.object(backend.shutil, 'which', return_value='/bin/custom-locker'), \
              patch.object(backend.time, 'sleep') as rest, \
              patch.object(backend.subprocess, 'run', return_value=Mock(returncode=1)) as run:
             self.assertEqual(backend.run_locker(), 1)

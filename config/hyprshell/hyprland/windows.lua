@@ -7,6 +7,82 @@
 
 -- Example window rules that are useful
 
+-- ONLYOFFICE uses the presentation's own window for its fullscreen slideshow.
+-- Route it on entry, then return the editor when the slideshow ends. Mirrored
+-- outputs are not independent presentation destinations.
+local presentationOrigins = {}
+local presentationMoves = {}
+local function routePresentation(w)
+    if presentationMoves[w.address] then return end
+    local origin = presentationOrigins[w.address]
+    if w.fullscreen ~= 2 then
+        if origin then
+            presentationOrigins[w.address] = nil
+            local monitor = hl.get_monitor(origin.monitor)
+            if monitor and not monitor.is_mirror then
+                local workspace = hl.get_workspace(origin.workspace)
+                if workspace and workspace.monitor and workspace.monitor.name == origin.monitor then
+                    hl.dispatch(hl.dsp.window.move({ window = w, workspace = workspace, follow = true }))
+                else
+                    hl.dispatch(hl.dsp.window.move({ window = w, monitor = monitor, follow = true }))
+                end
+            end
+        end
+        return
+    end
+    if origin or w.class ~= "ONLYOFFICE" or w.fullscreen_client ~= 2 then return end
+    local title = (w.title or ""):lower()
+    if not (title:match("%.pptx%s") or title:match("%.pptx$")) then return end
+    local monitors = {}
+    for _, monitor in ipairs(hl.get_monitors()) do
+        if not monitor.is_mirror then table.insert(monitors, monitor) end
+    end
+    if #monitors < 2 or not w.monitor or not w.workspace then return end
+    -- Prefer HDMI projectors, then other external outputs; never hardcode a port.
+    local function rank(m)
+        if m.name:match("^HDMI") then return 1 end
+        if m.name:match("^eDP") or m.name:match("^LVDS") or m.name:match("^DSI") then return 3 end
+        return 2
+    end
+    table.sort(monitors, function(a, b)
+        if rank(a) == rank(b) then return a.name < b.name end
+        return rank(a) < rank(b)
+    end)
+    local target = monitors[1]
+    if rank(target) == 3 or target.name == w.monitor.name then return end
+    presentationOrigins[w.address] = { monitor = w.monitor.name, workspace = w.workspace.id }
+    -- Let ONLYOFFICE finish its initial X11 fullscreen geometry request before
+    -- moving it. Re-enter compositor fullscreen on the destination to recompute
+    -- its position and size, keeping the client in slideshow mode throughout.
+    local address, monitorName = w.address, target.name
+    presentationMoves[address] = hl.timer(function()
+        local current = hl.get_window("address:" .. address)
+        local destination = hl.get_monitor(monitorName)
+        if current and current.fullscreen_client == 2 and destination and not destination.is_mirror then
+            hl.dispatch(hl.dsp.window.fullscreen_state({ window = current, internal = 0, client = 2, action = "set" }))
+            hl.dispatch(hl.dsp.window.move({ window = current, monitor = destination, follow = false }))
+            hl.dispatch(hl.dsp.window.fullscreen_state({ window = current, internal = 2, client = 2, action = "set" }))
+        else
+            presentationOrigins[address] = nil
+        end
+        presentationMoves[address] = nil
+    end, { timeout = 200, type = "oneshot" })
+end
+hl.on("window.fullscreen", routePresentation)
+hl.on("window.open", routePresentation)
+hl.on("window.title", routePresentation)
+hl.on("window.close", function(w)
+    presentationOrigins[w.address] = nil
+    local timer = presentationMoves[w.address]
+    if timer then timer:set_enabled(false) end
+    presentationMoves[w.address] = nil
+end)
+local function routeOpenPresentations()
+    for _, w in ipairs(hl.get_windows()) do routePresentation(w) end
+end
+hl.on("monitor.layout_changed", routeOpenPresentations)
+hl.on("config.reloaded", routeOpenPresentations)
+
 -- Settings starts floating; Super+V can still toggle it into the tiling layout.
 -- Center horizontally and lift it 40px above the vertical midpoint.
 hl.window_rule({
