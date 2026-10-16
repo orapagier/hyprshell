@@ -31,12 +31,13 @@ PanelWindow {
         anchors.fill:parent; focus:true
         Keys.onEscapePressed: popup.dismiss()
         MenuPopover {
+            id: popover
             anchors.fill:parent
             edge:popup.edge; triggerRect:popup.triggerRect; alignment:'center'
             opened:popup.opened; instant:true; alignToTrigger:true
             wallpaperSource:popup.wallpaperSource
             showHeader: popup.mode !== 'previews'
-            preferredBodyWidth: popup.mode === 'previews' ? Math.min(900, 36 + (popup.group?.windows.length || 1) * 228 - 8) : 300
+            preferredBodyWidth: popup.mode === 'previews' ? (vertical ? 256 : Math.min(900, 36 + (popup.group?.windows.length || 1) * 228 - 8)) : 300
             title:popup.mode === 'launcher' ? 'Applications' : popup.mode === 'manage' ? 'Apps & windows' : popup.group ? popup.group.name : 'Application'
             symbol:popup.mode === 'launcher' ? '󰀻' : '󰘳'
             page:popup.mode === 'launcher' ? launcher : popup.mode === 'manage' ? manager : popup.mode === 'previews' ? previews : actions
@@ -49,6 +50,8 @@ PanelWindow {
         id: previews
         DockPreviews {
             service: popup.service; group: popup.group
+            edge: popup.edge
+            maximumHeight: Math.max(0, popover.availableHeight - 36)
             onCloseRequested: popup.dismiss()
         }
     }

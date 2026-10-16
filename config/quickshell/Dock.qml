@@ -15,7 +15,13 @@ FocusScope {
     readonly property var entries: [{key:'launcher', name:'Applications', launcher:true, windows:[]}].concat(groups)
     readonly property real thickness: Model.thickness(panel)
     readonly property real cellSize: thickness - 8
-    readonly property real iconSize: Math.min(panel.iconSize, cellSize - 8)
+    readonly property real iconSize: Math.min(launcherMetrics.tightBoundingRect.height, cellSize - 8)
+    TextMetrics {
+        id: launcherMetrics
+        text: '󰀻'
+        font.family: 'GoMono Nerd Font'
+        font.pixelSize: Math.min(dock.panel.iconSize, dock.cellSize - 8)
+    }
     readonly property real spacing: panel.spacing ?? 4
     property real maximumLength: 800
     readonly property real naturalLength: 12 + entries.length * cellSize + Math.max(0, entries.length - 1) * spacing
@@ -118,6 +124,7 @@ FocusScope {
             }
             Image {
                 id: icon
+                objectName: 'dockIcon' + button.index
                 anchors.centerIn: parent
                 width: dock.iconSize; height: width
                 source: button.modelData.launcher ? '' : dock.service.iconSource(button.modelData.icon)
@@ -126,10 +133,11 @@ FocusScope {
                 opacity: !button.modelData.launcher && !button.modelData.installed && !button.modelData.windows.length ? 0.45 : 1
             }
             Text {
+                objectName: 'dockGlyph' + button.index
                 anchors.centerIn: parent
                 visible: button.modelData.launcher || icon.status !== Image.Ready
                 text: button.modelData.launcher ? '󰀻' : '󰘳'
-                color: '#cdd6f4'; font.family: 'GoMono Nerd Font'; font.pixelSize: dock.iconSize
+                color: '#cdd6f4'; font: launcherMetrics.font
             }
             Rectangle {
                 objectName: 'dockRunningIndicator'

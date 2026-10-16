@@ -36,7 +36,8 @@ Item {
         onPreviewsRequested:(key,trigger) => scene.request = 'previews:' + key
     }
     DockActions { id: actions; x:400; width:264; service:scene.appService; group:scene.groups[0] || null }
-    DockPreviews { id: previews; x:20; y:440; width:500; height:implicitHeight; visible:false; service:scene.appService; group:scene.groups[0] || null }
+    DockPreviews { id: previews; x:20; y:340; width:vertical ? 220 : 500; height:implicitHeight; maximumHeight:300; edge:dock.edge; visible:false; service:scene.appService; group:scene.groups[0] || null }
+    TextMetrics { id: launcherMetrics; text:'󰀻' }
     SettingsDockEditor {
         id: editor
         visible:false; width:400
@@ -108,7 +109,7 @@ Item {
             first=findChild(dock,'dockItem1'); mouseClick(first,20,20,Qt.LeftButton);
             compare(scene.request,'previews:app:app0.desktop');
             previews.visible=true; wait(30);
-            compare(previews.orientation,ListView.Horizontal);
+            compare(previews.orientation,dock.vertical ? ListView.Vertical : ListView.Horizontal);
             let preview=findChild(previews,'dockPreview-ba');
             verify(preview); mouseClick(preview,preview.width/2,40);
             compare(scene.request,'focus:ba');
@@ -128,6 +129,31 @@ Item {
             config.panels.hyprdock.thickness=28; config.panels.hyprdock.iconSize=96; scene.config=config;
             dock.maximumLength=220; wait(20);
             compare(dock.thickness,112); verify(findChild(dock,'dockItem0').width>=104);
+        }
+        function test_iconHeightMatchesVisibleLauncher() {
+            let config=Settings.copy(scene.config);
+            config.panels.hyprdock.thickness=44; config.panels.hyprdock.iconSize=28; scene.config=config;
+            wait(30);
+            let icon=findChild(dock,'dockIcon1');
+            launcherMetrics.font=findChild(dock,'dockGlyph0').font;
+            verify(launcherMetrics.tightBoundingRect.height < 28);
+            compare(icon.height,launcherMetrics.tightBoundingRect.height);
+            verify(findChild(dock,'dockItem1').height>=36);
+        }
+        function test_previewLayoutAndScrolling_data() { return ['top','bottom','left','right'].map(e=>({tag:e,edge:e})); }
+        function test_previewLayoutAndScrolling(data) {
+            edge(data.edge);
+            let groups=scene.groups.slice();
+            groups[0]=Object.assign({},groups[0],{windows:Array.from({length:8},(_,i)=>({address:'preview'+i,title:'Window '+i}))});
+            scene.groups=groups; previews.visible=true; wait(30);
+            let first=findChild(previews,'dockPreview-preview0').parent;
+            let second=findChild(previews,'dockPreview-preview1').parent;
+            if(dock.vertical) { compare(first.x,second.x); verify(second.y>=first.y+first.height); }
+            else { compare(first.y,second.y); verify(second.x>=first.x+first.width); }
+            previews.scroll(300); wait(30);
+            verify(dock.vertical ? previews.contentY>0 : previews.contentX>0);
+            previews.scroll(-10000); wait(30);
+            compare(dock.vertical ? previews.contentY : previews.contentX,0);
         }
         function test_cornerInsetsAndSavedVisibility() {
             let config=Settings.copy(scene.config);

@@ -6,18 +6,24 @@ ListView {
     id: previews
     required property var service
     property var group: null
+    property string edge: 'bottom'
+    readonly property bool vertical: edge === 'left' || edge === 'right'
+    property real maximumHeight: 600
     signal closeRequested()
-    implicitHeight: 148
-    orientation: ListView.Horizontal
+    implicitHeight: vertical ? Math.min(maximumHeight, Math.max(0, count * 148 - 8)) : 148
+    orientation: vertical ? ListView.Vertical : ListView.Horizontal
     spacing: 8
     clip: true
     model: group ? group.windows : []
     boundsBehavior: Flickable.StopAtBounds
+    function scroll(step) {
+        if (vertical) contentY = Math.max(0, Math.min(Math.max(0, contentHeight - height), contentY + step));
+        else contentX = Math.max(0, Math.min(Math.max(0, contentWidth - width), contentX + step));
+    }
     WheelHandler {
         target: null
         onWheel: event => {
-            previews.contentX = Math.max(0, Math.min(Math.max(0, previews.contentWidth - previews.width),
-                previews.contentX - (event.angleDelta.y || event.angleDelta.x) / 120 * 228));
+            previews.scroll(-(event.angleDelta.y || event.angleDelta.x) / 120 * (previews.vertical ? 148 : 228));
             event.accepted = true;
         }
     }
@@ -43,6 +49,7 @@ ListView {
                     anchors.fill: parent
                     active: previews.visible && !!tile.modelData.handle?.wayland
                         && tile.x + tile.width > previews.contentX && tile.x < previews.contentX + previews.width
+                        && tile.y + tile.height > previews.contentY && tile.y < previews.contentY + previews.height
                     source: active ? Qt.resolvedUrl('PreviewCapture.qml') : ''
                     onLoaded: {
                         item.source = Qt.binding(() => tile.modelData.handle?.wayland || null);
@@ -75,5 +82,6 @@ ListView {
             onClicked: previews.service.windowAction('close', tile.modelData.address)
         }
     }
-    ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
+    ScrollBar.horizontal: ScrollBar { policy: previews.vertical ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded }
+    ScrollBar.vertical: ScrollBar { policy: previews.vertical ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
 }

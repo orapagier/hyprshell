@@ -10,10 +10,11 @@ Hyprdock shows the launcher, ordered pins, then running unpinned applications.
 A line marks running apps; the active app has a purple background and indicator.
 App icons have no hover tooltip. Missing applications retain their pin,
 use a fallback icon and can be unpinned. Click an app with one window to focus
-it on its workspace. Apps with multiple windows open a horizontal strip containing
+it on its workspace. Apps with multiple windows open a strip containing
 only window previews and an × close button on each. Click a preview to focus that
-exact window on its workspace, or × to close it. Scroll horizontally when the strip
-overflows. Visible previews capture live window content when available, with a title
+exact window on its workspace, or × to close it. Previews stack vertically for left
+and right docks and horizontally for top and bottom docks; scroll along that axis
+when the strip overflows. Visible previews capture live window content when available, with a title
 fallback when capture is unavailable.
 Click an unopened pinned app to launch it from the current workspace. Right-click
 opens the context menu with window titles, workspaces and outputs. Each
