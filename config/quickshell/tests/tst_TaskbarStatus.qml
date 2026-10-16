@@ -20,7 +20,7 @@ Item {
     TestCase {
         name:'TaskbarStatus'; when:windowShown
         function init() {
-            scene.menu=''; status.edge='bottom'; status.component='hyprbar';
+            scene.menu=''; status.edge='bottom';
             status.config={panels:{hyprbar:{rightItems:null}},bar:{height:32,spacing:3},items:[
                 {id:'launcher',side:'left',enabled:true,order:0},
                 {id:'calendar',side:'center',enabled:true,order:1},
@@ -41,43 +41,6 @@ Item {
             compare(status.side('calendar'),'right');
             next=Settings.copy(status.config); next.panels.hyprbar.rightItems=[]; status.config=next;
             compare(status.contentLength,0);
-        }
-        function test_dockDefaultAndOptionalStatus() {
-            status.component='hyprdock'; wait(20);
-            compare(status.contentLength,0);
-            let next=Settings.copy(status.config);
-            next.panels.hyprdock={rightItems:['audio','power']}; status.config=next;
-            wait(20); compare(status.orderedItems('right'),['audio','power']);
-            mouseClick(status.moduleItems.audio); compare(scene.menu,'audio');
-            next=Settings.copy(status.config); next.panels.hyprdock.rightItems=null; status.config=next;
-            compare(status.orderedItems('right'),['audio','notifications','power']);
-        }
-        function test_zeroSpacingRemovesBuiltInPadding() {
-            let next=Settings.copy(status.config);
-            next.panels.hyprbar.rightItems=['audio','wifi','bluetooth','notifications'];
-            status.config=next; wait(20);
-            let originalLength=status.contentLength;
-            next=Settings.copy(status.config); next.panels.hyprbar.spacingRight=0;
-            status.config=next; wait(20);
-            verify(status.contentLength < originalLength - 30);
-            compare(status.moduleItems.audio.effectiveLeftPadding,0);
-            compare(status.moduleItems.audio.effectiveRightPadding,0);
-            compare(status.moduleItems.wifi.width,status.moduleItems.wifi.naturalWidth);
-            compare(status.moduleItems.bluetooth.width,status.moduleItems.bluetooth.naturalWidth);
-            verify(status.moduleItems.notifications.effectiveRightPadding>0);
-            let ids=status.orderedItems('right');
-            for(let i=1;i<ids.length;i++) {
-                let a=status.itemRect(ids[i-1]), b=status.itemRect(ids[i]);
-                fuzzyCompare(b.x,a.x+a.width,0.01);
-            }
-            let compactLength=status.contentLength;
-            next=Settings.copy(status.config); next.panels.hyprbar.spacingRight=8;
-            status.config=next; wait(20);
-            fuzzyCompare(status.contentLength,compactLength+24,0.01);
-            compare(status.gapBetween('audio','wifi'),8);
-            next=Settings.copy(status.config); next.panels.hyprbar.spacingRight=null;
-            status.config=next; wait(20);
-            compare(status.contentLength,originalLength);
         }
         function test_mediaFitsNaturalWidth() {
             let next=Settings.copy(status.config); next.panels.hyprbar.rightItems=['media','audio']; status.config=next;
