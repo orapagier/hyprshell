@@ -6,7 +6,8 @@ Bar {
     id: status
     required property var config
     property string edge: 'bottom'
+    property string component: 'hyprbar'
     mediaMaximumWidth: Math.max(80, Math.min(300, screenWidth * 0.24))
-    settings: Tasks.statusConfig(config, edge)
+    settings: Tasks.statusConfig(config, edge, component)
     readonly property real contentLength: groupLength('right')
 }

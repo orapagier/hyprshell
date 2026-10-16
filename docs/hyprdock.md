@@ -13,11 +13,11 @@ existing preferences retain their previous background opacity and edge distance.
 
 Hyprdock uses Hyprpane's center-pill glass renderer, rounded rim, adaptive
 wallpaper colors, and launcher/Settings symbols. Its current default is a 32 px
-pill with 15 px icons and 3 px gaps, on every edge. Existing size controls remain
-available; larger icons expand the rail to fit. App icons retain their identities.
+pill with 24 px icons and 3 px gaps, on every edge. Existing size controls remain
+available; icons are capped to fit inside the selected rail thickness. App icons retain their identities.
 
 Hyprdock shows the launcher, ordered pins, then running unpinned applications.
-A line marks running apps; the active app has a purple background and indicator.
+A small dot at the upper-right of each icon marks running apps; the active app has a purple background and indicator.
 App icons have no hover tooltip. Missing applications retain their pin,
 use a fallback icon and can be unpinned.
 Hover the launcher to open Applications, or a running app to preview its windows.
@@ -38,7 +38,7 @@ when the strip overflows. Visible previews capture live window content when avai
 fallback when capture is unavailable.
 Click an unopened pinned app to launch it from the current workspace. Right-click
 opens the context menu with window titles, workspaces and outputs. Each
-window has its own Focus and Close actions. Middle-click opens a new instance
+window has its own Focus, Close, and Move to workspace actions. Middle-click opens a new instance
 when the app is installed. Right-click an app for pin/unpin, new instance,
 window selection, close, or app identity/pin management.
 
@@ -58,8 +58,8 @@ unchanged. Focus enters the dock on pointer interaction; this phase does not
 assign a new global dock shortcut.
 
 Short edges scroll with the arrows, mouse wheel, trackpad or keyboard. Targets
-stay at least 28 logical pixels; a large configured icon expands effective
-thickness instead of clipping. The dock backdrop remains compact even though
+stay at least 28 logical pixels; a large configured icon fits within the chosen
+thickness without expanding the background pill. The dock backdrop remains compact even though
 its transparent layer surface spans the edge for reliable reserved space. Its
 input mask covers only the compact dock. Empty stretches pass pointer input
 through to the desktop. Popovers open inward beside the triggering app and
@@ -198,3 +198,19 @@ check exercises both original no-warp settings, forced workspace warping and
 error paths with a mocked compositor. The glass render was reviewed offscreen.
 Physical cursor behavior remains unverified because this agent cannot access
 the live compositor socket; no global cursor preference is changed.
+
+## Shared dock and taskbar controls
+
+Hyprdock and Hyprbar use the same app grouping, window filters, context actions,
+utilities, visibility, styling, and settings editor. Hyprdock fits its contents
+and centers by default; Hyprbar fills its edge. Existing placement and utility
+preferences are retained. Both use 24 px app icons inside the default 32 px pill,
+with a 4 px running dot at each icon’s upper-right corner on every edge.
+
+Hyprdock starts with `rightItems: []`, so there are no preset trailing system
+items. The shared editor can enable any of Hyprpane’s items or follow its current
+right-side selection. Hyprbar retains `rightItems: null` to inherit that selection
+by default. Optional dock status items sit inside the compact pill and share
+the same menus and services as the full-width bar. App and status overflow scroll
+independently. Grouping and workspace/output filters apply before previews and
+actions in both layouts; existing dock defaults continue to include all outputs.

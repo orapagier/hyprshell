@@ -78,7 +78,6 @@ ColumnLayout {
                 }
             }
             RowLayout {
-                visible: actions.component === 'hyprbar'
                 SpinBox { id: destination; from:1; to:99; value:Math.max(1, windowRow.modelData.workspace || 1); Accessible.name:'Destination workspace' }
                 MenuButton {
                     objectName:'taskMoveButton'

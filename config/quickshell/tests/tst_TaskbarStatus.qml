@@ -20,7 +20,7 @@ Item {
     TestCase {
         name:'TaskbarStatus'; when:windowShown
         function init() {
-            scene.menu=''; status.edge='bottom';
+            scene.menu=''; status.edge='bottom'; status.component='hyprbar';
             status.config={panels:{hyprbar:{rightItems:null}},bar:{height:32,spacing:3},items:[
                 {id:'launcher',side:'left',enabled:true,order:0},
                 {id:'calendar',side:'center',enabled:true,order:1},
@@ -41,6 +41,16 @@ Item {
             compare(status.side('calendar'),'right');
             next=Settings.copy(status.config); next.panels.hyprbar.rightItems=[]; status.config=next;
             compare(status.contentLength,0);
+        }
+        function test_dockDefaultAndOptionalStatus() {
+            status.component='hyprdock'; wait(20);
+            compare(status.contentLength,0);
+            let next=Settings.copy(status.config);
+            next.panels.hyprdock={rightItems:['audio','power']}; status.config=next;
+            wait(20); compare(status.orderedItems('right'),['audio','power']);
+            mouseClick(status.moduleItems.audio); compare(scene.menu,'audio');
+            next=Settings.copy(status.config); next.panels.hyprdock.rightItems=null; status.config=next;
+            compare(status.orderedItems('right'),['audio','notifications','power']);
         }
         function test_mediaFitsNaturalWidth() {
             let next=Settings.copy(status.config); next.panels.hyprbar.rightItems=['media','audio']; status.config=next;

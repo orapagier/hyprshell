@@ -21,7 +21,7 @@ launcher. Shared/separate pin lists remain available in Apps & windows.
   Window titles remain in the window picker and context menu.
 - App buttons use compact square icon targets on every edge, matching Hyprdock.
   Active and urgent windows retain visible emphasis. The current 32 px rail and
-  15 px icons match Hyprpane; old title-width values never widen Left/Right.
+  24 px app icons fit inside the pill; old title-width values never widen Left/Right.
 - Filters select current/all workspaces and current/all monitors independently.
   Filtering precedes grouping, so pickers and active emphasis describe only the
   included windows. Pins remain available when their windows are filtered out.
@@ -40,8 +40,8 @@ own adjacent corners.
 
 Implementation uses the existing Dock/DockWindow/DockPopup surfaces with an
 explicit component selector; their default remains Hyprdock. `TaskbarModel.js`
-owns task filtering and grouping, and `SettingsTaskbarEditor.qml` owns the new
-controls. No additional discovery service, notification owner or periodic client
+owns task filtering and grouping, and `SettingsTaskbarEditor.qml` selects Hyprbar in the common
+`SettingsDockEditor.qml` controls. No additional discovery service, notification owner or periodic client
 polling is created. Geometry sampling remains limited to eligible dodge panels.
 
 ## Right-side Hyprpane items
@@ -95,3 +95,10 @@ preferences; visibility, selected edges and other preferences remain intact.
 `tests/test_panel_style.py` renders Hyprpane, Hyprdock, and horizontal/side
 Hyprbar in a native composition, checks 32 px side rails, square targets and absent status backdrops,
 and exports `/tmp/hypr-panels-style.png` for visual review.
+
+Hyprbar and Hyprdock now expose the same controls, including utilities, opacity,
+visibility policies, indicators, grouping, window filters, and trailing system
+items. Their presentation differs by length: Hyprbar fills the edge; Hyprdock
+fits its contents and centers by default. Hyprdock defaults to no system items,
+while Hyprbar retains inheritance. Running apps use a small upper-right dot
+instead of an underline. Icon size no longer increases pill thickness.

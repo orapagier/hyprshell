@@ -441,7 +441,7 @@
       "marginEdge": 5,
       "marginEnds": 10,
       "windowGap": 0,
-      "iconSize": 15,
+      "iconSize": 24,
       "spacing": 3,
       "background": "inherit",
       "hideMode": "always"
@@ -458,7 +458,7 @@
       "marginEdge": 5,
       "marginEnds": 10,
       "windowGap": 0,
-      "iconSize": 15,
+      "iconSize": 24,
       "spacing": 3,
       "background": "inherit",
       "hideMode": "always"

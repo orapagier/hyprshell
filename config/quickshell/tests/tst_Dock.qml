@@ -149,7 +149,8 @@ Item {
             let config=Settings.copy(scene.config);
             config.panels.hyprdock.thickness=28; config.panels.hyprdock.iconSize=96; scene.config=config;
             dock.maximumLength=220; wait(20);
-            compare(dock.thickness,108); verify(findChild(dock,'dockItem0').width>=104);
+            compare(dock.thickness,32); compare(findChild(dock,'dockItem0').width,28);
+            compare(dock.iconSize,26);
         }
         function test_transparencyAndEdgeControls() {
             let background=findChild(dock,'dockBackground');
@@ -231,7 +232,7 @@ Item {
             compare(Geometry.insets(config,'hyprpane','eDP-1',2,32),{top:0,bottom:0});
             config.bar.position='top';
             compare(Geometry.insets(config,'hyprdock','eDP-1',2,38),{top:43,bottom:0});
-            compare(Geometry.thickness({thickness:28,iconSize:96}),108);
+            compare(Geometry.thickness({thickness:28,iconSize:96}),32);
         }
         function test_contextActionsAndMissingPin() {
             let buttons=actions.children.filter(c=>c.text!==undefined);

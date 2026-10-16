@@ -50,6 +50,21 @@ class PanelConfigurationTests(unittest.TestCase):
         self.assertEqual(dock['alignment'], 'center')
         self.assertFalse(dock['showTrash'])
 
+    def test_shared_panel_capabilities_and_distinct_status_defaults(self):
+        self.assertEqual(self.data['panels']['hyprdock']['rightItems'], [])
+        self.assertIsNone(self.data['panels']['hyprbar']['rightItems'])
+        for name in ('hyprdock', 'hyprbar'):
+            self.data['panels'][name].update(grouped=False, windowWorkspaceScope='current',
+                windowMonitorScope='all', rightItems=['audio'], showTrash=True,
+                backgroundOpacity=0.5, fullscreenPolicy='show', indicators=False)
+            self.assertEqual(backend.validate(self.data)['panels'][name], self.data['panels'][name])
+            for key, value in [('rightItems', ['audio', 'audio']), ('grouped', 1),
+                               ('showTrash', 1), ('windowMonitorScope', 'invalid')]:
+                invalid = copy.deepcopy(self.data)
+                invalid['panels'][name][key] = value
+                with self.subTest(panel=name, key=key), self.assertRaises(ValueError):
+                    backend.validate(invalid)
+
     def test_dock_opacity_and_edge_distance(self):
         dock = self.data['panels']['hyprdock']
         del dock['backgroundOpacity']

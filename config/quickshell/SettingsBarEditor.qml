@@ -48,6 +48,7 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: root.dockSettings !== null
         settings: root.dockSettings || {}
+        paneItems:root.paneItems
         onEdited: (key, value) => root.dockEdited(key, value)
     }
     SettingsCard {

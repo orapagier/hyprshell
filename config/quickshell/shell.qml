@@ -25,7 +25,7 @@ ShellRoot {
         id: applications; store: preferences
         geometryTracking: docks.instances.concat(taskbars.instances).some(d => d.shown && d.panel.hideMode === 'dodge')
     }
-    DockUtilities { id: dockUtilities; watching: preferences.config.panels.hyprdock.enabled && preferences.config.panels.hyprdock.showTrash }
+    DockUtilities { id: dockUtilities; watching: ['hyprdock','hyprbar'].some(name => preferences.config.panels[name].enabled && preferences.config.panels[name].showTrash) }
     ProjectorWindow { id: projectorWindow }
     PresentationView { id: presentationView }
     Hyprview { id: hyprviewWindow }
@@ -195,6 +195,9 @@ ShellRoot {
         model: Quickshell.screens
         DockWindow {
             id: dockWindow
+            desktopServices:shell.services; inbox:shell.inbox
+            statusData:shell.statusData; mediaData:shell.mediaData; notificationData:shell.notificationData
+            trayModel:tray.items; clockText:shell.clockText
             required property var modelData
             output: modelData
             utilities: dockUtilities

@@ -25,17 +25,18 @@ function entries(groups, panel, output, workspace) {
     return result;
 }
 
-function rightItems(config) {
-    let selected = config.panels?.hyprbar?.rightItems;
+function rightItems(config, component = "hyprbar") {
+    let selected = config.panels?.[component]?.rightItems;
+    if (selected === undefined && component === "hyprdock") return [];
     if (Array.isArray(selected)) return selected;
     let left = ['launcher', 'settings', 'workspaces', 'media'];
     return (config.items || []).filter(item => item.enabled !== false
         && (item.side || (left.indexOf(item.id) >= 0 ? 'left' : item.id === 'calendar' ? 'center' : 'right')) === 'right')
         .slice().sort((a,b) => (a.order ?? 0) - (b.order ?? 0)).map(item => item.id);
 }
-function statusConfig(config, edge) {
-    let selected = rightItems(config);
-    let shared = Surface.pillStyle(config, config.panels?.hyprbar || {}, '').settings.background !== 'off';
+function statusConfig(config, edge, component = "hyprbar") {
+    let selected = rightItems(config, component);
+    let shared = Surface.pillStyle(config, config.panels?.[component] || {}, '').settings.background !== 'off';
     return Object.assign({}, config, {
         bar:Object.assign({}, config.bar, {position:edge, verticalPresentation:'compact'}),
         items:['launcher','settings','workspaces','media','calendar','tray','notifications','audio','wifi','bluetooth','battery','power']

@@ -15,8 +15,8 @@ PanelWindow {
     property string edge: 'bottom'
     property url wallpaperSource: ''
     property string component: 'hyprdock'
-    property var taskGroups: []
-    readonly property var group: (component === 'hyprbar' ? taskGroups : service.groups(component)).find(g => g.key === groupKey) || null
+    property var taskGroups: service.groups(component)
+    readonly property var group: taskGroups.find(g => g.key === groupKey) || null
     readonly property bool opened: !!mode
     function dismiss() { menuState.close(); }
     function open(kind, key, rect) { menuState.activateItem(kind, key, rect); }

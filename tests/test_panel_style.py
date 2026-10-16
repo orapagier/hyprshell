@@ -91,7 +91,7 @@ ShellRoot {
             (root / 'runtime').mkdir(mode=0o700)
             data = json.loads((ROOT / 'config/hyprshell/settings.json').read_text())
             for name in ('hyprbar', 'hyprdock'):
-                data['panels'][name].update(thickness=32, iconSize=15, spacing=3, background='inherit')
+                data['panels'][name].update(thickness=32, iconSize=24, spacing=3, background='inherit')
             target = root / 'config/hyprshell/settings.json'
             target.parent.mkdir(parents=True)
             target.write_text(json.dumps(data))

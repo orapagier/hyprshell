@@ -76,7 +76,7 @@ Item {
         WlrLayershell.keyboardFocus:WlrKeyboardFocus.OnDemand
         Dock {
             id:dock
-            trailingLength: window.component === 'hyprbar' && status.contentLength > 0 ? statusViewport.extent + 8 : 0
+            trailingLength: status.contentLength > 0 ? statusViewport.extent + 8 : 0
             onXChanged: window.closeMenu()
             onYChanged: window.closeMenu()
             x: window.vertical ? 0 : Model.aligned(rail.width,width,window.panel.alignment)
@@ -115,12 +115,12 @@ Item {
                 if(window.vertical) contentY=Math.max(0,Math.min(contentHeight-height,Math.max(point.y+item.height-height,Math.min(contentY,point.y))));
                 else contentX=Math.max(0,Math.min(contentWidth-width,Math.max(point.x+item.width-width,Math.min(contentX,point.x))));
             }
-            readonly property real extent: window.component === 'hyprbar' ? Math.min(status.contentLength, Math.max(0,(window.vertical ? rail.height : rail.width) - Math.max(148,dock.cellSize+76))) : 0
-            x:window.vertical ? 0 : rail.width-width-4
-            y:window.vertical ? rail.height-height-4 : 0
+            readonly property real extent: Math.min(status.contentLength, Math.max(0,dock.maximumLength - Math.max(148,dock.cellSize+76)))
+            x:dock.x + (window.vertical ? 0 : dock.width-width-4)
+            y:dock.y + (window.vertical ? dock.height-height-4 : 0)
             width:window.vertical ? rail.width : extent
             height:window.vertical ? extent : rail.height
-            visible:window.component === 'hyprbar' && visibility.shown && extent > 0
+            visible:visibility.shown && extent > 0
             contentWidth:window.vertical ? width : status.width
             contentHeight:window.vertical ? status.height : height
             clip:true; boundsBehavior:Flickable.StopAtBounds
@@ -137,7 +137,7 @@ Item {
             }
             TaskbarStatus {
                 id:status
-                config:window.config; edge:window.edge
+                config:window.config; edge:window.edge; component:window.component
                 width:window.vertical ? statusViewport.width : contentLength
                 height:window.vertical ? contentLength : statusViewport.height
                 statusData:window.statusData; mediaData:window.mediaData; notificationData:window.notificationData
@@ -170,7 +170,7 @@ Item {
         }
     }
     Loader {
-        active:window.component === 'hyprbar' && !!window.desktopServices && !!window.inbox
+        active:status.contentLength > 0 && !!window.desktopServices && !!window.inbox
         sourceComponent: Component {
             Dropdown {
                 screen:window.output; services:window.desktopServices; inbox:window.inbox

@@ -16,7 +16,7 @@ FocusScope {
     property string edge: panel.position
     readonly property bool vertical: edge === 'left' || edge === 'right'
     readonly property var panel: config.panels[component]
-    readonly property var groups: taskbar ? Tasks.entries(service.groups(component), panel, outputName, workspace) : service.groups(component)
+    readonly property var groups: Tasks.entries(service.groups(component), panel, outputName, workspace)
     readonly property var launcherStyle: Settings.appearance(config,'launcher',wallpaperSource.toString())
     readonly property var settingsStyle: Settings.appearance(config,'settings',wallpaperSource.toString())
     property bool trashFull: false
@@ -36,17 +36,17 @@ FocusScope {
     function itemLength(entry) { return cellSize; }
     property real trailingLength: 0
     readonly property real applicationLength: Math.max(1, length - trailingLength)
-    readonly property real iconSize: Math.min(panel.iconSize, cellSize - 8)
+    readonly property real iconSize: Math.min(panel.iconSize, cellSize - 2)
     TextMetrics {
         id: launcherMetrics
         text: '󰀻'
         font.family: 'GoMono Nerd Font'
-        font.pixelSize: Math.min(dock.panel.iconSize, dock.cellSize - 8)
+        font.pixelSize: Math.min(dock.panel.iconSize, dock.cellSize - 2)
     }
     readonly property real spacing: panel.spacing ?? 4
     property real maximumLength: 800
     readonly property real naturalLength: 12 + entries.reduce((total, entry) => total + itemLength(entry), 0) + Math.max(0, entries.length - 1) * spacing
-    readonly property real length: taskbar ? maximumLength : Math.min(maximumLength, naturalLength)
+    readonly property real length: taskbar ? maximumLength : Math.min(maximumLength, naturalLength + trailingLength)
     readonly property bool overflowing: naturalLength > applicationLength
     readonly property real navigationSize: overflowing ? 24 : 0
     property bool keyboardInteraction: false
@@ -191,10 +191,10 @@ FocusScope {
                 objectName: 'dockRunningIndicator'
                 visible: dock.panel.indicators !== false && (button.modelData?.windows?.length || 0) > 0
                 color: button.modelData.active ? '#cba6f7' : '#a6adc8'; radius: 2
-                width: dock.vertical ? 3 : Math.min(18, 4 + (button.modelData?.windows?.length || 0)*4)
-                height: dock.vertical ? Math.min(18, 4 + (button.modelData?.windows?.length || 0)*4) : 3
-                x: dock.edge === 'right' ? parent.width-width-1 : dock.vertical ? 1 : (parent.width-width)/2
-                y: dock.edge === 'bottom' ? parent.height-height-1 : dock.vertical ? (parent.height-height)/2 : 1
+                width: 4; height: 4
+                x: icon.x + icon.width - width
+                y: icon.y
+                border.width: 1; border.color: '#181825'
             }
             Keys.onPressed: event => {
                 dock.keyboardInteraction = true;

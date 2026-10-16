@@ -415,7 +415,7 @@
       "marginEdge": 5,
       "marginEnds": 10,
       "windowGap": 0,
-      "iconSize": 15,
+      "iconSize": 24,
       "spacing": 3,
       "background": "inherit",
       "hideMode": "always",
@@ -425,7 +425,11 @@
       "fullscreenPolicy": "hide",
       "showFiles": false,
       "showSettings": false,
-      "showTrash": false
+      "showTrash": false,
+      "grouped": true,
+      "windowWorkspaceScope": "all",
+      "windowMonitorScope": "all",
+      "rightItems": []
     },
     "hyprbar": {
       "enabled": false,
@@ -439,7 +443,7 @@
       "marginEdge": 5,
       "marginEnds": 10,
       "windowGap": 0,
-      "iconSize": 15,
+      "iconSize": 24,
       "spacing": 3,
       "background": "inherit",
       "hideMode": "always",
@@ -449,7 +453,15 @@
       "verticalWidth": 220,
       "windowWorkspaceScope": "all",
       "windowMonitorScope": "current",
-      "rightItems": null
+      "rightItems": null,
+      "backgroundOpacity": 0.9019607843137255,
+      "alignment": "center",
+      "indicators": true,
+      "animations": true,
+      "fullscreenPolicy": "hide",
+      "showFiles": false,
+      "showSettings": false,
+      "showTrash": false
     }
   },
   "pins": {

@@ -306,30 +306,33 @@ def validate_panels(data, result):
             number(target[key], low, high, True)
         if target['background'] not in ('inherit', 'on', 'off'):
             raise ValueError(f'Invalid {name} background')
-        if name == 'hyprbar':
+        if name in ('hyprdock', 'hyprbar'):
             right_items = target['rightItems']
             allowed_items = {item['id'] for item in result['items']}
             if right_items is not None and (not isinstance(right_items, list)
                     or any(not isinstance(item, str) or item not in allowed_items for item in right_items)
                     or len(set(right_items)) != len(right_items)):
-                raise ValueError('Hyprbar right items must be unique Hyprpane item IDs')
-            for key in ('grouped', 'showTitles'):
+                raise ValueError(f'{name} right items must be unique Hyprpane item IDs')
+            for key in ('grouped',):
                 if type(target[key]) is not bool:
-                    raise ValueError(f'Hyprbar {key} must be boolean')
-            for key in ('buttonWidth', 'verticalWidth'):
-                number(target[key], 80, 400, True)
+                    raise ValueError(f'{name} {key} must be boolean')
             for key in ('windowWorkspaceScope', 'windowMonitorScope'):
                 if target[key] not in ('current', 'all'):
-                    raise ValueError(f'Invalid Hyprbar {key}')
-        if name == 'hyprdock':
+                    raise ValueError(f'Invalid {name} {key}')
+        if name == 'hyprbar':
+            if type(target['showTitles']) is not bool:
+                raise ValueError('Hyprbar showTitles must be boolean')
+            for key in ('buttonWidth', 'verticalWidth'):
+                number(target[key], 80, 400, True)
+        if name in ('hyprdock', 'hyprbar'):
             number(target['backgroundOpacity'], 0, 1)
             if target['alignment'] not in ('start', 'center', 'end'):
-                raise ValueError('Invalid Hyprdock alignment')
+                raise ValueError(f'Invalid {name} alignment')
             if target['fullscreenPolicy'] not in ('hide', 'show'):
-                raise ValueError('Invalid Hyprdock fullscreen policy')
+                raise ValueError(f'Invalid {name} fullscreen policy')
             for key in ('indicators', 'animations', 'showFiles', 'showSettings', 'showTrash'):
                 if type(target[key]) is not bool:
-                    raise ValueError(f'Hyprdock {key} must be boolean')
+                    raise ValueError(f'{name} {key} must be boolean')
     pins = data.get('pins', {})
     if not isinstance(pins, dict) or set(pins) - set(result['pins']):
         raise ValueError('Unknown pin setting')
