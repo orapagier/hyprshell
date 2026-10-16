@@ -66,8 +66,8 @@ FloatingWindow {
     property bool searchIndexLoaded: false
     property int searchResultIndex: -1
     onSearchResultsChanged: {
-        searchResultIndex = searchResults.length ? 0 : -1;
-        if (searchQuery.trim()) Qt.callLater(() => moveSearchSelection(0));
+        searchResultIndex = searchQuery.trim() && searchResults.length ? 0 : -1;
+        if (searchQuery.trim()) Qt.callLater(() => { if (searchQuery.trim()) moveSearchSelection(0); });
     }
     function moveSearchSelection(step) {
         if (!searchResults.length) return;

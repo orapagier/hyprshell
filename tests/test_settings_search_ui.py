@@ -32,7 +32,9 @@ ShellRoot {
         if (test.phase === 0) {
             editor.open(); editor.firstRunPending = false; editor.section = -1;
             let search = test.find(editor.contentItem, "settingsSearch");
+            if (editor.searchResultIndex !== -1) { test.fail("empty search selected a sidebar result"); return; }
             search.text = "system updates";
+            if (editor.searchResultIndex !== 0) { test.fail("search did not select first result"); return; }
             if (!editor.searchResults.some(row => row.section === -14)) { test.fail("missing System updates heading"); return; }
             if (editor.section !== -1) { test.fail("typing navigated"); return; }
             search.accepted(); test.phase++;
@@ -50,6 +52,13 @@ ShellRoot {
             if (loader.active) { test.fail("backup page already loaded"); return; }
             search.text = "Hyprshell setup backup & restore";
             if (!editor.searchResults.some(row => row.section === -23) || loader.active) { test.fail("unopened page heading missing or activated"); return; }
+            search.clear();
+            if (editor.searchResultIndex !== -1) { test.fail("clearing search retained result selection"); return; }
+            search.text = "   ";
+            if (editor.searchResultIndex !== -1) { test.fail("blank search selected a sidebar result"); return; }
+            test.phase++;
+        } else if (test.phase === 3) {
+            if (editor.searchResultIndex !== -1) { test.fail("deferred search selected a result after clearing"); return; }
             if (editor.dirty || editor.saving) { test.fail("search changed preferences"); return; }
             console.log("CAPTION_SEARCH_OK"); Qt.quit();
         }
