@@ -6,16 +6,45 @@ import "Calendar.js" as Calendar
 
 ColumnLayout {
     id: page
-    property date today: new Date()
+    property date now: new Date()
+    property date today: now
     property int year: today.getFullYear()
     property int month: today.getMonth()
     property date selected: today
     readonly property var holidays: Calendar.holidays(year)
-    readonly property int offset: (new Date(year, month, 1).getDay() + 6) % 7
+    readonly property int offset: new Date(year, month, 1).getDay()
     readonly property int days: new Date(year, month + 1, 0).getDate()
     readonly property var holiday: holidays[(selected.getMonth()+1) + "-" + selected.getDate()]
     spacing: 8
     function shift(amount) { let date = new Date(year, month + amount, 1); year = date.getFullYear(); month = date.getMonth(); selected = date; }
+    Timer {
+        interval: 1000
+        running: page.visible
+        repeat: true
+        onTriggered: page.now = new Date()
+    }
+    ColumnLayout {
+        Layout.fillWidth: true
+        Layout.topMargin: 2
+        Layout.bottomMargin: 6
+        spacing: 2
+        MenuLabel {
+            objectName: "calendarTime"
+            text: Qt.formatTime(page.now, "hh:mm AP")
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: 28
+            font.bold: true
+            color: "#cdd6f4"
+        }
+        MenuLabel {
+            text: Qt.formatDate(page.now, "dddd, MMMM d")
+            Layout.fillWidth: true
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: 11
+            color: "#a6adc8"
+        }
+    }
     RowLayout {
         Layout.fillWidth: true
         MenuButton { text: "‹"; onClicked: page.shift(-1) }
@@ -41,8 +70,8 @@ ColumnLayout {
     GridLayout {
         columns: 7; columnSpacing: 2; rowSpacing: 2; Layout.fillWidth: true
         Repeater {
-            model: ["M","T","W","T","F","S","S"]
-            delegate: MenuLabel { required property string modelData; text: modelData; horizontalAlignment: Text.AlignHCenter; color: "#a6adc8"; Layout.fillWidth: true }
+            model: ["S","M","T","W","T","F","S"]
+            delegate: MenuLabel { objectName: "calendarWeekday"; required property string modelData; text: modelData; horizontalAlignment: Text.AlignHCenter; color: "#a6adc8"; Layout.fillWidth: true }
         }
         Repeater {
             model: 42

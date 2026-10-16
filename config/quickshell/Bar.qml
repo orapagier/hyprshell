@@ -418,9 +418,6 @@ Item {
                 width: bar.vertical ? maximumWidth : implicitWidth
                 onActiveFocusChanged: if (activeFocus && bar.vertical) bar.ensureItemVisible(workspaceButton)
                 iconOnly: false
-                ToolTip.visible: bar.vertical && hovered
-                ToolTip.text: "Workspace " + (modelData.name || String(modelData.id))
-                ToolTip.delay: 600
                 height: bar.vertical ? width : Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
                 text: modelData.name || String(modelData.id)
                 leftPadding: 7
@@ -452,9 +449,6 @@ Item {
             maximumWidth: bar.vertical ? bar.verticalThickness - 4 : Math.max(80, Math.min(300, bar.width * 0.24))
             interactive: false
             width: bar.vertical ? bar.verticalThickness - 4 : implicitWidth
-            ToolTip.visible: hovered && bar.vertical
-            ToolTip.text: settings.text || bar.mediaData.tooltip || bar.mediaData.title || ""
-            ToolTip.delay: 600
         }
     }
     BarMenuButton {
@@ -536,9 +530,6 @@ Item {
                         sourceSize.height: trayPill.trayIconSize
                         fillMode: Image.PreserveAspectFit
                     }
-                    ToolTip.visible: trayPointer.containsMouse
-                    ToolTip.text: trayIcon.modelData.tooltipTitle || trayIcon.modelData.title || "Application"
-                    ToolTip.delay: 600
                     MouseArea {
                         id: trayPointer
                         anchors.fill: parent

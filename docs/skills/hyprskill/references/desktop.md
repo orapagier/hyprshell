@@ -50,12 +50,13 @@ Settings → Hyprpane & panels → Layout & spacing → Screen edge selects Top,
 Right, or Bottom (`bar.position`, default `top`). On either side, saved left
 items sit at the top and right items sit at the bottom. Side panels use centered icons
 in circular pills (28 px at the default 32 px panel width).
-The calendar is an icon; labels, values and notification counts stay in tooltips
-and menus. Workspaces retain their numbers/names and identifying tooltips.
+The calendar is an icon; its menu has a live clock/date header and Sunday-first
+weeks. Hyprpane item, workspace, media and tray tooltips are disabled.
+Workspaces retain their numbers/names.
 Workspaces/tray icons stack vertically. Side panel length (`bar.verticalPresentation`)
 selects Full edge (`edge`, default) or Compact (`compact`, centered shorter rail).
 Overflow scrolls, and focus reveals controls. Media uses five spectrum bars
-centered in a circle with a full-title tooltip. Icon hiding, item order and group
+centered in a circle. Icon hiding, item order and group
 membership remain saved. Side groups draw
 individual circles; saved labels and radii return on Top/Bottom. Edge margin is `marginTop`; end margins are
 `marginSide`. Menus open inward from the selected edge; the Settings preview

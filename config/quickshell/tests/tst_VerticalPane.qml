@@ -94,7 +94,7 @@ Item {
                 compare(background.radius,item.width/2,id);
             }
             compare(pane.moduleItems.calendar.shownIcon,'󰃭');
-            verify(pane.moduleItems.calendar.tooltipText.indexOf(pane.clockText) >= 0);
+            compare(pane.moduleItems.calendar.ToolTip.visible,false);
             let workspace = findChild(pane,'workspace1');
             compare(workspace.shownText,'1');
             compare(workspace.shownIcon,'');
@@ -195,11 +195,11 @@ Item {
                 pane.settings = next;
                 compare(pane.moduleItems.audio.displayText,'');
                 compare(pane.moduleItems.audio.settings.text,'Volume');
-                verify(pane.moduleItems.audio.tooltipText.indexOf('Volume') >= 0);
+                compare(pane.moduleItems.audio.ToolTip.visible,false);
                 compare(pane.moduleItems.audio.shownIcon,'');
                 compare(pane.moduleItems.battery.shownText,'');
                 verify(pane.moduleItems.wifi.content.contentWidth <= pane.moduleItems.wifi.content.width + 1);
-                compare(pane.moduleItems.wifi.tooltipText.indexOf('Connected network') >= 0,true);
+                compare(pane.moduleItems.wifi.settings.text,'Connected network');
                 assertLayout();
             }
         }
@@ -251,10 +251,10 @@ Item {
             compare(pane.moduleItems.audio.displayText,'Café 🐱');
             compare(findChild(pane.moduleItems.audio,'pillBackground').radius,2);
         }
-        function test_notificationCountIsInTooltipAndSpectrumFitsCircle() {
+        function test_noTooltipsAndSpectrumFitsCircle() {
             let bell = pane.moduleItems.notifications, badge = findChild(bell,'notificationBadge');
             compare(badge.visible,false);
-            verify(bell.tooltipText.indexOf('999') >= 0);
+            compare(bell.ToolTip.visible,false);
             pane.mediaData = {playing:true,title:'A long music title stays available in the tooltip',levels:[0.3,0.8,0.6,0.4,1,0.4,0.2,0.6,0.9,0.4,0.3,0.5]};
             let media = pane.moduleItems.media.item;
             compare(media.displayText,'');
@@ -265,7 +265,7 @@ Item {
             verify(spectrum.y >= 0 && spectrum.y+spectrum.height <= media.height);
             for (let i=0; i<5; ++i) verify(findChild(spectrum,'spectrumBar'+i).width >= 2);
             compare(findChild(spectrum,'spectrumBar5'),null);
-            verify(media.ToolTip.text.indexOf('tooltip') >= 0);
+            compare(media.ToolTip.visible,false);
             let next = config('left');
             next.items = [{id:'media',hideIcon:true}];
             pane.settings = next;
