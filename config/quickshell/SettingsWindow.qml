@@ -772,10 +772,11 @@ FloatingWindow {
                                 x: 12
                                 y: previewLabel.y + previewLabel.height + 12
                                 width: vertical ? implicitWidth : Math.max(1000, parent.width - 24)
-                                height: vertical ? Math.max(720, window.screen ? window.screen.height - 2 * (window.draft.bar.marginSide || 0) : 720) : implicitHeight
+                                height: vertical && !compact ? Math.max(720, window.screen ? window.screen.height - 2 * (window.draft.bar.marginSide || 0) : 720) : implicitHeight
                                 scale: vertical ? Math.min(1, 320 / height) : Math.min(1, (parent.width - 24) / width)
                                 transformOrigin: Item.TopLeft
                                 settings: window.draft
+                                screenHeight: window.screen ? window.screen.height : 768
                                 wallpaperSource: window.screen ? window.wallpaperSources[window.screen.name] || "" : ""
                                 trayModel: [{icon: Qt.resolvedUrl("icons/preview-tray.svg")} ]
                                 clockText: Qt.formatDateTime(new Date(), window.draft.bar.clockFormat)

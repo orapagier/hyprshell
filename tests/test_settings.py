@@ -67,6 +67,19 @@ class SettingsTests(unittest.TestCase):
         self.data = copy.deepcopy(backend.DEFAULTS)
         self.path = self.config / 'hyprshell/settings.json'
 
+    def test_vertical_presentation_inherits_full_edge_and_round_trips(self):
+        self.assertEqual(backend.validate({'version': 1})['bar']['verticalPresentation'], 'edge')
+        for mode in ('compact', 'edge'):
+            self.data['bar']['verticalPresentation'] = mode
+            self.assertTrue(backend.save(self.data)['ok'])
+            self.assertEqual(json.loads(self.path.read_text())['bar']['verticalPresentation'], mode)
+        before = self.path.read_bytes()
+        for mode in ('wide', True, None, [], {}):
+            self.data['bar']['verticalPresentation'] = mode
+            with self.assertRaisesRegex(ValueError, 'Vertical presentation'):
+                backend.save(self.data)
+            self.assertEqual(self.path.read_bytes(), before)
+
     def test_bar_position_inherits_top_and_round_trips_all_edges(self):
         legacy = copy.deepcopy(self.data)
         del legacy['bar']['position']

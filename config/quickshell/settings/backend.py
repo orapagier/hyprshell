@@ -91,6 +91,8 @@ def validate(data):
         raise ValueError('Unknown bar setting')
     result['bar'].update(bar)
     bar = result['bar']
+    if bar['verticalPresentation'] not in ('edge', 'compact'):
+        raise ValueError('Vertical presentation must be edge or compact')
     if bar['position'] not in ('top', 'left', 'right', 'bottom'):
         raise ValueError('Bar position must be top, left, right, or bottom')
     if type(bar['visible']) is not bool:

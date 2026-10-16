@@ -116,6 +116,24 @@ ColumnLayout {
             text: "On either side edge, the left group sits at the top and the right group sits at the bottom."
             wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
+        Label {
+            visible: ["left", "right"].includes(root.settings.position)
+            text: "Side panel length"; color: Style.Theme.muted; font.pixelSize: Style.Theme.bodySize
+        }
+        SettingsComboBox {
+            objectName: "verticalPresentationControl"
+            visible: ["left", "right"].includes(root.settings.position)
+            Layout.fillWidth: true
+            model: ["Full edge", "Compact"]
+            currentIndex: root.settings.verticalPresentation === "compact" ? 1 : 0
+            onActivated: index => root.edited("verticalPresentation", index ? "compact" : "edge")
+        }
+        Label {
+            visible: ["left", "right"].includes(root.settings.position)
+            Layout.fillWidth: true
+            text: "Side labels use one upright character per line. Compact keeps the groups together. Long panels scroll; hover an item for its full label."
+            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+        }
         GridLayout {
             Layout.fillWidth: true
             columns: root.width >= 600 ? 2 : 1

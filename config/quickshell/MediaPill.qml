@@ -4,6 +4,7 @@ import QtQuick
 Pill {
     id: media
     property var levels: []
+    verticalLineLimit: vertical ? 12 : 0
     readonly property real spectrumScale: (settings.iconSize || 16) / 16
     readonly property int spectrumWidth: settings.hideIcon ? 0 : Math.ceil(58 * spectrumScale)
     implicitHeight: vertical ? Math.max(28, (settings.hideIcon ? 0 : 16 * spectrumScale + 4) + (shownText.length ? content.implicitHeight : 0) + 8) : Math.max(28, settings.hideIcon ? 0 : (settings.iconSize || 16) + 8, shownText.length ? content.implicitHeight + 8 : 0)

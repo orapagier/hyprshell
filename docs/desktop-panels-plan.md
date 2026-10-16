@@ -1,6 +1,6 @@
 # Hyprpane, Hyprdock, and Hyprbar: phased implementation plan
 
-Status: Phase 1 implemented on 2026-10-16 at the user’s request. Remaining
+Status: Phases 1 and 2 implemented on 2026-10-16 at the user’s request. Remaining
 phases are planned and require a later task. Each phase should leave a usable
 desktop and a reviewable result. See [Phase 1 configuration](panel-configuration.md)
 for the compatibility contract and validation record.
@@ -69,6 +69,11 @@ are unambiguous; invalid combinations are rejected without losing settings.
 Use the user's 2026-10-16 screenshot as the visual reference for current problems:
 the tall narrow panel has awkwardly wrapped date/time text, oversized rounded
 groups, uneven density, and large unused stretches between small controls.
+
+User refinement (2026-10-16): on Left or Right, text must use one upright
+character per line so label length does not widen the pane. Preserve full saved
+labels and use scrolling/tooltips for long content. Implemented behavior and
+review screenshots: [Vertical Hyprpane](vertical-hyprpane.md).
 
 - Design an intentional vertical layout rather than squeezing horizontal items
   into a narrow column. Keep icons and labels upright.
@@ -198,7 +203,7 @@ commit at each successfully completed implementation-task boundary; do not push
 without explicit authorization. Saving this plan is a documentation-only task.
 
 - [x] Phase 1: Naming and configuration design
-- [ ] Phase 2: Vertical Hyprpane polish
+- [x] Phase 2: Vertical Hyprpane polish
 - [ ] Phase 3: Shared applications and windows
 - [ ] Phase 4: Hyprdock core
 - [ ] Phase 5: Hyprdock utilities and visibility

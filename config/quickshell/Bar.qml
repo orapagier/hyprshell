@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls.Basic
 import "SettingsModel.js" as Settings
 
 Item {
@@ -7,13 +8,67 @@ Item {
     property var settings: ({})
     readonly property string position: settings.bar?.position || "top"
     readonly property bool vertical: position === "left" || position === "right"
-    // Derive side-bar width from preferences, rather than wrapped content:
-    // wrapped labels depend on their width and must not resize their container.
-    readonly property real verticalThickness: Math.max(68, (settings.bar?.height || 32) + 4,
+    readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
+    // Length never affects width. Explicit icon/font sizing and thickness still do.
+    readonly property real verticalThickness: Math.max(40, (settings.bar?.height || 32) + 4,
         ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => {
             let style = Settings.appearance(settings, id);
-            return Math.max(64, settings.bar?.height || 32, (style.iconSize || 16) + 24) + 4;
+            return Math.max(style.iconSize || 16, style.fontSize || 12) + 16 + Math.max(0, style.paddingLeft || 0) + Math.max(0, style.paddingRight || 0);
         }))
+    readonly property real sectionGap: Math.max(12, settings.bar?.spacing ?? 3)
+    readonly property real minimumVerticalLength: {
+        let sizes = ["left", "center", "right"].map(side => groupLength(side)).filter(size => size > 0);
+        return sizes.reduce((total, size) => total + size, 0) + Math.max(0, sizes.length - 1) * sectionGap;
+    }
+    readonly property real layoutLength: vertical ? Math.max(height, minimumVerticalLength) : width
+    readonly property real scrollOffset: layoutViewport.contentY
+    readonly property bool overflowing: vertical && minimumVerticalLength > height
+    function itemRect(id) {
+        let item = moduleItems[id];
+        // Explicit offset dependency makes menu anchors follow a scrolling rail.
+        let offset = scrollOffset;
+        return Qt.rect(item.x, item.y - (vertical ? offset : 0), item.width, item.height);
+    }
+    function gapBetween(first, second) {
+        let base = pillName(first) && pillName(first) === pillName(second) ? (settings.bar?.groupSpacing ?? 3) : (settings.bar?.spacing ?? 3);
+        return Math.max(0, base + (Settings.item(settings, first).spacingRight || 0) + (Settings.item(settings, second).spacingLeft || 0));
+    }
+    function groupLength(sideName) {
+        let ids = orderedItems(sideName);
+        if (!ids.length) return 0;
+        return Math.max(0, Settings.item(settings, ids[0]).spacingLeft || 0)
+            + Math.max(0, Settings.item(settings, ids[ids.length - 1]).spacingRight || 0)
+            + ids.reduce((total, id, i) => total + moduleItems[id].height + (i ? gapBetween(ids[i - 1], id) : 0), 0);
+    }
+    function verticalGroupStart(sideName) {
+        let sides = ["left", "center", "right"], sizes = sides.map(side => groupLength(side));
+        if (compact || overflowing) {
+            let cursor = Math.max(0, (layoutLength - minimumVerticalLength) / 2);
+            for (let i = 0; i < sides.length; ++i) {
+                if (sides[i] === sideName) return cursor;
+                if (sizes[i]) cursor += sizes[i] + sectionGap;
+            }
+        }
+        if (sideName === "left") return 0;
+        if (sideName === "right") return layoutLength - sizes[2];
+        let low = sizes[0] ? sizes[0] + sectionGap : 0;
+        let high = layoutLength - sizes[1] - (sizes[2] ? sizes[2] + sectionGap : 0);
+        return Math.max(low, Math.min(high, (layoutLength - sizes[1]) / 2));
+    }
+    function ensureItemVisible(item) {
+        if (!vertical) return;
+        let position = item.mapToItem(layoutViewport.contentItem, 0, 0);
+        let next = layoutViewport.contentY;
+        if (position.y < next) next = position.y;
+        else if (position.y + item.height > next + height) next = position.y + Math.min(item.height, height) - height;
+        layoutViewport.contentY = Math.max(0, Math.min(layoutViewport.contentHeight - height, next));
+    }
+    function scrollVertical(event) {
+        if (!overflowing) { event.accepted = false; return; }
+        let delta = event.pixelDelta.y || event.angleDelta.y / 3;
+        layoutViewport.contentY = Math.max(0, Math.min(layoutViewport.contentHeight - height, layoutViewport.contentY - delta));
+        event.accepted = true;
+    }
     function itemX(id) { return vertical ? (width - moduleItems[id].width) / 2 : itemPosition(id); }
     function itemY(id) { return vertical ? itemPosition(id) : (height - moduleItems[id].height) / 2; }
     readonly property var moduleItems: ({
@@ -104,6 +159,15 @@ Item {
         return style;
     }
     function itemPosition(id) {
+        if (vertical) {
+            let ids = orderedItems(side(id));
+            let cursor = verticalGroupStart(side(id)) + (ids.length ? Math.max(0, Settings.item(settings, ids[0]).spacingLeft || 0) : 0);
+            for (let i = 0; i < ids.length; ++i) {
+                if (ids[i] === id) return cursor;
+                cursor += moduleItems[ids[i]].height + (i + 1 < ids.length ? gapBetween(ids[i], ids[i + 1]) : 0);
+            }
+            return cursor;
+        }
         let group = orderedItems(side(id));
         let spacing = settings.bar ? (settings.bar.spacing ?? 3) : 3;
         let left = k => Settings.item(settings, k).spacingLeft || 0;
@@ -183,7 +247,8 @@ Item {
         // Anchor on the visible content, which asymmetric inside-pill padding
         // shifts away from the item's geometric centre.
         let contentShift = vertical ? 0 : (item.effectiveLeftPadding - item.effectiveRightPadding) / 2;
-        return Qt.rect(item.x + contentShift, item.y, item.width, item.height);
+        let rect = itemRect(name);
+        return Qt.rect(rect.x + contentShift, rect.y, rect.width, rect.height);
     }
     function menuAccent(name) {
         let item = menuTargets[name];
@@ -201,10 +266,25 @@ Item {
         return Qt.rgba(parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255, alpha);
     }
     implicitWidth: vertical ? verticalThickness : 0
-    implicitHeight: vertical ? screenHeight - 2 * (settings.bar?.marginSide ?? 10)
+    implicitHeight: vertical ? Math.max(1, Math.min(Math.max(1, screenHeight - 2 * (settings.bar?.marginSide ?? 10)), compact ? minimumVerticalLength : Infinity))
         : Math.max(settings.bar?.height || 32,
             ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => moduleItems[id].height + 4))
     height: implicitHeight
+    Flickable {
+        id: layoutViewport
+        objectName: "panelViewport"
+        anchors.fill: parent
+        contentWidth: width
+        contentHeight: bar.vertical ? bar.layoutLength : height
+        interactive: bar.vertical && bar.overflowing
+        clip: bar.vertical
+        boundsBehavior: Flickable.StopAtBounds
+        flickableDirection: Flickable.VerticalFlick
+        ScrollBar.vertical: ScrollBar {
+            width: 3
+            policy: bar.overflowing ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+            active: bar.overflowing
+        }
     Repeater {
         model: bar.sharedPills
         delegate: Pill {
@@ -215,6 +295,7 @@ Item {
             x: bounds.x; y: bounds.y; width: bounds.width; height: bounds.height
             z: -1
             interactive: false
+            vertical: bar.vertical
             settings: bar.sharedStyle(leader)
             foreground: bar.moduleItems[leader].foreground ?? "#cdd6f4"
             tint: bar.moduleItems[leader].tint ?? Qt.rgba(30/255, 30/255, 46/255, 0.28)
@@ -231,7 +312,7 @@ Item {
         x: bar.itemX("launcher")
         y: bar.itemY("launcher")
         vertical: bar.vertical
-        maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32, (settings.iconSize || 16) + 24) : 10000
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("launcher")
         opacity: Settings.item(bar.settings, "launcher").opacity ?? 1
         visible: bar.itemEnabled("launcher")
@@ -265,7 +346,7 @@ Item {
         bar: bar; menu: "settings"
         x: bar.itemX("settings"); y: bar.itemY("settings")
         vertical: bar.vertical
-        maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32, (settings.iconSize || 16) + 24) : 10000
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("settings")
         opacity: settings.opacity ?? 1
         visible: bar.itemEnabled("settings")
@@ -308,6 +389,7 @@ Item {
             id: workspaceRepeater
             model: (bar.statusData.workspaces || []).filter(w => !bar.outputName || w.monitor === bar.outputName)
             delegate: Pill {
+                id: workspaceButton
                 objectName: "workspace" + modelData.id
                 settings: {
                     let appearance = Object.assign({}, bar.appearance("workspaces"), {paddingLeft:0, paddingRight:0});
@@ -324,6 +406,8 @@ Item {
                 property bool active: modelData.active || false
                 vertical: bar.vertical
                 maximumWidth: bar.vertical ? Math.max(1, bar.verticalThickness - 4 - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
+                width: bar.vertical ? maximumWidth : implicitWidth
+                onActiveFocusChanged: if (activeFocus && bar.vertical) bar.ensureItemVisible(workspaceButton)
                 height: Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
                 text: modelData.name || String(modelData.id)
                 leftPadding: 7
@@ -333,7 +417,7 @@ Item {
                 selected: active
                 raised: false
                 onClicked: bar.action("workspace", modelData.id)
-                onWheel: event => bar.action("workspace-scroll", event.angleDelta.y > 0 ? -1 : 1)
+                onWheel: event => { bar.action("workspace-scroll", event.angleDelta.y > 0 ? -1 : 1); event.accepted = true; }
             }
         }
     }
@@ -352,8 +436,12 @@ Item {
             colorRoot: bar
             text: bar.mediaData.title || ""
             levels: bar.mediaData.levels || []
-            maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32) : Math.max(80, Math.min(300, bar.width * 0.24))
+            maximumWidth: bar.vertical ? bar.verticalThickness - 4 : Math.max(80, Math.min(300, bar.width * 0.24))
             interactive: false
+            width: bar.vertical ? bar.verticalThickness - 4 : implicitWidth
+            ToolTip.visible: hovered && bar.vertical
+            ToolTip.text: settings.text || bar.mediaData.tooltip || bar.mediaData.title || ""
+            ToolTip.delay: 600
         }
     }
     BarMenuButton {
@@ -363,7 +451,7 @@ Item {
         x: bar.itemX("calendar")
         y: bar.itemY("calendar")
         vertical: bar.vertical
-        maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32, (settings.iconSize || 16) + 24) : 10000
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("calendar")
         opacity: Settings.item(bar.settings, "calendar").opacity ?? 1
         visible: bar.itemEnabled("calendar")
@@ -379,7 +467,7 @@ Item {
         x: bar.itemX("tray")
         y: bar.itemY("tray")
         vertical: bar.vertical
-        maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32, (settings.iconSize || 16) + 24) : 10000
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("tray")
         opacity: Settings.item(bar.settings, "tray").opacity ?? 1
         colorSampler: Settings.adaptive(bar.settings, "tray") ? bar.wallpaperColors : null
@@ -387,18 +475,20 @@ Item {
         foreground: "#cba6f7"
         interactive: false
         visible: bar.itemEnabled("tray") && trayIcons.count > 0
-        width: trayRow.width + effectiveLeftPadding + effectiveRightPadding
-        implicitHeight: Math.max(28, trayRow.height + 8)
+        width: bar.vertical ? bar.verticalThickness - 4 : trayRow.width + effectiveLeftPadding + effectiveRightPadding
+        implicitHeight: bar.vertical ? Math.max(32, (shownText.length ? content.implicitHeight + 8 : 0) + (settings.hideIcon ? 0 : trayRow.height + 8)) : Math.max(28, trayRow.height + 8)
+        content.y: bar.vertical ? 4 : (height - content.height) / 2
+        leftPadding: bar.vertical ? 4 : 11
+        rightPadding: bar.vertical ? 4 : 11
         readonly property int trayIconSize: settings.iconSize || 16
-        Flow {
+        readonly property int trayTargetSize: bar.vertical ? Math.max(24, trayIconSize + 8) : trayIconSize
+        Grid {
             id: trayRow
-            flow: bar.vertical ? Flow.LeftToRight : Flow.TopToBottom
-            width: bar.vertical ? trayPill.trayIconSize : implicitWidth
-            height: bar.vertical ? implicitHeight : trayPill.trayIconSize
+            columns: bar.vertical ? Math.max(1, Math.floor((trayPill.width - trayPill.effectiveLeftPadding - trayPill.effectiveRightPadding + spacing) / (trayPill.trayTargetSize + spacing))) : Math.max(1, trayIcons.count)
             x: trayPill.effectiveLeftPadding
-            anchors.verticalCenter: parent.verticalCenter
+            y: bar.vertical ? (trayPill.shownText.length ? trayPill.content.implicitHeight + 8 : 4) : (parent.height - height) / 2
             visible: !trayPill.settings.hideIcon
-            spacing: 0
+            spacing: bar.vertical ? 4 : 0
             Repeater {
                 id: trayIcons
                 model: bar.trayModel
@@ -406,15 +496,24 @@ Item {
                     id: trayIcon
                     required property var modelData
                     objectName: "trayIcon"
-                    width: trayPill.settings.hideIcon ? 0 : trayPill.trayIconSize
-                    height: trayPill.trayIconSize
+                    activeFocusOnTab: bar.vertical && !trayPill.settings.hideIcon
+                    onActiveFocusChanged: if (activeFocus && bar.vertical) bar.ensureItemVisible(trayIcon)
+                    Keys.onReturnPressed: bar.trayAction(modelData, trayIcon, Qt.LeftButton)
+                    Keys.onMenuPressed: bar.trayAction(modelData, trayIcon, Qt.RightButton)
+                    Rectangle { anchors.fill: parent; radius: 4; color: "transparent"; border.width: parent.activeFocus ? 1 : 0; border.color: "#b4befe" }
+                    width: trayPill.settings.hideIcon ? 0 : trayPill.trayTargetSize
+                    height: trayPill.trayTargetSize
                     Image {
-                        anchors.fill: parent
+                        anchors.centerIn: parent
+                        width: trayPill.trayIconSize; height: width
                         source: trayIcon.modelData.icon
                         sourceSize.width: trayPill.trayIconSize
                         sourceSize.height: trayPill.trayIconSize
                         fillMode: Image.PreserveAspectFit
                     }
+                    ToolTip.visible: trayPointer.containsMouse
+                    ToolTip.text: trayIcon.modelData.tooltipTitle || trayIcon.modelData.title || "Application"
+                    ToolTip.delay: 600
                     MouseArea {
                         id: trayPointer
                         anchors.fill: parent
@@ -434,7 +533,7 @@ Item {
         x: bar.itemX("notifications")
         y: bar.itemY("notifications")
         vertical: bar.vertical
-        maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32, (settings.iconSize || 16) + 24) : 10000
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("notifications")
         opacity: Settings.item(bar.settings, "notifications").opacity ?? 1
         visible: bar.itemEnabled("notifications")
@@ -444,7 +543,9 @@ Item {
         pixelSize: 15
         minimumTextWidth: 12
         leftPadding: 7
-        rightPadding: badge.visible ? Math.max(11, badge.implicitWidth + 1) : 11
+        rightPadding: bar.vertical ? 6 : badge.visible ? Math.max(11, badge.implicitWidth + 1) : 11
+        implicitHeight: naturalHeight + (bar.vertical && badge.visible ? badge.implicitHeight + 4 : 0)
+        content.y: bar.vertical ? 4 + (shownIcon.length ? effectiveIconSize + 4 : 0) : (height - content.height) / 2
         foreground: bar.notificationData && bar.notificationData.count > 0 ? "#f9e2af" : "#a6adc8"
         tint: bar.rgba("#a6adc8", 0.18)
         outline: bar.rgba("#a6adc8", 0.26)
@@ -453,10 +554,13 @@ Item {
             objectName: "notificationBadge"
             // Attach to the glyph's upper-right corner, independently of
             // the pill width or number of digits in the count.
-            x: bell.content.x + (bell.content.width + bell.content.implicitWidth) / 2 - 2
-            y: bell.content.y - 2
+            x: bar.vertical ? (bell.width - width) / 2 : bell.content.x + (bell.content.width + bell.content.implicitWidth) / 2 - 2
+            y: bar.vertical ? bell.height - height - 4 : bell.content.y - 2
             visible: !!bar.notificationData && bar.notificationData.count > 0
-            text: bar.notificationData ? String(bar.notificationData.count || "") : ""
+            text: {
+                let count = bar.notificationData ? String(bar.notificationData.count || "") : "";
+                return bar.vertical ? Array.from(count).join("\n") : count;
+            }
             color: bell.effectiveForeground
             style: bell.glyphHalo ? Text.Outline : bell.bare ? Text.Raised : Text.Normal
             styleColor: bell.glyphHalo ? bell.textEdge : bell.glyphShadow
@@ -471,7 +575,7 @@ Item {
         x: bar.itemX("audio")
         y: bar.itemY("audio")
         vertical: bar.vertical
-        maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32, (settings.iconSize || 16) + 24) : 10000
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("audio")
         opacity: Settings.item(bar.settings, "audio").opacity ?? 1
         visible: bar.itemEnabled("audio")
@@ -488,7 +592,7 @@ Item {
         x: bar.itemX("wifi")
         y: bar.itemY("wifi")
         vertical: bar.vertical
-        maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32, (settings.iconSize || 16) + 24) : 10000
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("wifi")
         opacity: Settings.item(bar.settings, "wifi").opacity ?? 1
         visible: bar.itemEnabled("wifi")
@@ -504,9 +608,9 @@ Item {
         leftPadding: 4
         rightPadding: 4
         // Center the visible glyph rather than the font's advance box.
-        content.horizontalAlignment: Text.AlignLeft
+        content.horizontalAlignment: bar.vertical ? Text.AlignHCenter : Text.AlignLeft
         content.elide: Text.ElideNone
-        content.x: (wifi.width - wifiGlyphMetrics.tightBoundingRect.width) / 2
+        content.x: bar.vertical ? effectiveLeftPadding : (wifi.width - wifiGlyphMetrics.tightBoundingRect.width) / 2
                    - wifiGlyphMetrics.tightBoundingRect.x
         TextMetrics {
             id: wifiGlyphMetrics
@@ -519,7 +623,7 @@ Item {
         x: bar.itemX("bluetooth")
         y: bar.itemY("bluetooth")
         vertical: bar.vertical
-        maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32, (settings.iconSize || 16) + 24) : 10000
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("bluetooth")
         opacity: Settings.item(bar.settings, "bluetooth").opacity ?? 1
         visible: bar.itemEnabled("bluetooth")
@@ -540,7 +644,7 @@ Item {
         x: bar.itemX("battery")
         y: bar.itemY("battery")
         vertical: bar.vertical
-        maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32, (settings.iconSize || 16) + 24) : 10000
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("battery")
         opacity: Settings.item(bar.settings, "battery").opacity ?? 1
         bar: bar
@@ -559,7 +663,7 @@ Item {
         x: bar.itemX("power")
         y: bar.itemY("power")
         vertical: bar.vertical
-        maximumWidth: bar.vertical ? Math.max(64, bar.settings.bar?.height || 32, (settings.iconSize || 16) + 24) : 10000
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("power")
         opacity: Settings.item(bar.settings, "power").opacity ?? 1
         visible: bar.itemEnabled("power")
@@ -574,5 +678,6 @@ Item {
         pixelSize: 15
         leftPadding: 9
         rightPadding: 9
+    }
     }
 }

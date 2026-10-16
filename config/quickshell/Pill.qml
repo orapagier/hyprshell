@@ -5,6 +5,36 @@ Item {
     id: pill
     property var settings: ({})
     property bool vertical: false
+    // Side-panel labels are deliberate upright character columns, never wrapped words.
+    property int verticalLineLimit: 0
+    function verticalCharacters(value) {
+        // QV4's Array.from(string) can iterate UTF-16 units. Keep surrogate
+        // pairs, combining marks and joined symbols intact on the same row.
+        let result = [], joinNext = false;
+        for (let i = 0; i < value.length; ++i) {
+            let code = value.charCodeAt(i), letter = value[i];
+            if (code >= 0xd800 && code <= 0xdbff && i + 1 < value.length) {
+                let low = value.charCodeAt(i + 1);
+                if (low >= 0xdc00 && low <= 0xdfff) {
+                    letter += value[++i];
+                    code = 0x10000 + ((code - 0xd800) << 10) + low - 0xdc00;
+                }
+            }
+            let combining = (code >= 0x300 && code <= 0x36f) || (code >= 0xfe00 && code <= 0xfe0f)
+                || (code >= 0x1f3fb && code <= 0x1f3ff) || code === 0x200d;
+            if (result.length && (combining || joinNext)) result[result.length - 1] += letter;
+            else result.push(letter);
+            joinNext = code === 0x200d;
+        }
+        return result;
+    }
+    readonly property string displayText: {
+        if (!vertical) return shownText;
+        let letters = verticalCharacters(shownText.trim().replace(/\s+/g, " "));
+        if (verticalLineLimit > 0 && letters.length > verticalLineLimit)
+            letters = letters.slice(0, verticalLineLimit - 1).concat(["…"]);
+        return letters.join("\n");
+    }
     readonly property string shownText: settings.hideText ? "" : settings.text || text
     readonly property string shownIcon: settings.hideIcon ? "" : settings.icon || icon
     readonly property color textColor: settings.textColor || (family === "GoMono Nerd Font" ? settings.iconColor : "") || effectiveForeground
@@ -39,8 +69,8 @@ Item {
     property bool bold: true
     property int leftPadding: 11
     property int rightPadding: 11
-    property int effectiveLeftPadding: Math.max(0, leftPadding + (settings.paddingLeft || 0))
-    readonly property int effectiveRightPadding: Math.max(0, rightPadding + (settings.paddingRight || 0))
+    property int effectiveLeftPadding: Math.max(0, (vertical ? Math.min(4, leftPadding) : leftPadding) + (settings.paddingLeft || 0))
+    readonly property int effectiveRightPadding: Math.max(0, (vertical ? Math.min(4, rightPadding) : rightPadding) + (settings.paddingRight || 0))
     property int minimumTextWidth: 0
     property int maximumWidth: 10000
     property int textFormat: Text.PlainText
@@ -67,14 +97,18 @@ Item {
     readonly property int effectiveTextSize: settings.fontSize || Math.max(8, Math.round(pixelSize * (settings.iconSize || 16) / 16))
     readonly property int iconWidth: shownIcon.length ? effectiveIconSize + 5 : 0
     implicitWidth: Math.min(maximumWidth, Math.max(minimumTextWidth, label.implicitWidth, vertical && shownIcon.length ? effectiveIconSize : 0) + (vertical ? 0 : iconWidth) + effectiveLeftPadding + effectiveRightPadding)
-    implicitHeight: vertical ? Math.max(28, (shownIcon.length ? effectiveIconSize + (shownText.length ? 4 : 0) : 0) + (shownText.length ? label.implicitHeight : 0) + 8) : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
+    readonly property real naturalHeight: vertical ? Math.max(32, (shownIcon.length ? effectiveIconSize + (shownText.length ? 4 : 0) : 0) + (shownText.length ? label.implicitHeight : 0) + 8) : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
+    implicitHeight: naturalHeight
+    activeFocusOnTab: interactive
+    Keys.onReturnPressed: if (interactive) clicked(null)
+    Keys.onSpacePressed: if (interactive) clicked(null)
     Rectangle {
         visible: pill.backgroundShown
         anchors.fill: parent
-        radius: pill.settings.radius >= 0 ? pill.settings.radius : height / 2
+        radius: pill.settings.radius >= 0 ? pill.settings.radius : pill.vertical ? 8 : height / 2
         color: pill.styledBackground(pill.adaptivePalette
-            ? (pill.selected ? pill.adaptivePalette.selected : pointer.containsMouse ? pill.adaptivePalette.hover : pill.adaptivePalette.tint)
-            : pill.selected ? Qt.rgba(pill.foreground.r, pill.foreground.g, pill.foreground.b, 0.32) : pointer.containsMouse ? pill.hoverTint : pill.tint)
+            ? (pill.selected ? pill.adaptivePalette.selected : pointer.containsMouse || pill.activeFocus ? pill.adaptivePalette.hover : pill.adaptivePalette.tint)
+            : pill.selected ? Qt.rgba(pill.foreground.r, pill.foreground.g, pill.foreground.b, 0.32) : pointer.containsMouse || pill.activeFocus ? pill.hoverTint : pill.tint)
         Behavior on color { ColorAnimation { duration: 200 } }
         border.width: 1
         border.color: pill.settings.outlineColor || (pill.adaptivePalette ? (pill.selected ? pill.adaptivePalette.selectedOutline : pill.adaptivePalette.outline)
@@ -104,7 +138,7 @@ Item {
         height: 2
         radius: 1
         color: pill.shownIcon.length ? pill.iconColor : pill.textColor
-        opacity: pill.selected ? 0.95 : pill.interactive && pill.hovered ? 0.55 : 0
+        opacity: pill.selected ? 0.95 : pill.interactive && (pill.hovered || pill.activeFocus) ? 0.55 : 0
         Behavior on opacity { NumberAnimation { duration: 140 } }
     }
     Text {
@@ -128,8 +162,8 @@ Item {
         x: pill.effectiveLeftPadding + (pill.vertical ? 0 : pill.iconWidth)
         y: (parent.height - height + (pill.vertical && pill.shownIcon.length ? pill.effectiveIconSize + 4 : 0)) / 2
         width: Math.max(1, parent.width - pill.effectiveLeftPadding - pill.effectiveRightPadding - (pill.vertical ? 0 : pill.iconWidth))
-        wrapMode: pill.vertical ? Text.Wrap : Text.NoWrap
-        text: pill.shownText
+        wrapMode: Text.NoWrap
+        text: pill.displayText
         textFormat: pill.textFormat
         color: pill.textColor
         style: pill.glyphHalo ? Text.Outline : pill.bare ? Text.Raised : Text.Normal
@@ -151,6 +185,6 @@ Item {
         onEntered: pill.entered()
         onExited: pill.exited()
         onClicked: mouse => pill.clicked(mouse)
-        onWheel: event => pill.wheel(event)
+        onWheel: event => { event.accepted = false; pill.wheel(event); }
     }
 }

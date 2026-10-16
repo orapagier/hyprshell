@@ -78,14 +78,15 @@ ShellRoot {
             onVisibleChanged: if (!visible) menuState.close()
             readonly property string edge: preferences.config.bar.position || "top"
             readonly property bool vertical: edge === "left" || edge === "right"
+            readonly property bool compact: vertical && preferences.config.bar.verticalPresentation === "compact"
             anchors {
                 top: edge !== "bottom"
-                bottom: edge !== "top"
+                bottom: edge !== "top" && !compact
                 left: edge !== "right"
                 right: edge !== "left"
             }
             margins {
-                top: edge === "top" ? preferences.config.bar.marginTop : vertical ? preferences.config.bar.marginSide : 0
+                top: edge === "top" ? preferences.config.bar.marginTop : vertical ? (compact ? (screen.height - implicitHeight) / 2 : preferences.config.bar.marginSide) : 0
                 bottom: edge === "bottom" ? preferences.config.bar.marginTop : vertical ? preferences.config.bar.marginSide : 0
                 left: edge === "left" ? preferences.config.bar.marginTop : !vertical ? preferences.config.bar.marginSide : 0
                 right: edge === "right" ? preferences.config.bar.marginTop : !vertical ? preferences.config.bar.marginSide : 0

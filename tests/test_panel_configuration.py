@@ -23,7 +23,11 @@ class PanelConfigurationTests(unittest.TestCase):
             legacy = json.loads(path.read_text())
             result = backend.validate(legacy)
             for section in legacy:
-                self.assertEqual(result[section], legacy[section])
+                if isinstance(legacy[section], dict):
+                    for key, value in legacy[section].items():
+                        self.assertEqual(result[section][key], value)
+                else:
+                    self.assertEqual(result[section], legacy[section])
             self.assertTrue(result['panels']['hyprpane']['enabled'])
             self.assertFalse(result['panels']['hyprdock']['enabled'])
             self.assertFalse(result['panels']['hyprbar']['enabled'])

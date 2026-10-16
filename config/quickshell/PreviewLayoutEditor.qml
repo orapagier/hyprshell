@@ -19,14 +19,14 @@ Item {
 
     function itemAt(x, y) {
         return Object.keys(bar.moduleItems).find(id => {
-            let item = bar.moduleItems[id];
-            return item.visible && x >= item.x && x <= item.x + item.width && y >= item.y && y <= item.y + item.height;
+            let item = bar.moduleItems[id], rect = bar.itemRect(id);
+            return item.visible && x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
         }) || "";
     }
     function dropAt(x, y) {
         let hoveredId = itemAt(x, y);
         let cursor = bar.vertical ? y : x, length = bar.vertical ? height : width;
-        let start = item => bar.vertical ? item.y : item.x;
+        let start = item => bar.vertical ? item.y - bar.scrollOffset : item.x;
         let size = item => bar.vertical ? item.height : item.width;
         let side = hoveredId ? bar.side(hoveredId) : cursor < length / 3 ? "left" : cursor > length * 2 / 3 ? "right" : "center";
         let group = Object.keys(bar.moduleItems).filter(id => id !== draggedId && bar.moduleItems[id].visible && bar.side(id) === side)
@@ -69,6 +69,7 @@ Item {
             editor.dragging = false;
             editor.draggedId = "";
         }
+        onWheel: event => { if (editor.bar.vertical) editor.bar.scrollVertical(event); else event.accepted = false; }
         onCanceled: { editor.dragging = false; editor.draggedId = ""; }
     }
     Rectangle {

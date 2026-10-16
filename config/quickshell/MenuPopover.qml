@@ -1,7 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
+import QtQuick.Window
 import QtQuick.Layouts
+import QtQuick.Controls.Basic
 
 Item {
     id: popover
@@ -32,19 +34,21 @@ Item {
     readonly property bool rendering: opened || surface.opacity > 0
     signal hoverChanged(bool inside)
     signal cardClicked()
-    readonly property real bodyWidth: Math.min(300, width - 24)
+    readonly property real bodyWidth: Math.max(0, Math.min(300, connected && vertical
+        ? (edge === "left" ? width - triggerRect.x - triggerRect.width - 45 : triggerRect.x - 45)
+        : width - 24))
     function clamp(value, low, high) { return Math.max(low, Math.min(Math.max(low, high), value)); }
     readonly property real bodyX: !connected || !vertical
         ? (alignment === "left" ? 12 : alignment === "right" ? width - bodyWidth - 12 : (width - bodyWidth) / 2)
         : edge === "left" ? clamp(triggerRect.x + triggerRect.width + 33, 12, width - bodyWidth - 12)
         : clamp(triggerRect.x - 33 - bodyWidth, 12, width - bodyWidth - 12)
-    readonly property real availableHeight: !connected || vertical ? height - 64
+    readonly property real availableHeight: !connected ? height - 64 : vertical ? height - 24
         : edge === "bottom" ? triggerRect.y - 49 : height - triggerRect.y - triggerRect.height - 49
     readonly property real bodyHeight: Math.max(0, Math.min(availableHeight, contents.implicitHeight + 36))
     readonly property real bodyY: !connected ? Math.max(48, triggerRect.y + triggerRect.height + 12)
         : edge === "top" ? triggerRect.y + triggerRect.height + 33
         : edge === "bottom" ? triggerRect.y - 33 - bodyHeight
-        : clamp(alignment === "left" ? 12 : alignment === "right" ? height - bodyHeight - 12 : (height - bodyHeight) / 2, 12, height - bodyHeight - 12)
+        : clamp(triggerRect.y + triggerRect.height / 2 - bodyHeight / 2, 12, height - bodyHeight - 12)
     readonly property real bodyRight: bodyX + bodyWidth
     readonly property real bodyBottom: bodyY + bodyHeight
     // Draw the existing funnel in coordinates that always point inward, while
@@ -179,10 +183,39 @@ Item {
             cursorShape: popover.cardClickable ? Qt.PointingHandCursor : Qt.ArrowCursor
             onClicked: if (popover.cardClickable) popover.cardClicked()
         }
+        Flickable {
+            id: bodyScroll
+            objectName: "menuBodyScroll"
+            x: popover.bodyX + 18; y: popover.bodyY + 18
+            width: Math.max(0, popover.bodyWidth - 36)
+            height: Math.max(0, popover.bodyHeight - 36)
+            contentWidth: width
+            contentHeight: contents.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.VerticalFlick
+            interactive: contentHeight > height
+            acceptedButtons: popover.cardClickable ? Qt.NoButton : Qt.LeftButton
+            activeFocusOnTab: interactive
+            Keys.onDownPressed: contentY = Math.min(contentHeight - height, contentY + 32)
+            Keys.onUpPressed: contentY = Math.max(0, contentY - 32)
+            ScrollBar.vertical: ScrollBar {}
+            Connections {
+                target: popover.Window.window
+                function onActiveFocusItemChanged() {
+                    let focused = popover.Window.window.activeFocusItem;
+                    let ancestor = focused;
+                    while (ancestor && ancestor !== contents) ancestor = ancestor.parent;
+                    if (!ancestor) return;
+                    let point = focused.mapToItem(contents, 0, 0);
+                    if (point.y < bodyScroll.contentY) bodyScroll.contentY = Math.max(0, point.y);
+                    else if (point.y + focused.height > bodyScroll.contentY + bodyScroll.height)
+                        bodyScroll.contentY = Math.max(0, Math.min(bodyScroll.contentHeight - bodyScroll.height, point.y + focused.height - bodyScroll.height));
+                }
+            }
         ColumnLayout {
             id: contents
-            x: popover.bodyX + 18; y: popover.bodyY + 18
-            width: popover.bodyWidth - 36
+            width: bodyScroll.width
             spacing: 12
             RowLayout {
                 spacing: 10
@@ -205,6 +238,7 @@ Item {
             // An inactive Loader retains its last height. Hide it so the layout
             // does not count that stale size below the persistent launcher.
             Loader { id: pageLoader; Layout.fillWidth: true; visible: active; active: popover.rendering && !popover.persistentSelected; sourceComponent: popover.page }
+        }
         }
     }
 }

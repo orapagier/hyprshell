@@ -18,7 +18,8 @@
     "popdownTranslucency": 0.06,
     "sharedBackground": "inherit",
     "position": "top",
-    "paddingBottom": 0
+    "paddingBottom": 0,
+    "verticalPresentation": "edge"
   },
   "items": [
     {
