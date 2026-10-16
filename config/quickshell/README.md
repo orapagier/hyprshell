@@ -23,7 +23,8 @@ the primary display. Mirrored and disabled outputs are skipped. Connecting an
 external display while the viewer is open moves the projection there automatically;
 disconnecting it returns the viewer to windowed mode. With one screen, Hyprview
 starts floating. It preserves the source's aspect ratio with black bars.
-**F11** toggles fullscreen; **Escape** leaves fullscreen
+**Super+Shift+V** closes Hyprview from any screen, regardless of keyboard focus.
+Inside the viewer, **F11** toggles fullscreen; **Escape** leaves fullscreen
 first, then closes. Pressing Super+V while Hyprview itself is focused also closes
 it. Closing releases capture; after closing a source, focus another application
 and press Super+V to project it.

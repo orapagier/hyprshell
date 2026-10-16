@@ -237,6 +237,9 @@ ShellRoot {
         function hyprview(): void {
             hyprviewWindow.projectActive();
         }
+        function closeHyprview(): void {
+            hyprviewWindow.dismiss();
+        }
         function toggleBar(): void {
             let workspace = shell.currentWorkspace;
             if (workspace < 1 || workspace > 99) {

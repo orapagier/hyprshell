@@ -1,5 +1,6 @@
 """Exercise the native viewer's selection, lifecycle and aspect fit offscreen."""
 import os
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -11,6 +12,24 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(shutil.which('quickshell'), 'Native Quickshell is needed')
 class HyprviewTests(unittest.TestCase):
+    def test_close_shortcut_routes_to_shell(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            stub = root / 'quickshell'
+            stub.write_text('#!/usr/bin/python3\nimport json, os, sys\n'
+                            'from pathlib import Path\n'
+                            'Path(os.environ["HYPRVIEW_TEST_LOG"]).write_text(json.dumps(sys.argv[1:]))\n')
+            stub.chmod(0o755)
+            config = root / 'config with spaces'
+            log = root / 'arguments.json'
+            env = dict(os.environ, PATH=str(root) + os.pathsep + os.environ['PATH'],
+                       XDG_CONFIG_HOME=str(config), HYPRVIEW_TEST_LOG=str(log))
+            result = subprocess.run([str(ROOT / 'bin/hyprshell-shortcut'), 'hyprview-close'],
+                                    env=env, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(json.loads(log.read_text()),
+                             ['ipc', '--path', str(config / 'quickshell'), 'call', 'bar', 'closeHyprview'])
+
     def test_viewer_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -24,6 +43,8 @@ class HyprviewTests(unittest.TestCase):
             source = source.replace('live: view.visible && !!view.source && !view.streamStopped', 'live: false')
             (payload / 'Hyprview.qml').write_text(source)
             (payload / 'Check.qml').write_text('''import QtQuick
+import QtQuick.Window
+import QtTest
 import Quickshell
 ShellRoot {
     id: root
@@ -50,6 +71,7 @@ ShellRoot {
         displays: [root.laptop]
         monitors: root.extended
     }
+    TestCase { id: keyboard; parent: view.contentItem; when: false }
     function check(value, message) { if (!value) throw new Error(message); }
     function find(item, name) {
         if (item.objectName === name) return item;
@@ -132,7 +154,24 @@ ShellRoot {
                     root.check(!view.selectWindow(root.own) && view.source === root.second, "reject recursive capture");
                     view.selectWindow({address: "0x4", title: "No handle"});
                     root.check(!!view.message && view.source === root.second, "unsupported source preserves selection");
+                    view.contentItem.Window.window.requestActivate();
+                    view.contentItem.forceActiveFocus();
+                    break;
+                case 9:
+                    keyboard.keyClick(Qt.Key_F11);
+                    root.check(view.fullscreen, "actual F11 event activates viewer shortcut");
+                    break;
+                case 10:
+                    keyboard.keyClick(Qt.Key_Escape);
+                    root.check(!view.fullscreen && view.visible, "actual Escape event leaves fullscreen");
+                    break;
+                case 11:
+                    keyboard.keyClick(Qt.Key_Escape);
+                    root.check(!view.visible && !view.sourceAddress, "actual Escape event closes viewer and releases capture");
+                    view.projectActive();
+                    view.activeWindow = root.first;
                     view.dismiss();
+                    root.check(!view.visible && !view.sourceAddress, "remote close does not depend on viewer focus");
                     view.activeWindow = null;
                     view.projectActive();
                     root.check(view.visible && !view.source && !!view.message, "no focused window shows shortcut guidance");
