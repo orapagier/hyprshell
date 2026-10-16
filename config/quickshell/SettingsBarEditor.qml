@@ -8,6 +8,8 @@ import QtQuick.Layouts
 ColumnLayout {
     id: root
     required property var settings
+    property var dockSettings: null
+    signal dockEdited(string key, var value)
     property int currentWorkspace: 1
     property int selectedWorkspace: currentWorkspace >= 1 && currentWorkspace <= 99 ? currentWorkspace : 1
     signal visibilityEdited(var bar)
@@ -16,7 +18,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Desktop panels"
-        subtitle: "Hyprpane is your status and menu panel. Hyprdock will hold apps; Hyprbar will be the classic window taskbar. Dock and taskbar controls arrive in later phases."
+        subtitle: "Hyprpane is your status and menu panel. Hyprdock holds apps; Hyprbar will be the classic window taskbar. Enable and size Hyprdock below."
         Label {
             Layout.fillWidth: true
             text: "Use one or two components per monitor and workspace, on different screen edges. A conflicting choice is rejected; choose another edge or disable a component."
@@ -26,11 +28,17 @@ ColumnLayout {
         }
         Label {
             Layout.fillWidth: true
-            text: "Top and Bottom own adjacent corners; Left and Right fit between them. App pins will be shared by default, with an optional separate list for Hyprdock and Hyprbar. Alt+T continues to target Hyprpane."
+            text: "Top and Bottom own adjacent corners; Left and Right fit between them. App pins are shared by default, with an optional separate list for Hyprdock and Hyprbar. Alt+T continues to target Hyprpane."
             wrapMode: Text.WordWrap
             color: Style.Theme.muted
             font.pixelSize: Style.Theme.captionSize
         }
+    }
+    SettingsDockEditor {
+        Layout.fillWidth: true
+        visible: root.dockSettings !== null
+        settings: root.dockSettings || {}
+        onEdited: (key, value) => root.dockEdited(key, value)
     }
     SettingsCard {
         Layout.fillWidth: true

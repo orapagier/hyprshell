@@ -18,6 +18,7 @@ Item {
     }
     property rect triggerRect: Qt.rect(12, 4, 32, 20)
     property string alignment: "center"
+    property bool alignToTrigger: false
     property string edge: "top"
     readonly property bool vertical: edge === "left" || edge === "right"
     property color accent: "#b4befe"
@@ -39,7 +40,7 @@ Item {
         : width - 24))
     function clamp(value, low, high) { return Math.max(low, Math.min(Math.max(low, high), value)); }
     readonly property real bodyX: !connected || !vertical
-        ? (alignment === "left" ? 12 : alignment === "right" ? width - bodyWidth - 12 : (width - bodyWidth) / 2)
+        ? (alignToTrigger && connected ? clamp(triggerRect.x + triggerRect.width / 2 - bodyWidth / 2, 12, width - bodyWidth - 12) : alignment === "left" ? 12 : alignment === "right" ? width - bodyWidth - 12 : (width - bodyWidth) / 2)
         : edge === "left" ? clamp(triggerRect.x + triggerRect.width + 33, 12, width - bodyWidth - 12)
         : clamp(triggerRect.x - 33 - bodyWidth, 12, width - bodyWidth - 12)
     readonly property real availableHeight: !connected ? height - 64 : vertical ? height - 24

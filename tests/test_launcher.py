@@ -94,6 +94,9 @@ ShellRoot {
                 source = fixture.read_text().replace('    Window {',
                     '    SettingsStore { id: preferences }\n    ApplicationService { id: appService; store: preferences }\n    Window {')
                 source = source.replace('LauncherMenu { id: launcher;', 'LauncherMenu { applicationService: appService; id: launcher;')
+                source = source.replace('launcher.launch({id: "vim"});',
+                    'keyboard.keyClick(Qt.Key_P, Qt.ControlModifier, 0); check(launcher.interacting, "pin menu did not open"); '
+                    'keyboard.keyClick(Qt.Key_Down, Qt.NoModifier, 0); keyboard.keyClick(Qt.Key_Return, Qt.NoModifier, 0); launcher.launch({id: "vim"});')
                 fixture.write_text(source)
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
             environment = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'),
@@ -104,5 +107,8 @@ ShellRoot {
             for error in ('LAUNCHER_FAILED', 'TypeError', 'ReferenceError', 'Unable to assign', 'Binding loop'):
                 self.assertNotIn(error, result.stdout + result.stderr)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            if shared:
+                saved = json.loads((root / 'config/hyprshell/settings.json').read_text())
+                self.assertEqual(saved['pins']['shared'], ['alpha.desktop'])
             entries = [json.loads(line) for line in log.read_text().splitlines()]
             self.assertCountEqual(entries, [['app', '-t', 'service', '--', 'beta.desktop'], ['app', '-t', 'service', '--', 'vim.desktop'], ['app', '-t', 'service', '--', 'gparted.desktop']])

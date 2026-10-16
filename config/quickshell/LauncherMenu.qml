@@ -10,6 +10,7 @@ ColumnLayout {
     signal launched()
     property var applicationService: null
     property bool managing: false
+    readonly property bool interacting: managing || pinMenu.visible
     property bool active: true
     function prepare() {
         managing = false;
@@ -40,6 +41,33 @@ ColumnLayout {
             else entry.execute();
         }
         launched();
+    }
+    function pinEntry(entry) {
+        if (!applicationService || !entry) return;
+        pinMenu.entry = entry;
+        pinMenu.popup();
+    }
+    Menu {
+        id: pinMenu
+        palette.text: '#cdd6f4'; palette.windowText: '#cdd6f4'; palette.buttonText: '#cdd6f4'
+        palette.window: '#1e1e2e'; palette.base: '#1e1e2e'; palette.button: '#38384d'
+        palette.highlight: '#66517e'; palette.highlightedText: '#cdd6f4'
+        property var entry: null
+        MenuItem {
+            text: 'Pin to Hyprdock'
+            enabled: !!page.applicationService && !page.applicationService.busy
+            onTriggered: page.applicationService.edit({action:'pin',component:'hyprdock',id:Apps.desktopId(pinMenu.entry)})
+        }
+        MenuItem {
+            text: 'Pin to Hyprbar'
+            enabled: !!page.applicationService && !page.applicationService.busy
+            onTriggered: page.applicationService.edit({action:'pin',component:'hyprbar',id:Apps.desktopId(pinMenu.entry)})
+        }
+    }
+    Shortcut {
+        sequence: 'Ctrl+P'
+        enabled: page.active && !page.managing && !!page.applicationService && page.entries.length > 0
+        onActivated: page.pinEntry(page.entries[Math.max(0,applications.currentIndex)])
     }
     spacing: 8
     Loader { id: fallbackIcons; active: !page.applicationService; visible: false; sourceComponent: AppIcons {} }
@@ -88,6 +116,10 @@ ColumnLayout {
             iconSource: page.applicationService ? page.applicationService.iconSource(modelData.icon) : fallbackIcons.item ? (fallbackIcons.item.source(modelData.icon) || fallbackIcons.item.source("application-x-executable")) : ""
             accent: (applications.activeFocus || search.activeFocus) && applications.currentIndex === index ? "#cba6f7" : "#cdd6f4"
             onClicked: { page.launch(modelData); }
+            TapHandler {
+                acceptedButtons: Qt.RightButton
+                onTapped: page.pinEntry(modelData)
+            }
         }
     }
 }

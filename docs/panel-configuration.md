@@ -1,11 +1,10 @@
 # Panel configuration — Phase 1
 
-Hyprpane is the existing status/menu panel on any edge. Hyprdock is the future
-app dock; Hyprbar is the future classic window taskbar. Phase 1 implements names,
-configuration storage and placement validation. It does not render a dock or
-classic taskbar. Both default to disabled; their stored options reserve the
-contract for later phases. Settings → Hyprpane & panels explains these roles and
-contains all existing panel controls. Later phases add the dock/taskbar editors.
+Hyprpane is the existing status/menu panel on any edge. Phase 1 established the
+compatible configuration and placement rules below. [Phase 4](hyprdock.md) now
+renders Hyprdock and provides its basic Settings controls; it still defaults to
+disabled. Hyprbar remains the planned classic taskbar, disabled by default.
+Settings → Hyprpane & panels retains all existing Hyprpane controls.
 
 ## Compatibility and storage
 
@@ -40,9 +39,10 @@ Hyprdock and Hyprbar each define `enabled`, `monitors`, `position`, `visible`,
 `workspaceScope`, `workspaceList`, `workspaceOverrides`, `thickness`, `marginEdge`,
 `marginEnds`, `windowGap`, `iconSize`, `spacing`, `background`, and `hideMode`.
 All four positions are supported by the contract. Background is `inherit`, `on`,
-or `off`; hide mode is `always`, `auto-hide`, or `dodge`. Those hide modes and
-rendering are reserved for later phases. Enabling a reserved component through
-JSON validates its planned placement but does not create its window yet.
+or `off`; hide mode is `always`, `auto-hide`, or `dodge`. Hyprdock renders with
+these dimensions and saved visibility selections in Phase 4. Automatic hide modes remain reserved until Phase 5; Hyprbar rendering
+remains reserved for Phase 6. Enabling Hyprbar through JSON validates its planned
+placement but does not create its window yet.
 Auto-hide and dodge components count toward layout limits even while hidden,
 because their reveal zones and visible state still need an unoccupied edge.
 
@@ -75,10 +75,10 @@ Shortcut reveals are revalidated inside the transaction before writing.
 
 For adjacent edges, Top/Bottom own the corners. Left/Right will be inset by each
 visible horizontal component's thickness, edge margin and window gap, in addition
-to their own end margins. Opposite edges keep their own end margins. The same
-insets must apply to reserved space and reveal zones; popovers open inward within
-the resulting available rectangle. Full corner geometry and multiple component
-windows are implemented and visually verified in Phase 7. A single Hyprpane's
+to their own end margins. Opposite edges keep their own end margins. Phase 4
+applies these insets to Hyprpane/Hyprdock geometry and reserved space;
+popovers open inward. Reveal-zone geometry and full pair/hotplug validation
+remain in their planned phases. A single Hyprpane's
 current margins and reserved space remain unchanged during Phase 1.
 
 ## Validation record — 2026-10-16

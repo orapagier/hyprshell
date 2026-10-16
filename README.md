@@ -11,7 +11,7 @@ with **Quickshell**. It brings the application launcher, status bar, desktop
 menus, notification inbox, and settings into one native Qt 6 interface.
 
 **Hyprpane** is Hyprshell's status/menu panel on any screen edge, formerly
-called hyprbar. **Hyprdock** is the planned app dock; **Hyprbar** is reserved for
+called hyprbar. **Hyprdock** is the app dock; **Hyprbar** is reserved for
 the planned classic taskbar. Existing `bar` settings and IPC names remain compatible.
 
 The goal is a consistent desktop experience from boot and login through daily

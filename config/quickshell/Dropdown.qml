@@ -31,7 +31,7 @@ PanelWindow {
     readonly property bool opened: section.length > 0
     signal hoverChanged(bool inside)
     property var applicationService: null
-    readonly property bool managingApplications: section === "launcher" && !!popover.pageItem?.managing
+    readonly property bool managingApplications: section === "launcher" && !!popover.pageItem?.interacting
     required property var services
     required property var inbox
     signal closeRequested()

@@ -837,6 +837,12 @@ FloatingWindow {
                             visible: window.section === -1
                             Layout.fillWidth: true
                             settings: window.draft.bar
+                            dockSettings: window.draft.panels.hyprdock
+                            onDockEdited: (key, value) => {
+                                let next = Model.copy(window.draft);
+                                next.panels.hyprdock[key] = value;
+                                window.draft = next;
+                            }
                             currentWorkspace: window.currentWorkspace
                             onVisibilityEdited: bar => window.updateBarSettings(bar)
                             onEdited: (key, value) => window.updateBar(key, value)

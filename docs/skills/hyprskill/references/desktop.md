@@ -1,7 +1,7 @@
 # Desktop map
 
 **Hyprpane** is the existing status/menu panel on any edge (formerly hyprbar).
-**Hyprdock** is the planned app dock; **Hyprbar** is the planned classic taskbar.
+**Hyprdock** is the app dock; **Hyprbar** is the planned classic taskbar.
 Legacy `bar` keys, file names and IPC still target Hyprpane. See
 `docs/panel-configuration.md` in the checkout for the Phase 1 compatibility mapping.
 
@@ -16,6 +16,7 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | Saved appearance, bar items, locking | `hyprshell/settings.json` / `config/hyprshell/settings.json` |
 | Shell composition and bar | `quickshell/shell.qml`, `Bar.qml`, `DesktopServices.qml` |
 | Hyprview / virtual projector | `quickshell/Hyprview.qml`; Super+V projects the active window with no visible controls/decorations or copied cursor; external projection uses an Overlay layer with OnDemand keyboard focus to fill an enabled non-mirrored external display (HDMI preferred) without moving a toplevel/focusing that output; follows hotplug, floating fallback with one screen; Super+Shift+V closes via an explicit `hl.exec_cmd` callback and `bar.closeHyprview` (user verified the live callback); F11 fullscreen and Escape leave fullscreen/close when viewer focused; view only, capture released on close; `tests/test_hyprview.py` covers key events, close routing, offscreen lifecycle, output routing and stretch-to-fill sizing; physical pointer/video checks need a live compositor |
+| Hyprdock | `Dock.qml`, `DockWindow.qml`, `DockPopup.qml`, `DockActions.qml`, `DockModel.js`, `SettingsDockEditor.qml`; opt-in Settings → Hyprpane & panels → Enable Hyprdock, four-edge compact app dock, picker/context actions, launcher pin menu (Ctrl+P), drag/Ctrl+arrow reorder and overflow. Always visible with reserved space in Phase 4; auto-hide/dodge/utilities arrive in Phase 5. One shared ApplicationService, existing pin transactions; adjacent vertical panels yield horizontal corners. See `docs/hyprdock.md`, `tst_Dock.qml`, `tests/test_dock.py`; layer-shell placement and native window actions require compositor access |
 | Shared apps / windows / pins | `ApplicationService.qml`, `ApplicationModel.js`, `ApplicationManager.qml`; one shell service shares launcher discovery/icons and UWSM launching with future app panels. Launcher → Apps & windows manages shared/separate pins, ordering, missing-app removal, window focus/close/workspace moves and explicit identity corrections (`pins.matches`). `backend.py --app-action-json` edits latest preferences inside the existing settings lock/backup transaction. No new minimize/Show Desktop controls. See `docs/application-support.md` and `tests/test_application_support.py`; live compositor actions need session access |
 | Menus | `quickshell/*Menu.qml`, `MenuController.qml`, `MenuPopover.qml` |
 | Shortcut guide / Super+K | `quickshell/KeybindingsMenu.qml`, `KeybindingsGuide.js`; preserves every runtime binding, with submap/trigger labels plus scoped shell controls and configured Kitty copy/paste; independent of the narrower Settings editor; `tests/test_keybindings_guide.py` audits Lua registration/remaps without executing actions |

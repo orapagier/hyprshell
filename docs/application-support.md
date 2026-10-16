@@ -1,8 +1,8 @@
 # Shared applications and windows — Phase 3
 
 Open **Launcher → Apps & windows…** to manage the application preferences that
-Hyprdock and the classic Hyprbar will share. Their visible panels arrive in later
-phases; this phase leaves the existing desktop arrangement intact.
+Hyprdock and the classic Hyprbar will share. [Phase 4](hyprdock.md) now renders Hyprdock; classic Hyprbar arrives later.
+Neither phase automatically enables a new panel.
 
 Choose Hyprdock or Hyprbar pins, select an installed application, and press **Pin**.
 **Shared pins** uses the same ordered list for both components. Turning it off

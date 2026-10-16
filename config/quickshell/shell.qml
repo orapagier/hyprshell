@@ -7,6 +7,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "SettingsModel.js" as Settings
+import "DockModel.js" as DockModel
 
 ShellRoot {
     id: shell
@@ -79,6 +80,9 @@ ShellRoot {
             onVisibleChanged: if (!visible) menuState.close()
             readonly property string edge: preferences.config.bar.position || "top"
             readonly property bool vertical: edge === "left" || edge === "right"
+            readonly property var cornerInsets: DockModel.insets(preferences.config, "hyprpane", panel.modelData.name,
+                Hyprland.monitorFor(panel.modelData)?.activeWorkspace?.id ?? null, 0)
+            readonly property real availableHeight: Math.max(1, modelData.height - cornerInsets.top - cornerInsets.bottom)
             readonly property bool compact: vertical && preferences.config.bar.verticalPresentation === "compact"
             anchors {
                 top: edge !== "bottom"
@@ -87,13 +91,13 @@ ShellRoot {
                 right: edge !== "left"
             }
             margins {
-                top: edge === "top" ? preferences.config.bar.marginTop : vertical ? (compact ? (screen.height - implicitHeight) / 2 : preferences.config.bar.marginSide) : 0
-                bottom: edge === "bottom" ? preferences.config.bar.marginTop : vertical ? preferences.config.bar.marginSide : 0
+                top: edge === "top" ? preferences.config.bar.marginTop : vertical ? (compact ? cornerInsets.top + (availableHeight - implicitHeight) / 2 : cornerInsets.top + preferences.config.bar.marginSide) : 0
+                bottom: edge === "bottom" ? preferences.config.bar.marginTop : vertical ? cornerInsets.bottom + preferences.config.bar.marginSide : 0
                 left: edge === "left" ? preferences.config.bar.marginTop : !vertical ? preferences.config.bar.marginSide : 0
                 right: edge === "right" ? preferences.config.bar.marginTop : !vertical ? preferences.config.bar.marginSide : 0
             }
             implicitWidth: bar.implicitWidth
-            implicitHeight: bar.implicitHeight
+            implicitHeight: vertical ? Math.min(bar.implicitHeight, Math.max(1, availableHeight - 2*preferences.config.bar.marginSide)) : bar.implicitHeight
             readonly property real originX: edge === "right" ? screen.width - margins.right - width : margins.left
             readonly property real originY: edge === "bottom" ? screen.height - margins.bottom - height : margins.top
             color: "transparent"
@@ -115,12 +119,14 @@ ShellRoot {
                 trayModel: tray.items
                 activeMenu: menuState.section
                 onMenuHovered: name => {
+                    panel.closeDockMenus();
                     for (let other of panels.instances) if (other !== panel) other.closeMenu();
                     menuState.hover(name);
                 }
                 onMenuLeft: name => menuState.leave(name)
                 onPreviewUnavailable: menuState.close()
                 onAction: (name, argument) => {
+                    panel.closeDockMenus();
                     if (name === "workspace") { menuState.close(); shell.services.workspace(argument); }
                     else if (name === "workspace-scroll") shell.services.scrollWorkspace(argument);
                     else if (name === "settings") {
@@ -170,13 +176,34 @@ ShellRoot {
                 onHoverChanged: inside => menuState.retain(inside)
             }
             KeybindingsPopup { id: keybindings; screen: panel.screen; wallpaperSource: bar.wallpaperSource; translucency: preferences.config.bar.popdownTranslucency ?? 0.06 }
+            function closeDockMenus() { for (let dock of docks.instances) dock.closeMenu(); }
             function closeMenu() { menuState.close(); keybindings.opened = false; }
             function refreshSettings() {
                 if (!panel.visible || (menuState.section && !bar.itemEnabled(bar.menuItemId(menuState.section)))) menuState.close();
             }
-            function toggleMenu(name) { keybindings.opened = false; menuState.activate(name, true); }
+            function toggleMenu(name) { closeDockMenus(); keybindings.opened = false; menuState.activate(name, true); }
             function toggleLauncher() { toggleMenu("launcher"); }
-            function toggleKeybindings() { menuState.close(); keybindings.opened = !keybindings.opened; }
+            function toggleKeybindings() { closeDockMenus(); menuState.close(); keybindings.opened = !keybindings.opened; }
+        }
+    }
+    Variants {
+        id: docks
+        model: Quickshell.screens
+        DockWindow {
+            id: dockWindow
+            required property var modelData
+            output: modelData
+            service: applications
+            config: preferences.config
+            wallpaperSource: wallpapers.sources[modelData.name] || ""
+            paneThickness: {
+                let pane = panels.instances.find(p => p.modelData.name === modelData.name);
+                return pane ? pane.implicitHeight : preferences.config.bar.height;
+            }
+            onInteractionStarted: {
+                for (let panel of panels.instances) panel.closeMenu();
+                for (let dock of docks.instances) if (dock !== dockWindow) dock.closeMenu();
+            }
         }
     }
     Connections {
