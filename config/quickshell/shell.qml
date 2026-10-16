@@ -118,8 +118,9 @@ ShellRoot {
                     menuState.hover(name);
                 }
                 onMenuLeft: name => menuState.leave(name)
+                onPreviewUnavailable: menuState.close()
                 onAction: (name, argument) => {
-                    if (name === "workspace") shell.services.workspace(argument);
+                    if (name === "workspace") { menuState.close(); shell.services.workspace(argument); }
                     else if (name === "workspace-scroll") shell.services.scrollWorkspace(argument);
                     else if (name === "settings") {
                         for (let panel of panels.instances) panel.closeMenu();
@@ -140,7 +141,7 @@ ShellRoot {
             }
             Dropdown {
                 wallpaperSource: bar.wallpaperSource
-                translucency: Settings.popdownTranslucency(preferences.config, menuState.displayedSection)
+                translucency: Settings.popdownTranslucency(preferences.config, bar.menuItemId(menuState.displayedSection))
                 screen: panel.screen
                 barEdge: panel.visible ? panel.edge : "top"
                 barRect: panel.visible ? Qt.rect(panel.originX, panel.originY, panel.width, panel.height) : Qt.rect(0,0,0,0)
@@ -156,6 +157,8 @@ ShellRoot {
                     return Qt.rect(rect.x + panel.originX, rect.y + panel.originY, rect.width, rect.height);
                 }
                 accent: bar.menuAccent(menuState.displayedSection)
+                previewWorkspace: bar.previewWorkspace
+                mediaData: shell.mediaData
                 services: shell.services
                 inbox: shell.inbox
                 onCloseRequested: menuState.close()
@@ -165,7 +168,7 @@ ShellRoot {
             KeybindingsPopup { id: keybindings; screen: panel.screen; wallpaperSource: bar.wallpaperSource; translucency: preferences.config.bar.popdownTranslucency ?? 0.06 }
             function closeMenu() { menuState.close(); keybindings.opened = false; }
             function refreshSettings() {
-                if (!panel.visible || (menuState.section && !bar.itemEnabled(menuState.section))) menuState.close();
+                if (!panel.visible || (menuState.section && !bar.itemEnabled(bar.menuItemId(menuState.section)))) menuState.close();
             }
             function toggleMenu(name) { keybindings.opened = false; menuState.activate(name, true); }
             function toggleLauncher() { toggleMenu("launcher"); }

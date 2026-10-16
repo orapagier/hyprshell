@@ -113,7 +113,13 @@ Item {
     property string marqueeKey: ""
     property real marqueeStarted: 0
     property string marquee: ""
-    readonly property var mediaData: ({playing: playing, levels: spectrum.levels, title: marquee, tooltip: fullTitle})
+    readonly property var mediaData: ({playing: playing, levels: spectrum.levels, title: marquee, tooltip: fullTitle,
+        fullTitle: fullTitle, artUrl: player ? player.trackArtUrl : "",
+        trackTitle: player ? player.trackTitle : fullTitle,
+        artist: player ? player.trackArtist : "",
+        appId: player ? player.desktopEntry : stream ? stream.properties["application.id"] || "" : "",
+        appName: player ? player.identity : stream ? stream.properties["application.name"] || "" : "",
+        processId: !player && stream ? Number(stream.properties["application.process.id"] || 0) : 0})
     Timer {
         interval: 67; running: true; repeat: true
         onTriggered: {

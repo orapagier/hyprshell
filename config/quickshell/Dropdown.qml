@@ -10,6 +10,8 @@ PanelWindow {
     id: dropdown
     property url wallpaperSource: ""
     property real translucency: 0.06
+    property var previewWorkspace: null
+    property var mediaData: ({})
     property string section: ""
     property string displayedSection: section
     property rect triggerRect: Qt.rect(12, 4, 32, 20)
@@ -69,9 +71,9 @@ PanelWindow {
                 dropdown.closeRequested();
                 dropdown.settingsRequested();
             }
-            title: ({launcher:"Applications",settings:"Hyprshell",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",notifications:"Notifications",battery:"Battery",power:"Power options"})[dropdown.displayedSection] || ""
-            symbol: ({launcher:"",settings:"󰒓",calendar:"󰃭",audio:dropdown.services.audioIcon || "󰕾",wifi:"󰤨",bluetooth:"󰂯",notifications:"󰂚",battery:"󰁹",power:"󰐥"})[dropdown.displayedSection] || ""
-            page: ({launcher: launcherPage, settings: settingsPage, calendar: calendarPage, audio: audioPage, wifi: wifiPage, bluetooth: bluetoothPage, notifications: inboxPage, battery: batteryPage, power: powerPage})[dropdown.displayedSection] || null
+            title: dropdown.displayedSection === "workspacePreview" ? "Workspace " + (dropdown.previewWorkspace?.name || dropdown.previewWorkspace?.id || "") : ({media:"Now playing",launcher:"Applications",settings:"Hyprshell",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",notifications:"Notifications",battery:"Battery",power:"Power options"})[dropdown.displayedSection] || ""
+            symbol: ({workspacePreview:"󰍹",media:"󰎆",launcher:"",settings:"󰒓",calendar:"󰃭",audio:dropdown.services.audioIcon || "󰕾",wifi:"󰤨",bluetooth:"󰂯",notifications:"󰂚",battery:"󰁹",power:"󰐥"})[dropdown.displayedSection] || ""
+            page: ({workspacePreview: workspacePage, media: mediaPage, launcher: launcherPage, settings: settingsPage, calendar: calendarPage, audio: audioPage, wifi: wifiPage, bluetooth: bluetoothPage, notifications: inboxPage, battery: batteryPage, power: powerPage})[dropdown.displayedSection] || null
             onHoverChanged: inside => dropdown.hoverChanged(inside)
         }
     }
@@ -107,6 +109,19 @@ PanelWindow {
     Shortcut { sequence: "Escape"; enabled: dropdown.opened; onActivated: dropdown.closeRequested() }
     Component { id: launcherPage; LauncherMenu { active: dropdown.opened && dropdown.section === "launcher"; onLaunched: dropdown.closeRequested() } }
     Component { id: settingsPage; SettingsMenu { onOpenRequested: { dropdown.closeRequested(); dropdown.settingsRequested(); } } }
+    Component {
+        id: workspacePage
+        WorkspacePreview {
+            workspaceId: dropdown.previewWorkspace?.id || 0
+            output: dropdown.screen
+            wallpaperSource: dropdown.wallpaperSource
+            active: dropdown.opened && dropdown.section === "workspacePreview"
+        }
+    }
+    Component {
+        id: mediaPage
+        MediaPreview { mediaData: dropdown.mediaData; active: dropdown.opened && dropdown.section === "media" }
+    }
     Component { id: calendarPage; CalendarMenu {} }
     Component { id: audioPage; AudioMenu { services: dropdown.services } }
     Component { id: wifiPage; WifiMenu { services: dropdown.services } }

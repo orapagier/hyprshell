@@ -92,10 +92,12 @@ Item {
             media: "left",
             calendar: "center"
         })
+    function menuItemId(name) { return name === "workspacePreview" ? "workspaces" : name; }
     function itemEnabled(id) {
         return Settings.item(settings, id).enabled !== false;
     }
     function side(id) {
+        id = menuItemId(id);
         return Settings.item(settings, id).side || defaultSides[id] || "right";
     }
     function pillName(id) { return Settings.item(settings, id).pillGroup || ""; }
@@ -231,9 +233,22 @@ Item {
     property var trayModel: []
     property string clockText: ""
     property string activeMenu: ""
+    signal previewUnavailable()
+    onPreviewWorkspaceChanged: if (!previewWorkspace && activeMenu === "workspacePreview") previewUnavailable()
     signal menuHovered(string name)
     signal menuLeft(string name)
+    property int previewWorkspaceId: 0
+    readonly property var previewWorkspace: (statusData.workspaces || []).find(w => w.id === previewWorkspaceId) || null
+    readonly property Item previewWorkspaceItem: {
+        for (let i = 0; i < workspaceRepeater.count; ++i) {
+            let item = workspaceRepeater.itemAt(i);
+            if (item && item.modelData.id === previewWorkspaceId) return item;
+        }
+        return null;
+    }
     readonly property var menuTargets: ({
+            workspacePreview: previewWorkspaceItem,
+            media: mediaSlot.item,
             launcher: distroLogo,
             settings: settingsCog,
             calendar: clock,
@@ -248,6 +263,11 @@ Item {
         let item = menuTargets[name];
         if (!item)
             return Qt.rect(12, 2, 24, 20);
+        if (name === "workspacePreview") {
+            let point = item.mapToItem(bar, 0, 0);
+            return Qt.rect(point.x, point.y, item.width, item.height);
+        }
+        if (name === "media") return itemRect("media");
         // Read layout positions directly so the connector follows screen and
         // status-width changes, including movement of the containing row.
         // Anchor on the visible content, which asymmetric inside-pill padding
@@ -426,6 +446,8 @@ Item {
                 colorStyle: active ? "emphasized" : "muted"
                 selected: active
                 raised: false
+                onEntered: { bar.previewWorkspaceId = modelData.id; bar.menuHovered("workspacePreview"); }
+                onExited: bar.menuLeft("workspacePreview")
                 onClicked: bar.action("workspace", modelData.id)
                 onWheel: event => { bar.action("workspace-scroll", event.angleDelta.y > 0 ? -1 : 1); event.accepted = true; }
             }
@@ -438,6 +460,7 @@ Item {
         y: bar.itemY("media")
         opacity: Settings.item(bar.settings, "media").opacity ?? 1
         active: bar.itemEnabled("media") && !!bar.mediaData && bar.mediaData.playing === true
+        onActiveChanged: if (!active && bar.activeMenu === "media") bar.previewUnavailable()
         visible: active
         sourceComponent: MediaPill {
             vertical: bar.vertical
@@ -447,7 +470,8 @@ Item {
             text: bar.mediaData.title || ""
             levels: bar.mediaData.levels || []
             maximumWidth: bar.vertical ? bar.verticalThickness - 4 : Math.max(80, Math.min(300, bar.width * 0.24))
-            interactive: false
+            onEntered: bar.menuHovered("media")
+            onExited: bar.menuLeft("media")
             width: bar.vertical ? bar.verticalThickness - 4 : implicitWidth
         }
     }

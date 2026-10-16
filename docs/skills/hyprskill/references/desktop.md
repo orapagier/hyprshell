@@ -52,7 +52,16 @@ items sit at the top and right items sit at the bottom. Side panels use centered
 in circular pills (28 px at the default 32 px panel width).
 The calendar is an icon; its menu has a live clock/date header and Sunday-first
 weeks. Hyprpane item, workspace, media and tray tooltips are disabled.
-Workspaces retain their numbers/names.
+Workspaces retain their numbers/names. Hovering a workspace opens a miniature
+wallpaper/window layout without activating it; hovering the media spectrum opens
+Now playing with a matched window capture, artwork, or spectrum and track details.
+Both use the existing inward hover popdown on all four edges. Captures run only
+while their preview is open; unavailable workspace captures retain window titles.
+`PreviewCapture.qml`, `WorkspacePreview.qml`, `MediaPreview.qml` and
+`PreviewModel.js` own preview rendering/matching. `tst_HoverPreviews.qml` checks
+four-edge hover/anchors and matching; `tests/test_hover_previews.py` validates
+native loading/geometry and idle capture cleanup offscreen. Live compositor
+capture still requires an accessible desktop session.
 Workspaces/tray icons stack vertically. Side panel length (`bar.verticalPresentation`)
 selects Full edge (`edge`, default) or Compact (`compact`, centered shorter rail).
 Overflow scrolls, and focus reveals controls. Media uses five spectrum bars
