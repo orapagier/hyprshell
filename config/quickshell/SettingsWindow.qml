@@ -32,6 +32,7 @@ FloatingWindow {
     readonly property bool manualDirty: lockPage.dirty || themePage.dirty || displayPage.dirty || keybindingsPage.dirty || cleanupPage.dirty || regionalPage.dirty || firewallPage.dirty || behaviorPage.dirty || recoveryPage.dirty
     readonly property bool pageDirty: section === -3 ? lockPage.dirty : section === -8 ? themePage.dirty : section === -7 ? displayPage.dirty : section === -6 ? keybindingsPage.dirty : section === -4 ? cleanupPage.dirty : section === -17 ? regionalPage.dirty : section === -22 ? firewallPage.dirty : section === -19 ? behaviorPage.dirty : section === -14 ? recoveryPage.dirty : false
     function savingPolicy() {
+        if (section === homeSection) return "Choose a category or search for a setting";
         if (section === -3) return "Timers save automatically · Use Apply lock command to change the locker";
         if (section === -8) return "Colors save immediately · Apply font and cursor to save them";
         if (section === -7) return "Apply and confirm display changes before they are saved";
@@ -53,14 +54,19 @@ FloatingWindow {
         if (visible) Qt.callLater(focusSearch);
         else if (editingSession && dirty) apply();
     }
+    function goHome() {
+        searchField.clear();
+        section = homeSection;
+    }
     function focusSearch() {
         if (!visible) return;
         searchField.forceActiveFocus();
         searchField.selectAll();
     }
-    property int section: -1
+    readonly property int homeSection: -24
+    property int section: homeSection
     property var scrollPositions: ({})
-    property int previousSection: -1
+    property int previousSection: homeSection
     property string searchQuery: ""
     property var searchCaptions: ({})
     property bool searchIndexLoaded: false
@@ -221,7 +227,6 @@ FloatingWindow {
         message = store.error;
         success = !store.error;
         editingSession = true;
-        if (firstRunPending) section = -18;
         visible = true;
     }
     function updateItem(key, value) {
@@ -534,18 +539,24 @@ FloatingWindow {
                 Layout.preferredHeight: 64
                 Layout.leftMargin: 22
                 Layout.rightMargin: 22
-                ColumnLayout {
-                    spacing: 2
-                    Label {
-                        text: "Hyprshell"
-                        font.pixelSize: 18
-                        font.bold: true
-                        color: Style.Theme.text
+                ToolButton {
+                    id: homeButton
+                    objectName: "settingsHomeButton"
+                    Accessible.name: "Hyprshell Settings overview"
+                    hoverEnabled: true
+                    leftPadding: 8; rightPadding: 8
+                    onClicked: window.goHome()
+                    Keys.onReturnPressed: clicked()
+                    Keys.onEnterPressed: clicked()
+                    contentItem: ColumnLayout {
+                        spacing: 2
+                        Label { text: "Hyprshell"; font.pixelSize: 18; font.bold: true; color: Style.Theme.text }
+                        Label { text: "Settings"; font.pixelSize: Style.Theme.captionSize; color: Style.Theme.muted }
                     }
-                    Label {
-                        text: "Settings"
-                        font.pixelSize: Style.Theme.captionSize
-                        color: Style.Theme.muted
+                    background: Rectangle {
+                        radius: Style.Theme.controlRadius
+                        color: homeButton.hovered ? Style.Theme.hover : "transparent"
+                        border.color: homeButton.activeFocus ? Style.Theme.accentText : "transparent"
                     }
                 }
                 Item {
@@ -736,6 +747,7 @@ FloatingWindow {
                         spacing: 24
                         Label {
                             objectName: "settingsPageTitle"
+                            visible: window.section !== window.homeSection
                             text: window.section >= 0 ? window.names[window.selected.id] || "" : window.navigation.reduce((pages, group) => pages.concat(group.pages), []).find(page => page.section === window.section)?.title || "Settings"
                             font.pixelSize: Style.Theme.titleSize
                             font.bold: true
@@ -745,6 +757,7 @@ FloatingWindow {
                         Label {
                             Layout.fillWidth: true
                             Layout.topMargin: -14
+                            visible: window.section !== window.homeSection
                             font.pixelSize: Style.Theme.bodySize
                             text: window.section === -23 ? "Save your Hyprshell setup and choose a dated backup to restore." : window.section === -22 ? "Manage network rules and blocked websites." : window.section === -20 ? "Optional local clipboard history" : window.section === -21 ? "Printers and scanners when you need them" : window.section === -19 ? "Choose workspace layouts and rules for application windows." : window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover personal configuration, and back up personal files." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for Hyprpane and panel placement." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
                             wrapMode: Text.WordWrap
@@ -827,6 +840,15 @@ FloatingWindow {
                                     onItemDropped: (id, side, beforeId) => window.rearrangeItem(id, side, beforeId)
                                 }
                             }
+                        }
+                        SettingsHome {
+                            objectName: "settingsHome"
+                            Layout.fillWidth: true
+                            visible: window.section === window.homeSection
+                            navigation: window.navigation
+                            firstRunPending: window.firstRunPending
+                            onNavigate: section => window.section = section
+                            onSearchRequested: window.focusSearch()
                         }
                         SettingsAccessibility {
                             visible: window.section === -16

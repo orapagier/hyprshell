@@ -18,6 +18,7 @@ Item {
                 id: first
                 Layout.fillWidth: true
                 title: "Hyprdock"
+                collapseThreshold: 100
                 subtitle: "Panel controls"
                 TextField { id: field; Layout.fillWidth: true; text: "unsaved name"; onTextEdited: scene.edits++ }
                 SettingsSlider { id: slider; Layout.fillWidth: true; label: "Dock icon size"; settingValue: 24; from: 8; to: 96; onEdited: scene.edits++ }
@@ -26,6 +27,7 @@ Item {
                 id: second
                 Layout.fillWidth: true
                 title: "Hyprbar"
+                collapseThreshold: 60
                 SettingsSwitch { id: toggle; text: "Show system items"; checked: true; onToggled: scene.edits++ }
             }
         }
@@ -40,7 +42,9 @@ Item {
         name: "SettingsCard"; when: windowShown
         function init() {
             host.settingsSectionQuery="";
-            first.expanded=false; second.expanded=false;
+            first.collapseThreshold=100; second.collapseThreshold=60;
+            first.expanded=Qt.binding(() => !first.longSection);
+            second.expanded=Qt.binding(() => !second.longSection);
             field.text="unsaved name"; scene.edits=0;
             host.width=scene.width; wait(20);
         }
@@ -58,6 +62,19 @@ Item {
             verify(!field.visible); compare(first.height,compactHeight);
             mouseClick(header(first)); compare(field.text,"keep this draft");
             compare(scene.edits,0);
+        }
+        function test_onlyLongSectionsStartCollapsed() {
+            verify(first.longSection); verify(!first.contentExpanded);
+            first.collapseThreshold=900;
+            verify(!first.longSection); verify(first.contentExpanded);
+            first.collapseThreshold=100;
+            verify(first.longSection); verify(!first.contentExpanded);
+            first.collapseThreshold=900;
+            field.forceActiveFocus(); wait(10);
+            first.collapseThreshold=100;
+            verify(first.longSection); verify(first.contentExpanded);
+            mouseClick(header(first)); verify(!first.contentExpanded);
+            first.collapseThreshold=900; verify(!first.contentExpanded);
         }
         function test_keyboardAndFocus() {
             let heading=header(first);

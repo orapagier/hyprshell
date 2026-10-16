@@ -35,9 +35,21 @@ repeated whitespace. **Ctrl+F** focuses search; **Up/Down** select a result;
 **Escape** or the clear button clears the query. Browsing and searching do not
 write preferences. Each page keeps its scroll position within the current window.
 
-Preference sections across Settings start collapsed, including Hyprbar, Hyprdock,
-Windows, input, power, and individual Hyprpane item controls. Click a section
-heading, or focus it with Tab and press Enter or Space, to open or close it.
+Settings opens on an overview with Desktop, Devices, and System category links,
+search, and the existing getting-started guide. The overview has no sidebar entry;
+click the Hyprshell Settings branding in the window header to return to it.
+First-time setup remains available from the overview instead of redirecting away
+from it. Failed drafts and direct display-settings navigation retain their routes.
+
+Short preference sections start expanded across Settings. Only sections with more
+than 1,000 logical pixels of control content start collapsed, including Hyprbar,
+Hyprdock, advanced blur, and large cleanup forms. The shared card measures its
+actual laid-out content, including loaded rows, so the rule also covers other
+pages and adapts to text size and available width. Appearance, Clipboard history,
+Printing & scanning, Applications, Notifications, Displays, and Network keep their
+short sections open. Click a section heading, or focus it with Tab and press Enter
+or Space, to open or close it. A manual choice takes precedence over the automatic
+default; focusing a section’s controls keeps it open if its rows grow while editing.
 Sections open independently and retain their values, unsaved edits, and current
 expansion state while the page remains loaded. Collapsed controls leave the tab
 order; closing a section keeps focus on its heading. Search opens sections whose

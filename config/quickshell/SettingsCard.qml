@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import "style" as Style
@@ -15,12 +16,24 @@ ColumnLayout {
         return null;
     }
     property bool collapsible: sectionHost !== null
-    property bool expanded: false
+    readonly property real contentHeight: body.implicitHeight + 36
+    property real collapseThreshold: 1000
+    readonly property bool longSection: contentHeight > collapseThreshold
+    property bool expanded: !longSection
     readonly property bool contentExpanded: !collapsible || expanded
     readonly property string searchQuery: sectionHost ? sectionHost.settingsSectionQuery.toLowerCase().replace(/\s+/g, " ").trim() : ""
     readonly property bool searchMatch: searchQuery.length > 0
         && (title.toLowerCase().includes(searchQuery) || matchesControl(body, searchQuery))
     onSearchMatchChanged: if (searchMatch) expanded = true
+    Connections {
+        id: focusObserver
+        target: root.Window.window
+        function onActiveFocusItemChanged() {
+            // Once editing begins, keep the section open even if its rows grow.
+            for (let item = target.activeFocusItem; item; item = item.parent)
+                if (item === body) { root.expanded = true; return; }
+        }
+    }
     function matchesControl(item, query) {
         for (let key of ["title", "label", "text"]) {
             let caption = item[key];

@@ -43,13 +43,23 @@ ShellRoot {
         onTriggered: {
             if (!prefs.loaded) return;
             if (test.phase === 0) {
-                editor.open(); editor.section = -2;
+                editor.open();
                 editor.contentItem.Window.window.width = 1180;
                 editor.contentItem.Window.window.height = 810;
-                test.phase = 1;
+                test.phase = 14;
+            } else if (test.phase === 14) {
+                if(editor.section!==editor.homeSection || !test.control("settingsHome").visible) { test.fail("Settings did not open its overview"); return; }
+                if(editor.navigation.some(group => group.pages.some(page => page.section===editor.homeSection))) { test.fail("overview added a sidebar entry"); return; }
+                test.control("settingsHomePage-1").clicked();
+                if(editor.section!==-1) { test.fail("overview category did not navigate"); return; }
+                test.control("settingsSearch").text="panels";
+                test.control("settingsHomeButton").clicked();
+                if(editor.section!==editor.homeSection || editor.searchQuery) { test.fail("header did not return to overview and clear search"); return; }
+                editor.section=-2;
+                test.phase=1;
             } else if (test.phase === 1) {
                 let sections=test.cards(editor.contentItem,[]);
-                if(sections.length<3 || sections.some(card => !card.collapsible || card.contentExpanded)) { test.fail("settings sections did not start collapsed"); return; }
+                if(sections.length<3 || sections.some(card => !card.collapsible || card.contentExpanded===card.longSection)) { test.fail("short/long section defaults are incorrect"); return; }
                 let search = test.control("settingsSearch");
                 if (!search.activeFocus) { test.fail("search did not receive focus on open"); return; }
                 search.text = "keyboard";
