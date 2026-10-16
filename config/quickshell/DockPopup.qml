@@ -55,7 +55,14 @@ PanelWindow {
         }
     }
     Shortcut { sequence:'Escape'; enabled:popup.opened; onActivated:popup.dismiss() }
-    Component { id:launcher; LauncherMenu { applicationService:popup.service; active:popup.opened; onLaunched:popup.dismiss() } }
+    Component {
+        id:launcher
+        LauncherMenu {
+            applicationService:popup.service; active:popup.opened
+            onInteractingChanged: if (interacting) menuState.pinned = true
+            onLaunched:popup.dismiss()
+        }
+    }
     Component { id:manager; ApplicationManager { service:popup.service } }
     Component {
         id: previews

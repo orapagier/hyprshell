@@ -35,7 +35,7 @@ window selection, close, or app identity/pin management.
 
 Pin an installed app from the launcher with **right-click → Pin to Hyprdock**.
 Keyboard users can select an app with the existing search and arrow keys, then
-press **Ctrl+P** for the pin menu. Launcher → Apps & windows retains the complete
+press **Ctrl+P** for the pin menu. App context menu → App matching and pins retains the complete
 shared/separate pin and identity-correction controls from Phase 3.
 
 Drag one pinned app over another to reorder it. Dragging near an overflow edge

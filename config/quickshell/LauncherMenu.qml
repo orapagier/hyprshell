@@ -9,11 +9,9 @@ ColumnLayout {
     id: page
     signal launched()
     property var applicationService: null
-    property bool managing: false
-    readonly property bool interacting: managing || pinMenu.visible
+    readonly property bool interacting: pinMenu.visible
     property bool active: true
     function prepare() {
-        managing = false;
         search.clear();
         applications.currentIndex = entries.length ? 0 : -1;
         Qt.callLater(() => { if (page.active) search.forceActiveFocus(); });
@@ -66,29 +64,13 @@ ColumnLayout {
     }
     Shortcut {
         sequence: 'Ctrl+P'
-        enabled: page.active && !page.managing && !!page.applicationService && page.entries.length > 0
+        enabled: page.active && !!page.applicationService && page.entries.length > 0
         onActivated: page.pinEntry(page.entries[Math.max(0,applications.currentIndex)])
     }
     spacing: 8
     Loader { id: fallbackIcons; active: !page.applicationService; visible: false; sourceComponent: AppIcons {} }
-    MenuButton {
-        visible: !!page.applicationService
-        Layout.fillWidth: true
-        text: page.managing ? 'Back to applications' : 'Apps & windows…'
-        onClicked: {
-            if (page.managing) page.prepare();
-            else page.managing = true;
-        }
-    }
-    Loader {
-        active: page.managing
-        visible: active
-        Layout.fillWidth: true
-        sourceComponent: ApplicationManager { service: page.applicationService }
-    }
     TextField {
         id: search
-        visible: !page.managing
         objectName: "launcherSearch"
         Layout.fillWidth: true
         placeholderText: "Search applications"; color: "#cdd6f4"; placeholderTextColor: "#a6adc8"
@@ -101,7 +83,6 @@ ColumnLayout {
     }
     ListView {
         id: applications
-        visible: !page.managing
         objectName: "applicationsList"
         Layout.fillWidth: true; Layout.preferredHeight: 300
         model: page.entries

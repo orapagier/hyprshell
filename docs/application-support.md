@@ -1,7 +1,9 @@
 # Shared applications and windows — Phase 3
 
-Open **Launcher → Apps & windows…** to manage the application preferences that
-Hyprdock and the classic Hyprbar will share. [Phase 4](hyprdock.md) now renders Hyprdock; classic Hyprbar arrives later.
+Right-click any application in a panel's launcher to choose **Pin to Hyprdock**
+or **Pin to Hyprbar**. Keyboard users can select an app and press **Ctrl+P**.
+Open **Hyprdock app context menu → App matching and pins…** to manage shared
+application preferences. [Phase 4](hyprdock.md) now renders Hyprdock; classic Hyprbar arrives later.
 Neither phase automatically enables a new panel.
 
 Choose Hyprdock or Hyprbar pins, select an installed application, and press **Pin**.
