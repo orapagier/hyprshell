@@ -16,6 +16,7 @@ hl.bind(mainMod .. " + ALT + V", hl.dsp.window.float({ action = "toggle" }), { d
 -- Quickshell handles launcher toggling and outside clicks natively.
 hl.bind("SUPER + Super_L", hl.dsp.exec_cmd(programs.menu), { release = true, description = "Toggle application launcher" })
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" displays'), { description = "Duplicate or extend displays" })
+hl.bind(mainMod .. " + V", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" hyprview'), { description = "Project active window in Hyprview" })
 hl.bind(mainMod .. " + SHIFT + P", hl.dsp.window.pseudo(), { description = "Toggle pseudo tiling" })
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"), { description = "Toggle split direction" })    -- dwindle only
 

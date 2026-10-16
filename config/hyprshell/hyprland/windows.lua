@@ -142,7 +142,16 @@ hl.on("window.title", routeOpenPresentations)
 hl.on("monitor.layout_changed", routeOpenPresentations)
 hl.on("config.reloaded", routeOpenPresentations)
 
--- Settings starts floating; Super+V can still toggle it into the tiling layout.
+-- Hyprview is a normal movable, resizable window, floating on first open.
+hl.window_rule({
+    name = "hyprshell-hyprview-placement",
+    match = { initial_title = "^Hyprview$" },
+    float = true,
+    center = true,
+    size = { "min(960,monitor_w*0.85)", "min(600,monitor_h*0.8)" },
+})
+
+-- Settings starts floating; Super+Alt+V can still toggle it into the tiling layout.
 -- Center horizontally and lift it 40px above the vertical midpoint.
 hl.window_rule({
     name = "hyprshell-settings-placement",

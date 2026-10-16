@@ -113,6 +113,8 @@ class KeybindingsGuideTests(unittest.TestCase):
         self.assertEqual(projection['arg'], '"$HOME/.local/bin/hyprshell-shortcut" displays')
         self.assertEqual(by_key[(65, 'P')]['dispatcher'], 'window.pseudo')
         self.assertEqual(by_key[(8, 'S')]['arg'], '"$HOME/.local/bin/hyprshell-shortcut" settings')
+        self.assertEqual(by_key[(64, 'V')]['arg'], '"$HOME/.local/bin/hyprshell-shortcut" hyprview')
+        self.assertEqual(by_key[(72, 'V')]['dispatcher'], 'window.float')
 
     def test_every_configured_binding_survives_guide_and_remaps_are_respected(self):
         rows = configured_bindings(ROOT / 'config')

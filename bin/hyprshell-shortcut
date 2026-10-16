@@ -6,6 +6,7 @@ case "${1:-}" in
     topbar) method=toggleBar; args=() ;;
     settings) method=settings; args=() ;;
     displays) method=displays; args=() ;;
+    hyprview) method=hyprview; args=() ;;
     calendar|notifications|audio|wifi|bluetooth|battery|power) method=toggleMenu; args=("$1") ;;
     *) printf 'Unknown Hyprshell shortcut.\n' >&2; exit 1 ;;
 esac

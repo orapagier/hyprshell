@@ -22,6 +22,7 @@ ShellRoot {
     SettingsStore { id: preferences }
     ProjectorWindow { id: projectorWindow }
     PresentationView { id: presentationView }
+    Hyprview { id: hyprviewWindow }
     SettingsController {
         id: settingsController
         store: preferences
@@ -232,6 +233,9 @@ ShellRoot {
             let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
             if (panel) projectorWindow.screen = panel.screen;
             projectorWindow.open();
+        }
+        function hyprview(): void {
+            hyprviewWindow.projectActive();
         }
         function toggleBar(): void {
             let workspace = shell.currentWorkspace;
