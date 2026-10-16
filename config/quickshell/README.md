@@ -22,7 +22,8 @@ other outputs by name. The built-in panel (or first screen on a desktop) remains
 the primary display. Mirrored and disabled outputs are skipped. Connecting an
 external display while the viewer is open moves the projection there automatically;
 disconnecting it returns the viewer to windowed mode. With one screen, Hyprview
-starts floating. It preserves the source's aspect ratio with black bars.
+starts floating. The source image stretches to fill the viewer or projector without
+black bars; different source and output proportions can distort the image.
 Opening Hyprview does not request keyboard focus or pull the pointer to its output;
 external projection uses a screen-filling layer surface instead of moving a
 focused window between monitors. The capture omits the source cursor. Click the
@@ -41,7 +42,7 @@ window capture protocol, with no recorder or virtual monitor required. Windows
 without a capture handle show a message. A stopped stream can be retried by
 pressing Super+V from the source again. Native offscreen checks cover selection,
 switching, recursive-capture prevention, fullscreen targeting, full-window canvas,
-aspect fit, close/reopen, hotplug, mirrored/disabled outputs and external projection
+fill sizing and resizing, close/reopen, hotplug, mirrored/disabled outputs and external projection
 without a toplevel window. Real video and pointer behavior need a live Hyprland check.
 
 The styling uses 32px panel height, 28px pills, and 5px top / 10px side

@@ -1,4 +1,4 @@
-"""Exercise the native viewer's selection, lifecycle and aspect fit offscreen."""
+"""Exercise the native viewer's selection, lifecycle and fill sizing offscreen."""
 import os
 import json
 from pathlib import Path
@@ -100,8 +100,13 @@ ShellRoot {
                     root.check(image.parent.width === view.width && image.parent.height === view.height,
                         "projection canvas fills entire window without header or footer");
                     root.check(!root.find(view.contentItem, "hyprviewPicker"), "no visible source picker");
-                    root.check(image.width <= image.parent.width && image.height <= image.parent.height
-                        && Math.abs(image.width / image.height - 16/9) < 0.001, "aspect fit without cropping");
+                    root.check(image.width === image.parent.width && image.height === image.parent.height,
+                        "projection fills the canvas despite different source proportions");
+                    image.parent.anchors.fill = null;
+                    image.parent.width = 800;
+                    image.parent.height = 800;
+                    root.check(image.width === 800 && image.height === 800,
+                        "projection follows a resized square canvas without black bars");
                     view.activeWindow = root.second;
                     root.check(view.source === root.first, "focus changes do not switch source");
                     view.projectActive();

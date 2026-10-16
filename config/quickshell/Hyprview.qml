@@ -129,9 +129,9 @@ FloatingWindow {
             captureSource: canvas.capturing && view.source && !view.streamStopped ? view.source.wayland : null
             live: canvas.capturing && !!view.source && !view.streamStopped
             paintCursor: false
-            readonly property real ratio: sourceSize.height > 0 ? sourceSize.width / sourceSize.height : 16 / 9
-            width: Math.min(canvas.width, canvas.height * ratio)
-            height: width / ratio
+            // Fill the output even when the source has different proportions.
+            width: canvas.width
+            height: canvas.height
             visible: hasContent && !view.streamStopped
             onStopped: if (canvas.capturing) view.streamStopped = true
         }
