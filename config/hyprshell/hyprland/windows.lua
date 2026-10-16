@@ -147,6 +147,10 @@ hl.window_rule({
     name = "hyprshell-hyprview-placement",
     match = { initial_title = "^Hyprview$" },
     float = true,
+    -- Opening/routing a projection must leave input on the source display.
+    -- The viewer can still be focused explicitly for its local shortcuts.
+    no_initial_focus = true,
+    focus_on_activate = false,
     decorate = false,
     border_size = 0,
     rounding = 0,

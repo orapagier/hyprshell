@@ -36,11 +36,17 @@ class HyprviewTests(unittest.TestCase):
             payload = root / 'quickshell'
             payload.mkdir()
             source = (ROOT / 'config/quickshell/Hyprview.qml').read_text()
-            # Keep the real UI and state machine; offscreen Qt has no capture
-            # protocol. Substitute only the native stream for mock handles.
-            source = source.replace('captureSource: view.visible && view.source && !view.streamStopped ? view.source.wayland : null',
+            # Offscreen Qt has no layer-shell/capture backend. Keep the real
+            # selection and rendering logic with a stand-in external surface.
+            source = source.replace('PanelWindow {', 'FloatingWindow {')
+            source = source.replace('        screen: view.externalOutput\n', '')
+            source = source.replace('        anchors { top: true; bottom: true; left: true; right: true }',
+                                    '        implicitWidth: 1920; implicitHeight: 1080')
+            source = '\n'.join(line for line in source.splitlines()
+                               if 'exclusionMode:' not in line and 'WlrLayershell.' not in line)
+            source = source.replace('captureSource: canvas.capturing && view.source && !view.streamStopped ? view.source.wayland : null',
                                     'captureSource: null')
-            source = source.replace('live: view.visible && !!view.source && !view.streamStopped', 'live: false')
+            source = source.replace('live: canvas.capturing && !!view.source && !view.streamStopped', 'live: false')
             (payload / 'Hyprview.qml').write_text(source)
             (payload / 'Check.qml').write_text('''import QtQuick
 import QtQuick.Window
@@ -51,8 +57,7 @@ ShellRoot {
     property QtObject handle: QtObject { property bool fullscreen: false }
     property QtObject viewerHandle: QtObject {
         property bool fullscreen: false
-        property string output: ""
-        function fullscreenOn(screen) { output = screen.name; fullscreen = true; }
+        function fullscreenOn(screen) { throw new Error("must not move a toplevel to the external output"); }
     }
     property var laptop: ({name: "eDP-1"})
     property var hdmi: ({name: "HDMI-A-1"})
@@ -91,6 +96,7 @@ ShellRoot {
                     break;
                 case 1:
                     let image = root.find(view.contentItem, "hyprviewProjection");
+                    root.check(!image.paintCursor, "do not copy the source cursor into the projection");
                     root.check(image.parent.width === view.width && image.parent.height === view.height,
                         "projection canvas fills entire window without header or footer");
                     root.check(!root.find(view.contentItem, "hyprviewPicker"), "no visible source picker");
@@ -112,14 +118,21 @@ ShellRoot {
                     view.displays = [root.laptop, root.dp, root.hdmi];
                     break;
                 case 2:
-                    root.check(view.fullscreen && root.viewerHandle.output === "HDMI-A-1", "hotplug prefers HDMI fullscreen");
+                    root.check(view.fullscreen && view.projectedOutput === root.hdmi && !view.visible
+                        && view.projectionOpen && !root.viewerHandle.fullscreen, "external layer covers HDMI without fullscreening a toplevel");
                     root.check(view.source === root.first && !root.handle.fullscreen, "routing preserves original window");
+                    view.toggleFullscreen();
+                    root.check(view.visible && !view.projectedOutput && view.source === root.first,
+                        "F11 can leave the external layer for the floating viewer");
+                    view.toggleFullscreen();
+                    root.check(!view.visible && view.projectedOutput === root.hdmi,
+                        "F11 can return to the external layer without moving a toplevel");
                     view.monitors = [
                         {name: "HDMI-A-1", lastIpcObject: {mirrorOf: "eDP-1"}},
                         {name: "DP-1", lastIpcObject: {mirrorOf: "none"}}];
                     break;
                 case 3:
-                    root.check(view.externalOutput === root.dp && root.viewerHandle.output === "DP-1", "skip mirrored HDMI and use DP");
+                    root.check(view.externalOutput === root.dp && view.projectedOutput === root.dp, "skip mirrored HDMI and use DP");
                     view.monitors = [
                         {name: "HDMI-A-1", lastIpcObject: {mirrorOf: "eDP-1"}},
                         {name: "DP-1", lastIpcObject: {disabled: true}}];
@@ -142,11 +155,13 @@ ShellRoot {
                     view.displays = [root.laptop, root.hdmi];
                     break;
                 case 6:
-                    root.check(!view.viewerHandle, "wait for viewer to map before routing");
+                    root.check(!view.viewerHandle && view.projectedOutput === root.hdmi,
+                        "external projection works without mapping a toplevel window");
                     view.windows = [root.second, root.own];
                     break;
                 case 7:
-                    root.check(view.fullscreen && root.viewerHandle.output === "HDMI-A-1", "fullscreen on connected output after delayed map");
+                    root.check(view.fullscreen && view.projectedOutput === root.hdmi && !root.viewerHandle.fullscreen,
+                        "external projection does not move or fullscreen the mapped toplevel either");
                     view.displays = [root.laptop];
                     break;
                 case 8:

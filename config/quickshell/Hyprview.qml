@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls.Basic
 import Quickshell
 import Quickshell.Wayland
@@ -8,7 +9,9 @@ import Quickshell.Hyprland
 FloatingWindow {
     id: view
     title: "Hyprview"
-    visible: false
+    property bool projectionOpen: false
+    property bool externalWindowed: false
+    visible: projectionOpen && (!externalOutput || externalWindowed)
     implicitWidth: 960
     implicitHeight: 600
     minimumSize: Qt.size(400, 260)
@@ -17,14 +20,14 @@ FloatingWindow {
     property var activeWindow: Hyprland.activeToplevel
     property var displays: Quickshell.screens
     property var monitors: Hyprland.monitors.values
-    property string autoOutputName: ""
     property string sourceAddress: ""
     property string message: ""
     property bool streamStopped: false
     readonly property var source: windows.find(t => t.address === sourceAddress) || null
     readonly property var ownWindow: windows.find(isViewer) || null
     readonly property var viewerHandle: ownWindow ? ownWindow.wayland : null
-    readonly property bool fullscreen: !!(viewerHandle && viewerHandle.fullscreen)
+    readonly property bool fullscreen: externalView.visible || !!(viewerHandle && viewerHandle.fullscreen)
+    readonly property var projectedOutput: externalView.visible ? externalOutput : null
     readonly property var externalOutput: {
         let primary = displays.find(s => /^(eDP|LVDS|DSI)/.test(s.name)) || displays[0];
         let external = displays.filter(s => {
@@ -55,48 +58,40 @@ FloatingWindow {
     function projectActive() {
         // Capture the selection before mapping the viewer changes keyboard focus.
         let selected = activeWindow;
-        if (isViewer(selected)) {
-            if (visible) dismiss();
-            else visible = true;
+        let externalNative = externalView.contentItem.Window.window;
+        if (isViewer(selected) || (externalView.visible && externalNative && externalNative.active)) {
+            if (projectionOpen) dismiss();
+            else projectionOpen = true;
             return;
         }
         if (!selected) message = "Focus an application and press Super+V.";
         else selectWindow(selected);
-        visible = true;
-        routeOutput.restart();
-    }
-    function placeOnOutput() {
-        if (!visible || !viewerHandle) return;
-        if (externalOutput) {
-            viewerHandle.fullscreenOn(externalOutput);
-            autoOutputName = externalOutput.name;
-        } else if (autoOutputName) {
-            viewerHandle.fullscreen = false;
-            autoOutputName = "";
-        }
+        externalWindowed = false;
+        projectionOpen = true;
     }
     function toggleFullscreen() {
+        if (externalOutput) {
+            externalWindowed = !externalWindowed;
+            return;
+        }
         if (ownWindow && ownWindow.wayland)
             ownWindow.wayland.fullscreen = !fullscreen;
     }
     function dismiss() {
-        if (fullscreen) toggleFullscreen();
-        visible = false;
+        if (viewerHandle && viewerHandle.fullscreen) viewerHandle.fullscreen = false;
+        projectionOpen = false;
     }
     onClosed: dismiss()
-    onVisibleChanged: {
-        if (!visible) {
+    onProjectionOpenChanged: {
+        if (!projectionOpen) {
             sourceAddress = "";
             streamStopped = false;
             message = "";
-            autoOutputName = "";
+            externalWindowed = false;
         }
-        else routeOutput.restart();
     }
     onSourceChanged: streamStopped = false
-    onViewerHandleChanged: routeOutput.restart()
-    onExternalOutputChanged: routeOutput.restart()
-    Timer { id: routeOutput; interval: 0; onTriggered: view.placeOnOutput() }
+    onExternalOutputChanged: externalWindowed = false
     Connections {
         target: Hyprland
         function onRawEvent(event) {
@@ -106,22 +101,39 @@ FloatingWindow {
     }
     Timer { id: refreshOutputs; interval: 100; onTriggered: Hyprland.refreshMonitors() }
 
-    Item {
+    // A layer surface covers the external output without moving/focusing a
+    // toplevel window or issuing a fullscreen-output request (which can warp
+    // the pointer). OnDemand accepts focus only through an explicit user action.
+    PanelWindow {
+        id: externalView
+        screen: view.externalOutput
+        visible: view.projectionOpen && !!view.externalOutput && !view.externalWindowed
+        anchors { top: true; bottom: true; left: true; right: true }
+        exclusionMode: ExclusionMode.Ignore
+        color: "black"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "hyprshell-hyprview"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        ProjectionSurface { anchors.fill: parent; capturing: externalView.visible }
+    }
+    ProjectionSurface { anchors.fill: parent; capturing: view.visible }
+
+    component ProjectionSurface: Item {
         id: canvas
-        anchors.fill: parent
+        required property bool capturing
         clip: true
         ScreencopyView {
             id: projection
             objectName: "hyprviewProjection"
             anchors.centerIn: parent
-            captureSource: view.visible && view.source && !view.streamStopped ? view.source.wayland : null
-            live: view.visible && !!view.source && !view.streamStopped
-            paintCursor: true
+            captureSource: canvas.capturing && view.source && !view.streamStopped ? view.source.wayland : null
+            live: canvas.capturing && !!view.source && !view.streamStopped
+            paintCursor: false
             readonly property real ratio: sourceSize.height > 0 ? sourceSize.width / sourceSize.height : 16 / 9
             width: Math.min(canvas.width, canvas.height * ratio)
             height: width / ratio
             visible: hasContent && !view.streamStopped
-            onStopped: view.streamStopped = true
+            onStopped: if (canvas.capturing) view.streamStopped = true
         }
         Label {
             anchors.centerIn: parent
@@ -135,11 +147,11 @@ FloatingWindow {
                 : view.sourceAddress ? "The projected window was closed. Focus another application and press Super+V."
                 : "Focus an application and press Super+V.")
         }
-    }
-    Shortcut { sequence: "F11"; enabled: view.visible; onActivated: view.toggleFullscreen() }
-    Shortcut {
-        sequence: "Escape"
-        enabled: view.visible
-        onActivated: { if (view.fullscreen) view.toggleFullscreen(); else view.dismiss(); }
+        Shortcut { sequence: "F11"; enabled: canvas.capturing; onActivated: view.toggleFullscreen() }
+        Shortcut {
+            sequence: "Escape"
+            enabled: canvas.capturing
+            onActivated: { if (view.fullscreen) view.toggleFullscreen(); else view.dismiss(); }
+        }
     }
 }

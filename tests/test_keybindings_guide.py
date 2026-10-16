@@ -2,6 +2,7 @@
 import json
 import importlib.util
 import os
+import shlex
 from pathlib import Path
 import subprocess
 import sys
@@ -74,6 +75,25 @@ def configured_bindings(config):
 
 
 class KeybindingsGuideTests(unittest.TestCase):
+    def test_hyprview_close_callback_invokes_helper(self):
+        # Exercise only this callback with an inert exec function. Nothing is
+        # launched, and no other desktop callback runs.
+        script = AUDIT_LUA + r'''
+hl.exec_cmd = function(command) io.write('HYPRVIEW_CLOSE_COMMAND\t', command, '\n') end
+for _, row in ipairs(rows) do
+    if row.enabled and row.keys == 'SUPER + SHIFT + V' then row.action() end
+end
+'''
+        with tempfile.TemporaryDirectory(prefix='hyprview home ') as home:
+            result = subprocess.run(['lua', '-', str(ROOT / 'config')], input=script,
+                                    env=dict(os.environ, HOME=home, XDG_CONFIG_HOME=str(ROOT / 'config')),
+                                    text=True, capture_output=True, check=True, timeout=10)
+            commands = [line.split('\t', 1)[1] for line in result.stdout.splitlines()
+                        if line.startswith('HYPRVIEW_CLOSE_COMMAND\t')]
+            self.assertEqual(len(commands), 1)
+            self.assertEqual(shlex.split(commands[0]),
+                             [str(Path(home) / '.local/bin/hyprshell-shortcut'), 'hyprview-close'])
+
     def test_lua_display_names_preserve_every_runtime_registration(self):
         rows = configured_bindings(ROOT / 'config')
         names = [row['key'] for row in rows]
@@ -114,7 +134,7 @@ class KeybindingsGuideTests(unittest.TestCase):
         self.assertEqual(by_key[(65, 'P')]['dispatcher'], 'window.pseudo')
         self.assertEqual(by_key[(8, 'S')]['arg'], '"$HOME/.local/bin/hyprshell-shortcut" settings')
         self.assertEqual(by_key[(64, 'V')]['arg'], '"$HOME/.local/bin/hyprshell-shortcut" hyprview')
-        self.assertEqual(by_key[(65, 'V')]['arg'], '"$HOME/.local/bin/hyprshell-shortcut" hyprview-close')
+        self.assertEqual(by_key[(65, 'V')]['dispatcher'], 'lua callback')
         self.assertEqual(by_key[(72, 'V')]['dispatcher'], 'window.float')
 
     def test_every_configured_binding_survives_guide_and_remaps_are_respected(self):
