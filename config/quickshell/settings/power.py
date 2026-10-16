@@ -112,9 +112,10 @@ def dpms(enabled):
 
 
 def resume():
-    # Try both operations even when one device or service is unavailable.
+    from backend import recover_locker
+    # Attempt display restoration and lock recovery independently.
     errors = []
-    for action in (lambda: dpms(True), restore):
+    for action in (lambda: dpms(True), restore, recover_locker):
         try:
             action()
         except Exception as error:

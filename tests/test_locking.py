@@ -1,19 +1,27 @@
 """Lock settings and command execution without locking the real desktop."""
 import copy
+import fcntl
 import importlib.util
+import json
 import os
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, ANY
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('locking_backend', ROOT / 'config/quickshell/settings/backend.py')
 backend = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(backend)
+query_session_locked = backend.session_locked
 
 
 class LockingTests(unittest.TestCase):
+    def setUp(self):
+        state = patch.object(backend, 'session_locked', return_value=None)
+        state.start()
+        self.addCleanup(state.stop)
+
     def test_legacy_settings_leave_locking_disabled(self):
         data = copy.deepcopy(backend.DEFAULTS)
         del data['locking']
@@ -52,6 +60,18 @@ class LockingTests(unittest.TestCase):
                 self.assertEqual(backend.run_locker(), 0)
                 run.assert_called_once_with(['locker', 'a b', '; touch /tmp/unwanted'], check=False)
 
+    def test_compositor_lock_query_validates_response_and_handles_unavailable_ipc(self):
+        for payload, expected in [({'locked': True}, True), ({'locked': False}, False),
+                                  ({'locked': 'false'}, None), ({}, None), ([], None)]:
+            with self.subTest(payload=payload), \
+                 patch.dict(os.environ, HYPRLAND_INSTANCE_SIGNATURE='test'), \
+                 patch.object(backend.subprocess, 'run', return_value=Mock(returncode=0, stdout=json.dumps(payload))):
+                self.assertIs(query_session_locked(), expected)
+        for error in (OSError('offline'), backend.subprocess.TimeoutExpired('hyprctl', 3)):
+            with patch.dict(os.environ, HYPRLAND_INSTANCE_SIGNATURE='test'), \
+                 patch.object(backend.subprocess, 'run', side_effect=error):
+                self.assertIsNone(query_session_locked())
+
     def test_missing_dependencies_do_not_save(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.dict(os.environ, XDG_CONFIG_HOME=directory, XDG_STATE_HOME=directory), \
@@ -69,7 +89,54 @@ class LockingTests(unittest.TestCase):
                  patch.object(backend.shutil, 'which', return_value='/bin/hyprlock'), \
                  patch.object(backend.subprocess, 'run', return_value=Mock(returncode=0)) as run:
                 self.assertEqual(backend.run_locker(), 0)
-                run.assert_called_once_with(['hyprlock'], check=False, cwd=Path(directory) / 'hypr')
+                run.assert_called_once_with(['hyprlock'], check=False, cwd=Path(directory) / 'hypr',
+                                            stdout=ANY, stderr=backend.subprocess.STDOUT)
+                self.assertEqual((Path(directory) / 'hyprshell/locker.log').stat().st_mode & 0o777, 0o600)
+
+    def test_locked_session_recovers_beyond_old_budget_even_after_zero_exit(self):
+        failures = backend.LOCKER_MAX_RESTARTS + 3
+        with patch.object(backend, 'session_locked', side_effect=[True] * failures + [False]), \
+             patch.object(backend.time, 'sleep') as rest, \
+             patch.object(backend.subprocess, 'run', return_value=Mock(returncode=0)) as run:
+            self.assertEqual(backend.supervise_locker(['hyprlock'], {}), 0)
+            self.assertEqual(run.call_count, failures + 1)
+            self.assertEqual(rest.call_args.args, (backend.LOCKER_RECOVERY_DELAY,))
+
+    def test_crash_after_unlock_does_not_relock_desktop(self):
+        with patch.object(backend, 'session_locked', return_value=False), \
+             patch.object(backend.time, 'sleep') as rest, \
+             patch.object(backend.subprocess, 'run', return_value=Mock(returncode=-6)):
+            self.assertEqual(backend.supervise_locker(['hyprlock'], {}), -6)
+            rest.assert_not_called()
+
+    def test_resume_recovery_only_starts_for_confirmed_lock(self):
+        for state in (True, False, None):
+            with self.subTest(state=state), \
+                 patch.object(backend, 'session_locked', return_value=state), \
+                 patch.object(backend.subprocess, 'Popen') as spawn:
+                backend.recover_locker()
+                self.assertEqual(spawn.call_count, int(state is True))
+                if state is True:
+                    self.assertEqual(spawn.call_args.args[0][-1], '--lock')
+                    self.assertTrue(spawn.call_args.kwargs['start_new_session'])
+
+    def test_recovery_cannot_start_a_second_supervisor(self):
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.dict(os.environ, XDG_STATE_HOME=directory), \
+             patch.object(backend, 'read_locking', return_value={'command': 'hyprlock'}), \
+             patch.object(backend.shutil, 'which', return_value='/bin/hyprlock'), \
+             patch.object(backend, 'supervise_locker') as supervise:
+            path = Path(directory) / 'hyprshell/locker.lock'
+            path.parent.mkdir()
+            with path.open('w') as held:
+                fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                self.assertEqual(backend.run_locker(), 0)
+            supervise.assert_not_called()
+
+    def test_locking_without_power_timers_still_recovers_after_sleep(self):
+        text = backend.render_idle(dict(backend.DEFAULTS['locking'], enabled=True), backend.DEFAULTS['power'])
+        self.assertIn('after_sleep_cmd = ', text)
+        self.assertIn(' --resume', text)
 
     def test_crashed_locker_is_relaunched_and_clean_unlock_stops_restarting(self):
         with tempfile.TemporaryDirectory() as directory, \

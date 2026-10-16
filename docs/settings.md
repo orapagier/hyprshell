@@ -367,9 +367,16 @@ runs for the lifetime of the Hyprshell session.
 When locking before sleep is enabled, Hypridle explicitly waits for the
 compositor's lock notification (`inhibit_sleep = 3`); automatic detection cannot
 recognize Hyprlock behind the Python backend. The locker supervisor retries
-Hyprlock's nonzero exits, including failed acquisition during suspend, with a
-bounded retry budget. A successful unlock stops supervision; custom lockers
-retain their existing positive-exit handling.
+Hyprlock's exits against `hyprctl -j locked`. While the compositor confirms the
+session is locked, recovery continues even after ten failures, slowing retries
+to once every ten seconds. An unlocked session stops supervision. If compositor
+state is unavailable, the previous bounded retry behavior remains. Custom
+lockers retain their existing positive-exit handling. Resume also requests a
+serialized locker recovery only if the compositor still reports a locked session,
+even when no power timers are enabled. Locker output and retry reasons are saved
+locally in `state/hyprshell/locker.log` (rotated between locker invocations above
+1 MiB, with one previous log). These logs have owner-only permissions and stay
+outside configuration sync. Custom locker output retains its existing handling.
 
 The backend's `--lock` executes the configured argv directly and serializes
 foreground locker requests. `--idle` generates Hypridle configuration with only

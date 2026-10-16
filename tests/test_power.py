@@ -135,10 +135,13 @@ class PowerTests(unittest.TestCase):
             self.assertIn('config ok', parsed.stdout.lower(), parsed.stdout + parsed.stderr)
 
     def test_resume_attempts_brightness_when_dpms_fails(self):
-        with patch.object(power, 'dpms', side_effect=ValueError('offline')), patch.object(power, 'restore') as restore:
+        with patch.object(power, 'dpms', side_effect=ValueError('offline')), \
+             patch.object(power, 'restore') as restore, \
+             patch.object(backend, 'recover_locker') as recover:
             with self.assertRaisesRegex(ValueError, 'offline'):
                 power.resume()
             restore.assert_called_once()
+            recover.assert_called_once()
 
     def test_profiles_parse_supported_only_and_apply_saved_preference(self):
         with patch.object(power, 'command', side_effect=['  power-saver:\n* balanced:\n', 'balanced\n']):

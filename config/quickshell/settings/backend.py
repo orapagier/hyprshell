@@ -316,7 +316,7 @@ def render_idle(settings, power=None):
             # Auto detection sees our Python wrapper rather than hyprlock.
             # Wait for the compositor's lock notification before suspending.
             text += '    inhibit_sleep = 3\n'
-    if power_idle_enabled(power):
+    if power_idle_enabled(power) or locking:
         text += '    after_sleep_cmd = ' + power_command + ' --resume\n'
     text += '}\n'
     if locking and settings['idleMinutes']:
@@ -368,34 +368,74 @@ def run_locker():
         options = {}
         if args == ['hyprlock']:
             options['cwd'] = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config') / 'hypr'
-        return supervise_locker(args, options)
+        if Path(args[0]).name != 'hyprlock':
+            return supervise_locker(args, options)
+        # Keep Hyprlock diagnostics across sleep and shell restarts.
+        log_path = path.with_name('locker.log')
+        if log_path.exists() and log_path.stat().st_size > 1024 * 1024:
+            log_path.replace(log_path.with_suffix('.log.previous'))
+        with log_path.open('a', buffering=1) as log:
+            os.chmod(log_path, 0o600)
+            options.update(stdout=log, stderr=subprocess.STDOUT)
+            return supervise_locker(args, options)
 
 
-# A locker that exits cleanly has unlocked the session. A locker killed by a signal (for example
+def session_locked():
+    """Return the compositor's actual lock state, or None if unavailable."""
+    if not os.environ.get('HYPRLAND_INSTANCE_SIGNATURE'):
+        return None
+    try:
+        result = subprocess.run(['hyprctl', '-j', 'locked'], capture_output=True,
+                                text=True, timeout=3)
+        if result.returncode == 0:
+            locked = json.loads(result.stdout).get('locked')
+            if type(locked) is bool:
+                return locked
+    except (OSError, subprocess.TimeoutExpired, ValueError, AttributeError):
+        pass
+    return None
+
+
+def recover_locker():
+    # Resume may outlive the original wrapper or its retry budget. The same
+    # flock in run_locker makes this harmless when supervision is still alive.
+    if session_locked() is True:
+        subprocess.Popen([sys.executable, str(Path(__file__).resolve()), '--lock'],
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+# A locker killed by a signal (for example
 # hyprlock aborting after a suspend/resume or display power cycle) has instead
 # died while the session must stay locked. Relaunch it so the compositor can
 # hand the lock to the new client instead of showing a dead, clientless screen.
 LOCKER_RESTART_DELAY = 1.0
 LOCKER_HEALTHY_SECONDS = 30.0
 LOCKER_MAX_RESTARTS = 10
+LOCKER_RECOVERY_DELAY = 10.0
 
 
 def supervise_locker(args, options):
     restarts = 0
+    hyprlock = Path(args[0]).name == 'hyprlock'
     while True:
         started = time.monotonic()
         code = subprocess.run(args, check=False, **options).returncode
-        # Hyprlock can also report a failed lock acquisition with exit 1 when
-        # suspend interrupts startup. Retry it within the same bounded budget;
-        # preserve positive exit handling for custom locker commands.
-        if code == 0 or (code > 0 and Path(args[0]).name != 'hyprlock'):
+        # Exit codes alone cannot establish whether the session unlocked.
+        # Keep recovery alive while Hyprland confirms it still needs a locker.
+        locked = session_locked() if hyprlock else None
+        if locked is False or (code == 0 and locked is not True) or (code > 0 and not hyprlock):
             return code
         if time.monotonic() - started >= LOCKER_HEALTHY_SECONDS:
             restarts = 0
         restarts += 1
-        if restarts > LOCKER_MAX_RESTARTS:
+        if restarts > LOCKER_MAX_RESTARTS and locked is not True:
             return code
-        time.sleep(LOCKER_RESTART_DELAY)
+        delay = LOCKER_RECOVERY_DELAY if restarts > LOCKER_MAX_RESTARTS else LOCKER_RESTART_DELAY
+        log = options.get('stdout', sys.stderr)
+        print(f'{datetime.now().isoformat(timespec="seconds")} Locker exited {code}; '
+              f'locked={locked}, retry={restarts}, delay={delay}s', file=log, flush=True)
+        time.sleep(delay)
 
 
 def run_idle(on_battery=False):
