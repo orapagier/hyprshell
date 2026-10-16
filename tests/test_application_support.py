@@ -148,33 +148,77 @@ ShellRoot {
         property var config: ({pins:{mode:'shared',shared:['missing.desktop','kitty.desktop'],hyprdock:[],hyprbar:[],matches:{}}})
         function reload() {}
     }
+    QtObject {
+        id: application
+        property string id: 'kitty'
+        property string name: 'Kitty'
+        property string icon: 'kitty'
+        property string startupClass: 'kitty'
+    }
+    QtObject { id: workspaceObject; property int id: 2; property string name: '2' }
+    QtObject { id: monitorObject; property string name: 'HDMI-A-1' }
+    QtObject { id: waylandObject; property string appId: 'kitty' }
+    QtObject {
+        id: client
+        property string address: 'cd'
+        property string title: 'Second'
+        property bool activated: false
+        property bool urgent: false
+        property var workspace: workspaceObject
+        property var monitor: monitorObject
+        property var wayland: waylandObject
+        property var lastIpcObject: ({class:'kitty'})
+    }
     ApplicationService {
         id: service
         store: store
-        entries: [{id:'kitty',name:'Kitty',icon:'kitty',startupClass:'kitty'}]
+        entries: [application]
         windows: [{address:'ab',title:'First',activated:true,workspace:{id:1,name:'1'},monitor:{name:'eDP-1'},lastIpcObject:{class:'kitty'}},
-                  {address:'cd',title:'Second',activated:false,workspace:{id:2,name:'2'},monitor:{name:'HDMI-A-1'},lastIpcObject:{class:'kitty'}}]
+                  client]
     }
     Window { visible:true; width:300; height:900
         ApplicationManager { id: manager; width:264; service:service }
     }
     function check(value,message) { if(!value) throw new Error(message); }
-    Timer { interval:300; running:true; onTriggered: {
+    property int step: 0
+    Timer { interval:100; running:true; repeat:true; onTriggered: {
         try {
-            let groups=service.groups('hyprdock');
-            test.check(groups.length===2 && groups[1].windows.length===2,'group windows and missing pin');
-            test.check(groups[1].active && !groups[0].installed,'focus and missing metadata');
-            manager.selectedAddress='cd';
-            test.check(manager.selected.title==='Second','window selection');
-            service.windows=[{address:'cd',title:'Changed',activated:true,workspace:{id:3,name:'three'},monitor:{name:'eDP-1'},lastIpcObject:{class:'kitty'}}];
-            test.check(manager.selected.title==='Changed' && manager.selected.workspace===3,'react to title/workspace changes');
-            service.windows=[];
-            test.check(manager.selected===null && service.groups('hyprdock')[1].windows.length===0,'closed window disappears');
-            test.check(!service.windowAction('close','cd'),'stale actions rejected');
-            test.check(!service.launch('missing.desktop'),'missing app fails safely');
-            let launcher=Qt.createComponent('PAYLOAD/LauncherMenu.qml');
-            test.check(launcher.status===Component.Ready,launcher.errorString());
-            console.log('APPLICATION_SUPPORT_OK'); Qt.quit();
+            if (test.step===0) {
+                let groups=service.groups('hyprdock');
+                test.check(groups.length===2 && groups[1].windows.length===2,'group windows and missing pin');
+                test.check(groups[1].active && !groups[0].installed,'focus and missing metadata');
+                test.check(groups[1].entry===application,'native launch entry preserved');
+                manager.selectedAddress='cd';
+                test.check(manager.selected.title==='Second','window selection');
+                application.name='Renamed terminal';
+                application.startupClass='CustomTerminal';
+                waylandObject.appId='CustomTerminal';
+                client.lastIpcObject={class:'CustomTerminal'};
+            } else if (test.step===1) {
+                test.check(service.groups('hyprdock')[1].name==='Renamed terminal','metadata refresh');
+                test.check(service.windowRows[1].appId==='kitty.desktop','matching metadata refresh');
+                client.title='Changed'; client.activated=true; client.urgent=true;
+                workspaceObject.id=3; workspaceObject.name='three'; monitorObject.name='eDP-1';
+            } else if (test.step===2) {
+                test.check(manager.selected.title==='Changed' && manager.selected.workspace===3,'native title/workspace changes');
+                test.check(manager.selected.workspaceName==='three' && manager.selected.output==='eDP-1','native workspace name/output changes');
+                test.check(manager.selected.active && manager.selected.urgent,'native focus/urgency changes');
+                store.config={pins:{mode:'shared',shared:['missing.desktop','kitty.desktop'],hyprdock:[],hyprbar:[],matches:{CustomTerminal:'missing.desktop'}}};
+            } else if (test.step===3) {
+                test.check(service.windowRows[1].appId==='missing.desktop','identity correction refresh');
+                service.windows=[{address:'cd',title:'Replacement',activated:true,workspace:{id:4,name:'four'},monitor:{name:'eDP-1'},lastIpcObject:{class:'kitty'}}];
+            } else if (test.step===4) {
+                test.check(manager.selected.title==='Replacement' && manager.selected.workspace===4,'window model replacement');
+                service.windows=[];
+            } else {
+                test.check(manager.selected===null && service.groups('hyprdock')[1].windows.length===0,'closed window disappears');
+                test.check(!service.windowAction('close','cd'),'stale actions rejected');
+                test.check(!service.launch('missing.desktop'),'missing app fails safely');
+                let launcher=Qt.createComponent('PAYLOAD/LauncherMenu.qml');
+                test.check(launcher.status===Component.Ready,launcher.errorString());
+                console.log('APPLICATION_SUPPORT_OK'); Qt.quit();
+            }
+            test.step++;
         } catch(error) { console.error('APPLICATION_SUPPORT_FAILED '+error); Qt.exit(1); }
     }}
     Timer { interval:5000; running:true; onTriggered:Qt.exit(2) }

@@ -55,4 +55,16 @@ TestCase {
         for(let workspace of [0,100,1.5,'2']) compare(Apps.windowCommand('move','ab',workspace,true),'');
         compare(Apps.windowCommand('minimize','ab',1,true),'');
     }
+    function test_cachedRowsAvoidReadingNativeWindows() {
+        let apps = entries();
+        let nativeWindow = window('a', 'kitty', 'Terminal', 1, true);
+        let rows = [Apps.windowData(nativeWindow, apps, {})];
+        Object.defineProperty(nativeWindow, 'title', {get: function() { throw new Error('Native window read during grouping'); }});
+        let groups = Apps.groups(apps, [nativeWindow], ['kitty.desktop'], {}, rows);
+        compare(groups.length, 1);
+        verify(groups[0].entry === apps[1]);
+        compare(groups[0].windows[0].title, 'Terminal');
+        verify(groups[0].active);
+        compare(Apps.groups(apps, [nativeWindow], ['kitty.desktop'], {}, [])[0].windows.length, 0);
+    }
 }

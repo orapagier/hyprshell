@@ -67,6 +67,21 @@ transaction. It does not submit a stale whole-settings snapshot. An already-open
 Settings draft retains its usual conflict detection. No new state file or sync
 allowlist is required; old version-1 settings inherit empty corrections.
 
+Window-to-application matching runs through `Qt.callLater`, after native
+Hyprland property notifications finish. Matching directly inside a QML binding
+reproduced a startup segmentation fault in `Qt::endPropertyUpdateGroup()` with
+Quickshell 0.3.2 / Qt 6.11.2 and real installed apps/windows. App and window
+signals queue a coalesced rebuild; dock grouping consumes the cached rows so it
+does not repeat native matching inside a binding. Title, focus, urgency,
+workspace/output, app metadata and identity-correction updates remain reactive;
+this adds no periodic polling.
+
+The deferred-matching fix passed 33 focused model, service, dock and launcher
+checks, including QObject property updates and cached grouping without reading
+native windows. The user confirmed full live shell startup and notification
+ownership on 2026-10-16. This startup confirmation does not certify every
+compositor action described below.
+
 ## Validation — 2026-10-16
 
 - Qt 6 QML suite: 198 passed, including matching ambiguity, multiple-window

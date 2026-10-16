@@ -12,7 +12,20 @@ Item {
     // Injectable inputs also let native checks exercise lifecycle without actions.
     property var entries: DesktopEntries.applications.values.slice().sort((a, b) => a.name.localeCompare(b.name))
     property var windows: Hyprland.toplevels.values
-    readonly property var windowRows: windows.map(w => Apps.windowData(w, entries, store.config.pins.matches || {}))
+    readonly property var matches: store.config.pins.matches || {}
+    readonly property var windowRows: rowCache.value
+    QtObject { id: rowCache; property var value: [] }
+    // Matching native desktop entries inside Hyprland's grouped property
+    // notifications can crash Qt. Signals only queue work; read both models
+    // after the notification stack has unwound, without a binding capture.
+    function scheduleRows() { Qt.callLater(service.rebuildRows); }
+    function rebuildRows() {
+        rowCache.value = windows.map(w => Apps.windowData(w, entries, matches));
+    }
+    onWindowsChanged: scheduleRows()
+    onEntriesChanged: scheduleRows()
+    onMatchesChanged: scheduleRows()
+    Component.onCompleted: scheduleRows()
     readonly property bool busy: writer.running
     property string error: ""
     signal windowSelectionRequested(var group)
@@ -20,7 +33,7 @@ Item {
     function iconSource(name) { return icons.source(name) || icons.source('application-x-executable'); }
     function entry(id) { return entries.find(e => Apps.desktopId(e) === id) || null; }
     function groups(component) {
-        return Apps.groups(entries, windows, Settings.effectivePins(store.config, component), store.config.pins.matches || {});
+        return Apps.groups(entries, [], Settings.effectivePins(store.config, component), matches, windowRows);
     }
     function launch(application) {
         let app = typeof application === 'string' ? entry(application) : application;
@@ -67,6 +80,51 @@ Item {
             }
         }
         stderr: StdioCollector { onStreamFinished: if (text.trim()) service.error = text.trim() }
+    }
+    Instantiator {
+        model: service.entries
+        delegate: Connections {
+            required property var modelData
+            target: modelData && modelData.objectName !== undefined ? modelData : null
+            ignoreUnknownSignals: true
+            function onIdChanged() { service.scheduleRows(); }
+            function onNameChanged() { service.scheduleRows(); }
+            function onIconChanged() { service.scheduleRows(); }
+            function onStartupClassChanged() { service.scheduleRows(); }
+        }
+    }
+    Instantiator {
+        model: service.windows
+        delegate: Item {
+            required property var modelData
+            Connections {
+                target: modelData && modelData.objectName !== undefined ? modelData : null
+                ignoreUnknownSignals: true
+                function onLastIpcObjectChanged() { service.scheduleRows(); }
+                function onTitleChanged() { service.scheduleRows(); }
+                function onActivatedChanged() { service.scheduleRows(); }
+                function onUrgentChanged() { service.scheduleRows(); }
+                function onWorkspaceChanged() { service.scheduleRows(); }
+                function onMonitorChanged() { service.scheduleRows(); }
+                function onWaylandChanged() { service.scheduleRows(); }
+            }
+            Connections {
+                target: modelData.workspace && modelData.workspace.objectName !== undefined ? modelData.workspace : null
+                ignoreUnknownSignals: true
+                function onIdChanged() { service.scheduleRows(); }
+                function onNameChanged() { service.scheduleRows(); }
+            }
+            Connections {
+                target: modelData.monitor && modelData.monitor.objectName !== undefined ? modelData.monitor : null
+                ignoreUnknownSignals: true
+                function onNameChanged() { service.scheduleRows(); }
+            }
+            Connections {
+                target: modelData.wayland && modelData.wayland.objectName !== undefined ? modelData.wayland : null
+                ignoreUnknownSignals: true
+                function onAppIdChanged() { service.scheduleRows(); }
+            }
+        }
     }
     // Coalesce compositor events; there is no periodic client-list polling.
     Connections {

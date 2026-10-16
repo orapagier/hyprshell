@@ -41,7 +41,7 @@ function windowData(window, entries, overrides) {
         workspaceName: window.workspace ? window.workspace.name : (info.workspace || {}).name || '',
         output: window.monitor ? window.monitor.name : '', handle: window};
 }
-function groups(entries, windows, pins, overrides) {
+function groups(entries, windows, pins, overrides, rows) {
     let result = [], byKey = {};
     function ensure(id, unknownKey, identity) {
         let groupKey = id ? 'app:' + id : 'window:' + unknownKey;
@@ -56,8 +56,8 @@ function groups(entries, windows, pins, overrides) {
         return byKey[groupKey];
     }
     for (let id of pins) ensure(id, '', '');
-    for (let window of windows) {
-        let row = windowData(window, entries, overrides);
+    let windowRows = rows === undefined ? windows.map(w => windowData(w, entries, overrides)) : rows;
+    for (let row of windowRows) {
         let group = ensure(row.appId, key(row.identity) || row.address, row.identity);
         group.windows.push(row);
         group.active = group.active || row.active;
