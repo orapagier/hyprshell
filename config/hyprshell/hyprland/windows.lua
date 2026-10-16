@@ -147,6 +147,10 @@ hl.window_rule({
     name = "hyprshell-hyprview-placement",
     match = { initial_title = "^Hyprview$" },
     float = true,
+    decorate = false,
+    border_size = 0,
+    rounding = 0,
+    no_shadow = true,
     center = true,
     size = { "min(960,monitor_w*0.85)", "min(600,monitor_h*0.8)" },
 })

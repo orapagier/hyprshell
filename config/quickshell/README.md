@@ -15,11 +15,18 @@ notification history.
 
 Focus an application and press **Super+V** to show a live, view-only copy in
 Hyprview. Press it from another application to replace the source in the same
-viewer, or use the window picker. Changing focus alone keeps the selected source.
-Hyprview starts floating and preserves the source's aspect ratio with black bars.
-**F11** or the Fullscreen button toggles fullscreen; **Escape** leaves fullscreen
+viewer. Changing focus alone keeps the selected source. The viewer contains only
+the projected image, with no header, picker, footer, buttons or window decorations.
+Hyprview opens fullscreen on an enabled external display, preferring HDMI, then
+other outputs by name. The built-in panel (or first screen on a desktop) remains
+the primary display. Mirrored and disabled outputs are skipped. Connecting an
+external display while the viewer is open moves the projection there automatically;
+disconnecting it returns the viewer to windowed mode. With one screen, Hyprview
+starts floating. It preserves the source's aspect ratio with black bars.
+**F11** toggles fullscreen; **Escape** leaves fullscreen
 first, then closes. Pressing Super+V while Hyprview itself is focused also closes
-it. Closing releases capture; closing the source leaves the chooser available.
+it. Closing releases capture; after closing a source, focus another application
+and press Super+V to project it.
 Control the application through its original window. Super+Alt+V still toggles
 floating for any window. The shortcut is searchable with Super+K and editable in
 Settings → Keybindings.
@@ -27,9 +34,10 @@ Settings → Keybindings.
 `Hyprview.qml` uses Quickshell's native `ScreencopyView` and the compositor's
 window capture protocol, with no recorder or virtual monitor required. Windows
 without a capture handle show a message. A stopped stream can be retried by
-selecting its window again. Native offscreen checks cover selection, switching,
-recursive-capture prevention, fullscreen targeting, aspect fit and close/reopen;
-real video updates require a live Hyprland session check.
+pressing Super+V from the source again. Native offscreen checks cover selection,
+switching, recursive-capture prevention, fullscreen targeting, full-window canvas,
+aspect fit, close/reopen, hotplug, mirrored/disabled outputs and delayed viewer
+mapping. Real video and physical output placement require a live Hyprland check.
 
 The styling uses 32px panel height, 28px pills, and 5px top / 10px side
 margins, transparent background, wallpaper-tinted glass pills, DejaVu Sans / GoMono

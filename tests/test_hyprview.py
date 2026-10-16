@@ -16,12 +16,6 @@ class HyprviewTests(unittest.TestCase):
             root = Path(directory)
             payload = root / 'quickshell'
             payload.mkdir()
-            for name in ('SettingsButton.qml', 'style'):
-                source = ROOT / 'config/quickshell' / name
-                if source.is_dir():
-                    shutil.copytree(source, payload / name)
-                else:
-                    shutil.copy2(source, payload / name)
             source = (ROOT / 'config/quickshell/Hyprview.qml').read_text()
             # Keep the real UI and state machine; offscreen Qt has no capture
             # protocol. Substitute only the native stream for mock handles.
@@ -34,12 +28,28 @@ import Quickshell
 ShellRoot {
     id: root
     property QtObject handle: QtObject { property bool fullscreen: false }
-    property QtObject viewerHandle: QtObject { property bool fullscreen: false }
+    property QtObject viewerHandle: QtObject {
+        property bool fullscreen: false
+        property string output: ""
+        function fullscreenOn(screen) { output = screen.name; fullscreen = true; }
+    }
+    property var laptop: ({name: "eDP-1"})
+    property var hdmi: ({name: "HDMI-A-1"})
+    property var dp: ({name: "DP-1"})
+    property var extended: [
+        {name: "HDMI-A-1", lastIpcObject: {mirrorOf: "none", disabled: false}},
+        {name: "DP-1", lastIpcObject: {mirrorOf: "none", disabled: false}}]
     property var first: ({address: "0x1", title: "First window", wayland: handle})
     property var second: ({address: "0x2", title: "Second window", wayland: handle})
     property var own: ({address: "0x3", title: "Hyprview", wayland: viewerHandle,
         lastIpcObject: {pid: Quickshell.processId, initialTitle: "Hyprview"}})
-    Hyprview { id: view; windows: [root.first, root.second, root.own]; activeWindow: root.first }
+    Hyprview {
+        id: view
+        windows: [root.first, root.second, root.own]
+        activeWindow: root.first
+        displays: [root.laptop]
+        monitors: root.extended
+    }
     function check(value, message) { if (!value) throw new Error(message); }
     function find(item, name) {
         if (item.objectName === name) return item;
@@ -53,12 +63,15 @@ ShellRoot {
             try {
                 switch (stage++) {
                 case 0:
-                    root.check(!view.visible && view.choices.length === 2, "start hidden and exclude the viewer");
+                    root.check(!view.visible && !view.externalOutput, "start hidden on a single screen");
                     view.projectActive();
                     root.check(view.visible && view.source === root.first, "project active source before opening");
                     break;
                 case 1:
                     let image = root.find(view.contentItem, "hyprviewProjection");
+                    root.check(image.parent.width === view.width && image.parent.height === view.height,
+                        "projection canvas fills entire window without header or footer");
+                    root.check(!root.find(view.contentItem, "hyprviewPicker"), "no visible source picker");
                     root.check(image.width <= image.parent.width && image.height <= image.parent.height
                         && Math.abs(image.width / image.height - 16/9) < 0.001, "aspect fit without cropping");
                     view.activeWindow = root.second;
@@ -66,7 +79,7 @@ ShellRoot {
                     view.projectActive();
                     root.check(view.source === root.second, "repeat shortcut replaces source");
                     view.selectWindow(root.first);
-                    root.check(view.source === root.first, "picker changes source");
+                    root.check(view.source === root.first, "source selection still works");
                     view.toggleFullscreen();
                     root.check(view.fullscreen && !root.handle.fullscreen, "fullscreen targets only viewer");
                     view.toggleFullscreen();
@@ -74,27 +87,55 @@ ShellRoot {
                     view.streamStopped = true;
                     view.selectWindow(root.first);
                     root.check(!view.streamStopped, "reselecting source retries a stopped stream");
-                    root.find(view.contentItem, "hyprviewPicker").popup.open();
+                    view.displays = [root.laptop, root.dp, root.hdmi];
                     break;
                 case 2:
-                    root.find(view.contentItem, "hyprviewPicker").popup.close();
-                    view.windows = [root.second, root.own];
+                    root.check(view.fullscreen && root.viewerHandle.output === "HDMI-A-1", "hotplug prefers HDMI fullscreen");
+                    root.check(view.source === root.first && !root.handle.fullscreen, "routing preserves original window");
+                    view.monitors = [
+                        {name: "HDMI-A-1", lastIpcObject: {mirrorOf: "eDP-1"}},
+                        {name: "DP-1", lastIpcObject: {mirrorOf: "none"}}];
                     break;
                 case 3:
-                    root.check(!view.source && view.visible, "source closing keeps chooser available");
+                    root.check(view.externalOutput === root.dp && root.viewerHandle.output === "DP-1", "skip mirrored HDMI and use DP");
+                    view.monitors = [
+                        {name: "HDMI-A-1", lastIpcObject: {mirrorOf: "eDP-1"}},
+                        {name: "DP-1", lastIpcObject: {disabled: true}}];
+                    break;
+                case 4:
+                    root.check(!view.externalOutput && !view.fullscreen, "skip disabled outputs and return to windowed");
+                    view.displays = [root.laptop];
+                    view.windows = [root.second, root.own];
+                    break;
+                case 5:
+                    root.check(!view.source && view.visible, "source closing releases capture without closing viewer");
                     view.activeWindow = root.own;
                     view.projectActive();
                     root.check(!view.visible && !view.sourceAddress, "shortcut in viewer closes and releases source");
                     view.activeWindow = root.second;
                     view.projectActive();
                     root.check(view.visible && view.source === root.second, "reopen after close");
+                    view.windows = [root.second];
+                    view.monitors = root.extended;
+                    view.displays = [root.laptop, root.hdmi];
+                    break;
+                case 6:
+                    root.check(!view.viewerHandle, "wait for viewer to map before routing");
+                    view.windows = [root.second, root.own];
+                    break;
+                case 7:
+                    root.check(view.fullscreen && root.viewerHandle.output === "HDMI-A-1", "fullscreen on connected output after delayed map");
+                    view.displays = [root.laptop];
+                    break;
+                case 8:
+                    root.check(!view.fullscreen && view.visible && view.source === root.second, "unplug returns existing projection to a window");
                     root.check(!view.selectWindow(root.own) && view.source === root.second, "reject recursive capture");
                     view.selectWindow({address: "0x4", title: "No handle"});
                     root.check(!!view.message && view.source === root.second, "unsupported source preserves selection");
                     view.dismiss();
                     view.activeWindow = null;
                     view.projectActive();
-                    root.check(view.visible && !view.source && !!view.message, "no focused window opens chooser");
+                    root.check(view.visible && !view.source && !!view.message, "no focused window shows shortcut guidance");
                     view.dismiss();
                     console.log("HYPRVIEW_OK");
                     Qt.quit();
