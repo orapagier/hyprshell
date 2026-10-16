@@ -320,6 +320,8 @@ def validate_panels(data, result):
                 if target[key] not in ('current', 'all'):
                     raise ValueError(f'Invalid {name} {key}')
         if name == 'hyprbar':
+            if target['spacingRight'] is not None:
+                number(target['spacingRight'], 0, 30, True)
             if type(target['showTitles']) is not bool:
                 raise ValueError('Hyprbar showTitles must be boolean')
             for key in ('buttonWidth', 'verticalWidth'):

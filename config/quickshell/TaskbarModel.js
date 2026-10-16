@@ -36,9 +36,11 @@ function rightItems(config, component = "hyprbar") {
 }
 function statusConfig(config, edge, component = "hyprbar") {
     let selected = rightItems(config, component);
+    let spacing = component === 'hyprbar' ? config.panels?.hyprbar?.spacingRight : null;
     let shared = Surface.pillStyle(config, config.panels?.[component] || {}, '').settings.background !== 'off';
     return Object.assign({}, config, {
-        bar:Object.assign({}, config.bar, {position:edge, verticalPresentation:'compact'}),
+        bar:Object.assign({}, config.bar, {position:edge, verticalPresentation:'compact'},
+            spacing == null ? {} : {spacing:spacing}),
         items:['launcher','settings','workspaces','media','calendar','tray','notifications','audio','wifi','bluetooth','battery','power']
             .map(id => (config.items || []).find(item => item.id === id) || {id:id})
             .map(item => Object.assign({}, item, {

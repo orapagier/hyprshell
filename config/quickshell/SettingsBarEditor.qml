@@ -42,6 +42,7 @@ ColumnLayout {
         visible:root.taskbarSettings !== null
         settings:root.taskbarSettings || {}
         paneItems:root.paneItems
+        paneSpacing:root.settings.spacing ?? 3
         onEdited:(key,value) => root.taskbarEdited(key,value)
     }
     SettingsDockEditor {

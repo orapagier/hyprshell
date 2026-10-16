@@ -60,6 +60,12 @@ returns to inheritance. Adding an item here does not move or remove it in
 Hyprpane. Long status sections scroll independently, and app overflow stays
 within its remaining space. Neither section shows item tooltips.
 
+Hyprbar has separate Left item spacing and Right item spacing sliders (0–30 px).
+On side edges these apply to the top app section and bottom status section.
+The left slider saves `panels.hyprbar.spacing`; the right saves
+`panels.hyprbar.spacingRight`. A missing or null right value preserves the existing
+Hyprpane spacing until edited. Item-specific spacing offsets remain additive.
+
 One continuous `PanelPill.qml` backdrop spans the app and status sections. It
 uses the current center Hyprpane pill's glass, rim and adaptive colors. Status
 items retain their glyph colors and behavior but have no individual or group

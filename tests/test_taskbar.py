@@ -33,7 +33,7 @@ ShellRoot {
     Window {
         visible:true; width:600; height:400
         Dock { id:bar; component:'hyprbar'; service:service; config:test.config.panels ? test.config : preferences.config; outputName:'eDP-1'; workspace:1; maximumLength:500; trailingLength:status.contentLength+8; width:implicitWidth; height:implicitHeight }
-        TaskbarStatus { id:status; config:bar.config; width:contentLength; height:bar.height; x:bar.width-width }
+        TaskbarStatus { id:status; config:bar.config; edge:bar.edge; width:bar.vertical ? bar.width : contentLength; height:bar.vertical ? contentLength : bar.height; x:bar.vertical ? 0 : bar.width-width }
     }
     function check(value,message) { if(!value) throw new Error(message); }
     function update(values) { let next=Settings.copy(test.config.panels ? test.config : preferences.config); Object.assign(next.panels.hyprbar,values); test.config=next; }
@@ -58,6 +58,13 @@ ShellRoot {
             } else if(test.step<=6) {
                 test.update({position:['top','bottom','left','right'][test.step-3]});
                 test.check(bar.vertical === (test.step>=5),'surface orientation');
+                test.update({spacing:11,spacingRight:7,rightItems:['audio','wifi']});
+                test.check(bar.spacing===11,'left spacing');
+                test.check(status.gapBetween('audio','wifi')===7,'right spacing on each edge');
+                test.update({spacingRight:0});
+                test.check(status.gapBetween('audio','wifi')===0 && bar.spacing===11,'independent zero right spacing');
+                test.update({spacingRight:null});
+                test.check(status.settings.bar.spacing===test.config.bar.spacing,'legacy right spacing');
             } else {
                 console.log('TASKBAR_NATIVE_OK'); Qt.quit();
             }

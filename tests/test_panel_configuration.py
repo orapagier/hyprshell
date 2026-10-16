@@ -99,6 +99,23 @@ class PanelConfigurationTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 backend.validate(invalid)
 
+    def test_taskbar_independent_spacing(self):
+        panel = self.data['panels']['hyprbar']
+        panel.pop('spacingRight')
+        panel['spacing'] = 10
+        inherited = backend.validate(self.data)['panels']['hyprbar']
+        self.assertEqual(inherited['spacing'], 10)
+        self.assertIsNone(inherited['spacingRight'])
+        for value in (0, 7, 30, None):
+            panel['spacingRight'] = value
+            result = backend.validate(self.data)['panels']['hyprbar']
+            self.assertEqual(result['spacingRight'], value)
+            self.assertEqual(result['spacing'], 10)
+        for value in (-1, 31, True, '5', 2.5):
+            panel['spacingRight'] = value
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                backend.validate(self.data)
+
     def test_taskbar_right_item_selection(self):
         panel = self.data['panels']['hyprbar']
         self.assertIsNone(backend.validate(self.data)['panels']['hyprbar']['rightItems'])

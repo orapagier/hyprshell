@@ -9,6 +9,7 @@ SettingsCard {
     required property var settings
     property string component: 'hyprdock'
     property var paneItems: []
+    property real paneSpacing: 3
     readonly property var inheritedItems: Tasks.rightItems({items:paneItems,panels:{hyprbar:{rightItems:null}}})
     readonly property var selectedItems: Array.isArray(settings.rightItems) ? settings.rightItems : inheritedItems
     readonly property var availableItems: [
@@ -61,8 +62,15 @@ SettingsCard {
     }
     SettingsSlider {
         Layout.fillWidth:true; objectName:'dockSpacingControl'
-        label:editor.component === 'hyprbar' ? 'Hyprbar spacing' : 'Dock spacing'; settingValue:editor.settings.spacing; from:0; to:30; allowReset:false
+        label:editor.component === 'hyprbar' ? 'Hyprbar left item spacing' : 'Dock spacing'; settingValue:editor.settings.spacing; from:0; to:30; allowReset:false
         onEdited:value => editor.edited('spacing',value)
+    }
+    SettingsSlider {
+        Layout.fillWidth:true; objectName:'taskbarRightSpacingControl'
+        visible:editor.component === 'hyprbar'
+        label:'Hyprbar right item spacing'; settingValue:editor.settings.spacingRight ?? editor.paneSpacing
+        from:0; to:30; allowReset:false
+        onEdited:value => editor.edited('spacingRight',value)
     }
     Text { Layout.fillWidth:true; text:editor.component === 'hyprbar' ? 'Hyprbar visibility' : 'Dock visibility'; color:Style.Theme.text }
     SettingsComboBox {

@@ -445,6 +445,7 @@
       "windowGap": 0,
       "iconSize": 24,
       "spacing": 3,
+      "spacingRight": null,
       "background": "inherit",
       "hideMode": "always",
       "grouped": true,
