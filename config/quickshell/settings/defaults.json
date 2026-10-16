@@ -442,7 +442,13 @@
       "iconSize": 32,
       "spacing": 4,
       "background": "inherit",
-      "hideMode": "always"
+      "hideMode": "always",
+      "grouped": true,
+      "showTitles": true,
+      "buttonWidth": 180,
+      "verticalWidth": 220,
+      "windowWorkspaceScope": "all",
+      "windowMonitorScope": "current"
     }
   },
   "pins": {

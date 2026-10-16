@@ -306,6 +306,15 @@ def validate_panels(data, result):
             number(target[key], low, high, True)
         if target['background'] not in ('inherit', 'on', 'off'):
             raise ValueError(f'Invalid {name} background')
+        if name == 'hyprbar':
+            for key in ('grouped', 'showTitles'):
+                if type(target[key]) is not bool:
+                    raise ValueError(f'Hyprbar {key} must be boolean')
+            for key in ('buttonWidth', 'verticalWidth'):
+                number(target[key], 80, 400, True)
+            for key in ('windowWorkspaceScope', 'windowMonitorScope'):
+                if target[key] not in ('current', 'all'):
+                    raise ValueError(f'Invalid Hyprbar {key}')
         if name == 'hyprdock':
             number(target['backgroundOpacity'], 0, 1)
             if target['alignment'] not in ('start', 'center', 'end'):

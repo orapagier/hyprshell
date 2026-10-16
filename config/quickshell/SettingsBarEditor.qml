@@ -9,6 +9,8 @@ ColumnLayout {
     id: root
     required property var settings
     property var dockSettings: null
+    property var taskbarSettings: null
+    signal taskbarEdited(string key, var value)
     signal dockEdited(string key, var value)
     property int currentWorkspace: 1
     property int selectedWorkspace: currentWorkspace >= 1 && currentWorkspace <= 99 ? currentWorkspace : 1
@@ -18,7 +20,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Desktop panels"
-        subtitle: "Hyprpane is your status and menu panel. Hyprdock holds apps; Hyprbar will be the classic window taskbar. Enable and size Hyprdock below."
+        subtitle: "Hyprpane is your status and menu panel. Hyprdock holds apps; Hyprbar is the classic window taskbar. Configure app panels below."
         Label {
             Layout.fillWidth: true
             text: "Use one or two components per monitor and workspace, on different screen edges. A conflicting choice is rejected; choose another edge or disable a component."
@@ -33,6 +35,12 @@ ColumnLayout {
             color: Style.Theme.muted
             font.pixelSize: Style.Theme.captionSize
         }
+    }
+    SettingsTaskbarEditor {
+        Layout.fillWidth:true
+        visible:root.taskbarSettings !== null
+        settings:root.taskbarSettings || {}
+        onEdited:(key,value) => root.taskbarEdited(key,value)
     }
     SettingsDockEditor {
         Layout.fillWidth: true

@@ -14,7 +14,9 @@ PanelWindow {
     property rect dockRect: Qt.rect(0,0,0,0)
     property string edge: 'bottom'
     property url wallpaperSource: ''
-    readonly property var group: service.groups('hyprdock').find(g => g.key === groupKey) || null
+    property string component: 'hyprdock'
+    property var taskGroups: []
+    readonly property var group: (component === 'hyprbar' ? taskGroups : service.groups(component)).find(g => g.key === groupKey) || null
     readonly property bool opened: !!mode
     function dismiss() { menuState.close(); }
     function open(kind, key, rect) { menuState.activateItem(kind, key, rect); }
@@ -34,7 +36,7 @@ PanelWindow {
         : Qt.rect(0,dockRect.y+dockRect.height,width,height-dockRect.y-dockRect.height)
     mask: Region { x:popup.inputRect.x; y:popup.inputRect.y; width:Math.max(0,popup.inputRect.width); height:popup.opened ? Math.max(0,popup.inputRect.height) : 0 }
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: 'hyprshell-dock-menu'
+    WlrLayershell.namespace: component === 'hyprbar' ? 'hyprshell-taskbar-menu' : 'hyprshell-dock-menu'
     WlrLayershell.keyboardFocus: !opened ? WlrKeyboardFocus.None : menuState.pinned ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
     MouseArea { anchors.fill:parent; onClicked:popup.dismiss() }
     FocusScope {
@@ -79,7 +81,7 @@ PanelWindow {
     Component {
         id:actions
         DockActions {
-            service:popup.service; group:popup.group
+            service:popup.service; group:popup.group; component:popup.component
             onCloseRequested:popup.dismiss()
             onManageRequested:popup.open('manage',popup.groupKey,popup.triggerRect)
         }

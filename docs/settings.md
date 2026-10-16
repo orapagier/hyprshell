@@ -1,7 +1,7 @@
 # Settings implementation
 
 **Hyprpane** means Hyprshell's status/menu panel on any edge. Hyprdock is the
-planned app dock; Hyprbar is the planned classic taskbar. This document also uses “bar” and
+app dock; Hyprbar is the classic taskbar (see [Hyprbar](hyprbar.md)). This document also uses “bar” and
 "topbar"; IPC methods and configuration keys keep their existing names.
 
 The settings app is part of the existing Quickshell process. `SettingsWindow.qml`

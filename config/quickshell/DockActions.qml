@@ -7,6 +7,7 @@ ColumnLayout {
     id: actions
     required property var service
     property var group: null
+    property string component: 'hyprdock'
     signal closeRequested()
     signal manageRequested()
     spacing: 6
@@ -18,9 +19,9 @@ ColumnLayout {
     }
     MenuButton {
         Layout.fillWidth: true
-        text: actions.group && actions.group.pinned ? 'Unpin from Hyprdock' : 'Pin to Hyprdock'
+        text: (actions.group && actions.group.pinned ? 'Unpin from ' : 'Pin to ') + (actions.component === 'hyprbar' ? 'Hyprbar' : 'Hyprdock')
         enabled: !!actions.group && !!actions.group.id && !actions.service.busy
-        onClicked: actions.service.edit({action:actions.group.pinned ? 'unpin' : 'pin', component:'hyprdock', id:actions.group.id})
+        onClicked: actions.service.edit({action:actions.group.pinned ? 'unpin' : 'pin', component:actions.component, id:actions.group.id})
     }
     ListView {
         id: windows
@@ -74,6 +75,16 @@ ColumnLayout {
                         color: '#cdd6f4'; font: windowCard.font
                         elide: Text.ElideRight
                     }
+                }
+            }
+            RowLayout {
+                visible: actions.component === 'hyprbar'
+                SpinBox { id: destination; from:1; to:99; value:Math.max(1, windowRow.modelData.workspace || 1); Accessible.name:'Destination workspace' }
+                MenuButton {
+                    objectName:'taskMoveButton'
+                    text:'Move'
+                    Accessible.name:'Move ' + windowRow.modelData.title + ' to workspace ' + destination.value
+                    onClicked: if (actions.service.windowAction('move',windowRow.modelData.address,destination.value)) actions.closeRequested()
                 }
             }
             RowLayout {

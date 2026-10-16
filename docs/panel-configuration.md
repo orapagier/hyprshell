@@ -3,7 +3,7 @@
 Hyprpane is the existing status/menu panel on any edge. Phase 1 established the
 compatible configuration and placement rules below. [Phase 4](hyprdock.md) now
 renders Hyprdock and provides its basic Settings controls; it still defaults to
-disabled. Hyprbar remains the planned classic taskbar, disabled by default.
+disabled. [Phase 6](hyprbar.md) renders the classic Hyprbar taskbar, also disabled by default.
 Settings → Hyprpane & panels retains all existing Hyprpane controls.
 
 ## Compatibility and storage
@@ -40,9 +40,8 @@ Hyprdock and Hyprbar each define `enabled`, `monitors`, `position`, `visible`,
 `marginEnds`, `windowGap`, `iconSize`, `spacing`, `background`, and `hideMode`.
 All four positions are supported by the contract. Background is `inherit`, `on`,
 or `off`; hide mode is `always`, `auto-hide`, or `dodge`. Hyprdock renders with
-these dimensions and saved visibility selections in Phase 4. Automatic hide modes remain reserved until Phase 5; Hyprbar rendering
-remains reserved for Phase 6. Enabling Hyprbar through JSON validates its planned
-placement but does not create its window yet.
+these dimensions and saved visibility selections in Phase 4. Phase 5 implements automatic hide modes. Phase 6 renders Hyprbar
+with independent task grouping, title presentation and window filters.
 Auto-hide and dodge components count toward layout limits even while hidden,
 because their reveal zones and visible state still need an unoccupied edge.
 

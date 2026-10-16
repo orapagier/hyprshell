@@ -1,11 +1,12 @@
 # Hyprpane, Hyprdock, and Hyprbar: phased implementation plan
 
-Status: Phases 1–5 implemented on 2026-10-16 at the user’s request. Remaining
+Status: Phases 1–6 implemented on 2026-10-16 at the user’s request. Remaining
 phases are planned and require a later task. Each phase should leave a usable
 desktop and a reviewable result. See [Phase 1 configuration](panel-configuration.md)
 for the compatibility contract and validation record. Phase 3 behavior and
 validation limits are recorded in [Shared applications and windows](application-support.md).
 Phase 4–5 behavior and validation limits are recorded in [Hyprdock](hyprdock.md).
+Phase 6 behavior and validation limits are recorded in [Classic Hyprbar](hyprbar.md).
 
 ## Names and agreed behavior
 
@@ -210,6 +211,6 @@ without explicit authorization. Saving this plan is a documentation-only task.
 - [x] Phase 3: Shared applications and windows
 - [x] Phase 4: Hyprdock core
 - [x] Phase 5: Hyprdock utilities and visibility
-- [ ] Phase 6: Classic Hyprbar core
+- [x] Phase 6: Classic Hyprbar core
 - [ ] Phase 7: Classic Hyprbar controls and coexistence
 - [ ] Phase 8: Settings, persistence, and final validation

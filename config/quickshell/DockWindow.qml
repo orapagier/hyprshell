@@ -16,13 +16,14 @@ Item {
     property real paneThickness: 32
     property url wallpaperSource: ''
     signal interactionStarted()
-    readonly property var panel: config.panels.hyprdock
+    property string component: 'hyprdock'
+    readonly property var panel: config.panels[component]
     readonly property string edge: panel.position
     readonly property bool vertical: edge === 'left' || edge === 'right'
     readonly property var monitor: Hyprland.monitorFor(output)
     readonly property var workspace: monitor && monitor.activeWorkspace ? monitor.activeWorkspace.id : null
-    readonly property bool shown: Settings.panelVisible(config,'hyprdock',output.name,workspace)
-    readonly property var insets: Model.insets(config,'hyprdock',output.name,workspace,paneThickness)
+    readonly property bool shown: Settings.panelVisible(config,component,output.name,workspace)
+    readonly property var insets: Model.insets(config,component,output.name,workspace,paneThickness)
     readonly property rect dockRect: Qt.rect(dock.x+rail.originX,dock.y+rail.originY,dock.width,dock.height)
     readonly property var clients: { let revision = service.windowRows; return service.windows; }
     readonly property bool fullscreen: clients.some(w => w.workspace && w.workspace.id === workspace
@@ -62,7 +63,7 @@ Item {
         exclusiveZone:visibility.reserve ? Model.thickness(window.panel) + window.panel.windowGap : 0
         exclusionMode:visible ? ExclusionMode.Normal : ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace:'hyprshell-dock'
+        WlrLayershell.namespace:window.component === 'hyprbar' ? 'hyprshell-taskbar' : 'hyprshell-dock'
         WlrLayershell.keyboardFocus:WlrKeyboardFocus.OnDemand
         Dock {
             id:dock
@@ -83,6 +84,7 @@ Item {
                 } else window.utilities.run(key);
             }
             width:implicitWidth; height:implicitHeight
+            component:window.component; outputName:window.output.name; workspace:window.workspace
             service:window.service; config:window.config
             maximumLength:Math.max(1, (window.vertical ? rail.screen.height-window.insets.top-window.insets.bottom : rail.screen.width) - 2*window.panel.marginEnds)
             onInteractionStarted:window.interactionStarted()
@@ -105,7 +107,7 @@ Item {
         implicitHeight:window.vertical ? window.output.height : 3
         exclusionMode:ExclusionMode.Ignore
         WlrLayershell.layer:WlrLayer.Overlay
-        WlrLayershell.namespace:'hyprshell-dock-reveal'
+        WlrLayershell.namespace:window.component === 'hyprbar' ? 'hyprshell-taskbar-reveal' : 'hyprshell-dock-reveal'
         mask:Region {
             x:window.vertical ? 0 : window.dockRect.x
             y:window.vertical ? window.dockRect.y : 0
@@ -116,6 +118,7 @@ Item {
     }
     DockPopup {
         id:popup
+        component:window.component; taskGroups:dock.groups
         screen:window.output; service:window.service; edge:window.edge; wallpaperSource:window.wallpaperSource
         utilities:window.utilities
         dockRect: window.dockRect

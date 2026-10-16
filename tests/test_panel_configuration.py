@@ -63,6 +63,27 @@ class PanelConfigurationTests(unittest.TestCase):
             with self.subTest(key=key, invalid=invalid), self.assertRaises(ValueError):
                 backend.validate(data)
 
+    def test_taskbar_preferences_and_legacy_inheritance(self):
+        panel = self.data['panels']['hyprbar']
+        for key in ('grouped', 'showTitles', 'buttonWidth', 'verticalWidth', 'windowWorkspaceScope', 'windowMonitorScope'):
+            panel.pop(key)
+        inherited = backend.validate(self.data)['panels']['hyprbar']
+        self.assertTrue(inherited['grouped'])
+        self.assertTrue(inherited['showTitles'])
+        self.assertEqual(inherited['verticalWidth'], 220)
+        panel.update(grouped=False, showTitles=False, buttonWidth=240, verticalWidth=300,
+                     windowWorkspaceScope='current', windowMonitorScope='all')
+        result = backend.validate(self.data)['panels']['hyprbar']
+        for key, value in panel.items():
+            self.assertEqual(result[key], value)
+        for key, value in [('grouped', 1), ('showTitles', 'yes'), ('buttonWidth', 79),
+                           ('verticalWidth', 401), ('windowWorkspaceScope', 'selected'),
+                           ('windowMonitorScope', None)]:
+            invalid = copy.deepcopy(self.data)
+            invalid['panels']['hyprbar'][key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                backend.validate(invalid)
+
     def test_all_pairs_and_edges(self):
         names = list(self.data['panels'])
         for first, second in [('hyprpane', 'hyprdock'), ('hyprpane', 'hyprbar'), ('hyprdock', 'hyprbar')]:

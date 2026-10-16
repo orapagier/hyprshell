@@ -23,7 +23,7 @@ ShellRoot {
     SettingsStore { id: preferences }
     ApplicationService {
         id: applications; store: preferences
-        geometryTracking: docks.instances.some(d => d.shown && d.panel.hideMode === 'dodge')
+        geometryTracking: docks.instances.concat(taskbars.instances).some(d => d.shown && d.panel.hideMode === 'dodge')
     }
     DockUtilities { id: dockUtilities; watching: preferences.config.panels.hyprdock.enabled && preferences.config.panels.hyprdock.showTrash }
     ProjectorWindow { id: projectorWindow }
@@ -180,7 +180,7 @@ ShellRoot {
                 onHoverChanged: inside => menuState.retain(inside)
             }
             KeybindingsPopup { id: keybindings; screen: panel.screen; wallpaperSource: bar.wallpaperSource; translucency: preferences.config.bar.popdownTranslucency ?? 0.06 }
-            function closeDockMenus() { for (let dock of docks.instances) dock.closeMenu(); }
+            function closeDockMenus() { for (let dock of docks.instances) dock.closeMenu(); for (let bar of taskbars.instances) bar.closeMenu(); }
             function closeMenu() { menuState.close(); keybindings.opened = false; }
             function refreshSettings() {
                 if (!panel.visible || (menuState.section && !bar.itemEnabled(bar.menuItemId(menuState.section)))) menuState.close();
@@ -209,6 +209,31 @@ ShellRoot {
             onInteractionStarted: {
                 for (let panel of panels.instances) panel.closeMenu();
                 for (let dock of docks.instances) if (dock !== dockWindow) dock.closeMenu();
+                for (let bar of taskbars.instances) bar.closeMenu();
+            }
+        }
+    }
+    Variants {
+        id: taskbars
+        model: Quickshell.screens
+        DockWindow {
+            id: taskbarWindow
+            required property var modelData
+            component: 'hyprbar'
+            output: modelData
+            utilities: dockUtilities
+            onSettingsRequested: settingsController.open()
+            service: applications
+            config: preferences.config
+            wallpaperSource: wallpapers.sources[modelData.name] || ""
+            paneThickness: {
+                let pane = panels.instances.find(p => p.modelData.name === modelData.name);
+                return pane ? pane.implicitHeight : preferences.config.bar.height;
+            }
+            onInteractionStarted: {
+                for (let panel of panels.instances) panel.closeMenu();
+                for (let dock of docks.instances) dock.closeMenu();
+                for (let bar of taskbars.instances) if (bar !== taskbarWindow) bar.closeMenu();
             }
         }
     }

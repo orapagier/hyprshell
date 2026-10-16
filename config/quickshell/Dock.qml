@@ -3,15 +3,20 @@ import QtQuick
 import QtQuick.Controls.Basic
 import "DockModel.js" as Model
 import "SettingsModel.js" as Settings
+import "TaskbarModel.js" as Tasks
 
 FocusScope {
     id: dock
     required property var service
     required property var config
-    property string edge: config.panels.hyprdock.position
+    property string component: 'hyprdock'
+    readonly property bool taskbar: component === 'hyprbar'
+    property string outputName: ''
+    property var workspace: null
+    property string edge: panel.position
     readonly property bool vertical: edge === 'left' || edge === 'right'
-    readonly property var panel: config.panels.hyprdock
-    readonly property var groups: service.groups('hyprdock')
+    readonly property var panel: config.panels[component]
+    readonly property var groups: taskbar ? Tasks.entries(service.groups(component), panel, outputName, workspace) : service.groups(component)
     property bool trashFull: false
     readonly property var utilities: [
         {key:'files',name:'Files',utility:true,icon:'system-file-manager',windows:[]},
@@ -19,8 +24,9 @@ FocusScope {
         {key:'trash',name:trashFull ? 'Trash (full)' : 'Trash (empty)',utility:true,icon:trashFull ? 'user-trash-full' : 'user-trash',windows:[]}
     ].filter(e => panel['show' + e.key[0].toUpperCase() + e.key.slice(1)] === true)
     readonly property var entries: [{key:'launcher', name:'Applications', launcher:true, windows:[]}].concat(groups, utilities)
-    readonly property real thickness: Model.thickness(panel)
-    readonly property real cellSize: thickness - 8
+    readonly property real thickness: taskbar && vertical ? panel.verticalWidth : Model.thickness(panel)
+    readonly property real cellSize: taskbar ? Math.max(44, panel.thickness, panel.iconSize + 16) - 8 : thickness - 8
+    function itemLength(entry) { return taskbar && panel.showTitles && !entry.launcher ? (vertical ? cellSize : panel.buttonWidth) : cellSize; }
     readonly property real iconSize: Math.min(launcherMetrics.tightBoundingRect.height, cellSize - 8)
     TextMetrics {
         id: launcherMetrics
@@ -30,8 +36,8 @@ FocusScope {
     }
     readonly property real spacing: panel.spacing ?? 4
     property real maximumLength: 800
-    readonly property real naturalLength: 12 + entries.length * cellSize + Math.max(0, entries.length - 1) * spacing
-    readonly property real length: Math.min(maximumLength, naturalLength)
+    readonly property real naturalLength: 12 + entries.reduce((total, entry) => total + itemLength(entry), 0) + Math.max(0, entries.length - 1) * spacing
+    readonly property real length: taskbar ? maximumLength : Math.min(maximumLength, naturalLength)
     readonly property bool overflowing: naturalLength > length
     readonly property real navigationSize: overflowing ? 24 : 0
     property bool keyboardInteraction: false
@@ -72,9 +78,9 @@ FocusScope {
         else list.contentX = Math.max(0, Math.min(max, list.contentX + step));
     }
     function reorder(id, targetId) {
-        let index = Model.dropIndex(Settings.effectivePins(config, 'hyprdock'), id, targetId);
+        let index = Model.dropIndex(Settings.effectivePins(config, component), id, targetId);
         if (index < 0 || service.busy) return false;
-        return service.edit({action:'reorder', component:'hyprdock', id:id, index:index});
+        return service.edit({action:'reorder', component:component, id:id, index:index});
     }
     function finishDrag() {
         if (!draggingId) return;
@@ -122,7 +128,7 @@ FocusScope {
             required property var modelData
             required property int index
             objectName: 'dockItem' + index
-            width: dock.cellSize; height: dock.cellSize
+            width: dock.vertical ? dock.thickness - 8 : dock.itemLength(modelData); height: dock.vertical ? dock.itemLength(modelData) : dock.cellSize
             activeFocusOnTab: true
             Accessible.role: Accessible.Button
             Accessible.name: modelData.name + (modelData.windows.length ? ', ' + modelData.windows.length + ' windows' : '')
@@ -139,7 +145,8 @@ FocusScope {
             Image {
                 id: icon
                 objectName: 'dockIcon' + button.index
-                anchors.centerIn: parent
+                x: dock.taskbar && dock.panel.showTitles && !button.modelData.launcher ? 8 : (parent.width-width)/2
+                anchors.verticalCenter: parent.verticalCenter
                 width: dock.iconSize; height: width
                 source: button.modelData.launcher ? '' : dock.service.iconSource(button.modelData.icon)
                 sourceSize.width: width; sourceSize.height: height
@@ -148,11 +155,24 @@ FocusScope {
             }
             Text {
                 objectName: 'dockGlyph' + button.index
-                anchors.centerIn: parent
+                x: icon.x + (icon.width-width)/2
+                anchors.verticalCenter: parent.verticalCenter
                 visible: button.modelData.launcher || icon.status !== Image.Ready
                 text: button.modelData.launcher ? '󰀻' : '󰘳'
                 color: '#cdd6f4'; font: launcherMetrics.font
             }
+            Text {
+                objectName: 'taskTitle' + button.index
+                visible: dock.taskbar && dock.panel.showTitles && !button.modelData.launcher
+                anchors.left: icon.right; anchors.leftMargin: 8
+                anchors.right: parent.right; anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                text: button.modelData.name + (button.modelData.windows.length > 1 ? ' (' + button.modelData.windows.length + ')' : '')
+                color: '#cdd6f4'; font.pixelSize: 13; elide: Text.ElideRight
+            }
+            ToolTip.visible: dock.taskbar && pointer.containsMouse && !dock.draggingId
+            ToolTip.text: button.modelData.name
+            ToolTip.delay: 600
             Rectangle {
                 objectName: 'dockRunningIndicator'
                 visible: dock.panel.indicators !== false && button.modelData.windows.length > 0
@@ -177,7 +197,7 @@ FocusScope {
                              : event.key === (dock.vertical ? Qt.Key_Up : Qt.Key_Left) ? -1 : 0;
                     if (step) {
                         if ((event.modifiers & Qt.ControlModifier) && modelData.pinned) {
-                            let pins = Settings.effectivePins(dock.config, 'hyprdock'), target = pins.indexOf(modelData.id) + step;
+                            let pins = Settings.effectivePins(dock.config, dock.component), target = pins.indexOf(modelData.id) + step;
                             if (target >= 0 && target < pins.length) dock.reorder(modelData.id, pins[target]);
                         } else dock.focusIndex(index + step);
                         event.accepted = true;

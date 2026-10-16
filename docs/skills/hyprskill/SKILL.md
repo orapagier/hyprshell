@@ -8,8 +8,8 @@ description: Diagnose, customize, or maintain this user's Linux machine and desk
 This machine currently uses Fedora 44, Hyprland **Lua** configuration, and Hyprshell's native Qt 6 Quickshell desktop. The entry point is `hypr/hyprland.lua`; Quickshell owns the bar, launcher, menus, and notifications.
 
 **Hyprpane** is the existing status/menu panel on any edge, formerly called
-hyprbar. **Hyprdock** is the app dock; **Hyprbar** is reserved for the
-planned classic taskbar. Legacy `bar` settings, `Bar.qml`, IPC and Alt+T still
+hyprbar. **Hyprdock** is the app dock; **Hyprbar** is the
+classic window taskbar. Legacy `bar` settings, `Bar.qml`, IPC and Alt+T still
 target Hyprpane. Interpret older “top bar”/“topbar” references as Hyprpane;
 use context to distinguish historical hyprbar from the new taskbar.
 

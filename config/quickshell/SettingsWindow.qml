@@ -837,6 +837,12 @@ FloatingWindow {
                             visible: window.section === -1
                             Layout.fillWidth: true
                             settings: window.draft.bar
+                            taskbarSettings: window.draft.panels.hyprbar
+                            onTaskbarEdited: (key, value) => {
+                                let next = Model.copy(window.draft);
+                                next.panels.hyprbar[key] = value;
+                                window.draft = next;
+                            }
                             dockSettings: window.draft.panels.hyprdock
                             onDockEdited: (key, value) => {
                                 let next = Model.copy(window.draft);
