@@ -300,7 +300,7 @@ class InstallerTests(unittest.TestCase):
                          (ROOT / 'config/kitty/kitty.conf').read_bytes())
         self.assertEqual((self.config / 'kitty/clipboard_paste.py').read_bytes(),
                          (ROOT / 'config/kitty/clipboard_paste.py').read_bytes())
-        for payload_file in ('SettingsSound.qml', 'SoundVolume.qml', 'SoundTest.qml', 'AudioInputMeter.qml', 'AudioSpectrumBars.qml', 'helpers/audio-spectrum.c', 'sounds/test.wav', 'SettingsRecovery.qml', 'settings/recovery.py'):
+        for payload_file in ('PresentationView.qml', 'SettingsSound.qml', 'SoundVolume.qml', 'SoundTest.qml', 'AudioInputMeter.qml', 'AudioSpectrumBars.qml', 'helpers/audio-spectrum.c', 'sounds/test.wav', 'SettingsRecovery.qml', 'settings/recovery.py'):
             self.assertEqual((self.config / 'quickshell' / payload_file).read_bytes(),
                              (ROOT / 'config/quickshell' / payload_file).read_bytes())
         self.assertEqual((self.config / 'autostart/nm-applet.desktop').read_bytes(),

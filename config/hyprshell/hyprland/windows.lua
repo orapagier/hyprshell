@@ -7,17 +7,57 @@
 
 -- Example window rules that are useful
 
--- ONLYOFFICE uses the presentation's own window for its fullscreen slideshow.
--- Route it on entry, then return the editor when the slideshow ends. Mirrored
--- outputs are not independent presentation destinations.
+-- Normal slideshows stay on the laptop and PresentationView copies their
+-- window to HDMI. Only native Presenter View needs its audience window moved.
 local presentationOrigins = {}
 local presentationMoves = {}
+local presentationRestores = {}
+local function isPresentation(w)
+    local title = (w.title or ""):lower()
+    return w.class == "ONLYOFFICE" and (title:match("%.pptx%s") or title:match("%.pptx$"))
+end
+local function nativePresenter(slideshow)
+    for _, other in ipairs(hl.get_windows()) do
+        local title = (other.title or ""):lower()
+        if other.address ~= slideshow.address and other.class == "ONLYOFFICE"
+            -- accepts_input is also false while the slideshow covers controls.
+            -- Neither it nor visible identifies whether the presenter exists.
+            and other.pid == slideshow.pid
+            and other.mapped and not other.hidden and other.fullscreen_client ~= 2
+            and (title:find("presenter", 1, true) or title:find("reporter", 1, true)
+                or title:find("speaker", 1, true) or title == "onlyoffice" or title == "") then
+            return other
+        end
+    end
+end
+local function restorePresentationEditor(pid)
+    if presentationRestores[pid] then presentationRestores[pid]:set_enabled(false) end
+    -- ONLYOFFICE unmaps its editor while native Presenter View is open and
+    -- remaps it after destroying the two presentation windows.
+    presentationRestores[pid] = hl.timer(function()
+        presentationRestores[pid] = nil
+        local active = hl.get_active_window()
+        if active and active.pid ~= pid then return end
+        local editor
+        for _, candidate in ipairs(hl.get_windows()) do
+            if candidate.pid == pid and isPresentation(candidate) and candidate.mapped and not candidate.hidden then
+                if candidate.fullscreen_client == 2 then return end
+                editor = candidate
+            end
+        end
+        if editor then
+            hl.dispatch(hl.dsp.focus({ window = "address:" .. editor.address }))
+            hl.dispatch(hl.dsp.window.alter_zorder({ mode = "top", window = editor }))
+        end
+    end, { timeout = 250, type = "oneshot" })
+end
 local function routePresentation(w)
     if presentationMoves[w.address] then return end
     local origin = presentationOrigins[w.address]
     if w.fullscreen ~= 2 then
         if origin then
             presentationOrigins[w.address] = nil
+            restorePresentationEditor(origin.pid)
             local monitor = hl.get_monitor(origin.monitor)
             if monitor and not monitor.is_mirror then
                 local workspace = hl.get_workspace(origin.workspace)
@@ -30,9 +70,9 @@ local function routePresentation(w)
         end
         return
     end
-    if origin or w.class ~= "ONLYOFFICE" or w.fullscreen_client ~= 2 then return end
-    local title = (w.title or ""):lower()
-    if not (title:match("%.pptx%s") or title:match("%.pptx$")) then return end
+    if origin or not isPresentation(w) or w.fullscreen_client ~= 2 then return end
+    local presenter = nativePresenter(w)
+    if not presenter then return end
     local monitors = {}
     for _, monitor in ipairs(hl.get_monitors()) do
         if not monitor.is_mirror then table.insert(monitors, monitor) end
@@ -49,19 +89,32 @@ local function routePresentation(w)
         return rank(a) < rank(b)
     end)
     local target = monitors[1]
-    if rank(target) == 3 or target.name == w.monitor.name then return end
-    presentationOrigins[w.address] = { monitor = w.monitor.name, workspace = w.workspace.id }
-    -- Let ONLYOFFICE finish its initial X11 fullscreen geometry request before
-    -- moving it. Re-enter compositor fullscreen on the destination to recompute
-    -- its position and size, keeping the client in slideshow mode throughout.
+    local controlsMonitor = monitors[#monitors]
+    if rank(target) == 3 then return end
+    presentationOrigins[w.address] = { monitor = w.monitor.name, workspace = w.workspace.id,
+        pid = w.pid, presenter = presenter.address }
+    -- Let the two native X11 windows finish mapping. Move the audience window
+    -- directly, keeping fullscreen intact, then give controls the laptop screen.
     local address, monitorName = w.address, target.name
+    local presenterAddress, controlsName = presenter.address, controlsMonitor.name
     presentationMoves[address] = hl.timer(function()
         local current = hl.get_window("address:" .. address)
+        local controls = hl.get_window("address:" .. presenterAddress)
         local destination = hl.get_monitor(monitorName)
-        if current and current.fullscreen_client == 2 and destination and not destination.is_mirror then
-            hl.dispatch(hl.dsp.window.fullscreen_state({ window = current, internal = 0, client = 2, action = "set" }))
-            hl.dispatch(hl.dsp.window.move({ window = current, monitor = destination, follow = false }))
-            hl.dispatch(hl.dsp.window.fullscreen_state({ window = current, internal = 2, client = 2, action = "set" }))
+        local controlsDestination = hl.get_monitor(controlsName)
+        if current and current.fullscreen_client == 2 and controls and controls.mapped
+            and current.mapped and destination and not destination.is_mirror
+            and controlsDestination and not controlsDestination.is_mirror then
+            if not current.monitor or current.monitor.name ~= destination.name then
+                hl.dispatch(hl.dsp.window.move({ window = current, monitor = destination, follow = false }))
+            end
+            if not controls.monitor or controls.monitor.name ~= controlsDestination.name then
+                hl.dispatch(hl.dsp.window.move({ window = controls, monitor = controlsDestination, follow = false }))
+            end
+            -- Internal fullscreen supplies the full monitor size without
+            -- asking ONLYOFFICE to turn its controls into another slideshow.
+            hl.dispatch(hl.dsp.window.fullscreen_state({ window = controls, internal = 2, client = 0, action = "set" }))
+            hl.dispatch(hl.dsp.focus({ window = "address:" .. controls.address }))
         else
             presentationOrigins[address] = nil
         end
@@ -69,9 +122,12 @@ local function routePresentation(w)
     end, { timeout = 200, type = "oneshot" })
 end
 hl.on("window.fullscreen", routePresentation)
-hl.on("window.open", routePresentation)
-hl.on("window.title", routePresentation)
 hl.on("window.close", function(w)
+    local origin = presentationOrigins[w.address]
+    if origin then restorePresentationEditor(origin.pid) end
+    for _, session in pairs(presentationOrigins) do
+        if session.presenter == w.address then restorePresentationEditor(session.pid) end
+    end
     presentationOrigins[w.address] = nil
     local timer = presentationMoves[w.address]
     if timer then timer:set_enabled(false) end
@@ -80,6 +136,9 @@ end)
 local function routeOpenPresentations()
     for _, w in ipairs(hl.get_windows()) do routePresentation(w) end
 end
+-- The native presenter may map after the audience window enters fullscreen.
+hl.on("window.open", routeOpenPresentations)
+hl.on("window.title", routeOpenPresentations)
 hl.on("monitor.layout_changed", routeOpenPresentations)
 hl.on("config.reloaded", routeOpenPresentations)
 

@@ -52,6 +52,33 @@ percentage fluctuations do not repeat it. This uses existing UPower updates and
 does not control battery charging. Charge limits require firmware and kernel
 support for the particular laptop.
 
+## ONLYOFFICE presentations on a second display
+
+Fresh Fedora and Arch installs receive the same presentation integration from
+`config/hyprshell/hyprland/windows.lua` and
+`config/quickshell/PresentationView.qml`. No distribution-specific projector
+script is needed. ONLYOFFICE is optional; after full setup has added Flathub,
+install it if required:
+
+```bash
+flatpak install flathub org.onlyoffice.desktopeditors
+```
+
+Connect the external display, select **Extend** with Super+P, then select
+**Show Presenter View** in ONLYOFFICE for a `.pptx` presentation. Native presenter
+controls fill the laptop screen and the audience slideshow goes to the external
+display, preferring HDMI. Esc ends the slideshow and restores editor focus.
+Covered presenter controls are detected even when Hyprland reports them as
+invisible and unable to receive input. Ordinary slideshows retain the laptop
+window and copy its contents to the external display with aspect fit.
+
+Monitor names and resolutions are detected at runtime; matching resolutions are
+not required. Configure supported modes for each machine in Settings → Displays.
+This workflow was user-verified on Fedora with Hyprland 0.56.2, Quickshell 0.3.2
+and ONLYOFFICE Flatpak 9.4.0; physical presentation behavior on Arch still needs
+verification. Existing installs retain their editable Hyprland sections during
+updates, so review conflicts when bringing this fix onto another existing setup.
+
 ## Existing systems
 
 Full setup raises `fs.inotify.max_user_instances` to at least 1024, applies it
