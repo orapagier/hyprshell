@@ -52,6 +52,33 @@ Item {
             next=Settings.copy(status.config); next.panels.hyprdock.rightItems=null; status.config=next;
             compare(status.orderedItems('right'),['audio','notifications','power']);
         }
+        function test_zeroSpacingRemovesBuiltInPadding() {
+            let next=Settings.copy(status.config);
+            next.panels.hyprbar.rightItems=['audio','wifi','bluetooth','notifications'];
+            status.config=next; wait(20);
+            let originalLength=status.contentLength;
+            next=Settings.copy(status.config); next.panels.hyprbar.spacingRight=0;
+            status.config=next; wait(20);
+            verify(status.contentLength < originalLength - 30);
+            compare(status.moduleItems.audio.effectiveLeftPadding,0);
+            compare(status.moduleItems.audio.effectiveRightPadding,0);
+            compare(status.moduleItems.wifi.width,status.moduleItems.wifi.naturalWidth);
+            compare(status.moduleItems.bluetooth.width,status.moduleItems.bluetooth.naturalWidth);
+            verify(status.moduleItems.notifications.effectiveRightPadding>0);
+            let ids=status.orderedItems('right');
+            for(let i=1;i<ids.length;i++) {
+                let a=status.itemRect(ids[i-1]), b=status.itemRect(ids[i]);
+                fuzzyCompare(b.x,a.x+a.width,0.01);
+            }
+            let compactLength=status.contentLength;
+            next=Settings.copy(status.config); next.panels.hyprbar.spacingRight=8;
+            status.config=next; wait(20);
+            fuzzyCompare(status.contentLength,compactLength+24,0.01);
+            compare(status.gapBetween('audio','wifi'),8);
+            next=Settings.copy(status.config); next.panels.hyprbar.spacingRight=null;
+            status.config=next; wait(20);
+            compare(status.contentLength,originalLength);
+        }
         function test_mediaFitsNaturalWidth() {
             let next=Settings.copy(status.config); next.panels.hyprbar.rightItems=['media','audio']; status.config=next;
             status.mediaData={playing:true,title:'A very long media title that must remain bounded',levels:[0.2,0.8,0.4]};

@@ -42,8 +42,8 @@ Item {
     property bool bold: true
     property int leftPadding: 11
     property int rightPadding: 11
-    property int effectiveLeftPadding: Math.max(0, (vertical ? Math.min(4, leftPadding) : leftPadding) + (settings.paddingLeft || 0))
-    readonly property int effectiveRightPadding: Math.max(0, (vertical ? Math.min(4, rightPadding) : rightPadding) + (settings.paddingRight || 0))
+    property int effectiveLeftPadding: Math.max(0, (vertical ? Math.min(4, leftPadding) : settings.compactPadding ? 0 : leftPadding) + (settings.paddingLeft || 0))
+    property int effectiveRightPadding: Math.max(0, (vertical ? Math.min(4, rightPadding) : settings.compactPadding ? 0 : rightPadding) + (settings.paddingRight || 0))
     property int minimumTextWidth: 0
     property int maximumWidth: 10000
     property int textFormat: Text.PlainText
@@ -69,7 +69,8 @@ Item {
     readonly property int effectiveGlyphSize: settings.iconSize || settings.fontSize || pixelSize
     readonly property int effectiveTextSize: settings.fontSize || Math.max(8, Math.round(pixelSize * (settings.iconSize || 16) / 16))
     readonly property int iconWidth: shownIcon.length ? effectiveIconSize + 5 : 0
-    implicitWidth: Math.min(maximumWidth, Math.max(minimumTextWidth, label.implicitWidth, vertical && shownIcon.length ? effectiveIconSize : 0) + (vertical ? 0 : iconWidth) + effectiveLeftPadding + effectiveRightPadding)
+    readonly property real naturalWidth: Math.min(maximumWidth, Math.max(minimumTextWidth, label.implicitWidth, vertical && shownIcon.length ? effectiveIconSize : 0) + (vertical ? 0 : iconWidth) + effectiveLeftPadding + effectiveRightPadding)
+    implicitWidth: naturalWidth
     readonly property real naturalHeight: iconOnly ? width : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
     implicitHeight: naturalHeight
     activeFocusOnTab: interactive

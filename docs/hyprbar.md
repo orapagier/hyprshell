@@ -65,6 +65,10 @@ On side edges these apply to the top app section and bottom status section.
 The left slider saves `panels.hyprbar.spacing`; the right saves
 `panels.hyprbar.spacingRight`. A missing or null right value preserves the existing
 Hyprpane spacing until edited. Item-specific spacing offsets remain additive.
+An explicit right spacing also removes the horizontal items' built-in pill
+padding and square network/Bluetooth widths, so zero produces a compact row.
+Custom padding and notification badge space remain available; Hyprpane keeps
+its existing pill dimensions.
 
 One continuous `PanelPill.qml` backdrop spans the app and status sections. It
 uses the current center Hyprpane pill's glass, rim and adaptive colors. Status

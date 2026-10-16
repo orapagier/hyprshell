@@ -6,6 +6,7 @@ import "SettingsModel.js" as Settings
 Item {
     id: bar
     property var settings: ({})
+    property bool compactItemPadding: false
     readonly property string position: settings.bar?.position || "top"
     readonly property bool vertical: position === "left" || position === "right"
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
@@ -151,6 +152,7 @@ Item {
     }
     function appearance(id) {
         let style = Settings.appearance(settings, id, wallpaperSource.toString());
+        if (compactItemPadding) style.compactPadding = true;
         let group = sharedPills.find(group => group.ids.includes(id));
         if (group) {
             if (vertical) {
@@ -587,6 +589,9 @@ Item {
         minimumTextWidth: 12
         leftPadding: 7
         rightPadding: bar.vertical ? 6 : badge.visible ? Math.max(11, badge.implicitWidth + 1) : 11
+        effectiveRightPadding: bar.compactItemPadding && !bar.vertical
+            ? Math.max(0, (badge.visible ? badge.implicitWidth + 1 : 0) + (settings.paddingRight || 0))
+            : Math.max(0, (bar.vertical ? Math.min(4, rightPadding) : rightPadding) + (settings.paddingRight || 0))
         implicitHeight: naturalHeight
         content.y: (height - content.height) / 2
         foreground: bar.notificationData && bar.notificationData.count > 0 ? "#f9e2af" : "#a6adc8"
@@ -647,7 +652,7 @@ Item {
         outline: bar.rgba("#94e2d5", 0.26)
         family: "GoMono Nerd Font"
         pixelSize: 15
-        implicitWidth: implicitHeight
+        implicitWidth: bar.compactItemPadding && !bar.vertical ? naturalWidth : implicitHeight
         leftPadding: 4
         rightPadding: 4
         // Center the visible glyph rather than the font's advance box.
@@ -678,7 +683,7 @@ Item {
         outline: bar.rgba("#b4befe", 0.28)
         family: "GoMono Nerd Font"
         pixelSize: 15
-        implicitWidth: implicitHeight
+        implicitWidth: bar.compactItemPadding && !bar.vertical ? naturalWidth : implicitHeight
         leftPadding: 4
         rightPadding: 4
     }
