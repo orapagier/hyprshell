@@ -10,7 +10,7 @@ Item {
     id: scene
     width:900; height:700
     property var groups: []
-    property var config: ({panels:{hyprbar:{position:'bottom',thickness:40,verticalWidth:220,iconSize:32,spacing:4,buttonWidth:180,showTitles:true,grouped:true,windowWorkspaceScope:'all',windowMonitorScope:'current'}},pins:{mode:'shared',shared:[]}})
+    property var config: ({panels:{hyprbar:{position:'bottom',thickness:32,verticalWidth:220,iconSize:15,spacing:3,buttonWidth:180,showTitles:true,grouped:true,windowWorkspaceScope:'all',windowMonitorScope:'current'}},pins:{mode:'shared',shared:[]}})
     property string action: ''
     QtObject {
         id: service
@@ -66,8 +66,8 @@ Item {
             let button=findChild(bar,'dockItem1');
             compare(findChild(bar,'taskTitle1'),null);
             mouseMove(button); wait(650); compare(button.ToolTip.visible,false);
-            if(bar.vertical) { compare(bar.width,48); compare(button.height,40); }
-            else { compare(button.width,40); compare(bar.width,600); }
+            if(bar.vertical) { compare(bar.width,32); compare(button.height,28); }
+            else { compare(button.width,28); compare(bar.width,600); }
             mouseClick(button); compare(scene.action,'picker:app:test.desktop');
             mouseClick(button,button.width/2,button.height/2,Qt.RightButton); compare(scene.action,'context:app:test.desktop');
             update({grouped:false}); wait(30);

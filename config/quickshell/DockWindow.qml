@@ -84,6 +84,9 @@ Item {
             opacity: visibility.shown ? 1 : 0
             enabled: visibility.shown
             trashFull: window.utilities.full
+            wallpaperSource:window.wallpaperSource
+            screenWidth:window.output.width; screenHeight:window.output.height
+            screenOffsetX:rail.originX+dock.x; screenOffsetY:rail.originY+dock.y
             HoverHandler { id: dockHover }
             Behavior on opacity { NumberAnimation { duration: window.config.accessibility?.reducedMotion || window.panel.animations === false ? 0 : 140 } }
             onUtilityRequested: (key,context,rect) => {

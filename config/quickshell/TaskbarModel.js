@@ -1,4 +1,5 @@
 .pragma library
+.import "DockModel.js" as Surface
 
 // Filter before grouping so active state and pickers describe only visible windows.
 function entries(groups, panel, output, workspace) {
@@ -34,12 +35,14 @@ function rightItems(config) {
 }
 function statusConfig(config, edge) {
     let selected = rightItems(config);
+    let shared = Surface.pillStyle(config, config.panels?.hyprbar || {}, '').settings.background !== 'off';
     return Object.assign({}, config, {
         bar:Object.assign({}, config.bar, {position:edge, verticalPresentation:'compact'}),
         items:['launcher','settings','workspaces','media','calendar','tray','notifications','audio','wifi','bluetooth','battery','power']
             .map(id => (config.items || []).find(item => item.id === id) || {id:id})
             .map(item => Object.assign({}, item, {
-            enabled:selected.indexOf(item.id) >= 0, side:'right', order:selected.indexOf(item.id)
+            enabled:selected.indexOf(item.id) >= 0, side:'right', order:selected.indexOf(item.id),
+            background:'off', sharedBackground:'off', pillGroup:'', sharedBackgroundShown:shared
         }))
     });
 }

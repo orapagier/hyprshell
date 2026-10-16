@@ -17,6 +17,8 @@ FocusScope {
     readonly property bool vertical: edge === 'left' || edge === 'right'
     readonly property var panel: config.panels[component]
     readonly property var groups: taskbar ? Tasks.entries(service.groups(component), panel, outputName, workspace) : service.groups(component)
+    readonly property var launcherStyle: Settings.appearance(config,'launcher',wallpaperSource.toString())
+    readonly property var settingsStyle: Settings.appearance(config,'settings',wallpaperSource.toString())
     property bool trashFull: false
     readonly property var utilities: [
         {key:'files',name:'Files',utility:true,icon:'system-file-manager',windows:[]},
@@ -25,11 +27,16 @@ FocusScope {
     ].filter(e => panel['show' + e.key[0].toUpperCase() + e.key.slice(1)] === true)
     readonly property var entries: [{key:'launcher', name:'Applications', launcher:true, windows:[]}].concat(groups, utilities)
     readonly property real thickness: Model.thickness(panel)
-    readonly property real cellSize: taskbar ? Math.max(44, panel.thickness, panel.iconSize + 16) - 8 : thickness - 8
+    readonly property real cellSize: thickness - 4
+    property url wallpaperSource: ''
+    property real screenWidth: 1366
+    property real screenHeight: 768
+    property real screenOffsetX: 0
+    property real screenOffsetY: 0
     function itemLength(entry) { return cellSize; }
     property real trailingLength: 0
     readonly property real applicationLength: Math.max(1, length - trailingLength)
-    readonly property real iconSize: Math.min(launcherMetrics.tightBoundingRect.height, cellSize - 8)
+    readonly property real iconSize: Math.min(panel.iconSize, cellSize - 8)
     TextMetrics {
         id: launcherMetrics
         text: '󰀻'
@@ -91,19 +98,21 @@ FocusScope {
         if (index >= 0 && entries[index].pinned) reorder(draggingId, entries[index].id);
         draggingId = '';
     }
-    Rectangle {
+    PanelPill {
+        id:surface
         objectName: 'dockBackground'
-        anchors.fill: parent; radius: 16
-        visible: dock.panel.background === 'on' || (dock.panel.background !== 'off' && dock.config.bar?.background !== 'off')
-        color: Qt.rgba(30 / 255, 30 / 255, 46 / 255, dock.panel.backgroundOpacity ?? (230 / 255))
-        border.color: Qt.rgba(205 / 255, 214 / 255, 244 / 255, (56 / 230) * (dock.panel.backgroundOpacity ?? (230 / 255)))
+        anchors.fill:parent
+        config:dock.config; panel:dock.panel
+        wallpaperSource:dock.wallpaperSource
+        screenWidth:dock.screenWidth; screenHeight:dock.screenHeight
+        screenOffsetX:dock.screenOffsetX; screenOffsetY:dock.screenOffsetY
     }
     ToolButton {
         objectName: 'dockScrollBack'
         visible: dock.overflowing
         x: dock.vertical ? (dock.width-width)/2 : 2
         y: dock.vertical ? 2 : (dock.height-height)/2
-        width: dock.vertical ? dock.width-8 : 22; height: dock.vertical ? 22 : dock.height-8
+        width: dock.vertical ? dock.width-8 : 22; height: dock.vertical ? 22 : dock.height-4
         text: dock.vertical ? '↑' : '‹'; palette.buttonText: '#cdd6f4'
         Accessible.name: 'Scroll dock backward'
         onClicked: dock.scroll(-dock.cellSize * 2)
@@ -111,10 +120,10 @@ FocusScope {
     ListView {
         id: list
         objectName: 'dockApplications'
-        x: dock.vertical ? 4 : 6 + dock.navigationSize
-        y: dock.vertical ? 6 + dock.navigationSize : 4
-        width: dock.vertical ? dock.width-8 : Math.max(0, dock.applicationLength - 12 - 2*dock.navigationSize)
-        height: dock.vertical ? Math.max(0, dock.applicationLength - 12 - 2*dock.navigationSize) : dock.height-8
+        x: dock.vertical ? 2 : 6 + dock.navigationSize
+        y: dock.vertical ? 6 + dock.navigationSize : 2
+        width: dock.vertical ? dock.width-4 : Math.max(0, dock.applicationLength - 12 - 2*dock.navigationSize)
+        height: dock.vertical ? Math.max(0, dock.applicationLength - 12 - 2*dock.navigationSize) : dock.height-4
         orientation: dock.vertical ? ListView.Vertical : ListView.Horizontal
         model: dock.entries
         spacing: dock.spacing; clip: true
@@ -130,7 +139,7 @@ FocusScope {
             required property var modelData
             required property int index
             objectName: 'dockItem' + index
-            width: dock.vertical ? dock.thickness - 8 : dock.itemLength(modelData); height: dock.vertical ? dock.itemLength(modelData) : dock.cellSize
+            width: dock.cellSize; height: dock.cellSize
             activeFocusOnTab: true
             Accessible.role: Accessible.Button
             Accessible.name: modelData.name + (modelData.windows.length ? ', ' + modelData.windows.length + ' windows' : '')
@@ -140,13 +149,14 @@ FocusScope {
                 list.positionViewAtIndex(index, ListView.Contain);
             }
             background: Rectangle {
-                radius: 12
-                color: button.modelData.active ? '#48cba6f7' : pointer.containsMouse || button.activeFocus ? '#22cdd6f4' : 'transparent'
+                radius: width/2
+                color: button.modelData.active ? '#28cba6f7' : pointer.containsMouse || button.activeFocus ? '#18cdd6f4' : 'transparent'
                 border.color: button.activeFocus ? '#cba6f7' : button.modelData.urgent ? '#fab387' : 'transparent'
             }
             Image {
                 id: icon
                 objectName: 'dockIcon' + button.index
+                visible:!button.modelData.launcher && !(button.modelData.utility && button.modelData.key === 'settings')
                 x: (parent.width-width)/2
                 anchors.verticalCenter: parent.verticalCenter
                 width: dock.iconSize; height: width
@@ -159,16 +169,30 @@ FocusScope {
                 objectName: 'dockGlyph' + button.index
                 x: icon.x + (icon.width-width)/2
                 anchors.verticalCenter: parent.verticalCenter
-                visible: button.modelData.launcher || icon.status !== Image.Ready
-                text: button.modelData.launcher ? '󰀻' : '󰘳'
+                visible: button.modelData.launcher ? !!dock.launcherStyle.icon : !(button.modelData.utility && button.modelData.key === 'settings') && icon.status !== Image.Ready
+                text: button.modelData.launcher ? dock.launcherStyle.icon || '󰀻' : '󰘳'
                 color: '#cdd6f4'; font: launcherMetrics.font
+            }
+            GlassLogo {
+                objectName:'dockLauncherLogo'
+                anchors.fill:parent
+                visible:button.modelData.launcher === true && !dock.launcherStyle.icon
+                iconSize:dock.iconSize
+                highlighted:pointer.containsMouse || button.activeFocus
+            }
+            GlassCog {
+                anchors.fill:parent
+                visible:button.modelData.utility === true && button.modelData.key === 'settings'
+                iconSize:dock.iconSize
+                accent:dock.settingsStyle.iconColor || dock.settingsStyle.vibrantColor || '#b4befe'
+                highlighted:pointer.containsMouse || button.activeFocus
             }
             Rectangle {
                 objectName: 'dockRunningIndicator'
-                visible: dock.panel.indicators !== false && button.modelData.windows.length > 0
+                visible: dock.panel.indicators !== false && (button.modelData?.windows?.length || 0) > 0
                 color: button.modelData.active ? '#cba6f7' : '#a6adc8'; radius: 2
-                width: dock.vertical ? 3 : Math.min(18, 4 + button.modelData.windows.length*4)
-                height: dock.vertical ? Math.min(18, 4 + button.modelData.windows.length*4) : 3
+                width: dock.vertical ? 3 : Math.min(18, 4 + (button.modelData?.windows?.length || 0)*4)
+                height: dock.vertical ? Math.min(18, 4 + (button.modelData?.windows?.length || 0)*4) : 3
                 x: dock.edge === 'right' ? parent.width-width-1 : dock.vertical ? 1 : (parent.width-width)/2
                 y: dock.edge === 'bottom' ? parent.height-height-1 : dock.vertical ? (parent.height-height)/2 : 1
             }
@@ -238,7 +262,7 @@ FocusScope {
         visible: dock.overflowing
         x: dock.vertical ? (dock.width-width)/2 : dock.applicationLength-width-2
         y: dock.vertical ? dock.applicationLength-height-2 : (dock.height-height)/2
-        width: dock.vertical ? dock.width-8 : 22; height: dock.vertical ? 22 : dock.height-8
+        width: dock.vertical ? dock.width-8 : 22; height: dock.vertical ? 22 : dock.height-4
         text: dock.vertical ? '↓' : '›'; palette.buttonText: '#cdd6f4'
         Accessible.name: 'Scroll dock forward'
         onClicked: dock.scroll(dock.cellSize * 2)

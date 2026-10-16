@@ -8,7 +8,7 @@ SettingsCard {
     required property var settings
     signal edited(string key, var value)
     title: 'Hyprdock'
-    subtitle: 'Pinned and running apps on a separate edge. Choose visibility, utilities and placement below. Manage pins from the launcher or an app’s context menu. Targets stay at least 36 px; larger icons can increase thickness.'
+    subtitle: 'Pinned and running apps on a separate edge. Choose visibility, utilities and placement below. Manage pins from the launcher or an app’s context menu. Pill styling follows the center of Hyprpane; larger icons can increase thickness.'
     SettingsSwitch {
         objectName:'dockEnabledControl'
         Layout.fillWidth:true

@@ -153,6 +153,9 @@ Hyprdock, with no tooltips. A customizable trailing section defaults to the
 existing Hyprpane right-side items, reusing their controls and menus. This
 supersedes the original title-presentation requirement below and implements the
 item-selection slice of Phase 7; full coexistence validation remains pending.
+The subsequent styling refinement uses Hyprpane's center glass pill and symbols
+for Hyprdock, and one continuous edge pill for Hyprbar without nested status
+backgrounds. Current sizing is 32 px with 15 px icons, including narrow side rails.
 
 - Build a classic taskbar with application menu, pinned shortcuts, running-window
   buttons, active-window emphasis, and optional app grouping.

@@ -60,6 +60,9 @@ Item {
                 verify(status.vertical ? b.y>=a.y+a.height : b.x>=a.x+a.width);
             }
             let audio=status.moduleItems.audio;
+            verify(!findChild(audio,'pillBackground').visible);
+            verify(audio.settings.sharedBackgroundShown);
+            compare(status.sharedPills.length,0);
             mouseClick(audio); compare(scene.menu,'audio');
             let rect=status.menuRect('audio'); verify(rect.width>0 && rect.height>0);
         }

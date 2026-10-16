@@ -61,6 +61,11 @@ SettingsCard {
         from:28; to:160; suffix:' px'; allowReset:false
         onEdited:value => editor.edited('thickness',value)
     }
+    SettingsSlider {
+        Layout.fillWidth:true; label:'Hyprbar icon size'; settingValue:editor.settings.iconSize
+        from:8; to:96; suffix:' px'; allowReset:false
+        onEdited:value => editor.edited('iconSize',value)
+    }
     Text { text:'Hyprbar windows from workspaces'; color:Style.Theme.text }
     SettingsComboBox {
         Layout.fillWidth:true; model:['Current workspace','All workspaces']

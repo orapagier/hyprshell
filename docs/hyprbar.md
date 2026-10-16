@@ -20,7 +20,8 @@ launcher. Shared/separate pin lists remain available in Apps & windows.
 - Grouping is optional. Ungrouped buttons retain individual window addresses.
   Window titles remain in the window picker and context menu.
 - App buttons use compact square icon targets on every edge, matching Hyprdock.
-  Active and urgent windows retain visible emphasis.
+  Active and urgent windows retain visible emphasis. The current 32 px rail and
+  15 px icons match Hyprpane; old title-width values never widen Left/Right.
 - Filters select current/all workspaces and current/all monitors independently.
   Filtering precedes grouping, so pickers and active emphasis describe only the
   included windows. Pins remain available when their windows are filtered out.
@@ -59,6 +60,12 @@ returns to inheritance. Adding an item here does not move or remove it in
 Hyprpane. Long status sections scroll independently, and app overflow stays
 within its remaining space. Neither section shows item tooltips.
 
+One continuous `PanelPill.qml` backdrop spans the app and status sections. It
+uses the current center Hyprpane pill's glass, rim and adaptive colors. Status
+items retain their glyph colors and behavior but have no individual or group
+backgrounds. Hyprpane's own pills remain unchanged. The common backdrop follows
+all four edges, including rounded top/bottom ends on narrow side rails.
+
 Minimize/restore remains unavailable: Phase 3 did not establish a recoverable
 compositor implementation. Show Desktop, full
 coexistence/hotplug acceptance, and layout previews/presets remain Phases 7–8.
@@ -82,4 +89,9 @@ transitions need an accessible desktop session. `hyprctl -j monitors` returned
 `Couldn't set socket timeout (2)` here. Offscreen Quickshell has no PanelWindow
 backend, so the native taskbar test uses a regular window and does not claim
 layer-shell placement passed. Live configuration files are copies; matching
-source changes are deployed with a dated backup, leaving saved preferences intact.
+source changes are deployed with a dated backup. The user's requested styling
+update changes only dock/taskbar thickness, icon size and spacing in saved
+preferences; visibility, selected edges and other preferences remain intact.
+`tests/test_panel_style.py` renders Hyprpane, Hyprdock, and horizontal/side
+Hyprbar in a native composition, checks 32 px side rails, square targets and absent status backdrops,
+and exports `/tmp/hypr-panels-style.png` for visual review.

@@ -1,7 +1,7 @@
 .pragma library
 .import "SettingsModel.js" as Settings
 
-function thickness(panel) { return Math.max(44, panel.thickness || 56, (panel.iconSize || 32) + 16); }
+function thickness(panel) { return Math.max(32, panel.thickness || 32, (panel.iconSize || 16) + 12); }
 function insets(config, component, monitor, workspace, paneThickness) {
     let result = {top: 0, bottom: 0};
     for (let name of ['hyprpane', 'hyprdock', 'hyprbar']) {
@@ -29,4 +29,15 @@ function overlaps(rect, client, output, workspace) {
     let x = at[0] - (output.x || 0), y = at[1] - (output.y || 0);
     return size[0] > 0 && size[1] > 0 && x < rect.x+rect.width && x+size[0] > rect.x
         && y < rect.y+rect.height && y+size[1] > rect.y;
+}
+
+function pillStyle(config, panel, wallpaper) {
+    let center = (config.items || []).filter(item => item.enabled !== false && item.side === 'center')
+        .slice().sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+    let id = center[0]?.id || 'calendar';
+    let style = Settings.appearance(config, id, wallpaper);
+    style.background = panel.background === 'inherit' || !panel.background
+        ? Settings.sharedBackground(config, id) : panel.background;
+    style.hideText = true; style.hideIcon = true;
+    return {id:id, settings:style};
 }

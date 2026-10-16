@@ -11,6 +11,11 @@ Settings draft available for correction.
 edge** sets the outside gap (0–100 px) on any selected edge. Both save automatically;
 existing preferences retain their previous background opacity and edge distance.
 
+Hyprdock uses Hyprpane's center-pill glass renderer, rounded rim, adaptive
+wallpaper colors, and launcher/Settings symbols. Its current default is a 32 px
+pill with 15 px icons and 3 px gaps, on every edge. Existing size controls remain
+available; larger icons expand the rail to fit. App icons retain their identities.
+
 Hyprdock shows the launcher, ordered pins, then running unpinned applications.
 A line marks running apps; the active app has a purple background and indicator.
 App icons have no hover tooltip. Missing applications retain their pin,
@@ -53,7 +58,7 @@ unchanged. Focus enters the dock on pointer interaction; this phase does not
 assign a new global dock shortcut.
 
 Short edges scroll with the arrows, mouse wheel, trackpad or keyboard. Targets
-stay at least 36 logical pixels; a large configured icon expands effective
+stay at least 28 logical pixels; a large configured icon expands effective
 thickness instead of clipping. The dock backdrop remains compact even though
 its transparent layer surface spans the edge for reliable reserved space. Its
 input mask covers only the compact dock. Empty stretches pass pointer input
@@ -62,9 +67,11 @@ clamp to the screen; the existing menu container scrolls long content.
 
 ## Configuration and integration
 
-The Phase 1 `panels.hyprdock` settings now render a dock. Existing defaults remain
-unchanged: disabled, Bottom, 56 px requested thickness, 32 px icons, 4 px spacing.
-`background: inherit` follows Hyprpane's background setting. Existing output and
+The Phase 1 `panels.hyprdock` settings now render a dock. Current defaults are
+disabled, Bottom, 32 px thickness, 15 px icons, and 3 px spacing.
+`background: inherit` follows the current center Hyprpane pill's shared background.
+`PanelPill.qml` reuses the existing `Pill.qml` glass and wallpaper sampling.
+The dock opacity preference fades the whole backing, including its rim. Existing output and
 workspace visibility selections are honored. On adjacent edges, horizontal
 components own the corners; vertical components are inset by each visible
 horizontal component's effective thickness, edge margin and window gap. Disabled

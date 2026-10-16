@@ -149,11 +149,11 @@ Item {
             let config=Settings.copy(scene.config);
             config.panels.hyprdock.thickness=28; config.panels.hyprdock.iconSize=96; scene.config=config;
             dock.maximumLength=220; wait(20);
-            compare(dock.thickness,112); verify(findChild(dock,'dockItem0').width>=104);
+            compare(dock.thickness,108); verify(findChild(dock,'dockItem0').width>=104);
         }
         function test_transparencyAndEdgeControls() {
             let background=findChild(dock,'dockBackground');
-            fuzzyCompare(background.color.a,230/255,0.005);
+            fuzzyCompare(background.opacity,1,0.005);
             let transparency=findChild(editor,'dockTransparencyControl');
             transparency.commitDisplayValue(75);
             compare(scene.action,{key:'backgroundOpacity',value:0.25});
@@ -164,9 +164,9 @@ Item {
                 let config=Settings.copy(scene.config);
                 config.panels.hyprdock.backgroundOpacity=opacity;
                 scene.config=config; wait(10);
-                fuzzyCompare(background.color.a,opacity,0.005);
+                fuzzyCompare(background.opacity,opacity,0.005);
                 compare(findChild(dock,'dockGlyph0').opacity,1);
-                if(opacity===0) compare(background.border.color.a,0);
+                if(opacity===0) compare(background.opacity,0);
             }
         }
         function test_iconHeightMatchesVisibleLauncher() {
@@ -176,7 +176,8 @@ Item {
             let icon=findChild(dock,'dockIcon1');
             launcherMetrics.font=findChild(dock,'dockGlyph0').font;
             verify(launcherMetrics.tightBoundingRect.height < 28);
-            compare(icon.height,launcherMetrics.tightBoundingRect.height);
+            compare(icon.height,findChild(dock,'dockLauncherLogo').iconSize);
+            compare(icon.height,28);
             verify(findChild(dock,'dockItem1').height>=36);
         }
         function test_hoverLauncherAndRunningApps_data() { return ['top','bottom','left','right'].map(e=>({tag:e,edge:e})); }
@@ -230,7 +231,7 @@ Item {
             compare(Geometry.insets(config,'hyprpane','eDP-1',2,32),{top:0,bottom:0});
             config.bar.position='top';
             compare(Geometry.insets(config,'hyprdock','eDP-1',2,38),{top:43,bottom:0});
-            compare(Geometry.thickness({thickness:28,iconSize:96}),112);
+            compare(Geometry.thickness({thickness:28,iconSize:96}),108);
         }
         function test_contextActionsAndMissingPin() {
             let buttons=actions.children.filter(c=>c.text!==undefined);
