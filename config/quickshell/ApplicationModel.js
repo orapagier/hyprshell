@@ -72,7 +72,8 @@ function launchCommand(entry) {
 }
 function windowCommand(action, address, workspace, lua) {
     if (!/^(?:0x)?[a-fA-F0-9]+$/.test(String(address || ''))) return '';
-    let selector = 'address:' + address;
+    // Quickshell exposes bare hex addresses; Hyprland selectors need 0x.
+    let selector = 'address:' + (String(address).startsWith('0x') ? address : '0x' + address);
     if (action === 'focus') return lua ? 'hl.dsp.focus({ window = "' + selector + '" })' : 'focuswindow ' + selector;
     if (action === 'close') return lua ? 'hl.dsp.window.close({ window = "' + selector + '" })' : 'closewindow ' + selector;
     if (action === 'move' && Number.isInteger(workspace) && workspace >= 1 && workspace <= 99)
