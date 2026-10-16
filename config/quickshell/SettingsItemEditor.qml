@@ -18,10 +18,10 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Visibility & position"
-        subtitle: "Choose where this item belongs in your bar."
+        subtitle: "Choose where this item belongs in Hyprpane."
         SettingsSwitch {
             Layout.fillWidth: true
-            text: "Show in bar"
+            text: "Show in Hyprpane"
             checked: root.settings.enabled !== false
             onToggled: root.edited("enabled", checked)
         }

@@ -1,6 +1,7 @@
 # Settings implementation
 
-**hyprbar** means Hyprshell's top bar. This document also uses “bar” and
+**Hyprpane** means Hyprshell's status/menu panel on any edge. Hyprdock is the
+planned app dock; Hyprbar is the planned classic taskbar. This document also uses “bar” and
 "topbar"; IPC methods and configuration keys keep their existing names.
 
 The settings app is part of the existing Quickshell process. `SettingsWindow.qml`
@@ -21,14 +22,14 @@ continues to control application windows separately.
 Navigation groups pages under **Desktop**, **Devices**, and **System**. The shorter
 sidebar labels **Appearance**, **Windows**, **Applications**, **Keyboard shortcuts**,
 and **Cleanup** lead to the existing application theme, Hyprland, default apps,
-keybindings, and system cleanup controls. **Bar items** expands individual module
+keybindings, and system cleanup controls. **Hyprpane items** expands individual module
 editors and opens automatically when a preview item is selected. Search matches
 page labels, related terms, card headings and control captions,
 including collapsed bar items and pages that have never been opened.
 Explanatory subtitles, descriptions and sentence-style help text are excluded,
 so a word in instructions alone does not make a page match.
 For example, **System updates** finds Updates & recovery, and **Popdown glass**
-finds Bar & layout and individual bar-item editors. Matching ignores case and
+finds Hyprpane & panels and individual bar-item editors. Matching ignores case and
 repeated whitespace. **Ctrl+F** focuses search; **Up/Down** select a result;
 **Enter** opens the selected match;
 **Escape** or the clear button clears the query. Browsing and searching do not
@@ -75,13 +76,13 @@ Network checks: `python3 -m unittest discover -s tests -p test_network.py -v`.
 These exercise isolated commands and the native Settings page without touching
 the real network. Physical network behavior requires a desktop-session check.
 
-**Bar & layout → Layout & spacing → Screen edge** selects Top, Left, Right,
+**Hyprpane & panels → Layout & spacing → Screen edge** selects Top, Left, Right,
 or Bottom. `bar.position` defaults to `top` for existing settings. On either
 side edge, the left item group sits at the top, the center group stays centered,
 and the right group sits at the bottom, keeping each group's existing order.
 Labels stay upright and wrap, icons stack over labels, and workspaces and tray
 icons stack vertically. Side bars expand to fit readable content (at least
-68 px); **Bar thickness** can increase that width. **Edge margin** applies to
+68 px); **Hyprpane thickness** can increase that width. **Edge margin** applies to
 the chosen screen edge and **End margins** applies to the two ends. The existing
 `height`, `marginTop`, and `marginSide` keys preserve these preferences.
 
@@ -128,7 +129,7 @@ using saved neighbours after drag operations renumber a group. It never loads
 bundled item defaults. The button waits for any in-flight save to finish.
 Because edits autosave, already saved edits become the new reset point.
 
-**Bar & layout → Default appearance → Random vibrant item colors** gives
+**Hyprpane & panels → Default appearance → Random vibrant item colors** gives
 inheriting item icons and labels distinct bright colors. The shuffled palette
 reshuffles when the wallpaper image changes, while staying stable during edits
 and matching the preview to the live bar on the same screen. Returning to a
@@ -335,7 +336,7 @@ faces while their pills are hidden. Shared visible pills retain their glass styl
 Old experimental motion preferences are ignored and removed on the next save;
 popdowns use the original fade-and-slide transition.
 
-All settings pages share the same preference-group structure and spacing. **Bar & layout**
+All settings pages share the same preference-group structure and spacing. **Hyprpane & panels**
 groups layout sliders, default appearance, and clock formatting with a sample.
 Item pages group visibility/position, text/icon overrides, colors/background,
 and shape/transparency. Grids stack into one column below 600 px of editor
@@ -569,7 +570,7 @@ Members are kept together in their existing order. Joining a pill adopts its
 alignment; changing a member's alignment moves the whole pill. Dragging a
 member to another alignment removes it from its old pill. Dragging within the
 same alignment retains membership. Use Earlier/Later or the preview to reorder.
-**Bar & layout → Inside shared pills** sets the base gap between members;
+**Hyprpane & panels → Inside shared pills** sets the base gap between members;
 individual before/after adjustments still apply. The regular gap separates
 pills and standalone items.
 
@@ -659,18 +660,18 @@ Hyprland's [binding API](https://wiki.hypr.land/configuring/core/binds/) supplie
 the bind, unbind, and description behavior. GitHub sync captures the saved JSON
 and regenerates its Lua payload; setup restores both along with the Lua hook.
 
-## Topbar visibility
+## Hyprpane visibility
 
-**Bar & layout → Topbar visibility** provides **Show on all** and **Hide on
+**Hyprpane & panels → Hyprpane visibility** provides **Show on all** and **Hide on
 all** buttons. Either button replaces the default visibility for all workspaces
 and clears individual choices. Choose a workspace (1–99) in **Individual
-workspace**, then toggle **Show hyprbar on workspace …** to change only that
+workspace**, then toggle **Show Hyprpane on workspace …** to change only that
 workspace. The selector initially follows the focused workspace; choosing a
 number lets you edit another workspace without visiting it. Settings autosaves
 these choices.
 
 Alt+T always toggles only the active workspace on the focused monitor. For
-example, with hyprbar shown only on workspace 1, pressing Alt+T on workspace 3
+example, with Hyprpane shown only on workspace 1, pressing Alt+T on workspace 3
 shows it on 3 while leaving 1 visible and other workspaces hidden. Choices survive
 shell restarts and travel with setup/GitHub settings sync. Global visibility is
 changed through Settings. Hiding a panel releases its reserved space and closes
@@ -684,7 +685,7 @@ overrides inherit an empty map. Each screen uses its own active workspace.
 
 ## Popdown glass
 
-**Bar & layout → Popdown glass → Popdown translucency** controls the background
+**Hyprpane & panels → Popdown glass → Popdown translucency** controls the background
 of all inheriting popdowns and Super+K. The default is 6% translucency (94%
 opacity), keeping text and controls fully visible. Each module has its own
 **Popdown glass** slider; reset follows the general setting. These controls are
@@ -1346,7 +1347,7 @@ personal Lua configuration again. Generated Lua uses Hyprland's CSS gap table;
 legacy configuration uses top,right,bottom,left order. Workspace rules can override
 these gaps.
 
-Bar & layout → Layout & spacing → Gap below bar / toward windows reserves
+Hyprpane & panels → Layout & spacing → Gap toward windows reserves
 0–100 additional pixels toward the desktop, without moving the visible bar. For
 a top bar this is bottom padding; for another edge it follows the bar inward.
 Hidden bars reserve no space. Edge margin continues to move the bar itself.
@@ -1529,3 +1530,7 @@ rules, resetting scope, empty selections, Lua parsing with the installed
 compositor and transaction rollback. `tst_SettingsAppearance.qml` exercises native
 workspace selection, focus/style changes, retained choices, advanced sliders,
 reset and narrow layouts. These checks do not establish live session rendering.
+
+Panel naming and reserved component settings are documented in
+[Panel configuration — Phase 1](panel-configuration.md), including the compatibility
+mapping, shared/separate desktop-ID pins, placement validation and corner policy.

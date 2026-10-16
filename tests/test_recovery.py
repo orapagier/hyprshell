@@ -18,6 +18,18 @@ import recovery
 
 
 class RecoveryTests(unittest.TestCase):
+    def test_panel_and_pin_preferences_are_previewed_and_restored(self):
+        ident = self.checkpoint()
+        data = copy.deepcopy(backend.DEFAULTS)
+        data['panels']['hyprdock'].update(enabled=True, position='bottom', monitors=['HDMI-A-1'])
+        data['pins'].update(mode='separate', shared=['kitty.desktop'], hyprdock=['org.gnome.Nautilus.desktop'])
+        backend.save(data)
+        preview = recovery.preview(ident)
+        self.assertEqual(preview['changes'], ['Panel placement', 'Pinned applications'])
+        self.assertTrue(recovery.restore(preview['token'])['ok'])
+        self.assertEqual(recovery.current()['panels'], backend.DEFAULTS['panels'])
+        self.assertEqual(recovery.current()['pins'], backend.DEFAULTS['pins'])
+
     def setUp(self):
         distro = patch.object(recovery.system_packages, 'distribution', return_value='arch')
         distro.start(); self.addCleanup(distro.stop)
@@ -48,7 +60,7 @@ class RecoveryTests(unittest.TestCase):
         backend.save(self.changed())
         self.assertEqual(len(recovery.backups()), 2)
         preview = recovery.preview(ident)
-        self.assertEqual(preview['changes'], ['Bar & layout', 'Compositor, mouse & keyboard'])
+        self.assertEqual(preview['changes'], ['Hyprpane & panels', 'Compositor, mouse & keyboard'])
         result = recovery.request({'operation': 'restore', 'token': preview['token']})
         self.assertEqual(result['restored'], backend.DEFAULTS)
         self.assertIn('hl.config', (self.config / 'hyprshell/overrides.lua').read_text())
@@ -249,7 +261,7 @@ ShellRoot {
             } else if (test.phase === 1 && !page.success) {
                 test.find(page, "previewSettingsRestore").clicked(); test.phase = 2;
             } else if (test.phase === 2 && page.preview) {
-                if (page.preview.changes.join(",") !== "Bar & layout") { console.error("RECOVERY_FAILED preview"); Qt.quit(); return; }
+                if (page.preview.changes.join(",") !== "Hyprpane & panels") { console.error("RECOVERY_FAILED preview"); Qt.quit(); return; }
                 page.ready = false;
                 if (test.find(page, "confirmSettingsRestore").enabled) { console.error("RECOVERY_FAILED unsaved edits"); Qt.quit(); return; }
                 page.ready = true;

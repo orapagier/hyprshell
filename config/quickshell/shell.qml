@@ -71,7 +71,7 @@ ShellRoot {
                 // back into the window's own visibility binding.
                 let monitor = Hyprland.monitorFor(panel.modelData);
                 let ws = monitor && monitor.activeWorkspace;
-                return ws ? Settings.barVisible(preferences.config.bar, ws.id) : preferences.config.bar.visible !== false;
+                return Settings.panelVisible(preferences.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
             }
             exclusiveZone: (vertical ? width : height) + (preferences.config.bar.paddingBottom || 0)
             exclusionMode: visible ? ExclusionMode.Normal : ExclusionMode.Ignore
@@ -186,8 +186,8 @@ ShellRoot {
                 try {
                     let result = JSON.parse(text);
                     if (result.ok) preferences.reload();
-                    else console.warn("Topbar toggle: " + result.message);
-                } catch (error) { console.warn("Topbar toggle failed: " + error); }
+                    else console.warn("Hyprpane toggle: " + result.message);
+                } catch (error) { console.warn("Hyprpane toggle failed: " + error); }
             }
         }
     }
@@ -243,7 +243,7 @@ ShellRoot {
         function toggleBar(): void {
             let workspace = shell.currentWorkspace;
             if (workspace < 1 || workspace > 99) {
-                console.warn("Topbar toggle needs an active numbered workspace (1–99).");
+                console.warn("Hyprpane toggle needs an active numbered workspace (1–99).");
                 return;
             }
             let ui = settingsController.window;

@@ -62,7 +62,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Application windows"
-        subtitle: "Choose a system color preference for apps. The topbar keeps its own appearance."
+        subtitle: "Choose a system color preference for apps. Hyprpane keeps its own appearance."
         SettingsSwitch {
             id: themeToggle
             objectName: "applicationDarkTheme"
@@ -101,6 +101,6 @@ ColumnLayout {
             enabled: page.loaded && !page.busy && page.dirty && fontPicker.currentIndex >= 0 && cursorPicker.currentIndex >= 0
             onClicked: page.request("save", page.mode, {font: page.fonts[fontPicker.currentIndex] + " " + fontPoints.value, cursorTheme: page.cursors[cursorPicker.currentIndex], cursorSize: cursorPixels.value})
         }
-        Label { text: "Apps with custom fonts or themes keep their own choices. The topbar uses its separate appearance controls."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: "Apps with custom fonts or themes keep their own choices. Hyprpane uses its separate appearance controls."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
 }

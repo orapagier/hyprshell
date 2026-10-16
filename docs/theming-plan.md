@@ -1,5 +1,9 @@
 # Comprehensive theming: future implementation plan
 
+Historical terminology: “hyprbar” in this saved theme plan refers to the existing
+status/menu panel, now named Hyprpane. It does not refer to the planned classic
+Hyprbar taskbar.
+
 Status: deferred proposal. Saved on 2026-10-14 at the user's request.
 Implementation is not authorized yet; the user may approve or revise this plan
 when returning to the feature. No desktop configuration changes accompany it.

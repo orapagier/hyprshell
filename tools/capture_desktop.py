@@ -11,14 +11,14 @@ REPO = Path(__file__).resolve().parents[1]
 START = '<!-- desktop-screenshots:start -->'
 END = '<!-- desktop-screenshots:end -->'
 VIEWS = (
-    ('desktop', 'Hyprshell desktop and hyprbar',
-     'Show your wallpaper and hyprbar on a workspace without open windows.'),
+    ('desktop', 'Hyprshell desktop and Hyprpane',
+     'Show your wallpaper and Hyprpane on a workspace without open windows.'),
     ('launcher', 'Hyprshell application launcher',
      'Show the application launcher over your desktop.'),
     ('settings', 'Hyprshell desktop settings',
      'Show Settings on an appearance or bar layout page.'),
     ('tiled', 'Hyprshell tiled windows',
-     'Show two or more tiled application windows with public content and hyprbar visible.'),
+     'Show two or more tiled application windows with public content and Hyprpane visible.'),
 )
 
 

@@ -10,8 +10,9 @@ Hyprshell is a configurable desktop shell for **Hyprland on Arch Linux and Fedor
 with **Quickshell**. It brings the application launcher, status bar, desktop
 menus, notification inbox, and settings into one native Qt 6 interface.
 
-**hyprbar** is the name of Hyprshell's top bar. References to the “bar”,
-“top bar”, or “topbar” in this documentation mean hyprbar.
+**Hyprpane** is Hyprshell's status/menu panel on any screen edge, formerly
+called hyprbar. **Hyprdock** is the planned app dock; **Hyprbar** is reserved for
+the planned classic taskbar. Existing `bar` settings and IPC names remain compatible.
 
 The goal is a consistent desktop experience from boot and login through daily
 use, with a lightweight foundation that gives beauty and performance equal
@@ -67,9 +68,9 @@ describe the established Arch installation unless stated otherwise.
 <!-- desktop-screenshots:start -->
 Captured from a running Hyprshell desktop.
 
-### Hyprshell desktop and hyprbar
+### Hyprshell desktop and Hyprpane
 
-![Hyprshell desktop and hyprbar](docs/assets/hyprshell-desktop.png)
+![Hyprshell desktop and Hyprpane](docs/assets/hyprshell-desktop.png)
 
 ### Hyprshell application launcher
 
@@ -499,7 +500,7 @@ own hardware and preferences:
 | Terminal and file manager | The `terminal` and `fileManager` entries in `~/.config/hyprshell/hyprland/programs.lua`. |
 | Browser shortcut | The `Super+B` default binding in `hyprshell/hyprland/shortcuts.lua`; it launches Brave from Flathub, which the base installer provides on Fedora and Arch. |
 | Startup wallpaper | `~/.config/hypr/wallpaper-start.sh`. |
-| Clock display | Hyprshell Settings → Bar & layout. |
+| Clock display | Hyprshell Settings → Hyprpane & panels. |
 | Holiday data | `~/.config/quickshell/Calendar.js`. |
 
 The main configuration has an automatic preferred-mode monitor rule, but

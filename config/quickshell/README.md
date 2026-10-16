@@ -1,6 +1,8 @@
 # Native Quickshell panel
 
-**hyprbar** is Hyprshell's top bar, also called the bar, topbar, or panel here.
+**Hyprpane** is Hyprshell's status/menu panel on any edge, also called the bar,
+topbar, or panel in legacy code. Hyprdock is the planned app dock; Hyprbar is
+reserved for the planned classic taskbar.
 
 The panel, launcher, calendar, audio, Wi-Fi, Bluetooth, notification inbox,
 power menu, media display, and status bindings are QML/JavaScript components.

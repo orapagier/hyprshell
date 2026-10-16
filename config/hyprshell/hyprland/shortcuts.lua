@@ -25,8 +25,8 @@ hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"), { description = "Toggle
 
 hl.bind("SUPER + K", hl.dsp.exec_cmd('"$HOME/.local/bin/keybindings-launcher"'), { description = "Show searchable keybindings" })
 
--- Hyprshell keyboard access, including when the topbar is hidden.
-hl.bind("ALT + T", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" topbar'), { description = "Toggle topbar on current workspace" })
+-- Hyprshell keyboard access, including when Hyprpane is hidden.
+hl.bind("ALT + T", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" topbar'), { description = "Toggle Hyprpane on current workspace" })
 hl.bind("ALT + C", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" calendar'), { description = "Toggle calendar" })
 hl.bind("ALT + S", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" settings'), { description = "Open Hyprshell Settings" })
 hl.bind("ALT + N", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" notifications'), { description = "Toggle notifications" })

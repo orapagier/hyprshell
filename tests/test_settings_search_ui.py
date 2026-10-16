@@ -44,9 +44,9 @@ ShellRoot {
             if (!editor.searchResults.some(row => row.section === -1) || !editor.searchResults.some(row => row.section >= 0)) { test.fail("missing global/item Popdown glass subheading"); return; }
             search.accepted(); test.phase++;
         } else if (test.phase === 2) {
-            if (editor.section !== -1) { test.fail("Enter did not open Bar & layout"); return; }
+            if (editor.section !== -1) { test.fail("Enter did not open Hyprpane & panels"); return; }
             let search = test.find(editor.contentItem, "settingsSearch");
-            search.text = "bar thickness";
+            search.text = "hyprpane thickness";
             if (!editor.searchResults.some(row => row.section === -1)) { test.fail("model-defined control label missing"); return; }
             let loader = test.find(editor.contentItem, "settingsSetupBackupLoader");
             if (loader.active) { test.fail("backup page already loaded"); return; }
@@ -60,7 +60,7 @@ ShellRoot {
         } else if (test.phase === 3) {
             if (editor.searchResultIndex !== -1) { test.fail("deferred search selected a result after clearing"); return; }
             let search = test.find(editor.contentItem, "settingsSearch");
-            search.text = "bar thickness";
+            search.text = "hyprpane thickness";
             if (editor.searchResultIndex !== 0) { test.fail("matching search did not select first result"); return; }
             search.text = "zzzz-no-matching-setting-zzzz";
             if (editor.searchResults.length !== 0 || editor.searchResultIndex !== -1) { test.fail("unmatched search retained result selection"); return; }

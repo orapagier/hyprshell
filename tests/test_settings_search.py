@@ -23,7 +23,7 @@ class SettingsSearchTests(unittest.TestCase):
         self.assertIn('Hyprshell setup backup & restore', index['-23'])
         self.assertIn('Reset & factory reset', index['-4'])
         self.assertIn('Chromium cache', index['-4'])
-        self.assertIn('Bar thickness', index['-1'])
+        self.assertIn('Hyprpane thickness', index['-1'])
         self.assertNotIn('System updates', index['-1'])
 
     def test_each_navigation_page_has_an_indexed_source(self):

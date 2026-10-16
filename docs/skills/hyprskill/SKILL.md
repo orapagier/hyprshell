@@ -1,14 +1,17 @@
 ---
 name: hyprskill
-description: Diagnose, customize, or maintain this user's Linux machine and desktop, including requests about my system, laptop, display, shortcuts, hyprbar (the top bar), bar, menus, notifications, wallpaper, audio, Wi-Fi, Bluetooth, locking, or desktop settings. Knows the local Hyprshell setup without the user naming it. Excludes unrelated application or repository work.
+description: Diagnose, customize, or maintain this user's Linux machine and desktop, including requests about my system, laptop, display, shortcuts, Hyprpane (the status panel), Hyprdock, Hyprbar (the planned taskbar), bar, menus, notifications, wallpaper, audio, Wi-Fi, Bluetooth, locking, or desktop settings. Knows the local Hyprshell setup without the user naming it. Excludes unrelated application or repository work.
 ---
 
 # Hyprskill
 
 This machine currently uses Fedora 44, Hyprland **Lua** configuration, and Hyprshell's native Qt 6 Quickshell desktop. The entry point is `hypr/hyprland.lua`; Quickshell owns the bar, launcher, menus, and notifications.
 
-The user calls Hyprshell's top bar **hyprbar**. Treat “hyprbar”, “top bar”,
-“topbar”, and “bar” as the same desktop component.
+**Hyprpane** is the existing status/menu panel on any edge, formerly called
+hyprbar. **Hyprdock** is the planned app dock; **Hyprbar** is reserved for the
+planned classic taskbar. Legacy `bar` settings, `Bar.qml`, IPC and Alt+T still
+target Hyprpane. Interpret older “top bar”/“topbar” references as Hyprpane;
+use context to distinguish historical hyprbar from the new taskbar.
 
 ## Mandatory task scope and feature preservation
 

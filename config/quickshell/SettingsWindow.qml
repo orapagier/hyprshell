@@ -102,7 +102,7 @@ FloatingWindow {
             {section: -21, title: "Printing & scanning", symbol: "󰐪", keywords: "printer scanner cups paper documents"},
             {section: -19, title: "Workspaces & rules", symbol: "󰍹", keywords: "workspace rules tiling layout focus pointer"},
             {section: -2, title: "Windows", symbol: "󰖲", keywords: "hyprland transparency blur gaps animations"},
-            {section: -1, title: "Bar & layout", symbol: "󰕮", keywords: "topbar hyprbar position screen edge top bottom left right spacing workspace workspaces"},
+            {section: -1, title: "Hyprpane & panels", symbol: "󰕮", keywords: "hyprpane hyprdock hyprbar panels pins topbar position screen edge top bottom left right spacing workspace workspaces"},
             {section: -13, title: "Applications", symbol: "󰀻", keywords: "default apps startup"},
             {section: -11, title: "Notifications", symbol: "󰂚", keywords: "delivery popups disturb"}
         ]},
@@ -292,7 +292,9 @@ FloatingWindow {
     }
     function saveNotice(before, after) {
         let labels = [];
-        if (JSON.stringify(before.bar) !== JSON.stringify(after.bar)) labels.push("Bar & layout");
+        if (JSON.stringify(before.panels) !== JSON.stringify(after.panels)) labels.push("Panel placement");
+        if (JSON.stringify(before.pins) !== JSON.stringify(after.pins)) labels.push("Pinned applications");
+        if (JSON.stringify(before.bar) !== JSON.stringify(after.bar)) labels.push("Hyprpane & panels");
         let inputKeys = ["pointerSpeed", "mouseNaturalScroll", "touchpadNaturalScroll", "tapToClick", "disableWhileTyping", "repeatRate", "repeatDelay", "keyboardLayouts", "layoutSwitch"];
         if (inputKeys.some(key => before.hyprland[key] !== after.hyprland[key])) labels.push("Mouse, touchpad & keyboard");
         if (Object.keys(Object.assign({}, before.hyprland, after.hyprland)).some(key => inputKeys.indexOf(key) < 0 && before.hyprland[key] !== after.hyprland[key])) labels.push("Hyprland appearance");
@@ -682,7 +684,7 @@ FloatingWindow {
                             Layout.fillWidth: true
                             Layout.topMargin: 16
                             flat: true
-                            text: "Bar items  " + (window.barItemsExpanded || window.searchQuery.trim() ? "⌃" : "⌄")
+                            text: "Hyprpane items  " + (window.barItemsExpanded || window.searchQuery.trim() ? "⌃" : "⌄")
                             visible: window.matchingPages(window.barNavigation).length > 0
                             Accessible.description: window.barItemsExpanded ? "Expanded" : "Collapsed"
                             onClicked: window.barItemsExpanded = !window.barItemsExpanded
@@ -742,7 +744,7 @@ FloatingWindow {
                             Layout.fillWidth: true
                             Layout.topMargin: -14
                             font.pixelSize: Style.Theme.bodySize
-                            text: window.section === -23 ? "Save your Hyprshell setup and choose a dated backup to restore." : window.section === -22 ? "Manage network rules and blocked websites." : window.section === -20 ? "Optional local clipboard history" : window.section === -21 ? "Printers and scanners when you need them" : window.section === -19 ? "Choose workspace layouts and rules for application windows." : window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover personal configuration, and back up personal files." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for your desktop bar." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
+                            text: window.section === -23 ? "Save your Hyprshell setup and choose a dated backup to restore." : window.section === -22 ? "Manage network rules and blocked websites." : window.section === -20 ? "Optional local clipboard history" : window.section === -21 ? "Printers and scanners when you need them" : window.section === -19 ? "Choose workspace layouts and rules for application windows." : window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover personal configuration, and back up personal files." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Set the layout and default appearance for Hyprpane and panel placement." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
                             wrapMode: Text.WordWrap
                             color: Style.Theme.muted
                         }
@@ -760,7 +762,7 @@ FloatingWindow {
                                 y: 12
                                 width: parent.width - 32
                                 wrapMode: Text.WordWrap
-                                text: "Bar preview · drag to rearrange, click to customize"
+                                text: "Hyprpane preview · drag to rearrange, click to customize"
                                 color: Style.Theme.muted
                                 font.pixelSize: Style.Theme.captionSize
                                 font.letterSpacing: 0

@@ -1,8 +1,9 @@
 # Hyprpane, Hyprdock, and Hyprbar: phased implementation plan
 
-Status: planning only, saved 2026-10-16. Implement one phase at a time in later
-tasks. This document does not authorize starting implementation or changing the
-live desktop. Each phase should leave a usable desktop and a reviewable result.
+Status: Phase 1 implemented on 2026-10-16 at the user’s request. Remaining
+phases are planned and require a later task. Each phase should leave a usable
+desktop and a reviewable result. See [Phase 1 configuration](panel-configuration.md)
+for the compatibility contract and validation record.
 
 ## Names and agreed behavior
 
@@ -196,7 +197,7 @@ overwriting unrelated differences. Reload only after validation. Create a local
 commit at each successfully completed implementation-task boundary; do not push
 without explicit authorization. Saving this plan is a documentation-only task.
 
-- [ ] Phase 1: Naming and configuration design
+- [x] Phase 1: Naming and configuration design
 - [ ] Phase 2: Vertical Hyprpane polish
 - [ ] Phase 3: Shared applications and windows
 - [ ] Phase 4: Hyprdock core

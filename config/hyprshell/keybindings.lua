@@ -3,5 +3,5 @@ return {
     { id = "17345483cff94afba0fa6baa28a5f898", original = "", shortcut = "ALT + Q", description = "Reload Hyprland and Quickshell", mode = "command", command = "quickshell ipc --path ~/.config/quickshell call bar reload" },
     { command = "uwsm app -- hyprshell-browser", description = "Open browser", id = "e36985f80a4c4fa9a08518d5aa357fbf", mode = "command", original = "SUPER + B", shortcut = "SUPER + B" },
     { command = "", description = "Open terminal", id = "72298b302c4e4208b58d6a6140c4039d", mode = "existing", original = "SUPER + T", shortcut = "SUPER + Z" },
-    { command = "", description = "Toggle hyprbar on current workspace", id = "9d4a8c9adf4d4021acf973369d9bbe51", mode = "existing", original = "ALT + T", shortcut = "ALT + X" },
+    { command = "", description = "Toggle Hyprpane on current workspace", id = "9d4a8c9adf4d4021acf973369d9bbe51", mode = "existing", original = "ALT + T", shortcut = "ALT + X" },
 }

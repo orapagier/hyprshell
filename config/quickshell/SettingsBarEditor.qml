@@ -15,8 +15,27 @@ ColumnLayout {
     spacing: 16
     SettingsCard {
         Layout.fillWidth: true
-        title: "Bar visibility"
-        subtitle: "Alt+T toggles only the current workspace. Use these buttons to show or hide hyprbar on all workspaces and clear individual choices."
+        title: "Desktop panels"
+        subtitle: "Hyprpane is your status and menu panel. Hyprdock will hold apps; Hyprbar will be the classic window taskbar. Dock and taskbar controls arrive in later phases."
+        Label {
+            Layout.fillWidth: true
+            text: "Use one or two components per monitor and workspace, on different screen edges. A conflicting choice is rejected; choose another edge or disable a component."
+            wrapMode: Text.WordWrap
+            color: Style.Theme.text
+            font.pixelSize: Style.Theme.bodySize
+        }
+        Label {
+            Layout.fillWidth: true
+            text: "Top and Bottom own adjacent corners; Left and Right fit between them. App pins will be shared by default, with an optional separate list for Hyprdock and Hyprbar. Alt+T continues to target Hyprpane."
+            wrapMode: Text.WordWrap
+            color: Style.Theme.muted
+            font.pixelSize: Style.Theme.captionSize
+        }
+    }
+    SettingsCard {
+        Layout.fillWidth: true
+        title: "Hyprpane visibility"
+        subtitle: "Alt+T toggles only the current workspace. Use these buttons to show or hide Hyprpane on all workspaces and clear individual choices."
         RowLayout {
             Layout.fillWidth: true
             spacing: 12
@@ -49,7 +68,7 @@ ColumnLayout {
         SettingsSwitch {
             objectName: "barWorkspaceVisibleControl"
             Layout.fillWidth: true
-            text: "Show hyprbar on workspace " + root.selectedWorkspace
+            text: "Show Hyprpane on workspace " + root.selectedWorkspace
             checked: Model.barVisible(root.settings, root.selectedWorkspace)
             onToggled: root.visibilityEdited(Model.withWorkspaceVisibility(root.settings, root.selectedWorkspace, checked))
         }
@@ -105,11 +124,11 @@ ColumnLayout {
             rowSpacing: 20
             Repeater {
                 model: [
-                    {key: "height", label: "Bar thickness", min: 28, max: 80, fallback: 32},
+                    {key: "height", label: "Hyprpane thickness", min: 28, max: 80, fallback: 32},
                     {key: "groupSpacing", label: "Inside shared pills", min: 0, max: 30, fallback: 3},
                     {key: "spacing", label: "Between items / pills", min: 0, max: 30, fallback: 3},
                     {key: "marginTop", label: "Edge margin", min: 0, max: 100, fallback: 5},
-                    {key: "paddingBottom", label: "Gap below bar / toward windows", min: 0, max: 100, fallback: 0},
+                    {key: "paddingBottom", label: "Gap toward windows", min: 0, max: 100, fallback: 0},
                     {key: "marginSide", label: "End margins", min: 0, max: 200, fallback: 10}
                 ]
                 delegate: SettingsSlider {
@@ -176,7 +195,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Clock & date"
-        subtitle: "Choose how the time and date appear on your bar."
+        subtitle: "Choose how the time and date appear on Hyprpane."
         SettingField {
             Layout.fillWidth: true
             label: "Clock format"

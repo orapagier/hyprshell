@@ -49,6 +49,11 @@ function merge(defaults, saved) {
     if (!saved || saved.version !== 1) throw new Error('Unsupported settings version');
     let result = copy(defaults);
     result.bar = Object.assign(result.bar, saved.bar || {});
+    for (let name of Object.keys(result.panels || {}))
+        result.panels[name] = Object.assign(result.panels[name], (saved.panels || {})[name] || {});
+    result.pins = Object.assign(result.pins || {}, saved.pins || {});
+    let conflict = panelLayoutError(result);
+    if (conflict) throw new Error(conflict);
     result.hyprland = saved.hyprland || {};
     result.clipboard = Object.assign(result.clipboard || {}, saved.clipboard || {});
     result.accessibility = Object.assign(result.accessibility || {}, saved.accessibility || {});
@@ -145,4 +150,37 @@ function setItemSide(config, id, side) {
     for (let entry of next.items)
         if (entry.id === id || (moving.pillGroup && entry.pillGroup === moving.pillGroup)) entry.side = side;
     return next;
+}
+
+// Legacy bar/items remain the authoritative Hyprpane appearance and visibility.
+function panelConfig(config, name) {
+    let panel = (config.panels || {})[name] || {enabled: name === 'hyprpane', monitors: []};
+    return name === 'hyprpane' ? Object.assign({}, config.bar, panel) : panel;
+}
+function panelVisible(config, name, monitor, workspace) {
+    let panel = panelConfig(config, name);
+    return panel.enabled !== false && (!(panel.monitors || []).length || panel.monitors.indexOf(monitor) >= 0) && (workspace === null ? panel.visible !== false : barVisible(panel, workspace));
+}
+function panelLayoutError(config) {
+    let names = ['hyprpane', 'hyprdock', 'hyprbar'];
+    let panels = names.map(name => panelConfig(config, name));
+    let monitors = [''];
+    for (let panel of panels)
+        for (let monitor of panel.monitors || [])
+            if (monitors.indexOf(monitor) < 0) monitors.push(monitor);
+    for (let monitor of monitors) {
+        for (let workspace = 0; workspace <= 99; ++workspace) {
+            let active = names.filter(name => panelVisible(config, name, monitor, workspace));
+            let location = (monitor || 'other monitors') + ', workspace ' + (workspace || 'unnumbered');
+            if (active.length > 2)
+                return 'Panel conflict on ' + location + ': at most two components may be visible. Disable a component or change its monitor/workspace visibility.';
+            if (active.length === 2 && panelConfig(config, active[0]).position === panelConfig(config, active[1]).position)
+                return 'Panel conflict on ' + location + ': ' + active.join(' and ') + ' both use ' + panelConfig(config, active[0]).position + '. Choose another edge or disable a component.';
+        }
+    }
+    return '';
+}
+function effectivePins(config, name) {
+    let pins = config.pins || {};
+    return (pins.mode === 'separate' ? pins[name] : pins.shared) || [];
 }
