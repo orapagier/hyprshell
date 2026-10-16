@@ -10,10 +10,10 @@ Item {
     readonly property bool vertical: position === "left" || position === "right"
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Length never affects width. Explicit icon/font sizing and thickness still do.
-    readonly property real verticalThickness: Math.max(40, (settings.bar?.height || 32) + 4,
+    readonly property real verticalThickness: Math.max(32, settings.bar?.height || 32,
         ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => {
             let style = Settings.appearance(settings, id);
-            return Math.max(style.iconSize || 16, style.fontSize || 12) + 16 + Math.max(0, style.paddingLeft || 0) + Math.max(0, style.paddingRight || 0);
+            return Math.max(style.iconSize || 16, style.fontSize || 12) + 12 + Math.max(0, style.paddingLeft || 0) + Math.max(0, style.paddingRight || 0);
         }))
     readonly property real sectionGap: Math.max(12, settings.bar?.spacing ?? 3)
     readonly property real minimumVerticalLength: {
@@ -415,7 +415,7 @@ Item {
                 maximumWidth: bar.vertical ? Math.max(1, bar.verticalThickness - 4 - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
                 width: bar.vertical ? maximumWidth : implicitWidth
                 onActiveFocusChanged: if (activeFocus && bar.vertical) bar.ensureItemVisible(workspaceButton)
-                compactIcon: active ? "" : ""
+                iconOnly: false
                 ToolTip.visible: bar.vertical && hovered
                 ToolTip.text: "Workspace " + (modelData.name || String(modelData.id))
                 ToolTip.delay: 600

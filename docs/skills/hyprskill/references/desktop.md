@@ -48,10 +48,10 @@ Settings are version 1 JSON with defaults and inheritance. Inspect `backend.py`'
 
 Settings → Hyprpane & panels → Layout & spacing → Screen edge selects Top, Left,
 Right, or Bottom (`bar.position`, default `top`). On either side, saved left
-items sit at the top and right items sit at the bottom. Side panels use icons
-only in circular pills at a default 40 px width.
+items sit at the top and right items sit at the bottom. Side panels use centered icons
+in circular pills (28 px at the default 32 px panel width).
 The calendar is an icon; labels, values and notification counts stay in tooltips
-and menus. Workspace names become filled/hollow icons with identifying tooltips.
+and menus. Workspaces retain their numbers/names and identifying tooltips.
 Workspaces/tray icons stack vertically. Side panel length (`bar.verticalPresentation`)
 selects Full edge (`edge`, default) or Compact (`compact`, centered shorter rail).
 Overflow scrolls, and focus reveals controls. Media uses five spectrum bars

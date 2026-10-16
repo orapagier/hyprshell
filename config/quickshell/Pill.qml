@@ -116,9 +116,17 @@ Item {
         opacity: pill.selected ? 0.95 : pill.interactive && (pill.hovered || pill.activeFocus) ? 0.55 : 0
         Behavior on opacity { NumberAnimation { duration: 140 } }
     }
+    TextMetrics {
+        id: compactGlyphMetrics
+        font: iconLabel.font
+        text: iconLabel.text
+    }
     Text {
-        x: pill.vertical ? (parent.width - width) / 2 : pill.effectiveLeftPadding
-        y: pill.vertical && pill.shownText.length ? 4 : (parent.height - height) / 2
+        id: iconLabel
+        x: pill.vertical ? (parent.width - compactGlyphMetrics.tightBoundingRect.width) / 2 - compactGlyphMetrics.tightBoundingRect.x : pill.effectiveLeftPadding
+        y: pill.vertical && !pill.shownText.length
+            ? (parent.height - compactGlyphMetrics.tightBoundingRect.height) / 2 - baselineOffset - compactGlyphMetrics.tightBoundingRect.y
+            : pill.vertical ? 4 : (parent.height - height) / 2
         objectName: "pillIcon"
         opacity: pill.glyphOpacity
         width: pill.effectiveIconSize
@@ -128,7 +136,7 @@ Item {
         style: pill.glyphHalo ? Text.Outline : pill.bare ? Text.Raised : Text.Normal
         styleColor: pill.glyphHalo ? pill.iconEdge : pill.glyphShadow
         font.family: "GoMono Nerd Font"; font.pixelSize: pill.effectiveIconSize
-        horizontalAlignment: Text.AlignHCenter
+        horizontalAlignment: pill.vertical ? Text.AlignLeft : Text.AlignHCenter
         renderType: Text.QtRendering
     }
     Text {

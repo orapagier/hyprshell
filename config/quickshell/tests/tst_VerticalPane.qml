@@ -77,20 +77,27 @@ Item {
         function test_sidePanelsAreIconOnlyAndCircular(data) {
             pane.settings = config(data.edge);
             pane.clockText = 'September Wednesday 12:59 PM';
-            compare(pane.width,40);
+            compare(pane.width,32);
             for (let id of ['calendar','audio','battery','wifi','bluetooth','notifications','power']) {
                 let item = pane.moduleItems[id];
                 compare(item.displayText,'',id);
                 verify(item.shownIcon.length > 0,id);
                 compare(item.width,item.height,id);
+                compare(item.width,28,id);
+                let glyph = findChild(item,'pillIcon');
+                let metrics = glyphMetrics.createObject(scene, {font:glyph.font, text:glyph.text});
+                let ink = metrics.tightBoundingRect;
+                fuzzyCompare(glyph.x + ink.x + ink.width / 2, item.width / 2, 0.1, id + ' horizontal center');
+                fuzzyCompare(glyph.y + glyph.baselineOffset + ink.y + ink.height / 2, item.height / 2, 0.1, id + ' vertical center');
+                metrics.destroy();
                 let background = findChild(item,'pillBackground');
                 compare(background.radius,item.width/2,id);
             }
             compare(pane.moduleItems.calendar.shownIcon,'󰃭');
             verify(pane.moduleItems.calendar.tooltipText.indexOf(pane.clockText) >= 0);
             let workspace = findChild(pane,'workspace1');
-            compare(workspace.shownText,'');
-            compare(workspace.shownIcon,'');
+            compare(workspace.shownText,'1');
+            compare(workspace.shownIcon,'');
             compare(workspace.width,workspace.height);
             assertLayout();
         }
@@ -114,7 +121,7 @@ Item {
             pane.trayModel = Array.from({length:18},(_,i) => ({icon:Qt.resolvedUrl("../icons/preview-tray.svg"),title:'App '+i}));
             pane.clockText = 'Wednesday September 30 11:59 PM';
             // Grid lays out newly created tray delegates on the next polish.
-            tryVerify(() => pane.moduleItems.tray.height >= 18 * 36);
+            tryVerify(() => pane.moduleItems.tray.height >= 18 * 28);
             for (let edge of ['left','right']) {
                 pane.settings = config(edge);
                 assertLayout();
@@ -159,6 +166,7 @@ Item {
             compare(overlay.itemAt(rect.x+rect.width/2,rect.y+rect.height/2),'audio');
             overlay.destroy();
         }
+        Component { id: glyphMetrics; TextMetrics {} }
         Component { id: editorFactory; PreviewLayoutEditor {} }
         function test_customLabelsAndVisibilitySurviveBothOrientations() {
             for (let edge of ['left','right']) {
