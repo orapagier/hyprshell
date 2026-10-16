@@ -1,9 +1,10 @@
 # Hyprpane, Hyprdock, and Hyprbar: phased implementation plan
 
 Status: Phases 1–6 implemented on 2026-10-16 at the user’s request. Phase 7's
-menu slice and Phase 8's settings preview/preset slice are implemented; remaining
-acceptance work requires a later task. Each phase should leave a usable
-desktop and a reviewable result. See [Phase 1 configuration](panel-configuration.md)
+menu slice and Phase 8's settings preview/preset and persistence transaction
+slices are implemented; physical acceptance work requires a later task. Each
+phase should leave a usable desktop and a reviewable result. See
+[Phase 1 configuration](panel-configuration.md)
 for the compatibility contract and validation record. Phase 3 behavior and
 validation limits are recorded in [Shared applications and windows](application-support.md).
 Phase 4–5 behavior and validation limits are recorded in [Hyprdock](hyprdock.md).
@@ -208,8 +209,9 @@ presets are available in Settings → Hyprpane & panels. Previewing is read-only
 Apply layout preset submits component enablement and selected edges together
 through the existing settings transaction. Personal styling, pins, items,
 monitor/workspace scopes and overrides survive. See [layout settings](panel-layout-settings.md).
-The final persistence/deployment matrix and physical acceptance remain pending;
-this slice does not mark Phase 7 or Phase 8 complete.
+The persistence/deployment transaction matrix is now covered by isolated
+integration checks; see [panel persistence](panel-persistence.md). Physical and
+fresh-VM acceptance remain pending; these slices do not mark Phase 7 or Phase 8 complete.
 
 - Finish searchable settings for Hyprpane, Hyprdock, and Hyprbar, including live
   layout previews and explicit presets that retain personal customizations.

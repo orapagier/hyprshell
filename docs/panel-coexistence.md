@@ -67,7 +67,8 @@ changes and shell restart, while switching to an empty workspace alone leaves
 pinned windows visible. Neither is offered as a finished Show Desktop control.
 Phase 7 remains open for this action and physical coexistence acceptance; Phase
 8's [settings previews/presets](panel-layout-settings.md) slice is implemented;
-the final persistence/deployment matrix remains pending.
+the automated persistence/deployment transaction matrix is now covered in
+[panel persistence](panel-persistence.md). Physical acceptance remains pending.
 
 Changed QML/JS source is applied to both the checkout and matching installed
 copies after focused validation, with the previous installed files backed up.

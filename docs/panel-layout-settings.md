@@ -46,6 +46,6 @@ Only the matching QML/JS source and Qt fixture are deployed to the installed
 configuration after validation, with previous files backed up. Saved desktop
 preferences are untouched. Physical layer-shell, fullscreen, scaling and monitor
 hotplug checks still require an accessible compositor. Show Desktop remains
-pending as described in [Panel coexistence](panel-coexistence.md). Final setup,
-update, sync and backup/restore acceptance across the complete panel feature set
-remains a later Phase 8 increment.
+pending as described in [Panel coexistence](panel-coexistence.md). The automated
+setup, update, sync and backup/restore transaction matrix is now recorded in
+[panel persistence](panel-persistence.md). Physical acceptance remains pending.
