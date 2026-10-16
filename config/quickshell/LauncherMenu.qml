@@ -3,18 +3,22 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import "ApplicationModel.js" as Apps
 
 ColumnLayout {
     id: page
     signal launched()
+    property var applicationService: null
+    property bool managing: false
     property bool active: true
     function prepare() {
+        managing = false;
         search.clear();
         applications.currentIndex = entries.length ? 0 : -1;
         Qt.callLater(() => { if (page.active) search.forceActiveFocus(); });
     }
     onActiveChanged: if (active) prepare()
-    readonly property var sortedEntries: DesktopEntries.applications.values.slice().sort((a,b) => a.name.localeCompare(b.name))
+    readonly property var sortedEntries: applicationService ? applicationService.entries : DesktopEntries.applications.values.slice().sort((a,b) => a.name.localeCompare(b.name))
     readonly property var entries: sortedEntries.filter(a => (a.name + " " + a.genericName).toLowerCase().includes(search.text.toLowerCase()))
     onEntriesChanged: {
         applications.currentIndex = entries.length ? 0 : -1;
@@ -28,26 +32,35 @@ ColumnLayout {
     }
     function launch(entry) {
         if (!entry || !entry.id) return;
-        let desktopId = entry.id.endsWith(".desktop") ? entry.id : entry.id + ".desktop";
-        // UWSM reads desktop metadata (including Terminal and working directory).
-        // Services inherit the current manager environment after theme changes.
-        // uwsM only accepts desktop IDs matching [A-Za-z0-9_][A-Za-z0-9_.-]*.desktop;
-        // a file name with a space in it (My Download Manager.desktop, say) is
-        // rejected before the entry is even looked up. Those are launched by
-        // Quickshell itself instead, which parses Exec and working directory;
-        // runInTerminal and %-field codes are ignored, which these rare names
-        // lose nothing from in practice.
-        if (/^[A-Za-z0-9_][A-Za-z0-9_.-]*\.desktop$/.test(desktopId)) {
-            Quickshell.execDetached(["uwsm", "app", "-t", "service", "--", desktopId]);
+        if (applicationService) {
+            if (!applicationService.launch(entry)) return;
         } else {
-            entry.execute();
+            let command = Apps.launchCommand(entry);
+            if (command.length) Quickshell.execDetached(command);
+            else entry.execute();
         }
         launched();
     }
     spacing: 8
-    AppIcons { id: icons; visible: false }
+    Loader { id: fallbackIcons; active: !page.applicationService; visible: false; sourceComponent: AppIcons {} }
+    MenuButton {
+        visible: !!page.applicationService
+        Layout.fillWidth: true
+        text: page.managing ? 'Back to applications' : 'Apps & windows…'
+        onClicked: {
+            if (page.managing) page.prepare();
+            else page.managing = true;
+        }
+    }
+    Loader {
+        active: page.managing
+        visible: active
+        Layout.fillWidth: true
+        sourceComponent: ApplicationManager { service: page.applicationService }
+    }
     TextField {
         id: search
+        visible: !page.managing
         objectName: "launcherSearch"
         Layout.fillWidth: true
         placeholderText: "Search applications"; color: "#cdd6f4"; placeholderTextColor: "#a6adc8"
@@ -60,6 +73,7 @@ ColumnLayout {
     }
     ListView {
         id: applications
+        visible: !page.managing
         objectName: "applicationsList"
         Layout.fillWidth: true; Layout.preferredHeight: 300
         model: page.entries
@@ -71,7 +85,7 @@ ColumnLayout {
             required property int index
             width: applications.width
             text: modelData.name
-            iconSource: icons.source(modelData.icon) || icons.source("application-x-executable")
+            iconSource: page.applicationService ? page.applicationService.iconSource(modelData.icon) : fallbackIcons.item ? (fallbackIcons.item.source(modelData.icon) || fallbackIcons.item.source("application-x-executable")) : ""
             accent: (applications.activeFocus || search.activeFocus) && applications.currentIndex === index ? "#cba6f7" : "#cdd6f4"
             onClicked: { page.launch(modelData); }
         }

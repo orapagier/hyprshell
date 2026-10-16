@@ -35,6 +35,12 @@ print(json.dumps(app(['hyprshell-test-terminal.desktop'], terminal=False, slice_
             self.assertNotIn('+open', command)
 
     def test_native_launcher_dispatches_desktop_ids_through_service(self):
+        self.check_native_launcher(False)
+
+    def test_native_launcher_shared_service_preserves_keyboard_and_launches(self):
+        self.check_native_launcher(True)
+
+    def check_native_launcher(self, shared):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             payload = root / 'config/quickshell'
@@ -84,6 +90,11 @@ ShellRoot {
     Timer { interval: 500; running: true; onTriggered: { console.log("LAUNCHER_OK"); Qt.quit(); } }
 }
 ''')
+            if shared:
+                source = fixture.read_text().replace('    Window {',
+                    '    SettingsStore { id: preferences }\n    ApplicationService { id: appService; store: preferences }\n    Window {')
+                source = source.replace('LauncherMenu { id: launcher;', 'LauncherMenu { applicationService: appService; id: launcher;')
+                fixture.write_text(source)
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
             environment = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'),
                                XDG_RUNTIME_DIR=str(runtime), XDG_DATA_HOME=str(root / 'data'), XDG_DATA_DIRS=str(root / 'data'), QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software',

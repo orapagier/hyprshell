@@ -80,7 +80,7 @@ class PanelConfigurationTests(unittest.TestCase):
         for mode in ('shared', 'separate', 'shared'):
             self.data['pins']['mode'] = mode
             self.assertEqual(backend.validate(self.data)['pins'], self.data['pins'])
-        for pins in (['Files'], ['kitty'], ['sh -c bad.desktop'], ['/tmp/app.desktop'], ['app.desktop', 'app.desktop'], [True]):
+        for pins in (['Files'], ['kitty'], ['bad\napp.desktop'], ['/tmp/app.desktop'], ['app.desktop', 'app.desktop'], [True]):
             self.data['pins']['shared'] = pins
             with self.assertRaisesRegex(ValueError, 'desktop application IDs'):
                 backend.validate(self.data)

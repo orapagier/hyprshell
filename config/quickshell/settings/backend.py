@@ -315,11 +315,64 @@ def validate_panels(data, result):
     for name in ('shared', 'hyprdock', 'hyprbar'):
         ids = result['pins'][name]
         if not isinstance(ids, list) or any(
-            not isinstance(app, str) or len(app) > 255 or not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.+-]*\.desktop', app)
+            not desktop_id(app)
             for app in ids
         ) or len(set(ids)) != len(ids):
             raise ValueError('Pins must be unique desktop application IDs ending in .desktop')
+    matches = result['pins']['matches']
+    if not isinstance(matches, dict) or len(matches) > 512 or any(
+        not isinstance(key, str) or not key.strip() or len(key) > 255
+        or any(ord(c) < 32 for c in key) or not desktop_id(app)
+        for key, app in matches.items()
+    ):
+        raise ValueError('App matches must map window classes/app IDs to desktop application IDs')
     validate_panel_layout(result)
+
+
+def desktop_id(value):
+    # A desktop filename, never a path or an executable command. Launchers pass
+    # these as argv; unusual filenames use DesktopEntry.execute instead of UWSM.
+    return (isinstance(value, str) and 8 < len(value) <= 255
+            and value.endswith('.desktop') and value == value.strip()
+            and not any(c in '/\\' or ord(c) < 32 or ord(c) == 127 for c in value))
+
+
+def application_action(current, action):
+    """Apply a narrow edit to the latest locked preferences, preserving UI drafts."""
+    if not isinstance(action, dict):
+        raise ValueError('Invalid application action')
+    data = copy.deepcopy(current)
+    pins = data['pins']
+    kind = action.get('action')
+    if kind == 'mode':
+        pins['mode'] = action.get('mode')
+    elif kind == 'match':
+        key, app = action.get('key'), action.get('id')
+        if not isinstance(key, str) or not key.strip():
+            raise ValueError('Choose a window class/app ID')
+        if app is None:
+            pins['matches'].pop(key, None)
+        else:
+            pins['matches'][key] = app
+    elif kind in ('pin', 'unpin', 'reorder'):
+        component, app = action.get('component'), action.get('id')
+        if component not in ('hyprdock', 'hyprbar') or not desktop_id(app):
+            raise ValueError('Choose an app component and desktop application ID')
+        target = 'shared' if pins['mode'] == 'shared' else component
+        ids = pins[target]
+        if kind == 'pin' and app not in ids:
+            ids.append(app)
+        elif kind == 'unpin' and app in ids:
+            ids.remove(app)
+        elif kind == 'reorder':
+            index = action.get('index')
+            if app not in ids or type(index) is not int or not 0 <= index < len(ids):
+                raise ValueError('Choose an existing pin and a valid position')
+            ids.remove(app)
+            ids.insert(index, app)
+    else:
+        raise ValueError('Unknown application action')
+    return validate(data)
 
 
 def panel_config(data, name):
@@ -646,7 +699,7 @@ def bar_visible(bar, workspace):
     return bar['visible'] and (bar['workspaceScope'] == 'all' or workspace in bar['workspaceList'])
 
 
-def save(data, expected=None, *, toggle_workspace=None):
+def save(data, expected=None, *, toggle_workspace=None, app_action=None):
     data = validate(data)
     if toggle_workspace is not None:
         if type(toggle_workspace) is not int or not 1 <= toggle_workspace <= 99:
@@ -657,6 +710,8 @@ def save(data, expected=None, *, toggle_workspace=None):
     target = config / 'hyprshell/settings.json'
     with lock(state / 'hyprshell/settings.lock'):
         current = validate(json.loads(target.read_text())) if target.exists() else validate(DEFAULTS)
+        if app_action is not None:
+            data = application_action(current, app_action)
         if toggle_workspace is not None:
             data = copy.deepcopy(current)
             data['bar']['workspaceOverrides'][str(toggle_workspace)] = not bar_visible(current['bar'], toggle_workspace)
@@ -732,6 +787,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--save-json')
     parser.add_argument('--toggle-bar', type=int, metavar='WORKSPACE')
+    parser.add_argument('--app-action-json')
     parser.add_argument('--lock', action='store_true')
     parser.add_argument('--idle', action='store_true')
     parser.add_argument('--battery', action='store_true')
@@ -744,6 +800,10 @@ def main():
             return run_idle(args.battery)
         if args.toggle_bar is not None:
             result = save(DEFAULTS, toggle_workspace=args.toggle_bar)
+            print(json.dumps(result))
+            return 0
+        if args.app_action_json:
+            result = save(DEFAULTS, app_action=json.loads(args.app_action_json))
             print(json.dumps(result))
             return 0
         if not args.save_json:

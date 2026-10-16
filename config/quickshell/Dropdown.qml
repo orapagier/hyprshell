@@ -30,6 +30,8 @@ PanelWindow {
         : Qt.rect(0, barBottom, width, height - barBottom)
     readonly property bool opened: section.length > 0
     signal hoverChanged(bool inside)
+    property var applicationService: null
+    readonly property bool managingApplications: section === "launcher" && !!popover.pageItem?.managing
     required property var services
     required property var inbox
     signal closeRequested()
@@ -107,7 +109,7 @@ PanelWindow {
     }
     onPinnedChanged: if (opened && pinned) focusScope.forceActiveFocus()
     Shortcut { sequence: "Escape"; enabled: dropdown.opened; onActivated: dropdown.closeRequested() }
-    Component { id: launcherPage; LauncherMenu { active: dropdown.opened && dropdown.section === "launcher"; onLaunched: dropdown.closeRequested() } }
+    Component { id: launcherPage; LauncherMenu { applicationService: dropdown.applicationService; active: dropdown.opened && dropdown.section === "launcher"; onLaunched: dropdown.closeRequested() } }
     Component { id: settingsPage; SettingsMenu { onOpenRequested: { dropdown.closeRequested(); dropdown.settingsRequested(); } } }
     Component {
         id: workspacePage

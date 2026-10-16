@@ -52,9 +52,15 @@ because their reveal zones and visible state still need an unoccupied edge.
 used by both app components in shared mode; in separate mode use `pins.hyprdock`
 and `pins.hyprbar`. Switching mode retains all three lists. Each entry is a
 unique desktop application ID including `.desktop`, for example
-`org.gnome.Nautilus.desktop`; display names, paths and shell commands are rejected.
-Missing installed apps retain their IDs; discovery, matching and pin controls
-arrive in Phase 3. Hyprpane has no app-pin list.
+`org.gnome.Nautilus.desktop`; use desktop filenames rather than display names or
+launch commands. Paths are rejected.
+Missing installed apps retain their IDs. Phase 3 adds discovery, matching and pin
+controls through Launcher → Apps & windows; see [application support](application-support.md).
+Desktop filenames with spaces, Unicode or plus signs are accepted too, allowing
+any discoverable installed app to be pinned. IDs remain filenames ending in
+`.desktop`, without paths or control characters. They are never executed as shell
+commands. `pins.matches` stores explicit class/app-ID → desktop-ID corrections.
+Hyprpane has no app-pin list.
 
 ## Placement and corner policy
 

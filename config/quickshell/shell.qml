@@ -20,6 +20,7 @@ ShellRoot {
     readonly property int currentWorkspace: Hyprland.focusedMonitor && Hyprland.focusedMonitor.activeWorkspace ? Hyprland.focusedMonitor.activeWorkspace.id : 0
     property var pendingBarToggles: []
     SettingsStore { id: preferences }
+    ApplicationService { id: applications; store: preferences }
     ProjectorWindow { id: projectorWindow }
     PresentationView { id: presentationView }
     Hyprview { id: hyprviewWindow }
@@ -63,7 +64,7 @@ ShellRoot {
         PanelWindow {
             id: panel
             required property var modelData
-            MenuController { id: menuState; dismissPinnedOnLeave: !panel.visible || openedByShortcut }
+            MenuController { id: menuState; dismissPinnedOnLeave: (!panel.visible || openedByShortcut) && !panelDropdown.managingApplications }
             screen: modelData
             visible: {
                 // The window's resolved screen can change while hiding/showing.
@@ -140,6 +141,8 @@ ShellRoot {
                 onTrayScroll: (item,event) => item.scroll(event.angleDelta.y || event.angleDelta.x,!event.angleDelta.y)
             }
             Dropdown {
+                id: panelDropdown
+                onManagingApplicationsChanged: if (managingApplications) menuState.pinned = true
                 wallpaperSource: bar.wallpaperSource
                 translucency: Settings.popdownTranslucency(preferences.config, bar.menuItemId(menuState.displayedSection))
                 screen: panel.screen
@@ -160,6 +163,7 @@ ShellRoot {
                 previewWorkspace: bar.previewWorkspace
                 mediaData: shell.mediaData
                 services: shell.services
+                applicationService: applications
                 inbox: shell.inbox
                 onCloseRequested: menuState.close()
                 onSettingsRequested: settingsController.open()

@@ -439,6 +439,7 @@
   },
   "pins": {
     "mode": "shared",
+    "matches": {},
     "shared": [],
     "hyprdock": [],
     "hyprbar": []
