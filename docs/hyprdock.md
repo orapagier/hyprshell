@@ -140,7 +140,8 @@ workspace filter and overrides. Invalid settings retain the last saved layout.
 New fields inherit defaults when loading old preferences and use the existing
 transaction, setup, backup/restore and sync paths; no new settings file is added.
 Classic Hyprbar and full three-component placement remain in later phases.
-Minimize/Show Desktop remain deferred.
+Individual minimize controls remain deferred. The optional
+[Show Desktop shortcut](show-desktop.md) is now available, with persistent recovery.
 
 ## Phase 5 validation — 2026-10-16
 

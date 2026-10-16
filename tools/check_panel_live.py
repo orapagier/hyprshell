@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Opt-in layer-shell smoke check on a temporary live Hyprland headless output."""
+"""Opt-in layer-shell smoke check on a temporary or selected live Hyprland output."""
 import argparse
 import itertools
 import json
@@ -124,20 +124,35 @@ def main():
     parser.add_argument('--run', action='store_true', help='create and remove a temporary virtual output')
     parser.add_argument('--checks', choices=('geometry', 'behavior', 'all'), default='geometry',
                         help='include visibility, menus and reservation checks with injected window data')
+    parser.add_argument('--output', help='reuse an existing output without changing its mode or removing it')
+    parser.add_argument('--scale', type=float, choices=(1, 1.25, 1.5, 2),
+                        help='test this scale on the temporary output only')
     args = parser.parse_args()
     if not __debug__:
         parser.error('run without Python optimization so geometry assertions remain enabled')
     if not args.run:
         parser.error('--run is required; this check briefly adds a live virtual output')
+    if args.output and args.scale:
+        parser.error('--scale applies only to a temporary output')
     before = {m['name'] for m in monitors()}
     output = None
     process = None
     try:
-        hypr('output', 'create', 'headless')
-        added = wait_for(lambda: [m for m in monitors() if m['name'] not in before], 'virtual output')
-        if len(added) != 1:
-            raise RuntimeError('Cannot uniquely identify the temporary output')
-        output = added[0]
+        if args.output:
+            output = next((m for m in monitors() if m['name'] == args.output), None)
+            if output is None:
+                raise RuntimeError('Requested output is unavailable')
+        else:
+            hypr('output', 'create', 'headless')
+            added = wait_for(lambda: [m for m in monitors() if m['name'] not in before], 'virtual output')
+            if len(added) != 1:
+                raise RuntimeError('Cannot uniquely identify the temporary output')
+            output = added[0]
+        if args.scale:
+            hypr('eval', 'hl.monitor({output='+json.dumps(output['name'])+
+                 ',mode="preferred",position="auto",scale='+str(args.scale)+'})')
+            output = wait_for(lambda: next((m for m in monitors() if m['name']==output['name']
+                                           and m['scale']==args.scale), None), 'virtual output scale')
         with tempfile.TemporaryDirectory(prefix='hyprshell-panel-live-') as directory:
             root = Path(directory)
             target = root / 'config/hyprshell/settings.json'
@@ -226,10 +241,11 @@ def main():
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=5)
-        if output is not None:
+        if output is not None and not args.output:
             hypr('output', 'remove', output['name'])
             wait_for(lambda: output['name'] not in {m['name'] for m in monitors()}, 'output removal')
-    print(f'Live {args.checks} checks passed; temporary output removed.')
+    suffix = 'existing output preserved' if args.output else 'temporary output removed'
+    print(f'Live {args.checks} checks passed; {suffix}.')
 
 
 if __name__ == '__main__':

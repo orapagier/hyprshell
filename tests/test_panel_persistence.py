@@ -52,7 +52,7 @@ def preferences(layout, disjoint=False):
                          backgroundOpacity=0.57, marginEdge=11, paddingStart=9,
                          paddingEnd=15, iconSize=19, spacing=7,
                          hideMode='dodge' if name == 'hyprdock' else 'auto-hide',
-                         showFiles=True, showTrash=True, showSettings=True,
+                         showFiles=True, showTrash=True, showSettings=True, showDesktop=True,
                          fullscreenPolicy='show', rightItems=['audio', 'calendar', 'tray'],
                          windowWorkspaceScope='current', windowMonitorScope='all')
     data['panels']['hyprbar'].update(grouped=False, spacingRight=12)

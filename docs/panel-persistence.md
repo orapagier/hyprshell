@@ -77,3 +77,39 @@ desktop restore, system upgrade or fresh-VM install. The separate live panel
 visibility/reservation slice is documented in
 [panel coexistence](panel-coexistence.md#live-visibility-and-reservations-2026-10-17).
 Phases 7 and 8 remain open for their remaining physical and system acceptance.
+
+## Final software validation (2026-10-17)
+
+The persistence matrix passed all eight tests again with Show Desktop enabled
+in both app-panel fixtures, including 40 fresh-deployment layouts. Its default
+is false; legacy configurations inherit that value. Sixteen panel configuration
+checks, twelve backend/native Show Desktop checks and native runtime validation
+passed. The full Qt run passed 280 tests; after four new Dock cases were added,
+the focused Dock run passed all 42 tests.
+
+With `QT_LOGGING_RULES=qml.debug=true`, the broad Python discovery run executed
+544 tests with three failures, one error and one skip. All four unsuccessful
+cases were reproduced from unchanged HEAD in a temporary checkout:
+
+- Daily-driver first-run guide completion fixture failed.
+- Settings search/navigation fixture failed (the failing step varies).
+- System-plan manifest package categorization failed.
+- Projector UI fixture could not load the missing `ProjectorNative.qml`.
+
+These existing issues remain outside this panel change; the full required suite
+is not green. Local logs are in `state/hyprshell/panel-acceptance/full-tests.log`.
+Current real-window, scaling and Show Desktop evidence supersedes the earlier
+pending statements for those checks; see [real-session checks](panel-coexistence.md#real-session-and-show-desktop-2026-10-17).
+Physical external-display, native tray-input and fresh-VM acceptance still remain.
+
+
+## Desktop sign-off (2026-10-17)
+
+The connected external-display continuation passed; see
+[external acceptance](panel-coexistence.md#external-display-and-plan-closure-2026-10-17).
+The user requested plan closure and a local commit after that check, accepting
+the remaining validation limits. The four reproduced baseline suite issues above,
+fresh-VM install/update/recovery, native tray-input and physical cable-cycle checks
+are deferred follow-up, rather than blockers for this desktop plan. All eight
+implementation phases are signed off under that scope; no full-suite or fresh-OS
+pass is claimed.

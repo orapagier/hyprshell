@@ -78,6 +78,18 @@ Item {
         }
         function edge(value) { let next=Settings.copy(scene.config); next.panels.hyprdock.position=value; scene.config=next; }
         function test_utilities_data() { return ['top','bottom','left','right'].map(e=>({tag:e,edge:e})); }
+        function test_showDesktop_data() { return test_utilities_data(); }
+        function test_showDesktop(data) {
+            let next=Settings.copy(scene.config);
+            Object.assign(next.panels.hyprdock,{position:data.edge,showDesktop:true});
+            scene.config=next; wait(30);
+            let entry=dock.entries.find(e=>e.key==='desktop');
+            verify(!!entry); compare(entry.name,'Show Desktop');
+            dock.activate(entry,dock); compare(scene.request,'desktop');
+            dock.desktopHidden=true;
+            compare(dock.entries.find(e=>e.key==='desktop').name,'Restore desktop windows');
+            dock.desktopHidden=false;
+        }
         function test_utilities(data) {
             let next=Settings.copy(scene.config);
             Object.assign(next.panels.hyprdock,{position:data.edge,showFiles:true,showSettings:true,showTrash:true});

@@ -18,6 +18,18 @@ class PanelConfigurationTests(unittest.TestCase):
     def setUp(self):
         self.data = copy.deepcopy(backend.DEFAULTS)
 
+    def test_show_desktop_is_optional_and_strictly_boolean_on_both_app_panels(self):
+        for name in ('hyprdock', 'hyprbar'):
+            data = copy.deepcopy(self.data)
+            data['panels'][name].pop('showDesktop')
+            self.assertFalse(backend.validate(data)['panels'][name]['showDesktop'])
+            data['panels'][name]['showDesktop'] = True
+            self.assertTrue(backend.validate(data)['panels'][name]['showDesktop'])
+            for invalid in (1, 'yes', None):
+                data['panels'][name]['showDesktop'] = invalid
+                with self.subTest(panel=name, value=invalid), self.assertRaises(ValueError):
+                    backend.validate(data)
+
     def test_legacy_payload_preserves_every_existing_preference(self):
         for path in (ROOT / 'config/hyprshell/settings.json',):
             legacy = json.loads(path.read_text())

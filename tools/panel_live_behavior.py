@@ -16,7 +16,17 @@ QML_CONTROL = '''
         onTriggered: {
             if (!shell.control.id) return;
             for (let window of docks.instances.concat(taskbars.instances)) {
-                if (shell.control.action === 'open' && window.component === shell.control.component)
+                if (shell.control.action === 'inspect') continue;
+                if (shell.control.action === 'desktop' && window.component === shell.control.component) {
+                    let dock = null;
+                    for (let surface of window.data) {
+                        dock = surface?.contentItem?.children.find(child => child.entries !== undefined && child.activate !== undefined);
+                        if (dock) break;
+                    }
+                    let entry = dock?.entries.find(entry => entry.key === 'desktop');
+                    if (!entry) throw new Error('Show Desktop control is missing');
+                    dock.activate(entry, dock);
+                } else if (shell.control.action === 'open' && window.component === shell.control.component)
                     window.toggleLauncher();
                 else window.closeMenu();
             }
@@ -30,9 +40,15 @@ QML_CONTROL = '''
             for (let window of docks.instances.concat(taskbars.instances)) {
                 let state = window.children.find(child => child.reserve !== undefined && child.revealed !== undefined);
                 if (!state) throw new Error('Cannot find production DockVisibility');
+                let popup = window.data.find(child => child?.taskGroups !== undefined);
                 states[window.component] = {eligible:window.shown, shown:state.shown,
                     reserve:state.reserve, suppressed:state.suppressed,
                     fullscreen:window.fullscreen, overlapped:window.overlapped,
+                    menuOpen:!!popup?.opened,
+                    menuExclusive:!!popup && popup.WlrLayershell.keyboardFocus === WlrKeyboardFocus.Exclusive,
+                    desktopHidden:window.showDesktop?.hidden || false,
+                    desktopBusy:window.showDesktop?.busy || false,
+                    desktopError:window.showDesktop?.error || '',
                     workspace:window.workspace, rect:window.dockRect,
                     mode:window.panel.hideMode, policy:window.panel.fullscreenPolicy};
             }

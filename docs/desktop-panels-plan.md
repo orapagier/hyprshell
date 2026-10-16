@@ -1,16 +1,17 @@
 # Hyprpane, Hyprdock, and Hyprbar: phased implementation plan
 
-Status: Phases 1–6 implemented on 2026-10-16 at the user’s request. Phase 7's
-menu slice and Phase 8's settings preview/preset and persistence transaction
-slices are implemented; physical acceptance work requires a later task. Each
-phase should leave a usable desktop and a reviewable result. See
+Status: complete for the user's desktop, with explicitly accepted validation
+limits (2026-10-17). All eight implementation phases are delivered. The user
+requested a final connected external-display test and local commit, and chose
+to defer the other acceptance gates. This is desktop sign-off, not fresh-OS or
+release certification. See the final acceptance decision below and
 [Phase 1 configuration](panel-configuration.md)
 for the compatibility contract and validation record. Phase 3 behavior and
 validation limits are recorded in [Shared applications and windows](application-support.md).
 Phase 4–5 behavior and validation limits are recorded in [Hyprdock](hyprdock.md).
 Phase 6 behavior and validation limits are recorded in [Classic Hyprbar](hyprbar.md).
-Phase 7's menu coexistence slice is implemented; its remaining acceptance work
-is recorded in [Panel coexistence](panel-coexistence.md).
+Phase 7's menu coexistence and final acceptance evidence are recorded in
+[Panel coexistence](panel-coexistence.md).
 
 Live acceptance increment (2026-10-17): Hyprland IPC and the installed shell are
 accessible. A temporary headless output passed production panel
@@ -18,7 +19,8 @@ layer-shell geometry checks for all 36 distinct-edge arrangements across the
 three allowed pairs at scale 2, including both Hyprpane pairs.
 The opt-in verifier and exact limits are recorded in
 [Panel coexistence](panel-coexistence.md#live-geometry-increment-2026-10-17).
-Phases 7 and 8 remain open.
+At this earlier checkpoint, Phases 7 and 8 remained open; final sign-off is
+recorded below.
 
 Visibility/recovery increment (2026-10-17): the isolated live fixture now checks
 app-panel hide modes, menu-held visibility, 3 px reveal strips and compositor
@@ -26,8 +28,30 @@ reservations on all four edges, with injected overlap/fullscreen window data and
 current-workspace visibility overrides. Native settings and recovery UI checks
 also run successfully. See [behavior acceptance](panel-coexistence.md#live-visibility-and-reservations-2026-10-17)
 and [recovery retest](panel-persistence.md#native-settings-and-recovery-retest-2026-10-17).
-Actual workspace switching, physical input/fullscreen/hotplug and fresh-VM checks
-remain separate; neither phase is marked complete by these isolated checks.
+The real-session continuation below supplies actual workspace, reveal/input and
+fullscreen evidence; neither phase is marked complete by the isolated checks.
+
+## Final acceptance decision (2026-10-17)
+
+The latest implementation and live checks are documented in
+[Show Desktop](show-desktop.md) and
+[real-session acceptance](panel-coexistence.md#real-session-and-show-desktop-2026-10-17).
+Native pointer reveal and Escape dismissal cover both app panels on every edge;
+actual workspace transitions, fullscreen policies and virtual output removal are
+exercised with disposable windows. The all-pairs geometry matrix passes at scales
+1, 1.25 and 2. Saved layout, pins and shortcuts are preserved.
+
+The connected HDMI-A-1 external monitor (1440×900, scale 1) passed the
+36-case pair geometry matrix. Physical-output real-window/input results are
+recorded in [external-display acceptance](panel-coexistence.md#external-display-and-plan-closure-2026-10-17).
+The check also found and fixed a Lua startup monitor/workspace initialization
+race; native startup coverage now verifies both connected outputs.
+
+The user explicitly accepted deferring cable unplug/replug cycling, visible
+native tray-menu input, fresh Fedora VM install/update/recovery, and the four
+reproduced baseline suite issues listed in [panel persistence](panel-persistence.md).
+These are recorded limitations, not passing results. They no longer block this
+user-requested plan closure and local commit. No release-readiness claim is made.
 
 ## Names and agreed behavior
 
@@ -202,8 +226,9 @@ Phase 6 refinements. The menu coexistence slice now protects neighbouring panel
 edges and reveal strips from menu input masks, bounds popovers to the available
 area, coordinates hover/tray menus, and closes stale menus on workspace/layout
 changes. Automated coverage exercises all three pairs across 36 distinct-edge
-arrangements. Show Desktop and physical layer-shell/hotplug acceptance remain
-pending; Phase 7 is intentionally not checked off. See [validation and scope](panel-coexistence.md).
+arrangements. The later real-session continuation implements Show Desktop;
+the earlier physical acceptance gates are resolved or deferred by the final user
+decision above. See [validation and scope](panel-coexistence.md).
 
 - Add optional workspace switcher, system tray, clock/calendar, notifications,
   Settings, and Show Desktop using existing services and controls where possible.
@@ -227,8 +252,9 @@ Apply layout preset submits component enablement and selected edges together
 through the existing settings transaction. Personal styling, pins, items,
 monitor/workspace scopes and overrides survive. See [layout settings](panel-layout-settings.md).
 The persistence/deployment transaction matrix is now covered by isolated
-integration checks; see [panel persistence](panel-persistence.md). Physical and
-fresh-VM acceptance remain pending; these slices do not mark Phase 7 or Phase 8 complete.
+integration checks; see [panel persistence](panel-persistence.md). Those slices
+alone did not complete acceptance; the final user decision above closes Phases
+7 and 8 with the remaining checks explicitly deferred.
 
 - Finish searchable settings for Hyprpane, Hyprdock, and Hyprbar, including live
   layout previews and explicit presets that retain personal customizations.
@@ -264,5 +290,5 @@ without explicit authorization. Saving this plan is a documentation-only task.
 - [x] Phase 4: Hyprdock core
 - [x] Phase 5: Hyprdock utilities and visibility
 - [x] Phase 6: Classic Hyprbar core
-- [ ] Phase 7: Classic Hyprbar controls and coexistence
-- [ ] Phase 8: Settings, persistence, and final validation
+- [x] Phase 7: Classic Hyprbar controls and coexistence
+- [x] Phase 8: Settings, persistence, and final validation

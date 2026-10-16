@@ -164,3 +164,90 @@ The live scale-2 run passed eight always-visible baselines and 88 subsequent
 transitions. Eleven verifier tests, nine Qt visibility checks and native panel
 layout/workspace settings tests passed. No runtime QML or real saved preferences
 changed. The temporary shell/output are removed and the original shell remains.
+
+## Real session and Show Desktop (2026-10-17)
+
+`python3 tools/check_panel_session.py --run --wtype /path/to/wtype` loads
+production panel composition with native toplevel tracking on a temporary output.
+It creates two disposable windows and isolates settings and recovery state.
+Actual fullscreen Hide/Show policies, workspace switches and panel restoration
+pass. Pointer reveal on every edge and Escape dismissal of the production
+launcher pass for both Hyprdock and Hyprbar. Escape is sent only after the
+fixture reports its own exclusive keyboard focus. Focus, pointer and temporary
+output cleanup are restored afterward.
+
+The production Show Desktop button and shared controller pass a hide/restore
+round trip. Real pinned/fullscreen windows restore across controller restart;
+closed hidden windows and removal of their virtual output recover successfully.
+These checks found and fixed stale monitor workspace state after focus restoration
+and null output access during hotplug teardown. The helper journals origins
+before moving windows and retains partial failures for retry; see
+[Show Desktop](show-desktop.md) for recovery and scope. Both app-panel controls
+default off, and existing shortcuts are preserved.
+
+The 36-case production geometry matrix passes at scales 1, 1.25 and 2. Optional
+`--screenshots DIR` records local evidence. The separately running installed
+Hyprpane can appear on the temporary output in these isolated screenshots; they
+are not independent visual sign-off of every pair. Test state and screenshots
+remain outside Git.
+
+`python3 tools/check_panel_tray.py --run` registers a private, harmless tray
+provider. Production Hyprpane routing reaches its native D-Bus menu and retrieves
+its layout. A programmatic request did not produce a visible menu in the captured
+image, so visible native tray popups and their input remain unverified. This
+diagnostic does not certify Escape delivery or the Hyprbar tray path.
+
+Physical connector hotplug, external-display interaction, native tray input and
+fresh Fedora install/update/recovery remain open. Virtual outputs cannot certify
+those conditions. Phases 7 and 8 remain open for these gates and the baseline
+required-check failures recorded in [panel persistence](panel-persistence.md).
+
+The reviewed runtime changes are applied to the checkout and matching live
+`~/.config/quickshell` files. Prior copies and a checksum manifest are under
+`state/hyprshell/backups/desktop-panels-20261016T223424Z`. Saved personal settings
+were byte-for-byte preserved. The existing shell reload action loaded the new
+`bar.restoreDesktop` method; `bar.ready` returns true and `hyprctl configerrors`
+is empty. The original shell process and physical monitor layout remain intact.
+
+## External display and plan closure (2026-10-17)
+
+At the user's request, final acceptance used the connected HDMI-A-1 monitor at
+1440×900, scale 1, positioned beside eDP-1. These commands reuse the output and
+never change its mode or remove it:
+
+```bash
+python3 tools/check_panel_live.py --run --output HDMI-A-1
+python3 tools/check_panel_session.py --run --output HDMI-A-1 --wtype /path/to/wtype --screenshots /local/evidence
+```
+
+All 36 production pair/edge geometries passed. On an unused temporary workspace,
+real fullscreen Hide/Show policies, workspace visibility restoration, pointer
+reveal and Escape dismissal on all four edges of both app panels passed. The
+production Show Desktop button restored its disposable windows; pinned/fullscreen
+state, controller restart and closure of a hidden window also passed. Existing
+windows were left on their original workspaces. The original external workspace
+2, laptop workspace 1, focus and pointer were restored. The physical output was
+kept connected; cable unplug/replug cycling was not performed.
+
+This check exposed a startup race: Quickshell can detect Lua IPC support after
+its initial legacy queries, leaving monitors/workspaces unresolved. The shared
+ApplicationService now refreshes workspace/monitor data at startup and after Lua
+detection, and continues coalescing later events. The new native
+`tests/test_panel_monitors.py` confirms initial workspace resolution on both
+outputs without a workspace-switch event. After deployment/reload, installed
+panels correctly respect saved scopes: only Hyprpane appears on current workspaces
+1 and 2, and both outputs reserve only their expected 37 px top band. The shell
+reports ready and Hyprland reports no configuration errors.
+
+The startup regression, six adjacent application-service checks and eleven live
+verifier checks passed. Current Python sources compile and `git diff --check`
+passes. External-output images remain in local acceptance state, outside Git.
+The service update was backed up under
+`state/hyprshell/backups/panel-monitor-startup-20261016T225544Z` and applied to both
+checkout and live config; saved personal settings and physical modes are retained.
+
+The user requested ending the plan and committing after this external-display
+check. Phases 7 and 8 are therefore signed off for this desktop with the remaining
+native tray-input, cable-cycle, fresh-VM and baseline full-suite issues explicitly
+deferred. Earlier open-gate statements above describe the preceding checkpoints.
+These deferred checks are not reported as passes or as release certification.

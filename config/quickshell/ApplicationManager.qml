@@ -16,6 +16,19 @@ ColumnLayout {
     readonly property var selected: rows.find(w => w.address === selectedAddress) || null
     readonly property var appChoices: service.entries.map(e => ({id: Apps.desktopId(e), name: e.name + ' — ' + Apps.desktopId(e)}))
     spacing: 6
+    MenuButton {
+        objectName:'restoreDesktopWindows'
+        Layout.fillWidth:true
+        visible:!!manager.service.desktop?.hidden
+        text:'Restore desktop windows'
+        enabled:!manager.service.desktop?.busy
+        onClicked:manager.service.desktop.run('restore')
+    }
+    Text {
+        Layout.fillWidth:true; wrapMode:Text.Wrap; color:'#f38ba8'
+        visible:!!manager.service.desktop?.error
+        text:manager.service.desktop?.error || ''
+    }
     ColumnLayout {
         Layout.fillWidth: true
         SettingsComboBox {

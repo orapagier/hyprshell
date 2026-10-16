@@ -9,6 +9,8 @@ import "SettingsModel.js" as Settings
 Item {
     id: service
     required property var store
+    readonly property var desktop: desktopControl
+    ShowDesktop { id: desktopControl }
     // Injectable inputs also let native checks exercise lifecycle without actions.
     property bool geometryTracking: false
     property var entries: DesktopEntries.applications.values.slice().sort((a, b) => a.name.localeCompare(b.name))
@@ -26,7 +28,11 @@ Item {
     onWindowsChanged: scheduleRows()
     onEntriesChanged: scheduleRows()
     onMatchesChanged: scheduleRows()
-    Component.onCompleted: scheduleRows()
+    Component.onCompleted: {
+        scheduleRows();
+        Hyprland.refreshWorkspaces();
+        refreshOutputs.restart();
+    }
     readonly property bool busy: writer.running
     property string error: ""
     signal windowSelectionRequested(var group)
@@ -132,7 +138,17 @@ Item {
     // Coalesce compositor events; there is no periodic client-list polling.
     Connections {
         target: Hyprland
+        // Lua detection can finish after the initial legacy IPC requests. Read
+        // output/workspace state again once the compositor API is known.
+        function onUsingLuaChanged() {
+            Hyprland.refreshWorkspaces();
+            refreshOutputs.restart();
+            refresh.restart();
+        }
         function onRawEvent(event) {
+            if (['workspace', 'workspacev2', 'focusedmon', 'focusedmonv2', 'monitoradded',
+                 'monitoraddedv2', 'monitorremoved', 'monitorremovedv2', 'configreloaded'].includes(event.name))
+                refreshOutputs.restart();
             if (['openwindow', 'closewindow', 'movewindow', 'movewindowv2', 'windowtitle', 'windowtitlev2',
                  'activewindow', 'activewindowv2', 'urgent', 'monitoradded', 'monitorremoved',
                  'fullscreen', 'changefloatingmode', 'workspace', 'workspacev2', 'focusedmon'].indexOf(event.name) >= 0)
@@ -147,4 +163,7 @@ Item {
         onTriggered: Hyprland.refreshToplevels()
     }
     Timer { id: refresh; interval: 60; onTriggered: Hyprland.refreshToplevels() }
+    // Workspace events can race focus restoration on another output. Read the
+    // final monitor state so panels follow that output's active workspace.
+    Timer { id: refreshOutputs; interval: 60; onTriggered: Hyprland.refreshMonitors() }
 }

@@ -295,6 +295,7 @@ ShellRoot {
     }
     IpcHandler {
         target: "bar"
+        function restoreDesktop(): void { applications.desktop.run('restore'); }
         function ready(): bool {
             if (panels.instances.length === 0) return false;
             for (let panel of panels.instances) if (panel.visible && !panel.backingWindowVisible) return false;

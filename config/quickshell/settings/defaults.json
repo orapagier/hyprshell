@@ -428,6 +428,7 @@
       "showFiles": false,
       "showSettings": false,
       "showTrash": false,
+      "showDesktop": false,
       "grouped": true,
       "windowWorkspaceScope": "all",
       "windowMonitorScope": "all",
@@ -466,7 +467,8 @@
       "fullscreenPolicy": "hide",
       "showFiles": false,
       "showSettings": false,
-      "showTrash": false
+      "showTrash": false,
+      "showDesktop": false
     }
   },
   "pins": {

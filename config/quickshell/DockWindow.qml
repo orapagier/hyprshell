@@ -13,6 +13,8 @@ Item {
     required property var config
     required property var utilities
     property var desktopServices: null
+    property var showDesktop: service.desktop || null
+    property bool desktopRequested: false
     property var inbox: null
     property var statusData: ({workspaces:[],audio:{},network:{},bluetooth:{},battery:{}})
     property var mediaData: ({playing:false,levels:[],title:'',tooltip:''})
@@ -27,12 +29,12 @@ Item {
     readonly property var panel: config.panels[component]
     readonly property string edge: panel.position
     readonly property bool vertical: edge === 'left' || edge === 'right'
-    readonly property var monitor: Hyprland.monitorFor(output)
+    readonly property var monitor: output?.name ? Hyprland.monitorFor(output) : null
     readonly property var workspace: monitor && monitor.activeWorkspace ? monitor.activeWorkspace.id : null
-    readonly property bool shown: Settings.panelVisible(config,component,output.name,workspace)
+    readonly property bool shown: !!output?.name && Settings.panelVisible(config,component,(output?.name || ''),workspace)
     readonly property bool launcherAvailable: shown && !visibility.suppressed
-    readonly property var insets: Model.insets(config,component,output.name,workspace,paneThickness)
-    readonly property rect menuBounds: Model.menuBounds(config,component,output.name,workspace,paneThickness,output.width,output.height)
+    readonly property var insets: Model.insets(config,component,(output?.name || ''),workspace,paneThickness)
+    readonly property rect menuBounds: Model.menuBounds(config,component,(output?.name || ''),workspace,paneThickness,(output?.width || 1),(output?.height || 1))
     readonly property rect dockRect: Qt.rect(dock.x+rail.originX,dock.y+rail.originY,dock.width,dock.height)
     readonly property var clients: { let revision = service.windowRows; return service.windows; }
     readonly property bool fullscreen: clients.some(w => w.workspace && w.workspace.id === workspace
@@ -50,6 +52,16 @@ Item {
         onSuppressedChanged: if (suppressed) { window.closeMenu(); if (dock) dock.draggingId = ''; }
     }
     MenuController { id:statusState }
+    Connections {
+        target: window.showDesktop
+        function onActionFinished(success) {
+            if (window.desktopRequested) {
+                window.desktopRequested = false;
+                if (!success && window.shown)
+                    popup.open('manage','',window.dockRect);
+            }
+        }
+    }
     function closeMenu() { if (popup) popup.dismiss(); statusState.close(); }
     function toggleLauncher() {
         statusState.close();
@@ -67,8 +79,8 @@ Item {
         screen: window.output
         visible: window.shown
         color:'transparent'
-        readonly property real originX: window.edge === 'right' ? screen.width-margins.right-width : margins.left
-        readonly property real originY: window.edge === 'bottom' ? screen.height-margins.bottom-height : margins.top
+        readonly property real originX: window.edge === 'right' ? (screen?.width || 1)-margins.right-width : margins.left
+        readonly property real originY: window.edge === 'bottom' ? (screen?.height || 1)-margins.bottom-height : margins.top
         anchors { top:window.edge !== 'bottom'; bottom:window.edge !== 'top'; left:window.edge !== 'right'; right:window.edge !== 'left' }
         margins {
             left:window.edge === 'left' ? window.panel.marginEdge : !window.vertical ? window.panel.marginEnds : 0
@@ -76,8 +88,8 @@ Item {
             top:window.edge === 'top' ? window.panel.marginEdge : window.vertical ? window.insets.top + window.panel.marginEnds : 0
             bottom:window.edge === 'bottom' ? window.panel.marginEdge : window.vertical ? window.insets.bottom + window.panel.marginEnds : 0
         }
-        implicitWidth:window.vertical ? dock.thickness : window.output.width - 2*window.panel.marginEnds
-        implicitHeight:window.vertical ? Math.max(1,window.output.height-window.insets.top-window.insets.bottom-2*window.panel.marginEnds) : dock.thickness
+        implicitWidth:window.vertical ? dock.thickness : (window.output?.width || 1) - 2*window.panel.marginEnds
+        implicitHeight:window.vertical ? Math.max(1,(window.output?.height || 1)-window.insets.top-window.insets.bottom-2*window.panel.marginEnds) : dock.thickness
         mask: Region { x:dock.x; y:dock.y; width:dock.width; height:visibility.shown ? dock.height : 0 }
         exclusiveZone:visibility.reserve ? Model.thickness(window.panel) + window.panel.windowGap : 0
         exclusionMode:visible ? ExclusionMode.Normal : ExclusionMode.Ignore
@@ -94,22 +106,27 @@ Item {
             opacity: visibility.shown ? 1 : 0
             enabled: visibility.shown
             trashFull: window.utilities.full
+            desktopHidden: window.showDesktop?.hidden || false
             wallpaperSource:window.wallpaperSource
-            screenWidth:window.output.width; screenHeight:window.output.height
+            screenWidth:(window.output?.width || 1); screenHeight:(window.output?.height || 1)
             screenOffsetX:rail.originX+dock.x; screenOffsetY:rail.originY+dock.y
             HoverHandler { id: dockHover }
             Behavior on opacity { NumberAnimation { duration: window.config.accessibility?.reducedMotion || window.panel.animations === false ? 0 : 140 } }
             onUtilityRequested: (key,context,rect) => {
-                if (key === 'settings') { window.closeMenu(); window.settingsRequested(); }
+                if (key === 'desktop') {
+                    window.closeMenu();
+                    window.desktopRequested = window.showDesktop?.run('toggle', (window.output?.name || '')) || false;
+                }
+                else if (key === 'settings') { window.closeMenu(); window.settingsRequested(); }
                 else if (key === 'trash' && context) {
                     window.utilities.refresh();
                     popup.open('trash','',Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height));
                 } else window.utilities.run(key);
             }
             width:implicitWidth; height:implicitHeight
-            component:window.component; outputName:window.output.name; workspace:window.workspace
+            component:window.component; outputName:(window.output?.name || ''); workspace:window.workspace
             service:window.service; config:window.config
-            maximumLength:Math.max(1, (window.vertical ? rail.screen.height-window.insets.top-window.insets.bottom : rail.screen.width) - 2*window.panel.marginEnds)
+            maximumLength:Math.max(1, (window.vertical ? (rail.screen?.height || 1)-window.insets.top-window.insets.bottom : (rail.screen?.width || 1)) - 2*window.panel.marginEnds)
             onInteractionStarted: { statusState.close(); window.interactionStarted(); }
             onDismissRequested: popup.dismiss()
             onItemHovered:(kind,key,rect) => popup.hoverItem(kind,key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
@@ -155,8 +172,8 @@ Item {
                 height:window.vertical ? contentLength : statusViewport.height
                 statusData:window.statusData; mediaData:window.mediaData; notificationData:window.notificationData
                 trayModel:window.trayModel; clockText:window.clockText
-                outputName:window.output.name; wallpaperSource:window.wallpaperSource
-                screenWidth:window.output.width; screenHeight:window.output.height
+                outputName:(window.output?.name || ''); wallpaperSource:window.wallpaperSource
+                screenWidth:(window.output?.width || 1); screenHeight:(window.output?.height || 1)
                 screenOffsetX:rail.originX+statusViewport.x-statusViewport.contentX
                 screenOffsetY:rail.originY+statusViewport.y-statusViewport.contentY
                 activeMenu:statusState.section
@@ -215,8 +232,8 @@ Item {
         visible: window.shown && !visibility.suppressed && window.panel.hideMode !== 'always'
         color: 'transparent'
         anchors { top:window.edge !== 'bottom'; bottom:window.edge !== 'top'; left:window.edge !== 'right'; right:window.edge !== 'left' }
-        implicitWidth:window.vertical ? 3 : window.output.width
-        implicitHeight:window.vertical ? window.output.height : 3
+        implicitWidth:window.vertical ? 3 : (window.output?.width || 1)
+        implicitHeight:window.vertical ? (window.output?.height || 1) : 3
         exclusionMode:ExclusionMode.Ignore
         WlrLayershell.layer:WlrLayer.Overlay
         WlrLayershell.namespace:window.component === 'hyprbar' ? 'hyprshell-taskbar-reveal' : 'hyprshell-dock-reveal'

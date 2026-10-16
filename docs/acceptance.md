@@ -71,3 +71,22 @@ A clean Fedora VM install and physical acceptance are **pending**. This agent
 has no usable VM tooling/KVM device and cannot access desktop service/compositor
 sockets. Some native Quickshell process tests also fail in this sandbox on the
 unchanged baseline; these results do not certify session health.
+
+## Desktop panels continuation (2026-10-17)
+
+Live Hyprland IPC and native Quickshell tests are accessible in this session.
+Only the laptop output is connected. `/dev/kvm` is available, but no QEMU or
+virt-install runner or provisioned disposable Fedora VM was found. The panel
+geometry, real-window and persistence results are recorded in
+[panel coexistence](panel-coexistence.md) and [panel persistence](panel-persistence.md).
+They do not replace fresh-OS install/update/recovery or physical external-display
+acceptance. Those gates remain open; the full installer was not run on the laptop.
+
+
+The subsequent connected HDMI-A-1 acceptance passed the 36-case geometry matrix,
+real-window/fullscreen/workspace checks, all eight reveal/Escape cases and Show
+Desktop recovery. The user requested desktop-plan closure and a local commit,
+with remaining fresh-VM, native tray-input, cable-cycle and baseline suite issues
+deferred. See [final panel sign-off](panel-coexistence.md#external-display-and-plan-closure-2026-10-17).
+This closes the desktop panels plan only; broader installation/release acceptance
+in this document keeps its existing limits.

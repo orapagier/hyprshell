@@ -218,6 +218,16 @@ SettingsCard {
     }
 
     SettingsSwitch {
+        objectName:'showDesktopControl'
+        Layout.fillWidth:true; text:'Show Desktop shortcut'; checked:editor.settings.showDesktop === true
+        onToggled:editor.edited('showDesktop',checked)
+    }
+    Text {
+        Layout.fillWidth:true; wrapMode:Text.WordWrap; color:Style.Theme.muted
+        text:'Show Desktop hides windows on this output’s current workspace, including pinned windows. Click again on either panel to restore them. Recovery remains available after restarting the shell.'
+    }
+
+    SettingsSwitch {
         Layout.fillWidth:true; text:'Show Settings shortcut'; checked:editor.settings.showSettings === true
         onToggled:editor.edited('showSettings',checked)
     }

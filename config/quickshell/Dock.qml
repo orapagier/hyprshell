@@ -20,10 +20,12 @@ FocusScope {
     readonly property var launcherStyle: Settings.appearance(config,'launcher',wallpaperSource.toString())
     readonly property var settingsStyle: Settings.appearance(config,'settings',wallpaperSource.toString())
     property bool trashFull: false
+    property bool desktopHidden: false
     readonly property var utilities: [
         {key:'files',name:'Files',utility:true,icon:'system-file-manager',windows:[]},
         {key:'settings',name:'Settings',utility:true,icon:'preferences-system',windows:[]},
-        {key:'trash',name:trashFull ? 'Trash (full)' : 'Trash (empty)',utility:true,icon:trashFull ? 'user-trash-full' : 'user-trash',windows:[]}
+        {key:'trash',name:trashFull ? 'Trash (full)' : 'Trash (empty)',utility:true,icon:trashFull ? 'user-trash-full' : 'user-trash',windows:[]},
+        {key:'desktop',name:desktopHidden ? 'Restore desktop windows' : 'Show Desktop',utility:true,icon:desktopHidden ? 'view-restore' : 'user-desktop',windows:[]}
     ].filter(e => panel['show' + e.key[0].toUpperCase() + e.key.slice(1)] === true)
     readonly property var entries: [{key:'launcher', name:'Applications', launcher:true, windows:[]}].concat(groups, utilities)
     readonly property real thickness: Model.thickness(panel)
@@ -57,7 +59,7 @@ FocusScope {
     property string draggingId: ''
     property string focusedKey: 'launcher'
     onEntriesChanged: Qt.callLater(() => {
-        if (dock.activeFocus) dock.focusIndex(Math.max(0,dock.entries.findIndex(entry => entry.key === dock.focusedKey)));
+        if (dock && dock.activeFocus) dock.focusIndex(Math.max(0,dock.entries.findIndex(entry => entry.key === dock.focusedKey)));
     })
     property point dragPoint: Qt.point(0, 0)
     signal utilityRequested(string key, bool context, rect trigger)

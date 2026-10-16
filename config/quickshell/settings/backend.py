@@ -335,7 +335,7 @@ def validate_panels(data, result):
                 raise ValueError(f'Invalid {name} alignment')
             if target['fullscreenPolicy'] not in ('hide', 'show'):
                 raise ValueError(f'Invalid {name} fullscreen policy')
-            for key in ('indicators', 'animations', 'showFiles', 'showSettings', 'showTrash'):
+            for key in ('indicators', 'animations', 'showFiles', 'showSettings', 'showTrash', 'showDesktop'):
                 if type(target[key]) is not bool:
                     raise ValueError(f'{name} {key} must be boolean')
     pins = data.get('pins', {})

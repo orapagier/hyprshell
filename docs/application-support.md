@@ -24,11 +24,11 @@ app**. **Automatic match** removes the correction for that window's class/app ID
 Corrections apply to all windows with the same identity, persist in
 `pins.matches`, and travel with settings backups and sync.
 
-No new minimize/restore or Show Desktop controls are exposed. Existing Super+H /
-Super+Shift+H behavior stays unchanged. This phase's focus action does not promise
-to restore a window hidden on a special workspace; the existing restore shortcut
-remains available. A durable, shared hidden-window recovery policy is required
-before adding those controls to app panels.
+Existing Super+H / Super+Shift+H behavior stays unchanged. The optional panel
+[Show Desktop control](show-desktop.md) now has a separate persistent recovery
+journal and an Apps & windows restore action. Ordinary window focus remains
+independent of that recovery transaction; individual minimize controls are still
+deferred.
 
 ## Shared contract
 
