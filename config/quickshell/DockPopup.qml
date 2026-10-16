@@ -7,24 +7,34 @@ import Quickshell.Wayland
 PanelWindow {
     id: popup
     required property var service
-    property string mode: ''
-    property string groupKey: ''
-    property rect triggerRect: Qt.rect(0,0,48,48)
+    readonly property string mode: menuState.mode
+    readonly property string groupKey: menuState.groupKey
+    readonly property rect triggerRect: menuState.triggerRect
+    property rect dockRect: Qt.rect(0,0,0,0)
     property string edge: 'bottom'
     property url wallpaperSource: ''
     readonly property var group: service.groups('hyprdock').find(g => g.key === groupKey) || null
     readonly property bool opened: !!mode
-    function dismiss() { mode = ''; }
-    function open(kind, key, rect) { groupKey = key; triggerRect = rect; mode = kind; }
+    function dismiss() { menuState.close(); }
+    function open(kind, key, rect) { menuState.activateItem(kind, key, rect); }
+    function hoverItem(kind, key, rect) { menuState.hoverItem(kind, key, rect); }
+    function leaveItem(kind, key, rect) { menuState.leaveItem(kind, key, rect); }
+    DockMenuController { id: menuState }
     onGroupChanged: if ((mode === 'group' || mode === 'previews') && (!group || (mode === 'previews' && !group.windows.length))) dismiss()
     onOpenedChanged: if (opened) scope.forceActiveFocus()
-    visible: opened
+    // Keep the surface mapped and the dock reachable while hovering neighboring items.
+    visible: true
     anchors { top:true; bottom:true; left:true; right:true }
     color: 'transparent'
     exclusionMode: ExclusionMode.Ignore
+    readonly property rect inputRect: edge === 'bottom' ? Qt.rect(0,0,width,dockRect.y)
+        : edge === 'left' ? Qt.rect(dockRect.x+dockRect.width,0,width-dockRect.x-dockRect.width,height)
+        : edge === 'right' ? Qt.rect(0,0,dockRect.x,height)
+        : Qt.rect(0,dockRect.y+dockRect.height,width,height-dockRect.y-dockRect.height)
+    mask: Region { x:popup.inputRect.x; y:popup.inputRect.y; width:Math.max(0,popup.inputRect.width); height:popup.opened ? Math.max(0,popup.inputRect.height) : 0 }
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: 'hyprshell-dock-menu'
-    WlrLayershell.keyboardFocus: opened ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: !opened ? WlrKeyboardFocus.None : menuState.pinned ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
     MouseArea { anchors.fill:parent; onClicked:popup.dismiss() }
     FocusScope {
         id: scope
@@ -35,6 +45,7 @@ PanelWindow {
             anchors.fill:parent
             edge:popup.edge; triggerRect:popup.triggerRect; alignment:'center'
             opened:popup.opened; instant:true; alignToTrigger:true
+            onHoverChanged: inside => menuState.retain(inside)
             wallpaperSource:popup.wallpaperSource
             showHeader: popup.mode !== 'previews'
             preferredBodyWidth: popup.mode === 'previews' ? (vertical ? 256 : Math.min(900, 36 + (popup.group?.windows.length || 1) * 228 - 8)) : 300
@@ -60,7 +71,7 @@ PanelWindow {
         DockActions {
             service:popup.service; group:popup.group
             onCloseRequested:popup.dismiss()
-            onManageRequested:popup.mode = 'manage'
+            onManageRequested:popup.open('manage',popup.groupKey,popup.triggerRect)
         }
     }
 }

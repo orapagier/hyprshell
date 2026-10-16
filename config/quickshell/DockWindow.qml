@@ -54,10 +54,17 @@ Item {
             service:window.service; config:window.config
             maximumLength:Math.max(1, (window.vertical ? rail.screen.height-window.insets.top-window.insets.bottom : rail.screen.width) - 2*window.panel.marginEnds)
             onInteractionStarted:window.interactionStarted()
+            onDismissRequested: popup.dismiss()
+            onItemHovered:(kind,key,rect) => popup.hoverItem(kind,key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
+            onItemLeft:(kind,key,rect) => popup.leaveItem(kind,key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
             onLauncherRequested:rect => popup.open('launcher','',Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
             onGroupRequested:(key,rect) => popup.open('group',key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
             onPreviewsRequested:(key,rect) => popup.open('previews',key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
         }
     }
-    DockPopup { id:popup; screen:window.output; service:window.service; edge:window.edge; wallpaperSource:window.wallpaperSource }
+    DockPopup {
+        id:popup
+        screen:window.output; service:window.service; edge:window.edge; wallpaperSource:window.wallpaperSource
+        dockRect: Qt.rect(dock.x+rail.originX,dock.y+rail.originY,dock.width,dock.height)
+    }
 }

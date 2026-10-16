@@ -13,6 +13,7 @@ Item {
     property var groups: []
     property var action: ({})
     property string request: ''
+    DockMenuController { id: hoverState }
     QtObject {
         id: service
         property bool busy: false
@@ -34,6 +35,9 @@ Item {
         onLauncherRequested:scene.request = 'launcher'
         onGroupRequested:(key,trigger) => scene.request = 'picker:' + key
         onPreviewsRequested:(key,trigger) => scene.request = 'previews:' + key
+        onItemHovered:(kind,key,trigger) => hoverState.hoverItem(kind,key,trigger)
+        onItemLeft:(kind,key,trigger) => hoverState.leaveItem(kind,key,trigger)
+        onDismissRequested: hoverState.close()
     }
     DockActions { id: actions; x:400; width:264; service:scene.appService; group:scene.groups[0] || null }
     DockPreviews { id: previews; x:20; y:340; width:vertical ? 220 : 500; height:implicitHeight; maximumHeight:300; edge:dock.edge; visible:false; service:scene.appService; group:scene.groups[0] || null }
@@ -56,6 +60,7 @@ Item {
         name:'Dock'
         when:windowShown
         function init() {
+            dock.z=0; mouseMove(scene,790,690); hoverState.close(); hoverState.hoveredMenu=''; hoverState.retain(false);
             scene.config={bar:{position:'top',height:32,marginTop:5,paddingBottom:0,visible:true},
                 panels:{hyprpane:{enabled:true,monitors:[]},hyprdock:{enabled:true,position:'bottom',thickness:56,iconSize:32,spacing:4,marginEdge:5,marginEnds:10,windowGap:0,background:'inherit'}},
                 pins:{mode:'shared',shared:['app0.desktop','app1.desktop'],hyprdock:[],hyprbar:[]}};
@@ -139,6 +144,32 @@ Item {
             verify(launcherMetrics.tightBoundingRect.height < 28);
             compare(icon.height,launcherMetrics.tightBoundingRect.height);
             verify(findChild(dock,'dockItem1').height>=36);
+        }
+        function test_hoverLauncherAndRunningApps_data() { return ['top','bottom','left','right'].map(e=>({tag:e,edge:e})); }
+        function test_hoverLauncherAndRunningApps(data) {
+            dock.z=10; edge(data.edge); wait(30);
+            let launcher=findChild(dock,'dockItem0');
+            mouseMove(launcher,launcher.width/2,launcher.height/2);
+            compare(hoverState.mode,'');
+            tryCompare(hoverState,'mode','launcher'); verify(!hoverState.pinned);
+            let app=findChild(dock,'dockItem1');
+            mouseMove(app,app.width/2,app.height/2);
+            tryCompare(hoverState,'mode','previews'); compare(hoverState.groupKey,'app:app0.desktop');
+            mouseMove(scene,790,690); hoverState.retain(true); wait(380);
+            compare(hoverState.mode,'previews');
+            hoverState.retain(false); tryCompare(hoverState,'mode','');
+            mouseMove(app,app.width/2,app.height/2); tryCompare(hoverState,'mode','previews');
+            mouseClick(app,app.width/2,app.height/2); compare(hoverState.mode,''); compare(scene.request,'app0.desktop');
+        }
+        function test_hoverIgnoresUnopenedAppsAndClickPinsMenu() {
+            dock.z=10;
+            let missing=findChild(dock,'dockItem2');
+            mouseMove(missing,missing.width/2,missing.height/2); wait(180); compare(hoverState.mode,'');
+            let launcher=findChild(dock,'dockItem0');
+            mouseMove(launcher,launcher.width/2,launcher.height/2); tryCompare(hoverState,'mode','launcher');
+            hoverState.activateItem('launcher','',dock.itemRect(launcher)); verify(hoverState.pinned);
+            mouseMove(scene,790,690); wait(380); compare(hoverState.mode,'launcher');
+            hoverState.close(); compare(hoverState.mode,'');
         }
         function test_previewLayoutAndScrolling_data() { return ['top','bottom','left','right'].map(e=>({tag:e,edge:e})); }
         function test_previewLayoutAndScrolling(data) {

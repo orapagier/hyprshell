@@ -38,6 +38,9 @@ FocusScope {
     signal groupRequested(string key, rect trigger)
     signal previewsRequested(string key, rect trigger)
     signal interactionStarted()
+    signal itemHovered(string kind, string key, rect trigger)
+    signal itemLeft(string kind, string key, rect trigger)
+    signal dismissRequested()
     implicitWidth: vertical ? thickness : length
     implicitHeight: vertical ? length : thickness
     function itemRect(item) { let p = item.mapToItem(dock, 0, 0); return Qt.rect(p.x,p.y,item.width,item.height); }
@@ -46,7 +49,7 @@ FocusScope {
         interactionStarted();
         if (group.launcher) { interactionStarted(); launcherRequested(itemRect(item)); }
         else if (group.windows.length > 1) previewsRequested(group.key, itemRect(item));
-        else service.activate(group);
+        else { dismissRequested(); service.activate(group); }
     }
     function focusIndex(index) {
         list.currentIndex = Math.max(0, Math.min(entries.length - 1, index));
@@ -172,6 +175,16 @@ FocusScope {
             MouseArea {
                 id: pointer
                 anchors.fill: parent; hoverEnabled: true
+                readonly property string hoverKind: button.modelData.launcher ? 'launcher' : button.modelData.windows.length ? 'previews' : ''
+                function leavePreview() {
+                    if (hoverKind) dock.itemLeft(hoverKind, button.modelData.key, dock.itemRect(button));
+                }
+                onEntered: if (hoverKind && !dock.draggingId) {
+                    dock.interactionStarted();
+                    dock.itemHovered(hoverKind, button.modelData.key, dock.itemRect(button));
+                }
+                onExited: leavePreview()
+                Component.onDestruction: leavePreview()
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                 property point pressPoint
                 property bool moved: false
@@ -182,6 +195,7 @@ FocusScope {
                 onPositionChanged: mouse => {
                     if (!(pressedButtons & Qt.LeftButton) || !button.modelData.pinned || dock.service.busy) return;
                     if (Math.abs(mouse.x-pressPoint.x) + Math.abs(mouse.y-pressPoint.y) > 10) {
+                        dock.dismissRequested();
                         moved = true; dock.draggingId = button.modelData.id;
                         dock.dragPoint = mapToItem(dock, mouse.x, mouse.y);
                     }

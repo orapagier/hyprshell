@@ -9,7 +9,13 @@ Settings draft available for correction.
 Hyprdock shows the launcher, ordered pins, then running unpinned applications.
 A line marks running apps; the active app has a purple background and indicator.
 App icons have no hover tooltip. Missing applications retain their pin,
-use a fallback icon and can be unpinned. Click an app with one window to focus
+use a fallback icon and can be unpinned.
+Hover the launcher to open Applications, or a running app to preview its windows.
+Menus use Hyprpane's hover delay, stay open across the pointer bridge, switch when
+hovering another icon, and close shortly after leaving. Clicking the launcher or
+a multi-window app pins its menu until dismissed; focusing or launching a single
+window app and dragging a pin dismiss previews.
+Click an app with one window to focus
 it on its workspace. Apps with multiple windows open a strip containing
 only window previews and an × close button on each. Click a preview to focus that
 exact window on its workspace, or × to close it. Previews stack vertically for left
