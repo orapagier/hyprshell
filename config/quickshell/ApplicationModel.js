@@ -81,3 +81,15 @@ function windowCommand(action, address, workspace, lua) {
                    : 'movetoworkspacesilent ' + workspace + ',' + selector;
     return '';
 }
+
+// Run in one compositor event so unrelated focus actions never inherit the override.
+function pointerFocusCode(address) {
+    let command = windowCommand('focus', address, 0, true);
+    if (!command) return '';
+    return 'local saved = { no_warps = hl.get_config("cursor.no_warps"), '
+        + 'warp_on_change_workspace = hl.get_config("cursor.warp_on_change_workspace"), '
+        + 'warp_on_toggle_special = hl.get_config("cursor.warp_on_toggle_special") }; '
+        + 'hl.config({ cursor = { no_warps = true, warp_on_change_workspace = 0, warp_on_toggle_special = 0 } }); '
+        + 'local ok, err = pcall(function() hl.dispatch(' + command + ') end); '
+        + 'hl.config({ cursor = saved }); if not ok then error(err) end';
+}

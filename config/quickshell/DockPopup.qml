@@ -59,6 +59,7 @@ PanelWindow {
     Component {
         id:launcher
         LauncherMenu {
+            wallpaperSource:popup.wallpaperSource
             applicationService:popup.service; active:popup.opened
             onInteractingChanged: if (interacting) menuState.pinned = true
             onLaunched:popup.dismiss()

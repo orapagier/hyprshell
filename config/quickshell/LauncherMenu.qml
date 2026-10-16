@@ -1,13 +1,17 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
+import QtQuick.Window
 import Quickshell
 import "ApplicationModel.js" as Apps
 
 ColumnLayout {
     id: page
     signal launched()
+    property url wallpaperSource: ""
+    property real translucency: 0.06
     property var applicationService: null
     readonly property bool interacting: pinMenu.visible
     property bool active: true
@@ -45,18 +49,58 @@ ColumnLayout {
         pinMenu.entry = entry;
         pinMenu.popup();
     }
-    Menu {
+    Basic.Menu {
         id: pinMenu
+        objectName: "launcherPinMenu"
         palette.text: '#cdd6f4'; palette.windowText: '#cdd6f4'; palette.buttonText: '#cdd6f4'
-        palette.window: '#1e1e2e'; palette.base: '#1e1e2e'; palette.button: '#38384d'
+        palette.window: 'transparent'; palette.base: 'transparent'; palette.button: 'transparent'
         palette.highlight: '#66517e'; palette.highlightedText: '#cdd6f4'
         property var entry: null
-        MenuItem {
+        padding: 8
+        implicitWidth: 228
+        popupType: Popup.Item
+        background: Rectangle {
+            objectName: 'launcherPinGlass'
+            radius: 16
+            border.color: pinGlass.rimColor
+            gradient: Gradient {
+                GradientStop { position: 0; color: pinGlass.topColor }
+                GradientStop { position: 1; color: pinGlass.bottomColor }
+            }
+            GlassSurface {
+                id: pinGlass
+                anchors.fill: parent
+                wallpaperSource: page.wallpaperSource
+                translucency: page.translucency
+                screenWidth: page.Window.window ? page.Window.window.width : page.width
+                screenHeight: page.Window.window ? page.Window.window.height : page.height
+                region: { let point = pinMenu.parent ? pinMenu.parent.mapToItem(null, pinMenu.x, pinMenu.y) : Qt.point(0, 0); return Qt.rect(point.x, point.y, width, height); }
+            }
+            Rectangle { x:16; y:1; width:parent.width-32; height:1; color:'#48b4befe' }
+        }
+        component PinAction: Basic.MenuItem {
+            id: pinAction
+            implicitHeight: 38
+            leftPadding: 12; rightPadding: 12
+            contentItem: Text {
+                text: pinAction.text; color:'#cdd6f4'
+                font.family:'DejaVu Sans'; font.pixelSize:13
+                verticalAlignment:Text.AlignVCenter
+                elide:Text.ElideRight
+                opacity:pinAction.enabled ? 1 : 0.45
+            }
+            background: Rectangle {
+                radius: 10
+                color: pinAction.highlighted ? '#30b4befe' : 'transparent'
+                border.color: pinAction.activeFocus ? '#66b4befe' : 'transparent'
+            }
+        }
+        PinAction {
             text: 'Pin to Hyprdock'
             enabled: !!page.applicationService && !page.applicationService.busy
             onTriggered: page.applicationService.edit({action:'pin',component:'hyprdock',id:Apps.desktopId(pinMenu.entry)})
         }
-        MenuItem {
+        PinAction {
             text: 'Pin to Hyprbar'
             enabled: !!page.applicationService && !page.applicationService.busy
             onTriggered: page.applicationService.edit({action:'pin',component:'hyprbar',id:Apps.desktopId(pinMenu.entry)})

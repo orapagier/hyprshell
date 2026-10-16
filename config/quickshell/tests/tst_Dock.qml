@@ -14,6 +14,7 @@ Item {
     property var action: ({})
     property string request: ''
     property bool utilityContext: false
+    property bool preservePointer: false
     DockMenuController { id: hoverState }
     QtObject {
         id: service
@@ -21,9 +22,9 @@ Item {
         property string error: ''
         function groups(component) { return scene.groups; }
         function iconSource(name) { return ''; }
-        function activate(group) { scene.request = group.id; return true; }
+        function activate(group,preserve) { scene.preservePointer=!!preserve; scene.request = group.id; return true; }
         function launch(id) { scene.request = 'launch:' + id; return true; }
-        function windowAction(kind,address) { scene.request = kind + ':' + address; return true; }
+        function windowAction(kind,address,workspace,preserve) { scene.preservePointer=!!preserve; scene.request = kind + ':' + address; return true; }
         function edit(action) { scene.action = action; return true; }
     }
     Rectangle { anchors.fill:parent; color:'#172333' }
@@ -104,7 +105,7 @@ Item {
             keyClick(Qt.Key_Return); compare(scene.request,'launcher');
             keyClick(dock.vertical ? Qt.Key_Down : Qt.Key_Right); wait(20);
             compare(list.currentIndex,1);
-            keyClick(Qt.Key_Return); compare(scene.request,'app0.desktop');
+            keyClick(Qt.Key_Return); compare(scene.request,'app0.desktop'); compare(scene.preservePointer,true);
             keyClick(Qt.Key_Menu); compare(scene.request,'picker:app:app0.desktop');
             keyClick(dock.vertical ? Qt.Key_Down : Qt.Key_Right,Qt.ControlModifier);
             compare(scene.action,{action:'reorder',component:'hyprdock',id:'app0.desktop',index:1});
@@ -113,7 +114,7 @@ Item {
         function test_pointerLaunchPickerAndDrag(data) {
             edge(data.edge); wait(20);
             let first=findChild(dock,'dockItem1'), second=findChild(dock,'dockItem2');
-            mouseClick(first,first.width/2,first.height/2,Qt.LeftButton); compare(scene.request,'app0.desktop');
+            mouseClick(first,first.width/2,first.height/2,Qt.LeftButton); compare(scene.request,'app0.desktop'); compare(scene.preservePointer,true);
             mouseClick(first,first.width/2,first.height/2,Qt.RightButton); compare(scene.request,'picker:app:app0.desktop');
             mouseClick(first,first.width/2,first.height/2,Qt.MiddleButton); compare(scene.request,'launch:app0.desktop');
             let target=second.mapToItem(first,second.width/2,second.height/2);
@@ -192,7 +193,7 @@ Item {
             compare(hoverState.mode,'previews');
             hoverState.retain(false); tryCompare(hoverState,'mode','');
             mouseMove(app,app.width/2,app.height/2); tryCompare(hoverState,'mode','previews');
-            mouseClick(app,app.width/2,app.height/2); compare(hoverState.mode,''); compare(scene.request,'app0.desktop');
+            mouseClick(app,app.width/2,app.height/2); compare(hoverState.mode,''); compare(scene.request,'app0.desktop'); compare(scene.preservePointer,true);
         }
         function test_hoverIgnoresUnopenedAppsAndClickPinsMenu() {
             dock.z=10;

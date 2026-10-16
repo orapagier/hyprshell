@@ -58,7 +58,7 @@ FocusScope {
         if (group.utility) { dismissRequested(); utilityRequested(group.key, false, itemRect(item)); }
         else if (group.launcher) { interactionStarted(); launcherRequested(itemRect(item)); }
         else if (group.windows.length > 1) previewsRequested(group.key, itemRect(item));
-        else { dismissRequested(); service.activate(group); }
+        else { dismissRequested(); service.activate(group, true); }
     }
     function focusIndex(index) {
         list.currentIndex = Math.max(0, Math.min(entries.length - 1, index));

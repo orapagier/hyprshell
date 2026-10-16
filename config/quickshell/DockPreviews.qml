@@ -37,7 +37,7 @@ ListView {
             anchors.fill: parent
             padding: 0
             Accessible.name: 'Focus ' + tile.modelData.title
-            onClicked: if (previews.service.windowAction('focus', tile.modelData.address)) previews.closeRequested()
+            onClicked: if (previews.service.windowAction('focus', tile.modelData.address, 0, true)) previews.closeRequested()
             background: Rectangle {
                 radius: 8
                 color: previewButton.hovered ? '#313244' : '#181825'

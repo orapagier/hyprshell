@@ -96,6 +96,9 @@ ShellRoot {
                 source = source.replace('LauncherMenu { id: launcher;', 'LauncherMenu { applicationService: appService; id: launcher;')
                 source = source.replace('launcher.launch({id: "vim"});',
                     'keyboard.keyClick(Qt.Key_P, Qt.ControlModifier, 0); check(launcher.interacting, "pin menu did not open"); '
+                    'let menu = launcher.data.find(item => item.objectName === "launcherPinMenu"); '
+                    'check(menu && menu.background.objectName === "launcherPinGlass" && menu.background.radius === 16, "pin menu glass missing"); '
+                    'check(menu.background.gradient.stops[0].color.a < 1, "pin menu lost transparency"); '
                     'keyboard.keyClick(Qt.Key_Down, Qt.NoModifier, 0); keyboard.keyClick(Qt.Key_Return, Qt.NoModifier, 0); launcher.launch({id: "vim"});')
                 fixture.write_text(source)
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)

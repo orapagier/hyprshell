@@ -21,7 +21,11 @@ hovering another icon, and close shortly after leaving. Clicking the launcher or
 a multi-window app pins its menu until dismissed; focusing or launching a single
 window app and dragging a pin dismiss previews.
 Click an app with one window to focus
-it on its workspace. Apps with multiple windows open a strip containing
+it on its workspace without moving the pointer. Dock picker and preview
+activation also keep the pointer in place. The focus operation temporarily
+suppresses Hyprland cursor warps and restores the original options in the same
+compositor event, including error paths; desktop focus shortcuts retain their
+existing behavior. Apps with multiple windows open a strip containing
 only window previews and an × close button on each. Click a preview to focus that
 exact window on its workspace, or × to close it. Previews stack vertically for left
 and right docks and horizontally for top and bottom docks; scroll along that axis
@@ -35,7 +39,9 @@ window selection, close, or app identity/pin management.
 
 Pin an installed app from the launcher with **right-click → Pin to Hyprdock**.
 Keyboard users can select an app with the existing search and arrow keys, then
-press **Ctrl+P** for the pin menu. App context menu → App matching and pins retains the complete
+press **Ctrl+P** for the pin menu. The launcher’s right-click / Ctrl+P menu uses
+the shared wallpaper-tinted glass surface, rounded highlights and translucent
+rim, in both Hyprpane and Hyprdock launchers. App context menu → App matching and pins retains the complete
 shared/separate pin and identity-correction controls from Phase 3.
 
 Drag one pinned app over another to reorder it. Dragging near an overflow edge
@@ -167,3 +173,21 @@ Minimize/Show Desktop remain deferred.
   compositor focus/close and physical input remain unverified here. Offscreen
   checks are not a certification of live compositor behavior. Matching runtime
   files are deployed with a dated backup; saved settings are not rewritten.
+
+## Launcher menu and pointer polish — 2026-10-16
+
+The launcher pin menu is rendered inside the existing popup surface, using
+`GlassSurface` colors and the parent launcher's wallpaper/translucency. Keyboard
+navigation and both pin destinations remain available. Dock focus passes an
+explicit pointer-preservation flag; other application-manager focus actions keep
+their prior behavior. A single Lua evaluation saves the cursor-warp options,
+focuses the chosen window with warping suppressed, and restores those options
+even if the focus dispatcher throws. App launching retains UWSM desktop IDs.
+
+Validation: 240 Qt checks, three native launcher checks, native dock composition,
+six shared-app checks, and the Lua restoration check pass. The launcher check
+verifies rounded glass and alpha as well as Ctrl+P and pin persistence. The Lua
+check exercises both original no-warp settings, forced workspace warping and
+error paths with a mocked compositor. The glass render was reviewed offscreen.
+Physical cursor behavior remains unverified because this agent cannot access
+the live compositor socket; no global cursor preference is changed.

@@ -46,18 +46,20 @@ Item {
         error = '';
         return true;
     }
-    function activate(group) {
+    function activate(group, preservePointer) {
         if (!group.windows.length) return launch(group.id);
-        if (group.windows.length === 1) return windowAction('focus', group.windows[0].address);
+        if (group.windows.length === 1) return windowAction('focus', group.windows[0].address, 0, preservePointer);
         windowSelectionRequested(group);
         return false;
     }
-    function windowAction(action, address, workspace) {
+    function windowAction(action, address, workspace, preservePointer) {
         // Recheck liveness; a menu can outlive its window.
         if (!windows.some(w => w.address === address)) { error = 'This window has closed.'; return false; }
         let command = Apps.windowCommand(action, address, workspace, Hyprland.usingLua);
         if (!command) { error = 'Unsupported window action or workspace.'; return false; }
-        Hyprland.dispatch(command);
+        if (action === 'focus' && preservePointer && Hyprland.usingLua)
+            Quickshell.execDetached(['hyprctl', 'eval', Apps.pointerFocusCode(address)]);
+        else Hyprland.dispatch(command);
         error = '';
         return true;
     }

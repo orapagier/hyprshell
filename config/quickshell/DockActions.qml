@@ -39,7 +39,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 text: (windowRow.modelData.active ? '● ' : '') + windowRow.modelData.title
                 Accessible.name: 'Focus ' + windowRow.modelData.title
-                onClicked: if (actions.service.windowAction('focus', windowRow.modelData.address)) actions.closeRequested()
+                onClicked: if (actions.service.windowAction('focus', windowRow.modelData.address, 0, true)) actions.closeRequested()
                 contentItem: ColumnLayout {
                     spacing: 6
                     Rectangle {
