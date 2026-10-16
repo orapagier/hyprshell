@@ -26,17 +26,55 @@ ColumnLayout {
         id: windows
         objectName: 'dockWindowPicker'
         Layout.fillWidth: true
-        Layout.preferredHeight: Math.min(240, contentHeight)
+        Layout.preferredHeight: Math.min(400, contentHeight)
         model: actions.group ? actions.group.windows : []
         clip: true; spacing: 6
         delegate: ColumnLayout {
+            id: windowRow
             required property var modelData
             width: windows.width; spacing: 2
             MenuButton {
+                id: windowCard
+                objectName: 'dockWindowPreview-' + windowRow.modelData.address
                 Layout.fillWidth: true
-                text: (modelData.active ? '● ' : '') + modelData.title
-                Accessible.name: 'Focus ' + modelData.title
-                onClicked: if (actions.service.windowAction('focus', modelData.address)) actions.closeRequested()
+                text: (windowRow.modelData.active ? '● ' : '') + windowRow.modelData.title
+                Accessible.name: 'Focus ' + windowRow.modelData.title
+                onClicked: if (actions.service.windowAction('focus', windowRow.modelData.address)) actions.closeRequested()
+                contentItem: ColumnLayout {
+                    spacing: 6
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 120
+                        radius: 6; color: '#181825'; clip: true
+                        Loader {
+                            id: thumbnail
+                            anchors.fill: parent
+                            active: actions.visible && !!windowRow.modelData.handle?.wayland
+                                && windowRow.y + windowRow.height > windows.contentY
+                                && windowRow.y < windows.contentY + windows.height
+                            source: active ? Qt.resolvedUrl('PreviewCapture.qml') : ''
+                            onLoaded: {
+                                item.source = Qt.binding(() => windowRow.modelData.handle?.wayland || null);
+                                item.active = true;
+                            }
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            width: parent.width - 16
+                            visible: !thumbnail.item || !thumbnail.item.hasContent
+                            text: windowRow.modelData.title + '\nPreview unavailable'
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            color: '#a6adc8'; font.pixelSize: 12
+                        }
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: windowCard.text
+                        color: '#cdd6f4'; font: windowCard.font
+                        elide: Text.ElideRight
+                    }
+                }
             }
             RowLayout {
                 Text { Layout.fillWidth: true; text: 'Workspace ' + modelData.workspaceName + ' · ' + modelData.output; color:'#a6adc8'; font.pixelSize:11; elide:Text.ElideRight }

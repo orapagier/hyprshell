@@ -81,7 +81,7 @@ Item {
             keyClick(Qt.Key_Return); compare(scene.request,'launcher');
             keyClick(dock.vertical ? Qt.Key_Down : Qt.Key_Right); wait(20);
             compare(list.currentIndex,1);
-            keyClick(Qt.Key_Return); compare(scene.request,'focus:ab0');
+            keyClick(Qt.Key_Return); compare(scene.request,'app0.desktop');
             keyClick(Qt.Key_Menu); compare(scene.request,'picker:app:app0.desktop');
             keyClick(dock.vertical ? Qt.Key_Down : Qt.Key_Right,Qt.ControlModifier);
             compare(scene.action,{action:'reorder',component:'hyprdock',id:'app0.desktop',index:1});
@@ -90,7 +90,7 @@ Item {
         function test_pointerLaunchPickerAndDrag(data) {
             edge(data.edge); wait(20);
             let first=findChild(dock,'dockItem1'), second=findChild(dock,'dockItem2');
-            mouseClick(first,first.width/2,first.height/2,Qt.LeftButton); compare(scene.request,'focus:ab0');
+            mouseClick(first,first.width/2,first.height/2,Qt.LeftButton); compare(scene.request,'app0.desktop');
             mouseClick(first,first.width/2,first.height/2,Qt.RightButton); compare(scene.request,'picker:app:app0.desktop');
             mouseClick(first,first.width/2,first.height/2,Qt.MiddleButton); compare(scene.request,'launch:app0.desktop');
             let target=second.mapToItem(first,second.width/2,second.height/2);
@@ -101,9 +101,14 @@ Item {
             compare(dock.draggingId,'');
             let next=scene.groups.slice(); next[0]=Object.assign({},next[0],{windows:next[0].windows.concat([{address:'ba',title:'Second',workspaceName:'2',output:'HDMI-A-1'}])}); scene.groups=next; wait(30);
             first=findChild(dock,'dockItem1'); mouseClick(first,20,20,Qt.LeftButton);
-            compare(scene.request,'focus:ab0');
+            compare(scene.request,'picker:app:app0.desktop');
             next=scene.groups.slice(); next[0]=Object.assign({},next[0],{windows:[Object.assign({},next[0].windows[0],{active:false}),Object.assign({},next[0].windows[1],{active:true})]}); scene.groups=next; wait(30);
             first=findChild(dock,'dockItem1'); mouseClick(first,20,20,Qt.LeftButton);
+            compare(scene.request,'picker:app:app0.desktop');
+            let picker=findChild(actions,'dockWindowPicker');
+            picker.positionViewAtIndex(1,ListView.Contain); wait(30);
+            let preview=findChild(actions,'dockWindowPreview-ba');
+            verify(preview); mouseClick(preview,preview.width/2,40);
             compare(scene.request,'focus:ba');
             mouseClick(first,20,20,Qt.RightButton);
             compare(scene.request,'picker:app:app0.desktop');

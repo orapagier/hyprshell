@@ -37,10 +37,7 @@ FocusScope {
     function activate(group, item) {
         interactionStarted();
         if (group.launcher) { interactionStarted(); launcherRequested(itemRect(item)); }
-        else if (group.windows.length) {
-            let window = group.windows.find(window => window.active) || group.windows[0];
-            service.windowAction('focus', window.address);
-        }
+        else if (group.windows.length > 1) showGroup(group, item);
         else service.activate(group);
     }
     function focusIndex(index) {

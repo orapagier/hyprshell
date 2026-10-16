@@ -9,10 +9,12 @@ Settings draft available for correction.
 Hyprdock shows the launcher, ordered pins, then running unpinned applications.
 A line marks running apps; the active app has a purple background and indicator.
 App icons have no hover tooltip. Missing applications retain their pin,
-use a fallback icon and can be unpinned. Click a running app to focus its active
-window, or its first window, switching to that window's workspace. Click an
-unopened pinned app to launch it from the current workspace. Right-click opens
-a picker showing window titles, workspaces and outputs. Each
+use a fallback icon and can be unpinned. Click an app with one window to focus
+it on its workspace. Apps with multiple windows open a preview picker; click
+a preview to focus that exact window on its workspace. Visible previews capture
+live window content when available, with a title fallback when capture is unavailable.
+Click an unopened pinned app to launch it from the current workspace. Right-click
+also opens the picker with window titles, workspaces and outputs. Each
 window has its own Focus and Close actions. Middle-click opens a new instance
 when the app is installed. Right-click an app for pin/unpin, new instance,
 window selection, close, or app identity/pin management.
