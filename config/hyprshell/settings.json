@@ -429,14 +429,14 @@
       "hideMode": "always"
     },
     "hyprdock": {
-      "enabled": false,
+      "enabled": true,
       "monitors": [],
       "position": "bottom",
       "visible": true,
       "workspaceScope": "all",
       "workspaceList": [],
       "workspaceOverrides": {},
-      "thickness": 56,
+      "thickness": 50,
       "marginEdge": 5,
       "marginEnds": 10,
       "windowGap": 0,
@@ -465,7 +465,11 @@
   },
   "pins": {
     "mode": "shared",
-    "shared": [],
+    "matches": {},
+    "shared": [
+      "com.brave.Browser.desktop",
+      "com.system76.CosmicFiles.desktop"
+    ],
     "hyprdock": [],
     "hyprbar": []
   }
