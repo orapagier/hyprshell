@@ -73,3 +73,34 @@ the automated persistence/deployment transaction matrix is now covered in
 Changed QML/JS source is applied to both the checkout and matching installed
 copies after focused validation, with the previous installed files backed up.
 Panel visibility, selected edges and personal settings are preserved.
+
+## Live geometry increment (2026-10-17)
+
+Live Hyprland IPC now works in the agent session. The installed shell is running
+and `hyprctl configerrors` is empty. The earlier socket failure above describes
+the original validation session.
+
+Run `python3 tools/check_panel_live.py --run` to repeat this bounded check.
+It creates a temporary headless output and a separate minimal Quickshell fixture
+using the production `DockWindow`, `Dock`, and status/menu composition. Settings
+and state are isolated in a temporary directory. It does not start another
+notification owner, launch apps, or write the user's saved preferences. The
+existing shell may create its usual panels on the added output. The fixture
+uses empty app/window inputs, so this checks placement rather than app lifecycle.
+The fixture process stops before the virtual output is removed, including on
+failure; unrelated outputs and shell processes are preserved.
+
+The live run passed all 12 distinct-edge Hyprdock/Hyprbar arrangements on a
+1920×1080 virtual output at scale 2 (960×540 logical pixels). Each arrangement
+passed two samples of compositor-reported layer geometry: both surfaces exist,
+have the expected 32 logical-pixel thickness, remain inside the output near
+their selected edges, and do not overlap. Five isolated verifier tests cover
+scaled coordinates, output offsets, wrong edges, out-of-bounds surfaces, and
+adjacent-corner overlap/clearance.
+
+This increment does not validate Hyprpane pairs, menu input delivery, native tray
+menus, pointer/keyboard behavior, auto-hide, fullscreen, actual window actions,
+physical hotplug, or other scale factors. It does not independently certify
+exclusive-zone sizes. Physical acceptance and Show Desktop remain pending, and
+Phases 7 and 8 remain open. No panel runtime deployment or reload is needed for
+this verifier/documentation increment.

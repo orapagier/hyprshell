@@ -12,7 +12,16 @@ together through the existing transaction, retaining styling, pins, items,
 monitor/workspace scopes and visibility overrides. `PanelLayout.js` and
 `SettingsPanelLayout.qml` own this Phase 8 slice; see `docs/panel-layout-settings.md`,
 `tst_PanelLayout.qml` and `tests/test_panel_layout.py`. Physical acceptance,
-Show Desktop and the final persistence/deployment matrix remain pending.
+Show Desktop and fresh-VM acceptance remain pending.
+
+Live panel validation (2026-10-17): `hyprctl` access works. The opt-in
+`python3 tools/check_panel_live.py --run` checks production Hyprdock/Hyprbar
+layer geometry on a temporary headless output with isolated preferences and
+state, then removes it. All 12 distinct-edge arrangements passed at scale 2.
+See `docs/panel-coexistence.md` for limits; physical input, Hyprpane pairs,
+fullscreen/hide policies and Show Desktop remain pending. The persistence
+transaction matrix is covered in `docs/panel-persistence.md`; fresh-VM and
+physical acceptance remain open.
 
 All three panels can be enabled globally and share an edge on separate
 workspaces. Settings → Hyprpane & panels provides each app panel with workspace

@@ -53,8 +53,10 @@ unchanged, so this increment requires no live-file deployment or reload.
 
 Physical layer-shell placement/input, all pairs on screen, fullscreen, scaling,
 workspace transitions and monitor hotplug remain pending. The compositor socket
-is inaccessible in this agent session (`hyprctl -j monitors` reports
-`Couldn't set socket timeout (2)`). A clean Fedora VM install and system-level
+was inaccessible during the original persistence-check session. Live IPC and
+the limited dock/taskbar virtual-output geometry matrix were subsequently verified
+on 2026-10-17; see [panel coexistence](panel-coexistence.md#live-geometry-increment-2026-10-17).
+A clean Fedora VM install and system-level
 update/recovery acceptance also remain separate, as described in
 [acceptance](acceptance.md). Show Desktop remains pending under
 [panel coexistence](panel-coexistence.md). Phases 7 and 8 remain open.
