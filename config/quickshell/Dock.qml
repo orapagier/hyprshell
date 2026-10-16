@@ -15,6 +15,7 @@ FocusScope {
     readonly property var entries: [{key:'launcher', name:'Applications', launcher:true, windows:[]}].concat(groups)
     readonly property real thickness: Model.thickness(panel)
     readonly property real cellSize: thickness - 8
+    readonly property real iconSize: Math.min(panel.iconSize, cellSize - 8)
     readonly property real spacing: panel.spacing ?? 4
     property real maximumLength: 800
     readonly property real naturalLength: 12 + entries.length * cellSize + Math.max(0, entries.length - 1) * spacing
@@ -118,7 +119,7 @@ FocusScope {
             Image {
                 id: icon
                 anchors.centerIn: parent
-                width: Math.min(dock.panel.iconSize, button.width - 12); height: width
+                width: dock.iconSize; height: width
                 source: button.modelData.launcher ? '' : dock.service.iconSource(button.modelData.icon)
                 sourceSize.width: width; sourceSize.height: height
                 fillMode: Image.PreserveAspectFit
@@ -128,7 +129,7 @@ FocusScope {
                 anchors.centerIn: parent
                 visible: button.modelData.launcher || icon.status !== Image.Ready
                 text: button.modelData.launcher ? '󰀻' : '󰘳'
-                color: '#cdd6f4'; font.family: 'GoMono Nerd Font'; font.pixelSize: Math.min(28, button.width - 16)
+                color: '#cdd6f4'; font.family: 'GoMono Nerd Font'; font.pixelSize: dock.iconSize
             }
             Rectangle {
                 objectName: 'dockRunningIndicator'

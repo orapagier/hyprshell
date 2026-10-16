@@ -436,11 +436,11 @@
       "workspaceScope": "all",
       "workspaceList": [],
       "workspaceOverrides": {},
-      "thickness": 50,
+      "thickness": 44,
       "marginEdge": 5,
       "marginEnds": 10,
       "windowGap": 0,
-      "iconSize": 32,
+      "iconSize": 28,
       "spacing": 4,
       "background": "inherit",
       "hideMode": "always"
