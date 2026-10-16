@@ -5,6 +5,15 @@
 Legacy `bar` keys, file names and IPC still target Hyprpane. See
 `docs/panel-configuration.md` in the checkout for the Phase 1 compatibility mapping.
 
+Settings → Hyprpane & panels → Panel layout preview & presets provides a
+schematic of draft placement for a monitor/workspace and six explicit presets.
+Selection is read-only; Apply layout preset saves enablement and selected edges
+together through the existing transaction, retaining styling, pins, items,
+monitor/workspace scopes and visibility overrides. `PanelLayout.js` and
+`SettingsPanelLayout.qml` own this Phase 8 slice; see `docs/panel-layout-settings.md`,
+`tst_PanelLayout.qml` and `tests/test_panel_layout.py`. Physical acceptance,
+Show Desktop and the final persistence/deployment matrix remain pending.
+
 Paths below are relative to the resolved config/state roots or checkout. Prefer actual local source over upstream examples: this checkout uses Hyprland 0.56+ Lua APIs.
 
 | Concern | Live config / source in checkout |

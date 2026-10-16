@@ -25,6 +25,9 @@ class SettingsSearchTests(unittest.TestCase):
         self.assertIn('Chromium cache', index['-4'])
         self.assertIn('Hyprpane thickness', index['-1'])
         self.assertIn('Enable Hyprdock', index['-1'])
+        self.assertIn('Panel layout preview & presets', index['-1'])
+        self.assertIn('Apply layout preset', index['-1'])
+        self.assertIn('Preview workspace', index['-1'])
         self.assertIn('Dock icon size', index['-1'])
         self.assertNotIn('System updates', index['-1'])
 

@@ -861,6 +861,8 @@ FloatingWindow {
                             visible: window.section === -1
                             Layout.fillWidth: true
                             settings: window.draft.bar
+                            fullConfig: window.draft
+                            onLayoutChosen: config => window.draft = config
                             paneItems: window.draft.items
                             taskbarSettings: window.draft.panels.hyprbar
                             onTaskbarEdited: (key, value) => {

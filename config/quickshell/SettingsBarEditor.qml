@@ -8,6 +8,8 @@ import QtQuick.Layouts
 ColumnLayout {
     id: root
     required property var settings
+    property var fullConfig: null
+    signal layoutChosen(var config)
     property var dockSettings: null
     property var taskbarSettings: null
     property var paneItems: []
@@ -36,6 +38,13 @@ ColumnLayout {
             color: Style.Theme.muted
             font.pixelSize: Style.Theme.captionSize
         }
+    }
+    SettingsPanelLayout {
+        Layout.fillWidth: true
+        visible: root.fullConfig !== null
+        config: root.fullConfig || {bar:root.settings,panels:{}}
+        currentWorkspace: root.currentWorkspace
+        onLayoutChosen: config => root.layoutChosen(config)
     }
     SettingsTaskbarEditor {
         Layout.fillWidth:true

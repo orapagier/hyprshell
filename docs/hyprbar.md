@@ -85,8 +85,9 @@ all four edges, including rounded top/bottom ends on narrow side rails.
 Minimize/restore remains unavailable: Phase 3 did not establish a recoverable
 compositor implementation. Phase 7's [menu coexistence slice](panel-coexistence.md)
 keeps the neighbouring panel reachable while menus are open and constrains cards
-to the remaining space. Show Desktop, physical coexistence/hotplug acceptance,
-and layout previews/presets remain pending in Phases 7–8.
+to the remaining space. Show Desktop and physical coexistence/hotplug acceptance
+remain pending in Phases 7–8. Searchable schematic layout previews and explicit
+placement presets are implemented in the [Phase 8 settings slice](panel-layout-settings.md).
 
 ## Validation — 2026-10-16
 

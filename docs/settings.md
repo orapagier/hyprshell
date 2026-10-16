@@ -4,6 +4,11 @@
 app dock; Hyprbar is the classic taskbar (see [Hyprbar](hyprbar.md)). This document also uses “bar” and
 "topbar"; IPC methods and configuration keys keep their existing names.
 
+Hyprpane & panels includes a searchable schematic layout preview and explicit
+placement presets. Selection previews without saving; Apply layout preset changes
+enablement and edges together while retaining personal panel preferences. See
+[panel layout settings](panel-layout-settings.md) for scope and validation limits.
+
 The settings app is part of the existing Quickshell process. `SettingsWindow.qml`
 is created on demand by `SettingsController.qml` through the `bar settings` IPC
 method; `bin/hyprshell-settings` and the desktop entry provide normal
