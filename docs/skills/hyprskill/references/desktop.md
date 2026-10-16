@@ -15,10 +15,11 @@ monitor/workspace scopes and visibility overrides. `PanelLayout.js` and
 Show Desktop and fresh-VM acceptance remain pending.
 
 Live panel validation (2026-10-17): `hyprctl` access works. The opt-in
-`python3 tools/check_panel_live.py --run` checks production Hyprdock/Hyprbar
+`python3 tools/check_panel_live.py --run` checks production panel
 layer geometry on a temporary headless output with isolated preferences and
-state, then removes it. All 12 distinct-edge arrangements passed at scale 2.
-See `docs/panel-coexistence.md` for limits; physical input, Hyprpane pairs,
+state, then removes it. All 36 distinct-edge arrangements across the three
+allowed pairs passed at scale 2, using panel composition from `shell.qml`.
+See `docs/panel-coexistence.md` for limits; physical input, workspace transitions,
 fullscreen/hide policies and Show Desktop remain pending. The persistence
 transaction matrix is covered in `docs/panel-persistence.md`; fresh-VM and
 physical acceptance remain open.

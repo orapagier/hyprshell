@@ -54,7 +54,7 @@ unchanged, so this increment requires no live-file deployment or reload.
 Physical layer-shell placement/input, all pairs on screen, fullscreen, scaling,
 workspace transitions and monitor hotplug remain pending. The compositor socket
 was inaccessible during the original persistence-check session. Live IPC and
-the limited dock/taskbar virtual-output geometry matrix were subsequently verified
+the limited all-pairs virtual-output geometry matrix were subsequently verified
 on 2026-10-17; see [panel coexistence](panel-coexistence.md#live-geometry-increment-2026-10-17).
 A clean Fedora VM install and system-level
 update/recovery acceptance also remain separate, as described in

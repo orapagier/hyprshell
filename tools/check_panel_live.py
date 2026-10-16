@@ -12,6 +12,8 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 PAYLOAD = ROOT / 'config/quickshell'
 EDGES = ('top', 'bottom', 'left', 'right')
+NAMESPACES = {'hyprpane': 'hyprshell', 'hyprdock': 'hyprshell-dock',
+              'hyprbar': 'hyprshell-taskbar'}
 
 
 def hypr(*args):
@@ -35,41 +37,69 @@ def wait_for(check, description):
 QML = '''pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
+import Quickshell.Hyprland
 import "PAYLOAD"
+import "PAYLOAD/SettingsModel.js" as Settings
+import "PAYLOAD/DockModel.js" as DockModel
 ShellRoot {
+    id: shell
+    property var services: ({audioIcon:'',statusData: shell.statusData})
+    property var inbox: null
+    property var statusData: ({workspaces:[],audio:{},network:{},bluetooth:{},battery:{}})
+    property var mediaData: ({playing:false,levels:[],title:'',tooltip:''})
+    property var notificationData: ({count:0})
+    property string clockText: '12:00'
     SettingsStore { id: preferences }
-    ApplicationService { id: apps; store: preferences; windows: []; entries: [] }
-    DockUtilities { id: utilityService }
-    Variants {
-        model: Quickshell.screens.filter(s => s.name === Quickshell.env('HYPRSHELL_TEST_OUTPUT'))
-        Item {
-            required property var modelData
-            DockWindow { output: modelData; service: apps; config: preferences.config; utilities: utilityService }
-            DockWindow { component: 'hyprbar'; output: modelData; service: apps; config: preferences.config; utilities: utilityService }
-        }
-    }
+    ApplicationService { id: applications; store: preferences; windows: []; entries: [] }
+    DockUtilities { id: dockUtilities }
+    QtObject { id: wallpapers; property var sources: ({}) }
+    QtObject { id: tray; property var items: [] }
+    QtObject { id: settingsController; function open() {} }
+PANELS
 }
 '''
 
 
+def fixture_source():
+    # Exercise the exact production composition, including Hyprpane's inline
+    # PanelWindow, rather than maintaining another copy of its placement logic.
+    source = (PAYLOAD / 'shell.qml').read_text()
+    start = source.index('    Variants {\n        id: panels\n')
+    end = source.index('    Connections {\n        target: preferences\n', start)
+    panels = source[start:end]
+    if panels.count('model: Quickshell.screens\n') != 3:
+        raise RuntimeError('Production panel composition changed; review the live fixture')
+    panels = panels.replace('model: Quickshell.screens\n',
+                            "model: Quickshell.screens.filter(s => s.name === Quickshell.env('HYPRSHELL_TEST_OUTPUT'))\n")
+    return QML.replace('PANELS', panels).replace('PAYLOAD', PAYLOAD.as_uri())
+
+
 def layers(output, pid):
+    monitor = next(m for m in monitors() if m['name'] == output)
+    size = (round(monitor['width'] / monitor['scale']),
+            round(monitor['height'] / monitor['scale']))
     data = json.loads(hypr('-j', 'layers')).get(output, {}).get('levels', {})
     return [layer for level in data.values() for layer in level
             if layer.get('pid') == pid and layer['namespace'] in
-            ('hyprshell-dock', 'hyprshell-taskbar')]
+            NAMESPACES.values() and (layer['w'], layer['h']) != size]
 
 
-def check_geometry(rows, output, case):
+def check_geometry(rows, output, case, pair=('hyprdock', 'hyprbar')):
     width = round(output['width'] / output['scale'])
     height = round(output['height'] / output['scale'])
     by_name = {row['namespace']: row for row in rows}
-    for namespace, edge in zip(('hyprshell-dock', 'hyprshell-taskbar'), case):
+    assert len(rows) == 2 and set(by_name) == {NAMESPACES[name] for name in pair}, rows
+    for component, edge in zip(pair, case):
+        namespace = NAMESPACES[component]
         row = by_name[namespace]
         x, y = row['x'] - output['x'], row['y'] - output['y']
         w, h = row['w'], row['h']
         assert w > 0 and h > 0, row
         assert x >= 0 and y >= 0 and x+w <= width and y+h <= height, row
-        assert (h == 32 if edge in ('top', 'bottom') else w == 32), row
+        thickness = h if edge in ('top', 'bottom') else w
+        # Hyprpane grows to fit its enabled controls; app rails are fixed size.
+        assert (32 <= thickness <= 80 if component == 'hyprpane' else thickness == 32), row
         if edge == 'top':
             assert y <= 80, row
         elif edge == 'bottom':
@@ -105,17 +135,23 @@ def main():
             target = root / 'config/hyprshell/settings.json'
             target.parent.mkdir(parents=True)
             fixture = root / 'Check.qml'
-            fixture.write_text(QML.replace('PAYLOAD', PAYLOAD.as_uri()))
+            fixture.write_text(fixture_source())
             config = json.loads((PAYLOAD / 'settings/defaults.json').read_text())
-            config['panels']['hyprpane']['enabled'] = False
-            for name in ('hyprdock', 'hyprbar'):
-                config['panels'][name].update(enabled=True, monitors=[output['name']],
-                                             hideMode='always', animations=False)
-            cases = list(itertools.permutations(EDGES, 2))
+            for name in NAMESPACES:
+                config['panels'][name].update(enabled=True, monitors=[output['name']])
+                if name != 'hyprpane':
+                    config['panels'][name].update(hideMode='always', animations=False)
+            cases = list(itertools.product(itertools.combinations(NAMESPACES, 2),
+                                           itertools.permutations(EDGES, 2)))
             print(f"Live output: {output['width']}x{output['height']} scale={output['scale']}", flush=True)
-            for index, case in enumerate(cases):
-                for name, edge in zip(('hyprdock', 'hyprbar'), case):
-                    config['panels'][name]['position'] = edge
+            for index, (pair, case) in enumerate(cases):
+                for name in NAMESPACES:
+                    config['panels'][name]['enabled'] = name in pair
+                for name, edge in zip(pair, case):
+                    if name == 'hyprpane':
+                        config['bar']['position'] = edge
+                    else:
+                        config['panels'][name]['position'] = edge
                 # Atomic replacement lets SettingsStore watch each case safely.
                 pending = target.with_suffix('.tmp')
                 pending.write_text(json.dumps(config))
@@ -136,12 +172,12 @@ def main():
                     if len(rows) != 2:
                         return False
                     try:
-                        check_geometry(rows, current, case)
-                    except AssertionError:
+                        check_geometry(rows, current, case, pair)
+                    except (AssertionError, KeyError):
                         return False
                     return rows
                 try:
-                    wait_for(ready, 'dock/taskbar geometry ' + '/'.join(case))
+                    wait_for(ready, 'panel geometry ' + str(dict(zip(pair, case))))
                     # Require a second settled sample after the compositor has
                     # processed anchor and exclusive-zone changes.
                     time.sleep(.2)
@@ -153,7 +189,7 @@ def main():
                     print(json.dumps({'output': next(m for m in monitors() if m['name'] == output['name']),
                                       'layers': layers(output['name'], process.pid)}))
                     raise
-                print(f'PASS {index+1}/12 dock={case[0]} taskbar={case[1]}', flush=True)
+                print(f'PASS {index+1}/{len(cases)} {dict(zip(pair, case))}', flush=True)
             process.terminate()
             process.wait(timeout=5)
             log.seek(0)
@@ -173,7 +209,7 @@ def main():
         if output is not None:
             hypr('output', 'remove', output['name'])
             wait_for(lambda: output['name'] not in {m['name'] for m in monitors()}, 'output removal')
-    print('Live dock/taskbar layer geometry passed; temporary output removed.')
+    print('Live three-pair layer geometry passed; temporary output removed.')
 
 
 if __name__ == '__main__':

@@ -104,3 +104,30 @@ physical hotplug, or other scale factors. It does not independently certify
 exclusive-zone sizes. Physical acceptance and Show Desktop remain pending, and
 Phases 7 and 8 remain open. No panel runtime deployment or reload is needed for
 this verifier/documentation increment.
+
+### All-pairs continuation (2026-10-17)
+
+The verifier now extracts the three panel `Variants` blocks directly from
+`shell.qml`, replacing only their screen models with the temporary-output filter.
+This exercises the production Hyprpane `PanelWindow`, Bar, dropdown and corner
+placement together with both app panels, without duplicating their layout code.
+Shared app/window inputs and status services remain fixture data; notification,
+locking and other desktop services are not started. The fixture fails explicitly
+if the expected production composition boundaries or screen models change.
+
+All 36 distinct-edge arrangements passed live at scale 2: Hyprpane + Hyprdock,
+Hyprpane + Hyprbar and Hyprdock + Hyprbar. Each pair passed two geometry samples.
+Full-output menu surfaces are excluded from rail measurements; the expected
+component namespaces must occur exactly once each. Hyprpane thickness is allowed
+to fit its default controls (32–80 logical pixels), while app rails must be 32.
+Bounds, selected-edge proximity and non-overlap are checked for all three pairs.
+Eight verifier tests now include both Hyprpane pairs, missing/duplicate component
+rejection and production-fixture extraction, alongside the earlier coordinate
+and overlap checks.
+
+The earlier Hyprpane-pair limitation above is resolved for this geometry slice.
+Menu input, pointer/keyboard interaction, auto-hide, fullscreen, workspace
+transitions, window actions, physical hotplug and additional scales remain
+unverified. Exclusive-zone sizes and visual polish still need separate checks.
+Phases 7 and 8 remain open. The installed shell, saved preferences and physical
+display layout are preserved; the temporary fixture and output are removed.

@@ -2,7 +2,7 @@
 import copy
 import unittest
 
-from tools.check_panel_live import check_geometry
+from tools.check_panel_live import check_geometry, fixture_source
 
 
 class PanelLiveGeometryTests(unittest.TestCase):
@@ -36,3 +36,27 @@ class PanelLiveGeometryTests(unittest.TestCase):
         rows = copy.deepcopy(self.rows)
         rows[1].update(x=1925, y=142, w=32, h=488)
         check_geometry(rows, self.output, ('top', 'left'))
+
+    def test_both_hyprpane_pairs_allow_content_height(self):
+        for component, namespace in [('hyprdock', 'hyprshell-dock'),
+                                     ('hyprbar', 'hyprshell-taskbar')]:
+            with self.subTest(component=component):
+                rows = copy.deepcopy(self.rows)
+                rows[0].update(namespace='hyprshell', h=36)
+                rows[1]['namespace'] = namespace
+                check_geometry(rows, self.output, ('top', 'bottom'), ('hyprpane', component))
+
+    def test_reject_missing_or_wrong_component(self):
+        for rows in (self.rows[:1], [self.rows[0], self.rows[0]]):
+            with self.subTest(rows=rows), self.assertRaises(AssertionError):
+                check_geometry(rows, self.output, ('top', 'bottom'))
+
+    def test_fixture_uses_production_panels_with_output_filter(self):
+        source = fixture_source()
+        self.assertEqual(source.count("model: Quickshell.screens.filter("), 3)
+        for text in ('id: panels', 'id: docks', 'id: taskbars',
+                     'pane.vertical ? pane.implicitWidth : pane.implicitHeight',
+                     'cornerInsets.top + (availableHeight - implicitHeight) / 2'):
+            self.assertIn(text, source)
+        self.assertNotIn('NotificationInbox {', source)
+        self.assertNotIn('DesktopServices {', source)

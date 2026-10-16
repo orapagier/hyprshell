@@ -13,8 +13,9 @@ Phase 7's menu coexistence slice is implemented; its remaining acceptance work
 is recorded in [Panel coexistence](panel-coexistence.md).
 
 Live acceptance increment (2026-10-17): Hyprland IPC and the installed shell are
-accessible. A temporary headless output passed production Hyprdock/Hyprbar
-layer-shell geometry checks for all 12 distinct-edge arrangements at scale 2.
+accessible. A temporary headless output passed production panel
+layer-shell geometry checks for all 36 distinct-edge arrangements across the
+three allowed pairs at scale 2, including both Hyprpane pairs.
 The opt-in verifier and exact limits are recorded in
 [Panel coexistence](panel-coexistence.md#live-geometry-increment-2026-10-17).
 Phases 7 and 8 remain open.
