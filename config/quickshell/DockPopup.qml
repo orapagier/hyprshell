@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls.Basic
 import Quickshell
 import Quickshell.Wayland
+import "DockModel.js" as Geometry
 
 PanelWindow {
     id: popup
@@ -12,25 +13,28 @@ PanelWindow {
     readonly property string groupKey: menuState.groupKey
     readonly property rect triggerRect: menuState.triggerRect
     property rect dockRect: Qt.rect(0,0,0,0)
+    property rect panelBounds: Qt.rect(0,0,width,height)
     property string edge: 'bottom'
     property url wallpaperSource: ''
     property string component: 'hyprdock'
     property var taskGroups: service.groups(component)
     readonly property var group: taskGroups.find(g => g.key === groupKey) || null
     readonly property bool opened: !!mode
+    signal interactionStarted()
     function dismiss() { menuState.close(); }
     function open(kind, key, rect) { menuState.activateItem(kind, key, rect); }
     function hoverItem(kind, key, rect) { menuState.hoverItem(kind, key, rect); }
     function leaveItem(kind, key, rect) { menuState.leaveItem(kind, key, rect); }
     DockMenuController { id: menuState }
     onGroupChanged: if ((mode === 'group' || mode === 'previews') && (!group || (mode === 'previews' && !group.windows.length))) dismiss()
-    onOpenedChanged: if (opened) scope.forceActiveFocus()
+    onOpenedChanged: if (opened) { interactionStarted(); scope.forceActiveFocus(); }
     // Keep the surface mapped and the dock reachable while hovering neighboring items.
     visible: true
     anchors { top:true; bottom:true; left:true; right:true }
     color: 'transparent'
     exclusionMode: ExclusionMode.Ignore
-    readonly property rect inputRect: edge === 'bottom' ? Qt.rect(0,0,width,dockRect.y)
+    readonly property rect inputRect: Geometry.intersection(panelBounds, inwardRect)
+    readonly property rect inwardRect: edge === 'bottom' ? Qt.rect(0,0,width,dockRect.y)
         : edge === 'left' ? Qt.rect(dockRect.x+dockRect.width,0,width-dockRect.x-dockRect.width,height)
         : edge === 'right' ? Qt.rect(0,0,dockRect.x,height)
         : Qt.rect(0,dockRect.y+dockRect.height,width,height-dockRect.y-dockRect.height)
@@ -46,6 +50,7 @@ PanelWindow {
         MenuPopover {
             id: popover
             anchors.fill:parent
+            panelBounds:popup.panelBounds
             edge:popup.edge; triggerRect:popup.triggerRect; alignment:'center'
             opened:popup.opened; instant:true; alignToTrigger:true
             onHoverChanged: inside => menuState.retain(inside)

@@ -32,6 +32,7 @@ Item {
     readonly property bool shown: Settings.panelVisible(config,component,output.name,workspace)
     readonly property bool launcherAvailable: shown && !visibility.suppressed
     readonly property var insets: Model.insets(config,component,output.name,workspace,paneThickness)
+    readonly property rect menuBounds: Model.menuBounds(config,component,output.name,workspace,paneThickness,output.width,output.height)
     readonly property rect dockRect: Qt.rect(dock.x+rail.originX,dock.y+rail.originY,dock.width,dock.height)
     readonly property var clients: { let revision = service.windowRows; return service.windows; }
     readonly property bool fullscreen: clients.some(w => w.workspace && w.workspace.id === workspace
@@ -59,6 +60,8 @@ Item {
     function statusInteraction() { popup.dismiss(); window.interactionStarted(); }
     onShownChanged: if (!shown) { closeMenu(); if (dock) dock.draggingId = ''; }
     onEdgeChanged: closeMenu()
+    onWorkspaceChanged: closeMenu()
+    onMenuBoundsChanged: closeMenu()
     PanelWindow {
         id: rail
         screen: window.output
@@ -145,6 +148,9 @@ Item {
             TaskbarStatus {
                 id:status
                 config:window.config; edge:window.edge; component:window.component
+                onSettingsChanged: Qt.callLater(() => {
+                    if (statusState.section && !status.itemEnabled(status.menuItemId(statusState.section))) statusState.close();
+                })
                 width:window.vertical ? statusViewport.width : contentLength
                 height:window.vertical ? contentLength : statusViewport.height
                 statusData:window.statusData; mediaData:window.mediaData; notificationData:window.notificationData
@@ -167,6 +173,7 @@ Item {
                 }
                 onTrayAction:(item,source,button) => {
                     window.statusInteraction();
+                    statusState.close();
                     if(button === Qt.MiddleButton) item.secondaryActivate();
                     else if(button === Qt.RightButton || item.onlyMenu) {
                         if(item.hasMenu) { let point=source.mapToItem(rail.contentItem,0,source.height); item.display(rail,point.x,point.y); }
@@ -185,6 +192,7 @@ Item {
                 section:statusState.section; displayedSection:statusState.displayedSection
                 pinned:statusState.pinned; connected:true; movePointerOnOpen:false
                 barEdge:window.edge; barRect:window.dockRect; alignment:'right'
+                panelBounds:window.menuBounds
                 mediaData:window.mediaData; previewWorkspace:status.previewWorkspace
                 accent:status.menuAccent(statusState.displayedSection)
                 translucency:Settings.popdownTranslucency(window.config,status.menuItemId(statusState.displayedSection))
@@ -226,5 +234,7 @@ Item {
         screen:window.output; service:window.service; edge:window.edge; wallpaperSource:window.wallpaperSource
         utilities:window.utilities
         dockRect: window.dockRect
+        panelBounds:window.menuBounds
+        onInteractionStarted: { statusState.close(); window.interactionStarted(); }
     }
 }

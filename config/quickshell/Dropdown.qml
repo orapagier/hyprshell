@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import "DockModel.js" as Geometry
 
 PanelWindow {
     id: dropdown
@@ -23,7 +24,9 @@ PanelWindow {
     property string barEdge: "top"
     property rect barRect: Qt.rect(0, 5, width, 32)
     readonly property real barBottom: barRect.y + barRect.height
-    readonly property rect inputRect: !connected ? Qt.rect(0, 0, width, height)
+    property rect panelBounds: Qt.rect(0, 0, width, height)
+    readonly property rect inputRect: Geometry.intersection(panelBounds, inwardRect)
+    readonly property rect inwardRect: !connected ? Qt.rect(0, 0, width, height)
         : barEdge === "bottom" ? Qt.rect(0, 0, width, barRect.y)
         : barEdge === "left" ? Qt.rect(barRect.x + barRect.width, 0, width - barRect.x - barRect.width, height)
         : barEdge === "right" ? Qt.rect(0, 0, barRect.x, height)
@@ -57,6 +60,7 @@ PanelWindow {
         MenuPopover {
             id: popover
             anchors.fill: parent
+            panelBounds: dropdown.panelBounds
             wallpaperSource: dropdown.wallpaperSource
             translucency: dropdown.translucency
             triggerRect: dropdown.triggerRect

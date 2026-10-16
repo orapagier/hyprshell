@@ -7,6 +7,8 @@ for the compatibility contract and validation record. Phase 3 behavior and
 validation limits are recorded in [Shared applications and windows](application-support.md).
 Phase 4–5 behavior and validation limits are recorded in [Hyprdock](hyprdock.md).
 Phase 6 behavior and validation limits are recorded in [Classic Hyprbar](hyprbar.md).
+Phase 7's menu coexistence slice is implemented; its remaining acceptance work
+is recorded in [Panel coexistence](panel-coexistence.md).
 
 ## Names and agreed behavior
 
@@ -170,6 +172,14 @@ Acceptance: task buttons follow window lifecycle, focus, output, and workspace
 changes accurately; grouped and ungrouped modes work in every orientation.
 
 ## Phase 7 — Classic Hyprbar controls and coexistence
+
+Progress (2026-10-16): independent status controls were already implemented in
+Phase 6 refinements. The menu coexistence slice now protects neighbouring panel
+edges and reveal strips from menu input masks, bounds popovers to the available
+area, coordinates hover/tray menus, and closes stale menus on workspace/layout
+changes. Automated coverage exercises all three pairs across 36 distinct-edge
+arrangements. Show Desktop and physical layer-shell/hotplug acceptance remain
+pending; Phase 7 is intentionally not checked off. See [validation and scope](panel-coexistence.md).
 
 - Add optional workspace switcher, system tray, clock/calendar, notifications,
   Settings, and Show Desktop using existing services and controls where possible.

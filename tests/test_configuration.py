@@ -99,6 +99,22 @@ class ConfigurationTests(unittest.TestCase):
             configuration.request(dict(operation='preview', id=ident))
         self.assertEqual(configuration.current(), before)
 
+    def test_conflicting_panel_backup_is_rejected_before_restore(self):
+        ident = self.checkpoint(); folder = configuration.snapshot_folder(ident)
+        before = configuration.current()
+        files = json.loads((folder / 'files.json').read_text())
+        data = json.loads(files['hyprshell/settings.json'])
+        data['panels']['hyprdock'].update(enabled=True, position=data['bar']['position'])
+        files['hyprshell/settings.json'] = json.dumps(data)
+        (folder / 'files.json').write_text(json.dumps(files))
+        # A valid checksum must not bypass the shared placement validator.
+        info = json.loads((folder / 'metadata.json').read_text())
+        info['checksum'] = configuration.digest(files)
+        (folder / 'metadata.json').write_text(json.dumps(info))
+        with self.assertRaisesRegex(ValueError, 'Choose another edge'):
+            configuration.request(dict(operation='preview', id=ident))
+        self.assertEqual(configuration.current(), before)
+
     def test_incomplete_and_unsafe_backups_are_not_listed(self):
         folder = self.root / 'state/hyprshell/setup-backups/setup-20260101-010101-000000'
         folder.mkdir(parents=True); (folder / 'files.json').write_text('{}')

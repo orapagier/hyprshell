@@ -83,8 +83,10 @@ backgrounds. Hyprpane's own pills remain unchanged. The common backdrop follows
 all four edges, including rounded top/bottom ends on narrow side rails.
 
 Minimize/restore remains unavailable: Phase 3 did not establish a recoverable
-compositor implementation. Show Desktop, full
-coexistence/hotplug acceptance, and layout previews/presets remain Phases 7–8.
+compositor implementation. Phase 7's [menu coexistence slice](panel-coexistence.md)
+keeps the neighbouring panel reachable while menus are open and constrains cards
+to the remaining space. Show Desktop, physical coexistence/hotplug acceptance,
+and layout previews/presets remain pending in Phases 7–8.
 
 ## Validation — 2026-10-16
 

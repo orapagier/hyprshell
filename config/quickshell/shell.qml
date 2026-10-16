@@ -86,6 +86,11 @@ ShellRoot {
             readonly property bool vertical: edge === "left" || edge === "right"
             readonly property var cornerInsets: DockModel.insets(preferences.config, "hyprpane", panel.modelData.name,
                 Hyprland.monitorFor(panel.modelData)?.activeWorkspace?.id ?? null, 0)
+            readonly property var workspace: Hyprland.monitorFor(panel.modelData)?.activeWorkspace?.id ?? null
+            readonly property rect menuBounds: DockModel.menuBounds(preferences.config, "hyprpane", panel.modelData.name,
+                workspace, 0, modelData.width, modelData.height)
+            onWorkspaceChanged: closeMenu()
+            onMenuBoundsChanged: closeMenu()
             readonly property real availableHeight: Math.max(1, modelData.height - cornerInsets.top - cornerInsets.bottom)
             readonly property bool compact: vertical && preferences.config.bar.verticalPresentation === "compact"
             anchors {
@@ -143,6 +148,8 @@ ShellRoot {
                     }
                 }
                 onTrayAction: (item, source, button) => {
+                    panel.closeDockMenus();
+                    for (let other of panels.instances) other.closeMenu();
                     if (button === Qt.MiddleButton) item.secondaryActivate();
                     else if (button === Qt.RightButton || item.onlyMenu) {
                         if (item.hasMenu) { let position = source.mapToItem(bar,0,source.height); item.display(panel,position.x,position.y); }
@@ -152,6 +159,7 @@ ShellRoot {
             }
             Dropdown {
                 id: panelDropdown
+                panelBounds: panel.menuBounds
                 onManagingApplicationsChanged: if (managingApplications) menuState.pinned = true
                 wallpaperSource: bar.wallpaperSource
                 translucency: Settings.popdownTranslucency(preferences.config, bar.menuItemId(menuState.displayedSection))
@@ -207,7 +215,7 @@ ShellRoot {
             wallpaperSource: wallpapers.sources[modelData.name] || ""
             paneThickness: {
                 let pane = panels.instances.find(p => p.modelData.name === modelData.name);
-                return pane ? pane.implicitHeight : preferences.config.bar.height;
+                return pane ? (pane.vertical ? pane.implicitWidth : pane.implicitHeight) : preferences.config.bar.height;
             }
             onInteractionStarted: {
                 for (let panel of panels.instances) panel.closeMenu();
@@ -234,7 +242,7 @@ ShellRoot {
             wallpaperSource: wallpapers.sources[modelData.name] || ""
             paneThickness: {
                 let pane = panels.instances.find(p => p.modelData.name === modelData.name);
-                return pane ? pane.implicitHeight : preferences.config.bar.height;
+                return pane ? (pane.vertical ? pane.implicitWidth : pane.implicitHeight) : preferences.config.bar.height;
             }
             onInteractionStarted: {
                 for (let panel of panels.instances) panel.closeMenu();

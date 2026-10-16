@@ -34,24 +34,29 @@ Item {
     property bool opened: false
     property bool cardClickable: false
     property bool connected: true
+    property rect panelBounds: Qt.rect(0, 0, width, height)
+    readonly property real safeLeft: panelBounds.x + 12
+    readonly property real safeRight: panelBounds.x + panelBounds.width - 12
+    readonly property real safeTop: panelBounds.y + 12
+    readonly property real safeBottom: panelBounds.y + panelBounds.height - 12
     readonly property bool rendering: opened || surface.opacity > 0
     signal hoverChanged(bool inside)
     signal cardClicked()
     readonly property real bodyWidth: Math.max(0, Math.min(preferredBodyWidth, connected && vertical
         ? (edge === "left" ? width - triggerRect.x - triggerRect.width - 45 : triggerRect.x - 45)
-        : width - 24))
+        : panelBounds.width - 24, panelBounds.width - 24))
     function clamp(value, low, high) { return Math.max(low, Math.min(Math.max(low, high), value)); }
     readonly property real bodyX: !connected || !vertical
-        ? (alignToTrigger && connected ? clamp(triggerRect.x + triggerRect.width / 2 - bodyWidth / 2, 12, width - bodyWidth - 12) : alignment === "left" ? 12 : alignment === "right" ? width - bodyWidth - 12 : (width - bodyWidth) / 2)
-        : edge === "left" ? clamp(triggerRect.x + triggerRect.width + 33, 12, width - bodyWidth - 12)
-        : clamp(triggerRect.x - 33 - bodyWidth, 12, width - bodyWidth - 12)
-    readonly property real availableHeight: !connected ? height - 64 : vertical ? height - 24
-        : edge === "bottom" ? triggerRect.y - 49 : height - triggerRect.y - triggerRect.height - 49
+        ? (alignToTrigger && connected ? clamp(triggerRect.x + triggerRect.width / 2 - bodyWidth / 2, safeLeft, safeRight - bodyWidth) : alignment === "left" ? safeLeft : alignment === "right" ? safeRight - bodyWidth : panelBounds.x + (panelBounds.width - bodyWidth) / 2)
+        : edge === "left" ? clamp(triggerRect.x + triggerRect.width + 33, safeLeft, safeRight - bodyWidth)
+        : clamp(triggerRect.x - 33 - bodyWidth, safeLeft, safeRight - bodyWidth)
+    readonly property real availableHeight: !connected ? Math.max(0, Math.min(panelBounds.height - 64, safeBottom - bodyY)) : vertical ? Math.max(0, safeBottom - safeTop)
+        : edge === "bottom" ? triggerRect.y - 33 - safeTop - 4 : safeBottom - triggerRect.y - triggerRect.height - 33 - 4
     readonly property real bodyHeight: Math.max(0, Math.min(availableHeight, contents.implicitHeight + 36))
-    readonly property real bodyY: !connected ? Math.max(48, triggerRect.y + triggerRect.height + 12)
+    readonly property real bodyY: !connected ? Math.max(safeTop + 36, triggerRect.y + triggerRect.height + 12)
         : edge === "top" ? triggerRect.y + triggerRect.height + 33
         : edge === "bottom" ? triggerRect.y - 33 - bodyHeight
-        : clamp(triggerRect.y + triggerRect.height / 2 - bodyHeight / 2, 12, height - bodyHeight - 12)
+        : clamp(triggerRect.y + triggerRect.height / 2 - bodyHeight / 2, safeTop, safeBottom - bodyHeight)
     readonly property real bodyRight: bodyX + bodyWidth
     readonly property real bodyBottom: bodyY + bodyHeight
     // Draw the existing funnel in coordinates that always point inward, while
