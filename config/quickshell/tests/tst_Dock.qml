@@ -13,6 +13,7 @@ Item {
     property var groups: []
     property var action: ({})
     property string request: ''
+    property bool utilityContext: false
     DockMenuController { id: hoverState }
     QtObject {
         id: service
@@ -32,6 +33,7 @@ Item {
         width:implicitWidth; height:implicitHeight
         service:scene.appService; config:scene.config
         maximumLength:700
+        onUtilityRequested:(key,context,trigger) => { scene.request=key; scene.utilityContext=context; }
         onLauncherRequested:scene.request = 'launcher'
         onGroupRequested:(key,trigger) => scene.request = 'picker:' + key
         onPreviewsRequested:(key,trigger) => scene.request = 'previews:' + key
@@ -74,6 +76,19 @@ Item {
                 installed:i!==1,pinned:i<2,active:i===0,windows:i===1 ? [] : [{address:'ab'+i,title:'Window '+i,workspaceName:'1',output:'eDP-1',active:i===0}]}));
         }
         function edge(value) { let next=Settings.copy(scene.config); next.panels.hyprdock.position=value; scene.config=next; }
+        function test_utilities_data() { return ['top','bottom','left','right'].map(e=>({tag:e,edge:e})); }
+        function test_utilities(data) {
+            let next=Settings.copy(scene.config);
+            Object.assign(next.panels.hyprdock,{position:data.edge,showFiles:true,showSettings:true,showTrash:true});
+            scene.config=next; wait(30);
+            compare(dock.entries.length,8);
+            dock.activate(dock.entries[5],dock); compare(scene.request,'files'); compare(scene.utilityContext,false);
+            dock.activate(dock.entries[6],dock); compare(scene.request,'settings');
+            dock.activate(dock.entries[7],dock); compare(scene.request,'trash'); compare(scene.utilityContext,false);
+            dock.showGroup(dock.entries[7],dock); compare(scene.request,'trash'); compare(scene.utilityContext,true);
+            dock.trashFull=true; compare(dock.entries[7].icon,'user-trash-full');
+            dock.trashFull=false; compare(dock.entries[7].icon,'user-trash');
+        }
         function test_orientationOverflowAndFocus_data() { return ['top','bottom','left','right'].map(e=>({tag:e,edge:e})); }
         function test_orientationOverflowAndFocus(data) {
             edge(data.edge); scene.groups=makeGroups(16); dock.maximumLength=220; wait(30);

@@ -1,4 +1,4 @@
-# Hyprdock core — Phase 4
+# Hyprdock — core, utilities and visibility
 
 Enable **Settings → Hyprpane & panels → Hyprdock → Enable Hyprdock**. Choose a
 screen edge different from Hyprpane, then adjust dock thickness, icon size and
@@ -78,14 +78,76 @@ controls use the existing Settings draft/autosave/conflict flow and are searchab
 There is no schema version change or new persistence file. Setup copies the new
 components; normal settings backup and GitHub sync keep the saved preferences.
 
-This phase always shows a workspace-visible dock and reserves its effective
-thickness plus the configured window gap. The Phase 1 `auto-hide` and `dodge`
-hide-mode values remain reserved until Phase 5; they currently render as always
-visible. Utilities, automatic hiding, fullscreen policy and additional appearance
-controls remain Phase 5 work. Classic Hyprbar and full three-component placement
-validation remain in their planned phases. Minimize/Show Desktop remain deferred.
+## Utilities and visibility — Phase 5
 
-## Validation — 2026-10-16
+Settings → Hyprpane & panels → Hyprdock now includes optional Files, Settings
+and Trash shortcuts. They default off to retain the existing arrangement.
+Files opens your home folder with the default file manager; Settings opens the
+existing Settings window. Clicking Trash opens `trash:///` in the file manager.
+Right-click Trash (or Menu / Shift+F10 with it focused) for its status and
+**Empty Trash…**, then **Confirm empty Trash**. Cancel or dismiss to abandon
+confirmation. Opening Trash never empties it. The empty/full icon refreshes every
+15 seconds while enabled and when opening its context menu. One shared utility
+service handles all outputs. Unavailable Trash reports an error and disables
+emptying; a failed empty operation never claims success.
+
+**Dock visibility** selects:
+
+- **Always visible**: reserve effective thickness plus window gap (and the
+  layer surface's outside margin), as in Phase 4.
+- **Auto-hide**: reserve no space; reveal from a 3 px strip at the physical
+  screen edge, aligned with the dock even when an outside margin is saved.
+- **Hide when overlapped**: reserve no space; hide when a window intersects
+  the dock on the active workspace, including pinned windows. Windows on other
+  workspaces do not hide it. Reveal from the same edge strip.
+
+Hiding waits 500 ms so the pointer can cross an outside margin or return from a
+menu. Menus, window pickers, pin drags and keyboard navigation hold the dock open.
+Escape releases keyboard retention and dismisses its menu. Pointer focus alone
+does not keep an auto-hide dock open. Workspace/output filtering immediately
+suppresses both dock and reveal strip and closes menus. The existing application
+service samples compositor geometry every 350 ms only while a visible dodge dock
+needs it; it uses the shared toplevel model, not a second application service.
+Fullscreen/workspace events also refresh that model for all hide modes.
+
+**Dock in fullscreen** defaults to hiding the dock and its reveal strip, with no
+reservation. Choose **Show over fullscreen** to retain the selected hide mode;
+the dock and reveal strip use the overlay layer. Maximized windows participate
+in overlap hiding but are not treated as fullscreen.
+
+Placement controls now include Start / Center / End alignment, end margins and
+window gap, alongside edge distance, icon size and spacing. Background may follow
+Hyprpane or be On / Off; transparency remains independent. Running indicators
+and fade animation can be disabled. Accessibility → Reduced motion disables the
+fade without changing the saved animation preference. Connector names restrict
+outputs (empty means all); selected workspace numbers use the existing validated
+workspace filter and overrides. Invalid settings retain the last saved layout.
+New fields inherit defaults when loading old preferences and use the existing
+transaction, setup, backup/restore and sync paths; no new settings file is added.
+Classic Hyprbar and full three-component placement remain in later phases.
+Minimize/Show Desktop remain deferred.
+
+## Phase 5 validation — 2026-10-16
+
+- Qt 6: 240 passed, including four-edge utility routing and nine visibility /
+  confirmation checks covering delayed hiding, reentry, interaction retention,
+  fullscreen/eligibility suppression, overlap coordinates and pinned windows.
+- Native dock and utility checks pass. The utility check uses a stub file manager
+  and verifies status/open commands without touching or deleting personal files.
+  Backend utility tests verify that only the explicit confirmation action empties
+  Trash and that failed status checks cannot report an empty Trash.
+- Placement/schema: nine passed; Settings: 33; Settings search including native
+  navigation: seven; shared application support: six. Setup: 17 passed, one
+  platform skip. Native runtime dependencies pass. QML lint has no syntax errors;
+  existing Quickshell PanelWindow/Margins metadata warnings remain.
+- Live `hyprctl configerrors` cannot reach the session socket (`Couldn't set
+  socket timeout (2)`). Physical reveal/bridge interaction, layer-shell reserved
+  space, fullscreen stacking, scaling and monitor hotplug remain unverified and
+  belong to the live checks in Phase 8. Offscreen state checks do not establish
+  compositor behavior. Runtime files are deployed with a dated backup; saved
+  personal settings are not rewritten.
+
+## Phase 4 validation — 2026-10-16
 
 - Qt 6 suite: 215 passed, including 17 dock checks for Top/Bottom/Left/Right,
   mouse launch/context/middle-click, actual pointer drag reordering, keyboard

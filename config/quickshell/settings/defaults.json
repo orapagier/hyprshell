@@ -418,7 +418,14 @@
       "iconSize": 32,
       "spacing": 4,
       "background": "inherit",
-      "hideMode": "always"
+      "hideMode": "always",
+      "alignment": "center",
+      "indicators": true,
+      "animations": true,
+      "fullscreenPolicy": "hide",
+      "showFiles": false,
+      "showSettings": false,
+      "showTrash": false
     },
     "hyprbar": {
       "enabled": false,

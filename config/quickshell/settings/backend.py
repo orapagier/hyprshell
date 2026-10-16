@@ -308,6 +308,13 @@ def validate_panels(data, result):
             raise ValueError(f'Invalid {name} background')
         if name == 'hyprdock':
             number(target['backgroundOpacity'], 0, 1)
+            if target['alignment'] not in ('start', 'center', 'end'):
+                raise ValueError('Invalid Hyprdock alignment')
+            if target['fullscreenPolicy'] not in ('hide', 'show'):
+                raise ValueError('Invalid Hyprdock fullscreen policy')
+            for key in ('indicators', 'animations', 'showFiles', 'showSettings', 'showTrash'):
+                if type(target[key]) is not bool:
+                    raise ValueError(f'Hyprdock {key} must be boolean')
     pins = data.get('pins', {})
     if not isinstance(pins, dict) or set(pins) - set(result['pins']):
         raise ValueError('Unknown pin setting')

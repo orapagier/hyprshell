@@ -7,6 +7,7 @@ import Quickshell.Wayland
 PanelWindow {
     id: popup
     required property var service
+    property var utilities: null
     readonly property string mode: menuState.mode
     readonly property string groupKey: menuState.groupKey
     readonly property rect triggerRect: menuState.triggerRect
@@ -49,9 +50,9 @@ PanelWindow {
             wallpaperSource:popup.wallpaperSource
             showHeader: popup.mode !== 'previews'
             preferredBodyWidth: popup.mode === 'previews' ? (vertical ? 256 : Math.min(900, 36 + (popup.group?.windows.length || 1) * 228 - 8)) : 300
-            title:popup.mode === 'launcher' ? 'Applications' : popup.mode === 'manage' ? 'Apps & windows' : popup.group ? popup.group.name : 'Application'
+            title:popup.mode === 'trash' ? 'Trash' : popup.mode === 'launcher' ? 'Applications' : popup.mode === 'manage' ? 'Apps & windows' : popup.group ? popup.group.name : 'Application'
             symbol:popup.mode === 'launcher' ? '󰀻' : '󰘳'
-            page:popup.mode === 'launcher' ? launcher : popup.mode === 'manage' ? manager : popup.mode === 'previews' ? previews : actions
+            page:popup.mode === 'trash' ? trashMenu : popup.mode === 'launcher' ? launcher : popup.mode === 'manage' ? manager : popup.mode === 'previews' ? previews : actions
         }
     }
     Shortcut { sequence:'Escape'; enabled:popup.opened; onActivated:popup.dismiss() }
@@ -63,6 +64,7 @@ PanelWindow {
             onLaunched:popup.dismiss()
         }
     }
+    Component { id:trashMenu; DockTrashMenu { utilities:popup.utilities; active:popup.opened && popup.mode === 'trash' } }
     Component { id:manager; ApplicationManager { service:popup.service } }
     Component {
         id: previews

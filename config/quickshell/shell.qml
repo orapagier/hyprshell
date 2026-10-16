@@ -21,7 +21,11 @@ ShellRoot {
     readonly property int currentWorkspace: Hyprland.focusedMonitor && Hyprland.focusedMonitor.activeWorkspace ? Hyprland.focusedMonitor.activeWorkspace.id : 0
     property var pendingBarToggles: []
     SettingsStore { id: preferences }
-    ApplicationService { id: applications; store: preferences }
+    ApplicationService {
+        id: applications; store: preferences
+        geometryTracking: docks.instances.some(d => d.shown && d.panel.hideMode === 'dodge')
+    }
+    DockUtilities { id: dockUtilities; watching: preferences.config.panels.hyprdock.enabled && preferences.config.panels.hyprdock.showTrash }
     ProjectorWindow { id: projectorWindow }
     PresentationView { id: presentationView }
     Hyprview { id: hyprviewWindow }
@@ -193,6 +197,8 @@ ShellRoot {
             id: dockWindow
             required property var modelData
             output: modelData
+            utilities: dockUtilities
+            onSettingsRequested: settingsController.open()
             service: applications
             config: preferences.config
             wallpaperSource: wallpapers.sources[modelData.name] || ""

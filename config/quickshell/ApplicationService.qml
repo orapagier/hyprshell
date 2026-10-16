@@ -10,6 +10,7 @@ Item {
     id: service
     required property var store
     // Injectable inputs also let native checks exercise lifecycle without actions.
+    property bool geometryTracking: false
     property var entries: DesktopEntries.applications.values.slice().sort((a, b) => a.name.localeCompare(b.name))
     property var windows: Hyprland.toplevels.values
     readonly property var matches: store.config.pins.matches || {}
@@ -131,9 +132,17 @@ Item {
         target: Hyprland
         function onRawEvent(event) {
             if (['openwindow', 'closewindow', 'movewindow', 'movewindowv2', 'windowtitle', 'windowtitlev2',
-                 'activewindow', 'activewindowv2', 'urgent', 'monitoradded', 'monitorremoved'].indexOf(event.name) >= 0)
+                 'activewindow', 'activewindowv2', 'urgent', 'monitoradded', 'monitorremoved',
+                 'fullscreen', 'changefloatingmode', 'workspace', 'workspacev2', 'focusedmon'].indexOf(event.name) >= 0)
                 refresh.restart();
         }
+    }
+    // Hyprland has no continuous move/resize event. Sample geometry only while
+    // an enabled dodge dock needs it, using the existing shared toplevel model.
+    Timer {
+        interval: 350; repeat: true
+        running: service.geometryTracking
+        onTriggered: Hyprland.refreshToplevels()
     }
     Timer { id: refresh; interval: 60; onTriggered: Hyprland.refreshToplevels() }
 }

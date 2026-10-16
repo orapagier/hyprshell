@@ -35,6 +35,21 @@ class PanelConfigurationTests(unittest.TestCase):
             for name, default in [('hyprpane', True), ('hyprdock', False), ('hyprbar', False)]:
                 self.assertEqual(result['panels'][name]['enabled'], legacy.get('panels', {}).get(name, {}).get('enabled', default))
 
+    def test_dock_visibility_utilities_and_legacy_defaults(self):
+        for mode in ('always', 'auto-hide', 'dodge'):
+            self.data['panels']['hyprdock'].update(hideMode=mode, showTrash=True, showFiles=True, showSettings=True)
+            self.assertEqual(backend.validate(self.data)['panels']['hyprdock']['hideMode'], mode)
+        for key, invalid in [('alignment', 'middle'), ('fullscreenPolicy', 'always'), ('showTrash', 1), ('animations', 'yes'), ('indicators', None)]:
+            data = copy.deepcopy(self.data)
+            data['panels']['hyprdock'][key] = invalid
+            with self.assertRaises(ValueError):
+                backend.validate(data)
+        for key in ('alignment', 'fullscreenPolicy', 'showTrash', 'showFiles', 'showSettings', 'animations', 'indicators'):
+            del self.data['panels']['hyprdock'][key]
+        dock = backend.validate(self.data)['panels']['hyprdock']
+        self.assertEqual(dock['alignment'], 'center')
+        self.assertFalse(dock['showTrash'])
+
     def test_dock_opacity_and_edge_distance(self):
         dock = self.data['panels']['hyprdock']
         del dock['backgroundOpacity']

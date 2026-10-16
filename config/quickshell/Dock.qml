@@ -12,7 +12,13 @@ FocusScope {
     readonly property bool vertical: edge === 'left' || edge === 'right'
     readonly property var panel: config.panels.hyprdock
     readonly property var groups: service.groups('hyprdock')
-    readonly property var entries: [{key:'launcher', name:'Applications', launcher:true, windows:[]}].concat(groups)
+    property bool trashFull: false
+    readonly property var utilities: [
+        {key:'files',name:'Files',utility:true,icon:'system-file-manager',windows:[]},
+        {key:'settings',name:'Settings',utility:true,icon:'preferences-system',windows:[]},
+        {key:'trash',name:trashFull ? 'Trash (full)' : 'Trash (empty)',utility:true,icon:trashFull ? 'user-trash-full' : 'user-trash',windows:[]}
+    ].filter(e => panel['show' + e.key[0].toUpperCase() + e.key.slice(1)] === true)
+    readonly property var entries: [{key:'launcher', name:'Applications', launcher:true, windows:[]}].concat(groups, utilities)
     readonly property real thickness: Model.thickness(panel)
     readonly property real cellSize: thickness - 8
     readonly property real iconSize: Math.min(launcherMetrics.tightBoundingRect.height, cellSize - 8)
@@ -28,12 +34,14 @@ FocusScope {
     readonly property real length: Math.min(maximumLength, naturalLength)
     readonly property bool overflowing: naturalLength > length
     readonly property real navigationSize: overflowing ? 24 : 0
+    property bool keyboardInteraction: false
     property string draggingId: ''
     property string focusedKey: 'launcher'
     onEntriesChanged: Qt.callLater(() => {
         if (dock.activeFocus) dock.focusIndex(Math.max(0,dock.entries.findIndex(entry => entry.key === dock.focusedKey)));
     })
     property point dragPoint: Qt.point(0, 0)
+    signal utilityRequested(string key, bool context, rect trigger)
     signal launcherRequested(rect trigger)
     signal groupRequested(string key, rect trigger)
     signal previewsRequested(string key, rect trigger)
@@ -44,10 +52,11 @@ FocusScope {
     implicitWidth: vertical ? thickness : length
     implicitHeight: vertical ? length : thickness
     function itemRect(item) { let p = item.mapToItem(dock, 0, 0); return Qt.rect(p.x,p.y,item.width,item.height); }
-    function showGroup(group, item) { interactionStarted(); groupRequested(group.key, itemRect(item)); }
+    function showGroup(group, item) { interactionStarted(); if (group.utility) utilityRequested(group.key, true, itemRect(item)); else groupRequested(group.key, itemRect(item)); }
     function activate(group, item) {
         interactionStarted();
-        if (group.launcher) { interactionStarted(); launcherRequested(itemRect(item)); }
+        if (group.utility) { dismissRequested(); utilityRequested(group.key, false, itemRect(item)); }
+        else if (group.launcher) { interactionStarted(); launcherRequested(itemRect(item)); }
         else if (group.windows.length > 1) previewsRequested(group.key, itemRect(item));
         else { dismissRequested(); service.activate(group); }
     }
@@ -135,7 +144,7 @@ FocusScope {
                 source: button.modelData.launcher ? '' : dock.service.iconSource(button.modelData.icon)
                 sourceSize.width: width; sourceSize.height: height
                 fillMode: Image.PreserveAspectFit
-                opacity: !button.modelData.launcher && !button.modelData.installed && !button.modelData.windows.length ? 0.45 : 1
+                opacity: !button.modelData.launcher && !button.modelData.utility && !button.modelData.installed && !button.modelData.windows.length ? 0.45 : 1
             }
             Text {
                 objectName: 'dockGlyph' + button.index
@@ -146,7 +155,7 @@ FocusScope {
             }
             Rectangle {
                 objectName: 'dockRunningIndicator'
-                visible: button.modelData.windows.length > 0
+                visible: dock.panel.indicators !== false && button.modelData.windows.length > 0
                 color: button.modelData.active ? '#cba6f7' : '#a6adc8'; radius: 2
                 width: dock.vertical ? 3 : Math.min(18, 4 + button.modelData.windows.length*4)
                 height: dock.vertical ? Math.min(18, 4 + button.modelData.windows.length*4) : 3
@@ -154,7 +163,8 @@ FocusScope {
                 y: dock.edge === 'bottom' ? parent.height-height-1 : dock.vertical ? (parent.height-height)/2 : 1
             }
             Keys.onPressed: event => {
-                if (event.key === Qt.Key_Escape) { dock.draggingId = ''; event.accepted = true; }
+                dock.keyboardInteraction = true;
+                if (event.key === Qt.Key_Escape) { dock.draggingId = ''; dock.keyboardInteraction = false; dock.focus = false; dock.dismissRequested(); event.accepted = true; }
                 else if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier))) {
                     if (!modelData.launcher) dock.showGroup(modelData, button);
                     event.accepted = true;
@@ -192,7 +202,7 @@ FocusScope {
                 property bool moved: false
                 preventStealing: !!button.modelData.pinned
                 onPressed: mouse => {
-                    button.forceActiveFocus(); pressPoint = Qt.point(mouse.x, mouse.y); moved = false;
+                    dock.keyboardInteraction = false; button.forceActiveFocus(); pressPoint = Qt.point(mouse.x, mouse.y); moved = false;
                 }
                 onPositionChanged: mouse => {
                     if (!(pressedButtons & Qt.LeftButton) || !button.modelData.pinned || dock.service.busy) return;
