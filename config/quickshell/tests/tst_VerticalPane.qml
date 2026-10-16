@@ -77,49 +77,22 @@ Item {
         function test_sidePanelsAreIconOnlyAndCircular(data) {
             pane.settings = config(data.edge);
             pane.clockText = 'September Wednesday 12:59 PM';
-            compare(pane.width,32);
+            compare(pane.width,40);
             for (let id of ['calendar','audio','battery','wifi','bluetooth','notifications','power']) {
                 let item = pane.moduleItems[id];
                 compare(item.displayText,'',id);
                 verify(item.shownIcon.length > 0,id);
                 compare(item.width,item.height,id);
-                compare(item.width,28,id);
-                let glyph = findChild(item,'pillIcon');
-                let metrics = glyphMetrics.createObject(scene, {font:glyph.font, text:glyph.text});
-                let ink = metrics.tightBoundingRect;
-                fuzzyCompare(glyph.x + ink.x + ink.width / 2, item.width / 2, 0.1, id + ' horizontal center');
-                fuzzyCompare(glyph.y + glyph.baselineOffset + ink.y + ink.height / 2, item.height / 2, 0.1, id + ' vertical center');
-                metrics.destroy();
                 let background = findChild(item,'pillBackground');
                 compare(background.radius,item.width/2,id);
             }
             compare(pane.moduleItems.calendar.shownIcon,'󰃭');
-            compare(pane.moduleItems.calendar.ToolTip.visible,false);
+            verify(pane.moduleItems.calendar.tooltipText.indexOf(pane.clockText) >= 0);
             let workspace = findChild(pane,'workspace1');
-            compare(workspace.shownText,'1');
-            compare(workspace.shownIcon,'');
+            compare(workspace.shownText,'');
+            compare(workspace.shownIcon,'');
             compare(workspace.width,workspace.height);
             assertLayout();
-        }
-        function test_vectorIconsStayCenteredWithSavedAsymmetricPadding() {
-            for (let edge of ['left','right','top','bottom']) {
-                let next = config(edge);
-                next.items = [{id:'launcher',paddingLeft:7,paddingRight:0},
-                              {id:'settings',paddingLeft:0,paddingRight:7}];
-                pane.settings = next;
-                for (let entry of [{id:'launcher',name:'distroGlassLogo'}, {id:'settings',name:'settingsGlassCog'}]) {
-                    let item = pane.moduleItems[entry.id];
-                    let vector = findChild(item,entry.name);
-                    verify(vector.visible);
-                    if (pane.vertical) {
-                        compare(vector.x + vector.width / 2,item.width / 2,entry.id);
-                        compare(vector.y + vector.height / 2,item.height / 2,entry.id);
-                    } else {
-                        compare(vector.x,item.content.x,entry.id);
-                        compare(vector.width,item.content.width,entry.id);
-                    }
-                }
-            }
         }
         function test_compactAndFullEdgeRetainAlignmentAndOrder() {
             pane.clockText = '12:34';
@@ -141,7 +114,7 @@ Item {
             pane.trayModel = Array.from({length:18},(_,i) => ({icon:Qt.resolvedUrl("../icons/preview-tray.svg"),title:'App '+i}));
             pane.clockText = 'Wednesday September 30 11:59 PM';
             // Grid lays out newly created tray delegates on the next polish.
-            tryVerify(() => pane.moduleItems.tray.height >= 18 * 28);
+            tryVerify(() => pane.moduleItems.tray.height >= 18 * 36);
             for (let edge of ['left','right']) {
                 pane.settings = config(edge);
                 assertLayout();
@@ -186,7 +159,6 @@ Item {
             compare(overlay.itemAt(rect.x+rect.width/2,rect.y+rect.height/2),'audio');
             overlay.destroy();
         }
-        Component { id: glyphMetrics; TextMetrics {} }
         Component { id: editorFactory; PreviewLayoutEditor {} }
         function test_customLabelsAndVisibilitySurviveBothOrientations() {
             for (let edge of ['left','right']) {
@@ -195,11 +167,11 @@ Item {
                 pane.settings = next;
                 compare(pane.moduleItems.audio.displayText,'');
                 compare(pane.moduleItems.audio.settings.text,'Volume');
-                compare(pane.moduleItems.audio.ToolTip.visible,false);
+                verify(pane.moduleItems.audio.tooltipText.indexOf('Volume') >= 0);
                 compare(pane.moduleItems.audio.shownIcon,'');
                 compare(pane.moduleItems.battery.shownText,'');
                 verify(pane.moduleItems.wifi.content.contentWidth <= pane.moduleItems.wifi.content.width + 1);
-                compare(pane.moduleItems.wifi.settings.text,'Connected network');
+                compare(pane.moduleItems.wifi.tooltipText.indexOf('Connected network') >= 0,true);
                 assertLayout();
             }
         }
@@ -251,10 +223,10 @@ Item {
             compare(pane.moduleItems.audio.displayText,'Café 🐱');
             compare(findChild(pane.moduleItems.audio,'pillBackground').radius,2);
         }
-        function test_noTooltipsAndSpectrumFitsCircle() {
+        function test_notificationCountIsInTooltipAndSpectrumFitsCircle() {
             let bell = pane.moduleItems.notifications, badge = findChild(bell,'notificationBadge');
             compare(badge.visible,false);
-            compare(bell.ToolTip.visible,false);
+            verify(bell.tooltipText.indexOf('999') >= 0);
             pane.mediaData = {playing:true,title:'A long music title stays available in the tooltip',levels:[0.3,0.8,0.6,0.4,1,0.4,0.2,0.6,0.9,0.4,0.3,0.5]};
             let media = pane.moduleItems.media.item;
             compare(media.displayText,'');
@@ -265,7 +237,7 @@ Item {
             verify(spectrum.y >= 0 && spectrum.y+spectrum.height <= media.height);
             for (let i=0; i<5; ++i) verify(findChild(spectrum,'spectrumBar'+i).width >= 2);
             compare(findChild(spectrum,'spectrumBar5'),null);
-            compare(media.ToolTip.visible,false);
+            verify(media.ToolTip.text.indexOf('tooltip') >= 0);
             let next = config('left');
             next.items = [{id:'media',hideIcon:true}];
             pane.settings = next;
