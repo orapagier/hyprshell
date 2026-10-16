@@ -25,12 +25,28 @@ class PanelConfigurationTests(unittest.TestCase):
             for section in legacy:
                 if isinstance(legacy[section], dict):
                     for key, value in legacy[section].items():
-                        self.assertEqual(result[section][key], value)
+                        if section == 'panels':
+                            for preference, saved in value.items():
+                                self.assertEqual(result[section][key][preference], saved)
+                        else:
+                            self.assertEqual(result[section][key], value)
                 else:
                     self.assertEqual(result[section], legacy[section])
-            self.assertTrue(result['panels']['hyprpane']['enabled'])
-            self.assertFalse(result['panels']['hyprdock']['enabled'])
-            self.assertFalse(result['panels']['hyprbar']['enabled'])
+            for name, default in [('hyprpane', True), ('hyprdock', False), ('hyprbar', False)]:
+                self.assertEqual(result['panels'][name]['enabled'], legacy.get('panels', {}).get(name, {}).get('enabled', default))
+
+    def test_dock_opacity_and_edge_distance(self):
+        dock = self.data['panels']['hyprdock']
+        del dock['backgroundOpacity']
+        self.assertEqual(backend.validate(self.data)['panels']['hyprdock']['backgroundOpacity'], 230 / 255)
+        for opacity, margin in [(0, 0), (0.5, 35), (1, 100)]:
+            dock.update(backgroundOpacity=opacity, marginEdge=margin)
+            self.assertEqual(backend.validate(self.data)['panels']['hyprdock'], dock)
+        for key, invalid in [('backgroundOpacity', -0.1), ('backgroundOpacity', 1.1), ('backgroundOpacity', True), ('backgroundOpacity', '0.5'), ('marginEdge', 101)]:
+            data = copy.deepcopy(self.data)
+            data['panels']['hyprdock'][key] = invalid
+            with self.subTest(key=key, invalid=invalid), self.assertRaises(ValueError):
+                backend.validate(data)
 
     def test_all_pairs_and_edges(self):
         names = list(self.data['panels'])

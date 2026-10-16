@@ -24,6 +24,19 @@ SettingsCard {
         onActivated:editor.edited('position',['top','bottom','left','right'][currentIndex])
     }
     SettingsSlider {
+        Layout.fillWidth:true; objectName:'dockTransparencyControl'
+        label:'Dock transparency'; description:'Fades the dock background while keeping app icons readable.'
+        settingValue:editor.settings.backgroundOpacity ?? (230 / 255); inverted:true
+        from:0; to:100; suffix:'%'; allowReset:false
+        onEdited:value => editor.edited('backgroundOpacity',value)
+    }
+    SettingsSlider {
+        Layout.fillWidth:true; objectName:'dockEdgeMarginControl'
+        label:'Dock distance from screen edge'; description:'Space between the dock and its selected screen edge.'
+        settingValue:editor.settings.marginEdge; from:0; to:100; suffix:' px'; allowReset:false
+        onEdited:value => editor.edited('marginEdge',value)
+    }
+    SettingsSlider {
         Layout.fillWidth:true; objectName:'dockThicknessControl'
         label:'Dock thickness'; settingValue:editor.settings.thickness; from:28; to:160; allowReset:false
         onEdited:value => editor.edited('thickness',value)

@@ -306,6 +306,8 @@ def validate_panels(data, result):
             number(target[key], low, high, True)
         if target['background'] not in ('inherit', 'on', 'off'):
             raise ValueError(f'Invalid {name} background')
+        if name == 'hyprdock':
+            number(target['backgroundOpacity'], 0, 1)
     pins = data.get('pins', {})
     if not isinstance(pins, dict) or set(pins) - set(result['pins']):
         raise ValueError('Unknown pin setting')

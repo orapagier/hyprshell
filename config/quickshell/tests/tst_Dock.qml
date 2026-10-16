@@ -135,6 +135,24 @@ Item {
             dock.maximumLength=220; wait(20);
             compare(dock.thickness,112); verify(findChild(dock,'dockItem0').width>=104);
         }
+        function test_transparencyAndEdgeControls() {
+            let background=findChild(dock,'dockBackground');
+            fuzzyCompare(background.color.a,230/255,0.005);
+            let transparency=findChild(editor,'dockTransparencyControl');
+            transparency.commitDisplayValue(75);
+            compare(scene.action,{key:'backgroundOpacity',value:0.25});
+            let margin=findChild(editor,'dockEdgeMarginControl');
+            margin.commitDisplayValue(35);
+            compare(scene.action,{key:'marginEdge',value:35});
+            for (let opacity of [0,0.25,1]) {
+                let config=Settings.copy(scene.config);
+                config.panels.hyprdock.backgroundOpacity=opacity;
+                scene.config=config; wait(10);
+                fuzzyCompare(background.color.a,opacity,0.005);
+                compare(findChild(dock,'dockGlyph0').opacity,1);
+                if(opacity===0) compare(background.border.color.a,0);
+            }
+        }
         function test_iconHeightMatchesVisibleLauncher() {
             let config=Settings.copy(scene.config);
             config.panels.hyprdock.thickness=44; config.panels.hyprdock.iconSize=28; scene.config=config;

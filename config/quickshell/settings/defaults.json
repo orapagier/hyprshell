@@ -411,6 +411,7 @@
       "workspaceList": [],
       "workspaceOverrides": {},
       "thickness": 56,
+      "backgroundOpacity": 0.9019607843137255,
       "marginEdge": 5,
       "marginEnds": 10,
       "windowGap": 0,

@@ -6,6 +6,11 @@ spacing. The existing layout stays unchanged until you enable the dock. A
 conflicting choice leaves the previous valid saved layout intact and keeps the
 Settings draft available for correction.
 
+**Dock transparency** adjusts the background from opaque (0%) to transparent
+(100%), keeping app icons and indicators readable. **Dock distance from screen
+edge** sets the outside gap (0–100 px) on any selected edge. Both save automatically;
+existing preferences retain their previous background opacity and edge distance.
+
 Hyprdock shows the launcher, ordered pins, then running unpinned applications.
 A line marks running apps; the active app has a purple background and indicator.
 App icons have no hover tooltip. Missing applications retain their pin,

@@ -75,9 +75,11 @@ FocusScope {
         draggingId = '';
     }
     Rectangle {
+        objectName: 'dockBackground'
         anchors.fill: parent; radius: 16
         visible: dock.panel.background === 'on' || (dock.panel.background !== 'off' && dock.config.bar?.background !== 'off')
-        color: '#e61e1e2e'; border.color: '#38cdd6f4'
+        color: Qt.rgba(30 / 255, 30 / 255, 46 / 255, dock.panel.backgroundOpacity ?? (230 / 255))
+        border.color: Qt.rgba(205 / 255, 214 / 255, 244 / 255, (56 / 230) * (dock.panel.backgroundOpacity ?? (230 / 255)))
     }
     ToolButton {
         objectName: 'dockScrollBack'
