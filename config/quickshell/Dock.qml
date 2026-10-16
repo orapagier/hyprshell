@@ -37,7 +37,10 @@ FocusScope {
     function activate(group, item) {
         interactionStarted();
         if (group.launcher) { interactionStarted(); launcherRequested(itemRect(item)); }
-        else if (group.windows.length > 1) showGroup(group, item);
+        else if (group.windows.length) {
+            let window = group.windows.find(window => window.active) || group.windows[0];
+            service.windowAction('focus', window.address);
+        }
         else service.activate(group);
     }
     function focusIndex(index) {
@@ -138,9 +141,6 @@ FocusScope {
                 x: dock.edge === 'right' ? parent.width-width-1 : dock.vertical ? 1 : (parent.width-width)/2
                 y: dock.edge === 'bottom' ? parent.height-height-1 : dock.vertical ? (parent.height-height)/2 : 1
             }
-            ToolTip.visible: pointer.containsMouse && !pointer.pressed && !dock.draggingId
-            ToolTip.text: modelData.name + (!modelData.launcher && !modelData.installed ? ' (not installed)' : '') + (modelData.windows.length ? ' · ' + modelData.windows.length + ' windows' : '')
-            ToolTip.delay: 500
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Escape) { dock.draggingId = ''; event.accepted = true; }
                 else if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier))) {
