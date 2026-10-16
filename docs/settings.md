@@ -23,8 +23,10 @@ sidebar labels **Appearance**, **Windows**, **Applications**, **Keyboard shortcu
 and **Cleanup** lead to the existing application theme, Hyprland, default apps,
 keybindings, and system cleanup controls. **Bar items** expands individual module
 editors and opens automatically when a preview item is selected. Search matches
-page labels, related terms, card headings/subheadings and control captions,
+page labels, related terms, card headings and control captions,
 including collapsed bar items and pages that have never been opened.
+Explanatory subtitles, descriptions and sentence-style help text are excluded,
+so a word in instructions alone does not make a page match.
 For example, **System updates** finds Updates & recovery, and **Popdown glass**
 finds Bar & layout and individual bar-item editors. Matching ignores case and
 repeated whitespace. **Ctrl+F** focuses search; **Up/Down** select a result;

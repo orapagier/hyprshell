@@ -21,8 +21,16 @@ PAGES = {
 TOKEN = re.compile(r'(?P<comment>//[^\n]*|/\*[\s\S]*?\*/)|'
                    r'(?P<string>"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')|'
                    r'(?P<word>[A-Za-z_]\w*)|(?P<symbol>[^\s])')
-CAPTIONS = {'title', 'subtitle', 'label', 'text', 'description', 'placeholderText'}
+CAPTIONS = {'title', 'label', 'text', 'placeholderText'}
 EXCLUDE = {'SettingsWindow', 'SettingsController', 'SettingsStore'}
+
+
+def setting_caption(value, caption):
+    """Keep names and control captions, not sentences of explanatory copy."""
+    caption = ' '.join(caption.split())
+    if value == 'text' and re.search(r'[.!?](?:\s|$)', caption):
+        return ''
+    return caption
 
 
 def source_captions(source):
@@ -51,7 +59,7 @@ def source_captions(source):
                 caption = ast.literal_eval(item.group())
             except (ValueError, SyntaxError):
                 continue
-            caption = ' '.join(caption.split())
+            caption = setting_caption(value, caption)
             if caption and caption not in captions:
                 captions.append(caption)
     return captions, components
@@ -76,18 +84,20 @@ def helper_captions(root, source):
             tree = ast.parse(path.read_text())
         except SyntaxError:
             continue
-        def add(node):
+        def add(node, field='label'):
             if isinstance(node, ast.Constant) and isinstance(node.value, str):
-                captions.append(' '.join(node.value.split()))
+                caption = setting_caption(field, node.value)
+                if caption:
+                    captions.append(caption)
         for node in ast.walk(tree):
             if isinstance(node, ast.Dict):
                 for key, value in zip(node.keys, node.values):
                     if isinstance(key, ast.Constant) and key.value in CAPTIONS:
-                        add(value)
+                        add(value, key.value)
             elif isinstance(node, ast.Call):
                 for keyword in node.keywords:
                     if keyword.arg in CAPTIONS:
-                        add(keyword.value)
+                        add(keyword.value, keyword.arg)
                 if isinstance(node.func, ast.Name) and node.func.id == 'row' and len(node.args) > 1:
                     add(node.args[1])
     return captions

@@ -70,6 +70,11 @@ ShellRoot {
             test.phase++;
         } else if (test.phase === 4) {
             if (editor.searchResultIndex !== -1) { test.fail("deferred search selected an unmatched result"); return; }
+            let search = test.find(editor.contentItem, "settingsSearch");
+            search.text = "desktop";
+            if (editor.searchResults.some(row => row.section === -19)) { test.fail("desktop matched workspace explanatory copy"); return; }
+            search.text = "default tiling layout";
+            if (!editor.searchResults.some(row => row.section === -19) || editor.searchResultIndex !== 0) { test.fail("actual workspace setting did not match"); return; }
             if (editor.dirty || editor.saving) { test.fail("search changed preferences"); return; }
             console.log("CAPTION_SEARCH_OK"); Qt.quit();
         }

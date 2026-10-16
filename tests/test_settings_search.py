@@ -48,9 +48,22 @@ SettingsCard {
         self.assertNotIn('Not a heading', captions)
         self.assertNotIn('Also not a heading', captions)
         self.assertNotIn('not a separate property', captions)
-        for expected in ('First heading', 'Second heading', 'Nested option', 'Use "quotes" and https://example.invalid'):
+        self.assertNotIn('Use "quotes" and https://example.invalid', captions)
+        for expected in ('First heading', 'Second heading', 'Nested option'):
             self.assertIn(expected, captions)
         self.assertIn('SettingsNested', children)
+
+    def test_explanations_do_not_match_as_settings(self):
+        captions, _ = search.source_captions('''SettingsCard {
+            title: "Window behavior"
+            subtitle: "Keep your existing desktop behavior"
+            description: "Desktop instructions"
+            SettingsLabel { text: "Desktop behavior stays as configured. Choose an override only where needed." }
+            SettingsLabel { text: "Default tiling layout" }
+            SettingsSwitch { text: "Resize windows from borders" }
+        }''')
+        self.assertEqual(captions, ['Window behavior', 'Default tiling layout', 'Resize windows from borders'])
+        self.assertFalse(any('desktop' in caption.lower() for caption in search.build_index()['-19']))
 
     def test_current_caption_changes_are_found_without_executing_sources(self):
         with tempfile.TemporaryDirectory() as temporary:
