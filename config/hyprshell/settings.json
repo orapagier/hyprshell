@@ -11,8 +11,8 @@
       "2": true,
       "3": true,
       "4": true,
-      "5": true,
-      "6": true
+      "5": false,
+      "6": false
     },
     "adaptiveColors": true,
     "randomVibrantColors": true,
@@ -429,12 +429,14 @@
       "hideMode": "always"
     },
     "hyprdock": {
-      "enabled": false,
+      "enabled": true,
       "monitors": [],
       "position": "bottom",
       "visible": true,
-      "workspaceScope": "all",
-      "workspaceList": [],
+      "workspaceScope": "selected",
+      "workspaceList": [
+        6
+      ],
       "workspaceOverrides": {},
       "thickness": 34,
       "backgroundOpacity": 1,
@@ -460,12 +462,14 @@
       "rightItems": []
     },
     "hyprbar": {
-      "enabled": false,
+      "enabled": true,
       "monitors": [],
       "position": "bottom",
       "visible": true,
-      "workspaceScope": "all",
-      "workspaceList": [],
+      "workspaceScope": "selected",
+      "workspaceList": [
+        5
+      ],
       "workspaceOverrides": {},
       "thickness": 32,
       "marginEdge": 3,
@@ -475,7 +479,7 @@
       "spacing": 10,
       "paddingStart": 8,
       "paddingEnd": 10,
-      "spacingRight": 10,
+      "spacingRight": 15,
       "background": "inherit",
       "hideMode": "always",
       "grouped": true,
