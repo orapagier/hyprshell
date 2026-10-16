@@ -341,7 +341,11 @@ ShellRoot {
         function toggleLauncher(): void {
             let focused = Hyprland.focusedMonitor;
             let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
-            if (panel) panel.toggleLauncher();
+            let outputName = focused ? focused.name : panel ? panel.screen.name : '';
+            let appPanel = taskbars.instances.concat(docks.instances).find(p => p.output.name === outputName && p.launcherAvailable);
+            for (let other of panels.instances) if (appPanel || other !== panel) other.closeMenu();
+            if (appPanel) appPanel.toggleLauncher();
+            else if (panel) panel.toggleLauncher();
         }
     }
 }

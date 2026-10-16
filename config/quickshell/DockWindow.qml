@@ -30,6 +30,7 @@ Item {
     readonly property var monitor: Hyprland.monitorFor(output)
     readonly property var workspace: monitor && monitor.activeWorkspace ? monitor.activeWorkspace.id : null
     readonly property bool shown: Settings.panelVisible(config,component,output.name,workspace)
+    readonly property bool launcherAvailable: shown && !visibility.suppressed
     readonly property var insets: Model.insets(config,component,output.name,workspace,paneThickness)
     readonly property rect dockRect: Qt.rect(dock.x+rail.originX,dock.y+rail.originY,dock.width,dock.height)
     readonly property var clients: { let revision = service.windowRows; return service.windows; }
@@ -49,6 +50,12 @@ Item {
     }
     MenuController { id:statusState }
     function closeMenu() { if (popup) popup.dismiss(); statusState.close(); }
+    function toggleLauncher() {
+        statusState.close();
+        window.interactionStarted();
+        let rect = dock.launcherRect();
+        popup.open('launcher','',Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height));
+    }
     function statusInteraction() { popup.dismiss(); window.interactionStarted(); }
     onShownChanged: if (!shown) { closeMenu(); if (dock) dock.draggingId = ''; }
     onEdgeChanged: closeMenu()

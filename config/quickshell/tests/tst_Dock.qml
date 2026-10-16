@@ -170,6 +170,25 @@ Item {
                 if(opacity===0) compare(background.opacity,0);
             }
         }
+        function test_logoFocusRequiresKeyboardNavigation() {
+            let launcher=findChild(dock,'dockItem0');
+            dock.keyboardInteraction=false;
+            launcher.forceActiveFocus();
+            mouseMove(scene,790,690); wait(20);
+            compare(launcher.background.border.color,Qt.color('transparent'));
+            dock.keyboardInteraction=true;
+            compare(launcher.background.border.color,Qt.color('#cba6f7'));
+            dock.keyboardInteraction=false;
+        }
+        function test_launcherAnchorAfterOverflow_data() { return ['top','bottom','left','right'].map(e=>({tag:e,edge:e})); }
+        function test_launcherAnchorAfterOverflow(data) {
+            edge(data.edge); scene.groups=makeGroups(20); dock.maximumLength=300; wait(30);
+            dock.scroll(500); wait(20);
+            let rect=dock.launcherRect();
+            let launcher=findChild(dock,'dockItem0');
+            compare(rect,dock.itemRect(launcher));
+            verify(rect.x>=0 && rect.y>=0 && rect.x<dock.width && rect.y<dock.height);
+        }
         function test_iconHeightMatchesVisibleLauncher() {
             let config=Settings.copy(scene.config);
             config.panels.hyprdock.thickness=44; config.panels.hyprdock.iconSize=28; scene.config=config;

@@ -81,6 +81,11 @@ FocusScope {
         let item = list.itemAtIndex(list.currentIndex);
         if (item) item.forceActiveFocus();
     }
+    function launcherRect() {
+        list.positionViewAtIndex(0, ListView.Beginning);
+        let item = list.itemAtIndex(0);
+        return item ? itemRect(item) : Qt.rect(list.x, list.y, cellSize, cellSize);
+    }
     function scroll(step) {
         let max = Math.max(0, (vertical ? list.contentHeight - list.height : list.contentWidth - list.width));
         if (vertical) list.contentY = Math.max(0, Math.min(max, list.contentY + step));
@@ -150,8 +155,8 @@ FocusScope {
             }
             background: Rectangle {
                 radius: width/2
-                color: button.modelData.active ? '#28cba6f7' : pointer.containsMouse || button.activeFocus ? '#18cdd6f4' : 'transparent'
-                border.color: button.activeFocus ? '#cba6f7' : button.modelData.urgent ? '#fab387' : 'transparent'
+                color: button.modelData.active ? '#28cba6f7' : pointer.containsMouse || (button.activeFocus && dock.keyboardInteraction) ? '#18cdd6f4' : 'transparent'
+                border.color: button.activeFocus && dock.keyboardInteraction ? '#cba6f7' : button.modelData.urgent ? '#fab387' : 'transparent'
             }
             Image {
                 id: icon
@@ -178,7 +183,7 @@ FocusScope {
                 anchors.fill:parent
                 visible:button.modelData.launcher === true && !dock.launcherStyle.icon
                 iconSize:dock.iconSize
-                highlighted:pointer.containsMouse || button.activeFocus
+                highlighted:pointer.containsMouse || (button.activeFocus && dock.keyboardInteraction)
             }
             GlassCog {
                 anchors.fill:parent
