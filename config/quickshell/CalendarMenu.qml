@@ -98,7 +98,6 @@ ColumnLayout {
             }
         }
     }
-    MenuLabel { text: Qt.formatDate(page.selected,"dddd, MMMM d, yyyy"); Layout.fillWidth: true; font.pixelSize: 11; color: "#a6adc8" }
     MenuLabel { text: page.holiday ? page.holiday[0] + "\n" + ({regular: "Regular Holiday", special: "Special Non-Working Day", working: "Special Working Day"})[page.holiday[1]] : ""; visible: text.length > 0; Layout.fillWidth: true; color: "#f9e2af" }
     MenuButton { text: "Today"; Layout.fillWidth: true; onClicked: { page.year = page.today.getFullYear(); page.month = page.today.getMonth(); page.selected = page.today; } }
 }
