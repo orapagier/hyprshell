@@ -8,7 +8,7 @@
     ],
     "workspaceOverrides": {
       "1": true,
-      "2": true,
+      "2": false,
       "3": true,
       "4": true,
       "5": true,
@@ -420,5 +420,52 @@
     "enabled": false,
     "maxItems": 50,
     "includeImages": false
+  },
+  "panels": {
+    "hyprpane": {
+      "enabled": true,
+      "monitors": [],
+      "hideMode": "always"
+    },
+    "hyprdock": {
+      "enabled": false,
+      "monitors": [],
+      "position": "bottom",
+      "visible": true,
+      "workspaceScope": "all",
+      "workspaceList": [],
+      "workspaceOverrides": {},
+      "thickness": 56,
+      "marginEdge": 5,
+      "marginEnds": 10,
+      "windowGap": 0,
+      "iconSize": 32,
+      "spacing": 4,
+      "background": "inherit",
+      "hideMode": "always"
+    },
+    "hyprbar": {
+      "enabled": false,
+      "monitors": [],
+      "position": "bottom",
+      "visible": true,
+      "workspaceScope": "all",
+      "workspaceList": [],
+      "workspaceOverrides": {},
+      "thickness": 40,
+      "marginEdge": 5,
+      "marginEnds": 10,
+      "windowGap": 0,
+      "iconSize": 32,
+      "spacing": 4,
+      "background": "inherit",
+      "hideMode": "always"
+    }
+  },
+  "pins": {
+    "mode": "shared",
+    "shared": [],
+    "hyprdock": [],
+    "hyprbar": []
   }
 }
