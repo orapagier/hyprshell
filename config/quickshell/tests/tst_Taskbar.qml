@@ -64,6 +64,11 @@ Item {
             update({position:data.edge}); wait(30);
             compare(bar.vertical,data.edge==='left'||data.edge==='right');
             let button=findChild(bar,'dockItem1');
+            let icon=findChild(bar,'dockIcon1');
+            let dot=findChild(button,'dockRunningIndicator');
+            compare(dot.x,icon.x+icon.width-dot.width);
+            compare(dot.y,icon.y+icon.height-dot.height);
+            compare(dot.color.toString(),'#39ff88');
             compare(findChild(bar,'taskTitle1'),null);
             mouseMove(button); wait(650); compare(button.ToolTip.visible,false);
             if(bar.vertical) { compare(bar.width,32); compare(button.height,28); }
@@ -92,7 +97,8 @@ Item {
             compare(icon.width,24); compare(bar.thickness,32);
             let dot=findChild(findChild(bar,'dockItem1'),'dockRunningIndicator');
             compare(dot.width,4); compare(dot.height,4);
-            compare(dot.x,icon.x+icon.width-dot.width); compare(dot.y,icon.y);
+            compare(dot.x,icon.x+icon.width-dot.width); compare(dot.y,icon.y+icon.height-dot.height);
+            compare(dot.color.toString(),bar.groups[0].active ? '#39ff88' : '#ffdf00');
             next=Settings.copy(scene.config); next.panels.hyprdock.grouped=false;
             next.panels.hyprdock.windowWorkspaceScope='current';
             scene.config=next; wait(20);

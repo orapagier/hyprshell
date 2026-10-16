@@ -17,7 +17,9 @@ pill with 24 px icons and 3 px gaps, on every edge. Existing size controls remai
 available; icons are capped to fit inside the selected rail thickness. App icons retain their identities.
 
 Hyprdock shows the launcher, ordered pins, then running unpinned applications.
-A small dot at the upper-right of each icon marks running apps; the active app has a purple background and indicator.
+A small dot at the lower-right of each icon marks running apps: bright green for
+the active app and bright yellow for other running apps. The active app retains
+its purple background.
 App icons have no hover tooltip. Missing applications retain their pin,
 use a fallback icon and can be unpinned.
 Hover the launcher to open Applications, or a running app to preview its windows.
@@ -205,7 +207,7 @@ Hyprdock and Hyprbar use the same app grouping, window filters, context actions,
 utilities, visibility, styling, and settings editor. Hyprdock fits its contents
 and centers by default; Hyprbar fills its edge. Existing placement and utility
 preferences are retained. Both use 24 px app icons inside the default 32 px pill,
-with a 4 px running dot at each icon’s upper-right corner on every edge.
+with a bright 4 px running dot at each icon’s lower-right corner on every edge.
 
 Hyprdock starts with `rightItems: []`, so there are no preset trailing system
 items. The shared editor can enable any of Hyprpane’s items or follow its current

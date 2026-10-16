@@ -729,6 +729,8 @@ FloatingWindow {
                     ColumnLayout {
                         id: pageContent
                         objectName: "settingsPageContent"
+                        // Section folding is scoped to settings pages, outside review dialogs.
+                        readonly property string settingsSectionQuery: window.searchQuery
                         width: Math.min(840, editorScroll.availableWidth)
                         x: Math.max(0, (editorScroll.availableWidth - width) / 2)
                         spacing: 24

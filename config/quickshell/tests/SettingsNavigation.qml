@@ -31,6 +31,12 @@ ShellRoot {
         return null;
     }
     function control(name) { return find(editor.contentItem, name, []); }
+    function cards(item, result) {
+        if (!item.visible) return result;
+        if (item.settingsSectionCard === true) result.push(item);
+        for (let child of item.children || []) cards(child, result);
+        return result;
+    }
     function fail(message) { console.error("NAVIGATION_FAILED", phase, message); Qt.quit(); }
     Timer {
         interval: 120; running: true; repeat: true
@@ -42,6 +48,8 @@ ShellRoot {
                 editor.contentItem.Window.window.height = 810;
                 test.phase = 1;
             } else if (test.phase === 1) {
+                let sections=test.cards(editor.contentItem,[]);
+                if(sections.length<3 || sections.some(card => !card.collapsible || card.contentExpanded)) { test.fail("settings sections did not start collapsed"); return; }
                 let search = test.control("settingsSearch");
                 if (!search.activeFocus) { test.fail("search did not receive focus on open"); return; }
                 search.text = "keyboard";
@@ -67,10 +75,19 @@ ShellRoot {
                 editor.section = -2;
                 test.phase = 4;
             } else if (test.phase === 4) {
+                // A user opens sections before scrolling through their controls.
+                for(let card of test.cards(editor.contentItem,[])) card.expanded=true;
+                test.phase = 12;
+            } else if (test.phase === 12) {
                 test.control("settingsEditorScroll").contentItem.contentY = 180;
                 editor.section = -1;
                 test.phase = 5;
             } else if (test.phase === 5) {
+                let sections=test.cards(editor.contentItem,[]);
+                for(let name of ["Hyprbar","Hyprdock"]) {
+                    let card=sections.find(card => card.title===name);
+                    if(!card || !card.collapsible || card.contentExpanded) { test.fail(name+" should start folded"); return; }
+                }
                 if (!test.control("settingsBarPreview").visible) { test.fail("bar preview missing on bar page"); return; }
                 editor.section = -2;
                 test.phase = 6;

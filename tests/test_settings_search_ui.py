@@ -47,6 +47,10 @@ ShellRoot {
             if (editor.section !== -1) { test.fail("Enter did not open Hyprpane & panels"); return; }
             let search = test.find(editor.contentItem, "settingsSearch");
             search.text = "hyprpane thickness";
+            let thickness = test.find(editor.contentItem, "heightControl");
+            let card = thickness;
+            while(card && card.settingsSectionCard !== true) card=card.parent;
+            if(!card || !card.collapsible || !card.contentExpanded) { test.fail("search did not reveal its folded section"); return; }
             if (!editor.searchResults.some(row => row.section === -1)) { test.fail("model-defined control label missing"); return; }
             let loader = test.find(editor.contentItem, "settingsSetupBackupLoader");
             if (loader.active) { test.fail("backup page already loaded"); return; }

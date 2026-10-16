@@ -34,6 +34,17 @@ repeated whitespace. **Ctrl+F** focuses search; **Up/Down** select a result;
 **Enter** opens the selected match;
 **Escape** or the clear button clears the query. Browsing and searching do not
 write preferences. Each page keeps its scroll position within the current window.
+
+Preference sections across Settings start collapsed, including Hyprbar, Hyprdock,
+Windows, input, power, and individual Hyprpane item controls. Click a section
+heading, or focus it with Tab and press Enter or Space, to open or close it.
+Sections open independently and retain their values, unsaved edits, and current
+expansion state while the page remains loaded. Collapsed controls leave the tab
+order; closing a section keeps focus on its heading. Search opens sections whose
+headings or control captions match, including controls inside a closed section.
+Folding is scoped to the main settings pages; separate review dialogs retain
+visible review details. Folding itself never writes preferences.
+
 The bar preview appears within bar and item pages. Control feedback and the short
 page fade honor an explicit disabled Hyprland animation preference.
 

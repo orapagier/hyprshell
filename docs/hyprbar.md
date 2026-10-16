@@ -100,5 +100,6 @@ Hyprbar and Hyprdock now expose the same controls, including utilities, opacity,
 visibility policies, indicators, grouping, window filters, and trailing system
 items. Their presentation differs by length: Hyprbar fills the edge; Hyprdock
 fits its contents and centers by default. Hyprdock defaults to no system items,
-while Hyprbar retains inheritance. Running apps use a small upper-right dot
-instead of an underline. Icon size no longer increases pill thickness.
+while Hyprbar retains inheritance. Running apps use a small lower-right dot
+instead of an underline: bright green when active, bright yellow otherwise.
+Icon size no longer increases pill thickness.

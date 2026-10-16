@@ -190,10 +190,10 @@ FocusScope {
             Rectangle {
                 objectName: 'dockRunningIndicator'
                 visible: dock.panel.indicators !== false && (button.modelData?.windows?.length || 0) > 0
-                color: button.modelData.active ? '#cba6f7' : '#a6adc8'; radius: 2
+                color: button.modelData.active ? '#39ff88' : '#ffdf00'; radius: 2
                 width: 4; height: 4
                 x: icon.x + icon.width - width
-                y: icon.y
+                y: icon.y + icon.height - height
                 border.width: 1; border.color: '#181825'
             }
             Keys.onPressed: event => {
