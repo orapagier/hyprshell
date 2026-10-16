@@ -2,10 +2,21 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import "style" as Style
+import "TaskbarModel.js" as Tasks
 
 SettingsCard {
     id: editor
     required property var settings
+    property var paneItems: []
+    readonly property var inheritedItems: Tasks.rightItems({items:paneItems,panels:{hyprbar:{rightItems:null}}})
+    readonly property var selectedItems: Array.isArray(settings.rightItems) ? settings.rightItems : inheritedItems
+    readonly property var availableItems: [
+        {id:'launcher',name:'Applications'}, {id:'settings',name:'Settings'},
+        {id:'workspaces',name:'Workspaces'}, {id:'media',name:'Media'},
+        {id:'calendar',name:'Clock and calendar'}, {id:'tray',name:'System tray'},
+        {id:'notifications',name:'Notifications'}, {id:'audio',name:'Audio'},
+        {id:'wifi',name:'Network'}, {id:'bluetooth',name:'Bluetooth'},
+        {id:'battery',name:'Battery'}, {id:'power',name:'Power'}]
     signal edited(string key, var value)
     title: 'Hyprbar'
     subtitle: 'Classic window taskbar. Choose a free edge or disable another panel before enabling. Manage shared or separate pins from Apps & windows.'
@@ -24,19 +35,26 @@ SettingsCard {
         Layout.fillWidth:true; text:'Group Hyprbar windows by application'; checked:editor.settings.grouped !== false
         onToggled:editor.edited('grouped',checked)
     }
+    Text { Layout.fillWidth:true; text:'Hyprbar right-side items'; color:Style.Theme.text }
     SettingsSwitch {
-        Layout.fillWidth:true; text:'Show Hyprbar window titles'; checked:editor.settings.showTitles !== false
-        onToggled:editor.edited('showTitles',checked)
+        Layout.fillWidth:true; text:'Use current Hyprpane right-side items'
+        checked:editor.settings.rightItems === null || editor.settings.rightItems === undefined
+        onToggled:editor.edited('rightItems',checked ? null : editor.inheritedItems.slice())
     }
-    SettingsSlider {
-        Layout.fillWidth:true; label:'Hyprbar button width'; settingValue:editor.settings.buttonWidth
-        from:80; to:400; suffix:' px'; allowReset:false
-        onEdited:value => editor.edited('buttonWidth',value)
-    }
-    SettingsSlider {
-        Layout.fillWidth:true; label:'Hyprbar side panel width'; settingValue:editor.settings.verticalWidth
-        from:80; to:400; suffix:' px'; allowReset:false
-        onEdited:value => editor.edited('verticalWidth',value)
+    Repeater {
+        model:editor.availableItems
+        delegate: SettingsSwitch {
+            required property var modelData
+            Layout.fillWidth:true
+            text:modelData.name
+            checked:editor.selectedItems.indexOf(modelData.id) >= 0
+            onToggled: {
+                let selected=editor.selectedItems.slice();
+                if (checked && selected.indexOf(modelData.id) < 0) selected.push(modelData.id);
+                if (!checked) selected=selected.filter(id => id !== modelData.id);
+                editor.edited('rightItems',selected);
+            }
+        }
     }
     SettingsSlider {
         Layout.fillWidth:true; label:'Hyprbar row thickness'; settingValue:editor.settings.thickness

@@ -38,7 +38,7 @@ Item {
         if (!ids.length) return 0;
         return Math.max(0, Settings.item(settings, ids[0]).spacingLeft || 0)
             + Math.max(0, Settings.item(settings, ids[ids.length - 1]).spacingRight || 0)
-            + ids.reduce((total, id, i) => total + moduleItems[id].height + (i ? gapBetween(ids[i - 1], id) : 0), 0);
+            + ids.reduce((total, id, i) => total + (vertical ? moduleItems[id].height : moduleItems[id].width) + (i ? gapBetween(ids[i - 1], id) : 0), 0);
     }
     function verticalGroupStart(sideName) {
         let sides = ["left", "center", "right"], sizes = sides.map(side => groupLength(side));
@@ -55,7 +55,9 @@ Item {
         let high = layoutLength - sizes[1] - (sizes[2] ? sizes[2] + sectionGap : 0);
         return Math.max(low, Math.min(high, (layoutLength - sizes[1]) / 2));
     }
+    signal itemFocusRequested(var item)
     function ensureItemVisible(item) {
+        itemFocusRequested(item);
         if (!vertical) return;
         let position = item.mapToItem(layoutViewport.contentItem, 0, 0);
         let next = layoutViewport.contentY;
@@ -201,6 +203,7 @@ Item {
             bluetooth: {},
             battery: {}
         })
+    property real mediaMaximumWidth: Math.max(80, Math.min(300, width * 0.24))
     property var mediaData: ({
             playing: false,
             levels: [],
@@ -436,7 +439,7 @@ Item {
                 vertical: bar.vertical
                 maximumWidth: bar.vertical ? Math.max(1, bar.verticalThickness - 4 - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
                 width: bar.vertical ? maximumWidth : implicitWidth
-                onActiveFocusChanged: if (activeFocus && bar.vertical) bar.ensureItemVisible(workspaceButton)
+                onActiveFocusChanged: if (activeFocus) bar.ensureItemVisible(workspaceButton)
                 iconOnly: false
                 height: bar.vertical ? width : Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
                 text: modelData.name || String(modelData.id)
@@ -469,7 +472,7 @@ Item {
             colorRoot: bar
             text: bar.mediaData.title || ""
             levels: bar.mediaData.levels || []
-            maximumWidth: bar.vertical ? bar.verticalThickness - 4 : Math.max(80, Math.min(300, bar.width * 0.24))
+            maximumWidth: bar.vertical ? bar.verticalThickness - 4 : bar.mediaMaximumWidth
             onEntered: bar.menuHovered("media")
             onExited: bar.menuLeft("media")
             width: bar.vertical ? bar.verticalThickness - 4 : implicitWidth
@@ -540,7 +543,7 @@ Item {
                     required property var modelData
                     objectName: "trayIcon"
                     activeFocusOnTab: bar.vertical && !trayPill.settings.hideIcon
-                    onActiveFocusChanged: if (activeFocus && bar.vertical) bar.ensureItemVisible(trayIcon)
+                    onActiveFocusChanged: if (activeFocus) bar.ensureItemVisible(trayIcon)
                     Keys.onReturnPressed: bar.trayAction(modelData, trayIcon, Qt.LeftButton)
                     Keys.onMenuPressed: bar.trayAction(modelData, trayIcon, Qt.RightButton)
                     Rectangle { anchors.fill: parent; radius: bar.vertical ? width / 2 : 4; color: "transparent"; border.width: parent.activeFocus ? 1 : 0; border.color: "#b4befe" }

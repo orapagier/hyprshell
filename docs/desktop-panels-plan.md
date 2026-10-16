@@ -148,6 +148,12 @@ as configured; utilities work; opening Trash never empties it.
 
 ## Phase 6 — Classic Hyprbar core
 
+User refinement after Phase 6 (2026-10-16): Hyprbar app buttons are icon-only like
+Hyprdock, with no tooltips. A customizable trailing section defaults to the
+existing Hyprpane right-side items, reusing their controls and menus. This
+supersedes the original title-presentation requirement below and implements the
+item-selection slice of Phase 7; full coexistence validation remains pending.
+
 - Build a classic taskbar with application menu, pinned shortcuts, running-window
   buttons, active-window emphasis, and optional app grouping.
 - Support icon-and-title or icon-only presentation. On Left/Right use stacked

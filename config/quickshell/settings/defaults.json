@@ -444,11 +444,12 @@
       "background": "inherit",
       "hideMode": "always",
       "grouped": true,
-      "showTitles": true,
+      "showTitles": false,
       "buttonWidth": 180,
       "verticalWidth": 220,
       "windowWorkspaceScope": "all",
-      "windowMonitorScope": "current"
+      "windowMonitorScope": "current",
+      "rightItems": null
     }
   },
   "pins": {

@@ -10,6 +10,7 @@ ColumnLayout {
     required property var settings
     property var dockSettings: null
     property var taskbarSettings: null
+    property var paneItems: []
     signal taskbarEdited(string key, var value)
     signal dockEdited(string key, var value)
     property int currentWorkspace: 1
@@ -40,6 +41,7 @@ ColumnLayout {
         Layout.fillWidth:true
         visible:root.taskbarSettings !== null
         settings:root.taskbarSettings || {}
+        paneItems:root.paneItems
         onEdited:(key,value) => root.taskbarEdited(key,value)
     }
     SettingsDockEditor {

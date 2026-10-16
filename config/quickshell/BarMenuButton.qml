@@ -17,7 +17,7 @@ Pill {
             audio:bar.statusData.audio?.icon || "󰕾", wifi:bar.statusData.network?.text || "󰤮",
             bluetooth:bar.statusData.bluetooth?.text || "󰂲", battery:icon || "󰁹", power:"󰐥"})[menu] || icon;
     }
-    onActiveFocusChanged: if (activeFocus && vertical) bar.ensureItemVisible(control)
+    onActiveFocusChanged: if (activeFocus) bar.ensureItemVisible(control)
     onWheel: event => { if (vertical) bar.scrollVertical(event); }
     selected: bar.activeMenu === menu
     onEntered: bar.menuHovered(menu)

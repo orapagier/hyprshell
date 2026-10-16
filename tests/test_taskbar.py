@@ -32,7 +32,8 @@ ShellRoot {
     }
     Window {
         visible:true; width:600; height:400
-        Dock { id:bar; component:'hyprbar'; service:service; config:test.config.panels ? test.config : preferences.config; outputName:'eDP-1'; workspace:1; maximumLength:500; width:implicitWidth; height:implicitHeight }
+        Dock { id:bar; component:'hyprbar'; service:service; config:test.config.panels ? test.config : preferences.config; outputName:'eDP-1'; workspace:1; maximumLength:500; trailingLength:status.contentLength+8; width:implicitWidth; height:implicitHeight }
+        TaskbarStatus { id:status; config:bar.config; width:contentLength; height:bar.height; x:bar.width-width }
     }
     function check(value,message) { if(!value) throw new Error(message); }
     function update(values) { let next=Settings.copy(test.config.panels ? test.config : preferences.config); Object.assign(next.panels.hyprbar,values); test.config=next; }
@@ -43,6 +44,8 @@ ShellRoot {
                 let next=Settings.copy(preferences.config); next.panels.hyprpane.enabled=false;
                 next.panels.hyprbar.enabled=true; test.config=next;
                 test.check(bar.groups[0].windows.length===1,'current output filter');
+                test.check(status.contentLength>0 && status.orderedItems('right').indexOf('audio')>=0,'inherited right items');
+                test.check(bar.applicationLength + status.width < bar.width,'separate app and status space');
                 test.update({windowMonitorScope:'all'});
                 test.check(bar.groups[0].windows.length===2,'all output grouping');
             } else if(test.step===1) {

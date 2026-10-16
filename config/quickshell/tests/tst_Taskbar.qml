@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls.Basic
 import QtTest
 import ".."
 import "../TaskbarModel.js" as Tasks
@@ -62,15 +63,16 @@ Item {
         function test_edges(data) {
             update({position:data.edge}); wait(30);
             compare(bar.vertical,data.edge==='left'||data.edge==='right');
-            let button=findChild(bar,'dockItem1'), title=findChild(bar,'taskTitle1');
-            verify(title.visible); verify(title.width>40); compare(title.rotation,0);
-            if(bar.vertical) { compare(bar.width,220); compare(button.height,40); }
-            else { compare(button.width,180); compare(bar.width,600); }
+            let button=findChild(bar,'dockItem1');
+            compare(findChild(bar,'taskTitle1'),null);
+            mouseMove(button); wait(650); compare(button.ToolTip.visible,false);
+            if(bar.vertical) { compare(bar.width,48); compare(button.height,40); }
+            else { compare(button.width,40); compare(bar.width,600); }
             mouseClick(button); compare(scene.action,'picker:app:test.desktop');
             mouseClick(button,button.width/2,button.height/2,Qt.RightButton); compare(scene.action,'context:app:test.desktop');
             update({grouped:false}); wait(30);
             button=findChild(bar,'dockItem1'); mouseClick(button); compare(scene.action,'focus:aa');
-            update({showTitles:false}); wait(30); verify(!findChild(bar,'taskTitle1').visible);
+            update({showTitles:false}); wait(30); compare(findChild(bar,'taskTitle1'),null);
             scene.groups=Array.from({length:18},(_,i)=>Object.assign({},group([Object.assign({},rows()[0],{address:'ab'+i})],false),{key:'app:'+i}));
             bar.maximumLength=220; wait(30); verify(bar.overflowing);
             bar.focusIndex(bar.entries.length-1); wait(20);

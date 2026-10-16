@@ -220,6 +220,9 @@ ShellRoot {
             id: taskbarWindow
             required property var modelData
             component: 'hyprbar'
+            desktopServices:shell.services; inbox:shell.inbox
+            statusData:shell.statusData; mediaData:shell.mediaData; notificationData:shell.notificationData
+            trayModel:tray.items; clockText:shell.clockText
             output: modelData
             utilities: dockUtilities
             onSettingsRequested: settingsController.open()

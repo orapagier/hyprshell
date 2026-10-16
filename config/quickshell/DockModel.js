@@ -1,7 +1,7 @@
 .pragma library
 .import "SettingsModel.js" as Settings
 
-function thickness(panel) { return panel.verticalWidth && (panel.position === 'left' || panel.position === 'right') ? panel.verticalWidth : Math.max(44, panel.thickness || 56, (panel.iconSize || 32) + 16); }
+function thickness(panel) { return Math.max(44, panel.thickness || 56, (panel.iconSize || 32) + 16); }
 function insets(config, component, monitor, workspace, paneThickness) {
     let result = {top: 0, bottom: 0};
     for (let name of ['hyprpane', 'hyprdock', 'hyprbar']) {

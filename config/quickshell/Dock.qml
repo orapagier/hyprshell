@@ -24,9 +24,11 @@ FocusScope {
         {key:'trash',name:trashFull ? 'Trash (full)' : 'Trash (empty)',utility:true,icon:trashFull ? 'user-trash-full' : 'user-trash',windows:[]}
     ].filter(e => panel['show' + e.key[0].toUpperCase() + e.key.slice(1)] === true)
     readonly property var entries: [{key:'launcher', name:'Applications', launcher:true, windows:[]}].concat(groups, utilities)
-    readonly property real thickness: taskbar && vertical ? panel.verticalWidth : Model.thickness(panel)
+    readonly property real thickness: Model.thickness(panel)
     readonly property real cellSize: taskbar ? Math.max(44, panel.thickness, panel.iconSize + 16) - 8 : thickness - 8
-    function itemLength(entry) { return taskbar && panel.showTitles && !entry.launcher ? (vertical ? cellSize : panel.buttonWidth) : cellSize; }
+    function itemLength(entry) { return cellSize; }
+    property real trailingLength: 0
+    readonly property real applicationLength: Math.max(1, length - trailingLength)
     readonly property real iconSize: Math.min(launcherMetrics.tightBoundingRect.height, cellSize - 8)
     TextMetrics {
         id: launcherMetrics
@@ -38,7 +40,7 @@ FocusScope {
     property real maximumLength: 800
     readonly property real naturalLength: 12 + entries.reduce((total, entry) => total + itemLength(entry), 0) + Math.max(0, entries.length - 1) * spacing
     readonly property real length: taskbar ? maximumLength : Math.min(maximumLength, naturalLength)
-    readonly property bool overflowing: naturalLength > length
+    readonly property bool overflowing: naturalLength > applicationLength
     readonly property real navigationSize: overflowing ? 24 : 0
     property bool keyboardInteraction: false
     property string draggingId: ''
@@ -111,8 +113,8 @@ FocusScope {
         objectName: 'dockApplications'
         x: dock.vertical ? 4 : 6 + dock.navigationSize
         y: dock.vertical ? 6 + dock.navigationSize : 4
-        width: dock.vertical ? dock.width-8 : Math.max(0, dock.width - 12 - 2*dock.navigationSize)
-        height: dock.vertical ? Math.max(0, dock.height - 12 - 2*dock.navigationSize) : dock.height-8
+        width: dock.vertical ? dock.width-8 : Math.max(0, dock.applicationLength - 12 - 2*dock.navigationSize)
+        height: dock.vertical ? Math.max(0, dock.applicationLength - 12 - 2*dock.navigationSize) : dock.height-8
         orientation: dock.vertical ? ListView.Vertical : ListView.Horizontal
         model: dock.entries
         spacing: dock.spacing; clip: true
@@ -145,7 +147,7 @@ FocusScope {
             Image {
                 id: icon
                 objectName: 'dockIcon' + button.index
-                x: dock.taskbar && dock.panel.showTitles && !button.modelData.launcher ? 8 : (parent.width-width)/2
+                x: (parent.width-width)/2
                 anchors.verticalCenter: parent.verticalCenter
                 width: dock.iconSize; height: width
                 source: button.modelData.launcher ? '' : dock.service.iconSource(button.modelData.icon)
@@ -161,18 +163,6 @@ FocusScope {
                 text: button.modelData.launcher ? '󰀻' : '󰘳'
                 color: '#cdd6f4'; font: launcherMetrics.font
             }
-            Text {
-                objectName: 'taskTitle' + button.index
-                visible: dock.taskbar && dock.panel.showTitles && !button.modelData.launcher
-                anchors.left: icon.right; anchors.leftMargin: 8
-                anchors.right: parent.right; anchors.rightMargin: 8
-                anchors.verticalCenter: parent.verticalCenter
-                text: button.modelData.name + (button.modelData.windows.length > 1 ? ' (' + button.modelData.windows.length + ')' : '')
-                color: '#cdd6f4'; font.pixelSize: 13; elide: Text.ElideRight
-            }
-            ToolTip.visible: dock.taskbar && pointer.containsMouse && !dock.draggingId
-            ToolTip.text: button.modelData.name
-            ToolTip.delay: 600
             Rectangle {
                 objectName: 'dockRunningIndicator'
                 visible: dock.panel.indicators !== false && button.modelData.windows.length > 0
@@ -246,8 +236,8 @@ FocusScope {
     ToolButton {
         objectName: 'dockScrollForward'
         visible: dock.overflowing
-        x: dock.vertical ? (dock.width-width)/2 : dock.width-width-2
-        y: dock.vertical ? dock.height-height-2 : (dock.height-height)/2
+        x: dock.vertical ? (dock.width-width)/2 : dock.applicationLength-width-2
+        y: dock.vertical ? dock.applicationLength-height-2 : (dock.height-height)/2
         width: dock.vertical ? dock.width-8 : 22; height: dock.vertical ? 22 : dock.height-8
         text: dock.vertical ? '↓' : '›'; palette.buttonText: '#cdd6f4'
         Accessible.name: 'Scroll dock forward'

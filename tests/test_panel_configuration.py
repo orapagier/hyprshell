@@ -69,7 +69,7 @@ class PanelConfigurationTests(unittest.TestCase):
             panel.pop(key)
         inherited = backend.validate(self.data)['panels']['hyprbar']
         self.assertTrue(inherited['grouped'])
-        self.assertTrue(inherited['showTitles'])
+        self.assertFalse(inherited['showTitles'])
         self.assertEqual(inherited['verticalWidth'], 220)
         panel.update(grouped=False, showTitles=False, buttonWidth=240, verticalWidth=300,
                      windowWorkspaceScope='current', windowMonitorScope='all')
@@ -83,6 +83,17 @@ class PanelConfigurationTests(unittest.TestCase):
             invalid['panels']['hyprbar'][key] = value
             with self.subTest(key=key), self.assertRaises(ValueError):
                 backend.validate(invalid)
+
+    def test_taskbar_right_item_selection(self):
+        panel = self.data['panels']['hyprbar']
+        self.assertIsNone(backend.validate(self.data)['panels']['hyprbar']['rightItems'])
+        for selected in ([], ['audio', 'calendar', 'tray'], None):
+            panel['rightItems'] = selected
+            self.assertEqual(backend.validate(self.data)['panels']['hyprbar']['rightItems'], selected)
+        for selected in (['audio', 'audio'], ['unknown'], 'audio', [1], {}):
+            panel['rightItems'] = selected
+            with self.subTest(selected=selected), self.assertRaises(ValueError):
+                backend.validate(self.data)
 
     def test_all_pairs_and_edges(self):
         names = list(self.data['panels'])

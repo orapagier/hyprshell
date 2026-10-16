@@ -307,6 +307,12 @@ def validate_panels(data, result):
         if target['background'] not in ('inherit', 'on', 'off'):
             raise ValueError(f'Invalid {name} background')
         if name == 'hyprbar':
+            right_items = target['rightItems']
+            allowed_items = {item['id'] for item in result['items']}
+            if right_items is not None and (not isinstance(right_items, list)
+                    or any(not isinstance(item, str) or item not in allowed_items for item in right_items)
+                    or len(set(right_items)) != len(right_items)):
+                raise ValueError('Hyprbar right items must be unique Hyprpane item IDs')
             for key in ('grouped', 'showTitles'):
                 if type(target[key]) is not bool:
                     raise ValueError(f'Hyprbar {key} must be boolean')

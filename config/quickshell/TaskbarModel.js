@@ -23,3 +23,23 @@ function entries(groups, panel, output, workspace) {
     }
     return result;
 }
+
+function rightItems(config) {
+    let selected = config.panels?.hyprbar?.rightItems;
+    if (Array.isArray(selected)) return selected;
+    let left = ['launcher', 'settings', 'workspaces', 'media'];
+    return (config.items || []).filter(item => item.enabled !== false
+        && (item.side || (left.indexOf(item.id) >= 0 ? 'left' : item.id === 'calendar' ? 'center' : 'right')) === 'right')
+        .slice().sort((a,b) => (a.order ?? 0) - (b.order ?? 0)).map(item => item.id);
+}
+function statusConfig(config, edge) {
+    let selected = rightItems(config);
+    return Object.assign({}, config, {
+        bar:Object.assign({}, config.bar, {position:edge, verticalPresentation:'compact'}),
+        items:['launcher','settings','workspaces','media','calendar','tray','notifications','audio','wifi','bluetooth','battery','power']
+            .map(id => (config.items || []).find(item => item.id === id) || {id:id})
+            .map(item => Object.assign({}, item, {
+            enabled:selected.indexOf(item.id) >= 0, side:'right', order:selected.indexOf(item.id)
+        }))
+    });
+}

@@ -12,6 +12,13 @@ Item {
     required property var service
     required property var config
     required property var utilities
+    property var desktopServices: null
+    property var inbox: null
+    property var statusData: ({workspaces:[],audio:{},network:{},bluetooth:{},battery:{}})
+    property var mediaData: ({playing:false,levels:[],title:'',tooltip:''})
+    property var notificationData: ({count:0})
+    property var trayModel: []
+    property string clockText: ''
     signal settingsRequested()
     property real paneThickness: 32
     property url wallpaperSource: ''
@@ -36,11 +43,13 @@ Item {
         fullscreen: window.fullscreen
         fullscreenPolicy: window.panel.fullscreenPolicy || 'hide'
         overlapped: window.overlapped
-        hovered: dockHover.hovered || revealHover.hovered
-        interacting: popup.opened || !!dock.draggingId || (dock.activeFocus && dock.keyboardInteraction)
+        hovered: dockHover.hovered || revealHover.hovered || statusHover.hovered
+        interacting: status.activeFocus || !!statusState.section || popup.opened || !!dock.draggingId || (dock.activeFocus && dock.keyboardInteraction)
         onSuppressedChanged: if (suppressed) { window.closeMenu(); if (dock) dock.draggingId = ''; }
     }
-    function closeMenu() { if (popup) popup.dismiss(); }
+    MenuController { id:statusState }
+    function closeMenu() { if (popup) popup.dismiss(); statusState.close(); }
+    function statusInteraction() { popup.dismiss(); window.interactionStarted(); }
     onShownChanged: if (!shown) { closeMenu(); if (dock) dock.draggingId = ''; }
     onEdgeChanged: closeMenu()
     PanelWindow {
@@ -67,6 +76,7 @@ Item {
         WlrLayershell.keyboardFocus:WlrKeyboardFocus.OnDemand
         Dock {
             id:dock
+            trailingLength: window.component === 'hyprbar' && status.contentLength > 0 ? statusViewport.extent + 8 : 0
             onXChanged: window.closeMenu()
             onYChanged: window.closeMenu()
             x: window.vertical ? 0 : Model.aligned(rail.width,width,window.panel.alignment)
@@ -87,13 +97,97 @@ Item {
             component:window.component; outputName:window.output.name; workspace:window.workspace
             service:window.service; config:window.config
             maximumLength:Math.max(1, (window.vertical ? rail.screen.height-window.insets.top-window.insets.bottom : rail.screen.width) - 2*window.panel.marginEnds)
-            onInteractionStarted:window.interactionStarted()
+            onInteractionStarted: { statusState.close(); window.interactionStarted(); }
             onDismissRequested: popup.dismiss()
             onItemHovered:(kind,key,rect) => popup.hoverItem(kind,key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
             onItemLeft:(kind,key,rect) => popup.leaveItem(kind,key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
             onLauncherRequested:rect => popup.open('launcher','',Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
             onGroupRequested:(key,rect) => popup.open('group',key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
             onPreviewsRequested:(key,rect) => popup.open('previews',key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
+        }
+        Flickable {
+            id:statusViewport
+            function revealItem(item) {
+                let point=item.mapToItem(status,0,0);
+                if(window.vertical) contentY=Math.max(0,Math.min(contentHeight-height,Math.max(point.y+item.height-height,Math.min(contentY,point.y))));
+                else contentX=Math.max(0,Math.min(contentWidth-width,Math.max(point.x+item.width-width,Math.min(contentX,point.x))));
+            }
+            readonly property real extent: window.component === 'hyprbar' ? Math.min(status.contentLength, Math.max(0,(window.vertical ? rail.height : rail.width) - Math.max(148,dock.cellSize+76))) : 0
+            x:window.vertical ? 0 : rail.width-width-4
+            y:window.vertical ? rail.height-height-4 : 0
+            width:window.vertical ? rail.width : extent
+            height:window.vertical ? extent : rail.height
+            visible:window.component === 'hyprbar' && visibility.shown && extent > 0
+            contentWidth:window.vertical ? width : status.width
+            contentHeight:window.vertical ? status.height : height
+            clip:true; boundsBehavior:Flickable.StopAtBounds
+            flickableDirection:window.vertical ? Flickable.VerticalFlick : Flickable.HorizontalFlick
+            HoverHandler { id:statusHover }
+            WheelHandler {
+                target:null
+                onWheel:event => {
+                    let delta=(event.angleDelta.y || event.angleDelta.x)/3;
+                    if(window.vertical) statusViewport.contentY=Math.max(0,Math.min(statusViewport.contentHeight-statusViewport.height,statusViewport.contentY-delta));
+                    else statusViewport.contentX=Math.max(0,Math.min(statusViewport.contentWidth-statusViewport.width,statusViewport.contentX-delta));
+                    event.accepted=true;
+                }
+            }
+            TaskbarStatus {
+                id:status
+                config:window.config; edge:window.edge
+                width:window.vertical ? statusViewport.width : contentLength
+                height:window.vertical ? contentLength : statusViewport.height
+                statusData:window.statusData; mediaData:window.mediaData; notificationData:window.notificationData
+                trayModel:window.trayModel; clockText:window.clockText
+                outputName:window.output.name; wallpaperSource:window.wallpaperSource
+                screenWidth:window.output.width; screenHeight:window.output.height
+                screenOffsetX:rail.originX+statusViewport.x-statusViewport.contentX
+                screenOffsetY:rail.originY+statusViewport.y-statusViewport.contentY
+                activeMenu:statusState.section
+                onItemFocusRequested:item => statusViewport.revealItem(item)
+                onPreviewUnavailable:statusState.close()
+                onMenuHovered:name => { window.statusInteraction(); statusState.hover(name); }
+                onMenuLeft:name => statusState.leave(name)
+                onAction:(name,argument) => {
+                    window.statusInteraction();
+                    if(name === 'workspace') { statusState.close(); window.desktopServices?.workspace(argument); }
+                    else if(name === 'workspace-scroll') window.desktopServices?.scrollWorkspace(argument);
+                    else if(name === 'settings') { statusState.close(); window.settingsRequested(); }
+                    else statusState.activate(name);
+                }
+                onTrayAction:(item,source,button) => {
+                    window.statusInteraction();
+                    if(button === Qt.MiddleButton) item.secondaryActivate();
+                    else if(button === Qt.RightButton || item.onlyMenu) {
+                        if(item.hasMenu) { let point=source.mapToItem(rail.contentItem,0,source.height); item.display(rail,point.x,point.y); }
+                    } else item.activate();
+                }
+                onTrayScroll:(item,event) => item.scroll(event.angleDelta.y || event.angleDelta.x,!event.angleDelta.y)
+            }
+        }
+    }
+    Loader {
+        active:window.component === 'hyprbar' && !!window.desktopServices && !!window.inbox
+        sourceComponent: Component {
+            Dropdown {
+                screen:window.output; services:window.desktopServices; inbox:window.inbox
+                applicationService:window.service; wallpaperSource:window.wallpaperSource
+                section:statusState.section; displayedSection:statusState.displayedSection
+                pinned:statusState.pinned; connected:true; movePointerOnOpen:false
+                barEdge:window.edge; barRect:window.dockRect; alignment:'right'
+                mediaData:window.mediaData; previewWorkspace:status.previewWorkspace
+                accent:status.menuAccent(statusState.displayedSection)
+                translucency:Settings.popdownTranslucency(window.config,status.menuItemId(statusState.displayedSection))
+                triggerRect: {
+                    let rect=status.menuRect(statusState.displayedSection);
+                    return Qt.rect(rect.x+statusViewport.x-statusViewport.contentX+rail.originX,
+                        rect.y+statusViewport.y-statusViewport.contentY+rail.originY,rect.width,rect.height);
+                }
+                onHoverChanged:inside => statusState.retain(inside)
+                onCloseRequested:statusState.close()
+                onSettingsRequested:window.settingsRequested()
+                onManagingApplicationsChanged:if(managingApplications) statusState.pinned=true
+            }
         }
     }
     // A separate 3px surface at the physical edge bridges any saved outside margin.
