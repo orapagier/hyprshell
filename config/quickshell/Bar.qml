@@ -338,8 +338,8 @@ Item {
             objectName: "distroGlassLogo"
             iconSize: distroLogo.settings.iconSize || distroLogo.settings.fontSize || 22
             visible: !distroLogo.settings.text && !distroLogo.settings.icon && (bar.vertical || !distroLogo.settings.hideText) && !distroLogo.settings.hideIcon
-            x: distroLogo.content.x
-            width: distroLogo.content.width
+            x: bar.vertical ? 0 : distroLogo.content.x
+            width: bar.vertical ? distroLogo.width : distroLogo.content.width
             height: distroLogo.height
             accent: distroLogo.settings.iconColor || distroLogo.settings.textColor || distroLogo.effectiveForeground
             highlighted: distroLogo.hovered || distroLogo.selected
@@ -367,7 +367,9 @@ Item {
             objectName: "settingsGlassCog"
             iconSize: settingsCog.settings.iconSize || settingsCog.settings.fontSize || 22
             visible: !settingsCog.settings.text && !settingsCog.settings.icon && (bar.vertical || !settingsCog.settings.hideText) && !settingsCog.settings.hideIcon
-            x: settingsCog.content.x; width: settingsCog.content.width; height: settingsCog.height
+            x: bar.vertical ? 0 : settingsCog.content.x
+            width: bar.vertical ? settingsCog.width : settingsCog.content.width
+            height: settingsCog.height
             accent: settingsCog.settings.iconColor || settingsCog.settings.textColor || settingsCog.effectiveForeground
             highlighted: settingsCog.hovered || settingsCog.selected
             contrastEdge: settingsCog.glyphHalo

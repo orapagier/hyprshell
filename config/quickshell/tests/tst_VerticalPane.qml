@@ -101,6 +101,26 @@ Item {
             compare(workspace.width,workspace.height);
             assertLayout();
         }
+        function test_vectorIconsStayCenteredWithSavedAsymmetricPadding() {
+            for (let edge of ['left','right','top','bottom']) {
+                let next = config(edge);
+                next.items = [{id:'launcher',paddingLeft:7,paddingRight:0},
+                              {id:'settings',paddingLeft:0,paddingRight:7}];
+                pane.settings = next;
+                for (let entry of [{id:'launcher',name:'distroGlassLogo'}, {id:'settings',name:'settingsGlassCog'}]) {
+                    let item = pane.moduleItems[entry.id];
+                    let vector = findChild(item,entry.name);
+                    verify(vector.visible);
+                    if (pane.vertical) {
+                        compare(vector.x + vector.width / 2,item.width / 2,entry.id);
+                        compare(vector.y + vector.height / 2,item.height / 2,entry.id);
+                    } else {
+                        compare(vector.x,item.content.x,entry.id);
+                        compare(vector.width,item.content.width,entry.id);
+                    }
+                }
+            }
+        }
         function test_compactAndFullEdgeRetainAlignmentAndOrder() {
             pane.clockText = '12:34';
             pane.mediaData = {playing:false};
