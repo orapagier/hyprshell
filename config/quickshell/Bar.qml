@@ -148,7 +148,13 @@ Item {
     function appearance(id) {
         let style = Settings.appearance(settings, id, wallpaperSource.toString());
         let group = sharedPills.find(group => group.ids.includes(id));
-        if (group) style.sharedBackgroundShown = Settings.sharedBackground(settings, group.ids[0]) !== "off";
+        if (group) {
+            if (vertical) {
+                // Keep group membership/order, drawing its background as separate circles.
+                style.background = Settings.sharedBackground(settings, group.ids[0]);
+                style.sharedBackgroundShown = false;
+            } else style.sharedBackgroundShown = Settings.sharedBackground(settings, group.ids[0]) !== "off";
+        }
         return style;
     }
     function sharedStyle(id) {
@@ -290,6 +296,7 @@ Item {
         delegate: Pill {
             required property var modelData
             objectName: "sharedPill_" + modelData.name
+            visible: !bar.vertical
             readonly property var bounds: bar.sharedRect(modelData.ids)
             readonly property string leader: modelData.ids[0]
             x: bounds.x; y: bounds.y; width: bounds.width; height: bounds.height
@@ -330,7 +337,7 @@ Item {
         GlassLogo {
             objectName: "distroGlassLogo"
             iconSize: distroLogo.settings.iconSize || distroLogo.settings.fontSize || 22
-            visible: !distroLogo.settings.text && !distroLogo.settings.icon && !distroLogo.settings.hideText && !distroLogo.settings.hideIcon
+            visible: !distroLogo.settings.text && !distroLogo.settings.icon && (bar.vertical || !distroLogo.settings.hideText) && !distroLogo.settings.hideIcon
             x: distroLogo.content.x
             width: distroLogo.content.width
             height: distroLogo.height
@@ -359,7 +366,7 @@ Item {
         GlassCog {
             objectName: "settingsGlassCog"
             iconSize: settingsCog.settings.iconSize || settingsCog.settings.fontSize || 22
-            visible: !settingsCog.settings.text && !settingsCog.settings.icon && !settingsCog.settings.hideText && !settingsCog.settings.hideIcon
+            visible: !settingsCog.settings.text && !settingsCog.settings.icon && (bar.vertical || !settingsCog.settings.hideText) && !settingsCog.settings.hideIcon
             x: settingsCog.content.x; width: settingsCog.content.width; height: settingsCog.height
             accent: settingsCog.settings.iconColor || settingsCog.settings.textColor || settingsCog.effectiveForeground
             highlighted: settingsCog.hovered || settingsCog.selected
@@ -383,8 +390,8 @@ Item {
         verticalItemAlignment: Grid.AlignVCenter
         height: Math.max(28, implicitHeight)
         spacing: 2
-        leftPadding: Math.max(0, 1 + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
-        rightPadding: Math.max(0, 3 + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
+        leftPadding: Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
+        rightPadding: Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
         Repeater {
             id: workspaceRepeater
             model: (bar.statusData.workspaces || []).filter(w => !bar.outputName || w.monitor === bar.outputName)
@@ -408,7 +415,11 @@ Item {
                 maximumWidth: bar.vertical ? Math.max(1, bar.verticalThickness - 4 - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
                 width: bar.vertical ? maximumWidth : implicitWidth
                 onActiveFocusChanged: if (activeFocus && bar.vertical) bar.ensureItemVisible(workspaceButton)
-                height: Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
+                compactIcon: active ? "" : ""
+                ToolTip.visible: bar.vertical && hovered
+                ToolTip.text: "Workspace " + (modelData.name || String(modelData.id))
+                ToolTip.delay: 600
+                height: bar.vertical ? width : Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
                 text: modelData.name || String(modelData.id)
                 leftPadding: 7
                 rightPadding: 7
@@ -468,7 +479,11 @@ Item {
         y: bar.itemY("tray")
         vertical: bar.vertical
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
-        settings: bar.appearance("tray")
+        settings: {
+            let style = bar.appearance("tray");
+            if (bar.vertical) style.background = "off";
+            return style;
+        }
         opacity: Settings.item(bar.settings, "tray").opacity ?? 1
         colorSampler: Settings.adaptive(bar.settings, "tray") ? bar.wallpaperColors : null
         colorRoot: bar
@@ -476,31 +491,39 @@ Item {
         interactive: false
         visible: bar.itemEnabled("tray") && trayIcons.count > 0
         width: bar.vertical ? bar.verticalThickness - 4 : trayRow.width + effectiveLeftPadding + effectiveRightPadding
-        implicitHeight: bar.vertical ? Math.max(32, (shownText.length ? content.implicitHeight + 8 : 0) + (settings.hideIcon ? 0 : trayRow.height + 8)) : Math.max(28, trayRow.height + 8)
+        implicitHeight: bar.vertical ? Math.max(32, settings.hideIcon ? 0 : trayRow.height) : Math.max(28, trayRow.height + 8)
         content.y: bar.vertical ? 4 : (height - content.height) / 2
         leftPadding: bar.vertical ? 4 : 11
         rightPadding: bar.vertical ? 4 : 11
         readonly property int trayIconSize: settings.iconSize || 16
-        readonly property int trayTargetSize: bar.vertical ? Math.max(24, trayIconSize + 8) : trayIconSize
+        readonly property int trayTargetSize: bar.vertical ? bar.verticalThickness - 4 : trayIconSize
         Grid {
             id: trayRow
-            columns: bar.vertical ? Math.max(1, Math.floor((trayPill.width - trayPill.effectiveLeftPadding - trayPill.effectiveRightPadding + spacing) / (trayPill.trayTargetSize + spacing))) : Math.max(1, trayIcons.count)
-            x: trayPill.effectiveLeftPadding
-            y: bar.vertical ? (trayPill.shownText.length ? trayPill.content.implicitHeight + 8 : 4) : (parent.height - height) / 2
+            columns: bar.vertical ? Math.max(1, Math.floor((trayPill.width + spacing) / (trayPill.trayTargetSize + spacing))) : Math.max(1, trayIcons.count)
+            x: bar.vertical ? (trayPill.width - width) / 2 : trayPill.effectiveLeftPadding
+            y: bar.vertical ? 0 : (parent.height - height) / 2
             visible: !trayPill.settings.hideIcon
             spacing: bar.vertical ? 4 : 0
             Repeater {
                 id: trayIcons
                 model: bar.trayModel
-                delegate: Item {
+                delegate: Pill {
                     id: trayIcon
+                    vertical: bar.vertical
+                    interactive: false
+                    settings: bar.vertical ? bar.appearance("tray") : ({background:"off"})
+                    colorSampler: trayPill.colorSampler
+                    colorRoot: bar
+                    foreground: trayPill.foreground
+                    tint: trayPill.tint
+                    outline: trayPill.outline
                     required property var modelData
                     objectName: "trayIcon"
                     activeFocusOnTab: bar.vertical && !trayPill.settings.hideIcon
                     onActiveFocusChanged: if (activeFocus && bar.vertical) bar.ensureItemVisible(trayIcon)
                     Keys.onReturnPressed: bar.trayAction(modelData, trayIcon, Qt.LeftButton)
                     Keys.onMenuPressed: bar.trayAction(modelData, trayIcon, Qt.RightButton)
-                    Rectangle { anchors.fill: parent; radius: 4; color: "transparent"; border.width: parent.activeFocus ? 1 : 0; border.color: "#b4befe" }
+                    Rectangle { anchors.fill: parent; radius: bar.vertical ? width / 2 : 4; color: "transparent"; border.width: parent.activeFocus ? 1 : 0; border.color: "#b4befe" }
                     width: trayPill.settings.hideIcon ? 0 : trayPill.trayTargetSize
                     height: trayPill.trayTargetSize
                     Image {
@@ -544,8 +567,8 @@ Item {
         minimumTextWidth: 12
         leftPadding: 7
         rightPadding: bar.vertical ? 6 : badge.visible ? Math.max(11, badge.implicitWidth + 1) : 11
-        implicitHeight: naturalHeight + (bar.vertical && badge.visible ? badge.implicitHeight + 4 : 0)
-        content.y: bar.vertical ? 4 + (shownIcon.length ? effectiveIconSize + 4 : 0) : (height - content.height) / 2
+        implicitHeight: naturalHeight
+        content.y: (height - content.height) / 2
         foreground: bar.notificationData && bar.notificationData.count > 0 ? "#f9e2af" : "#a6adc8"
         tint: bar.rgba("#a6adc8", 0.18)
         outline: bar.rgba("#a6adc8", 0.26)
@@ -556,7 +579,7 @@ Item {
             // the pill width or number of digits in the count.
             x: bar.vertical ? (bell.width - width) / 2 : bell.content.x + (bell.content.width + bell.content.implicitWidth) / 2 - 2
             y: bar.vertical ? bell.height - height - 4 : bell.content.y - 2
-            visible: !!bar.notificationData && bar.notificationData.count > 0
+            visible: !bar.vertical && !!bar.notificationData && bar.notificationData.count > 0
             text: {
                 let count = bar.notificationData ? String(bar.notificationData.count || "") : "";
                 return bar.vertical ? Array.from(count).join("\n") : count;

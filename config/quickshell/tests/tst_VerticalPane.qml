@@ -37,7 +37,7 @@ Item {
     }
     Text {
         x: scene.width / 2 - width / 2; y: 12
-        text: (pane.position === "left" ? "Left" : "Right") + " · upright characters · " + (pane.compact ? "Compact" : "Full edge")
+        text: (pane.position === "left" ? "Left" : "Right") + " · icons only · " + (pane.compact ? "Compact" : "Full edge")
         color: "#cdd6f4"; font.pixelSize: 12
     }
     property string action: ""
@@ -73,19 +73,25 @@ Item {
                 }
             }
         }
-        function test_lettersStackWithoutGrowingWidth_data() { return ['left','right'].map(edge => ({tag:edge,edge:edge})); }
-        function test_lettersStackWithoutGrowingWidth(data) {
+        function test_sidePanelsAreIconOnlyAndCircular_data() { return ['left','right'].map(edge => ({tag:edge,edge:edge})); }
+        function test_sidePanelsAreIconOnlyAndCircular(data) {
             pane.settings = config(data.edge);
-            let original = pane.width;
             pane.clockText = 'September Wednesday 12:59 PM';
-            compare(pane.width,original);
             compare(pane.width,40);
-            let clock = pane.moduleItems.calendar;
-            compare(clock.displayText, Array.from(pane.clockText).join('\n'));
-            compare(clock.content.wrapMode, Text.NoWrap);
-            for (let id of ['calendar','audio','battery'])
-                for (let line of pane.moduleItems[id].displayText.split('\n')) verify(Array.from(line).length <= 1);
-            verify(clock.content.contentWidth <= clock.content.width + 1);
+            for (let id of ['calendar','audio','battery','wifi','bluetooth','notifications','power']) {
+                let item = pane.moduleItems[id];
+                compare(item.displayText,'',id);
+                verify(item.shownIcon.length > 0,id);
+                compare(item.width,item.height,id);
+                let background = findChild(item,'pillBackground');
+                compare(background.radius,item.width/2,id);
+            }
+            compare(pane.moduleItems.calendar.shownIcon,'󰃭');
+            verify(pane.moduleItems.calendar.tooltipText.indexOf(pane.clockText) >= 0);
+            let workspace = findChild(pane,'workspace1');
+            compare(workspace.shownText,'');
+            compare(workspace.shownIcon,'');
+            compare(workspace.width,workspace.height);
             assertLayout();
         }
         function test_compactAndFullEdgeRetainAlignmentAndOrder() {
@@ -107,6 +113,8 @@ Item {
             scene.width = 480; scene.height = 400;
             pane.trayModel = Array.from({length:18},(_,i) => ({icon:Qt.resolvedUrl("../icons/preview-tray.svg"),title:'App '+i}));
             pane.clockText = 'Wednesday September 30 11:59 PM';
+            // Grid lays out newly created tray delegates on the next polish.
+            tryVerify(() => pane.moduleItems.tray.height >= 18 * 36);
             for (let edge of ['left','right']) {
                 pane.settings = config(edge);
                 assertLayout();
@@ -120,6 +128,7 @@ Item {
                 let trayIcon = findChild(pane,'trayIcon');
                 verify(trayIcon.width >= 24 && trayIcon.height >= 24);
                 pane.ensureItemVisible(trayIcon);
+                viewport.contentY = viewport.contentHeight - viewport.height;
                 let before = pane.menuRect('calendar').y;
                 pane.ensureItemVisible(pane.moduleItems.calendar);
                 verify(pane.menuRect('calendar').y !== before);
@@ -138,7 +147,10 @@ Item {
             verify(audio.content.contentWidth <= audio.content.width + 1);
             let shared = findChild(pane,'sharedPill_status');
             verify(shared !== null);
-            compare(shared.vertical,true);
+            compare(shared.visible,false);
+            compare(audio.shownText,'');
+            compare(audio.width,audio.height);
+            compare(findChild(audio,'pillBackground').radius,audio.width/2);
             assertLayout();
             let overlay = editorFactory.createObject(pane, {width:pane.width,height:pane.height,bar:pane});
             let viewport = findChild(pane,'panelViewport');
@@ -153,7 +165,9 @@ Item {
                 let next = config(edge);
                 next.items = [{id:'audio',text:'Volume',hideIcon:true},{id:'battery',hideText:true},{id:'wifi',text:'Connected network'}];
                 pane.settings = next;
-                compare(pane.moduleItems.audio.displayText,'V\no\nl\nu\nm\ne');
+                compare(pane.moduleItems.audio.displayText,'');
+                compare(pane.moduleItems.audio.settings.text,'Volume');
+                verify(pane.moduleItems.audio.tooltipText.indexOf('Volume') >= 0);
                 compare(pane.moduleItems.audio.shownIcon,'');
                 compare(pane.moduleItems.battery.shownText,'');
                 verify(pane.moduleItems.wifi.content.contentWidth <= pane.moduleItems.wifi.content.width + 1);
@@ -183,7 +197,9 @@ Item {
             next.items = [{id:'tray',text:'Apps'}];
             pane.settings = next;
             let tray = pane.moduleItems.tray, icon = findChild(tray,'trayIcon');
-            verify(icon.y + icon.parent.y >= tray.content.height + 4);
+            compare(tray.displayText,'');
+            compare(icon.width,icon.height);
+            compare(findChild(icon,'pillBackground').radius,icon.width/2);
             icon.forceActiveFocus();
             keyClick(Qt.Key_Return);
             compare(scene.action,'tray');
@@ -191,30 +207,41 @@ Item {
             pane.settings = Model.copy(next);
             compare(icon.parent.visible,false);
             verify(tray.height < 100);
-            compare(tray.displayText,'A\np\np\ns');
+            compare(tray.displayText,'');
+            compare(tray.settings.text,'Apps');
         }
-        function test_unicodeIconsAndAccentedLettersStayIntact() {
-            compare(pane.moduleItems.notifications.displayText, "󰂚");
-            compare(pane.moduleItems.wifi.displayText, "󰤨");
+        function test_customIconsStayIntactAndLabelsReturnHorizontally() {
             let next = config('left');
-            next.items = [{id:'audio',text:'Café 🐱'}];
+            next.items = [{id:'audio',text:'Café 🐱',icon:'🐱',radius:2}];
             pane.settings = next;
-            compare(pane.moduleItems.audio.displayText, 'C\na\nf\né\n \n🐱');
-            next.items[0].text = 'Cafe\u0301';
+            compare(pane.moduleItems.audio.shownIcon,'🐱');
+            compare(pane.moduleItems.audio.displayText,'');
+            compare(findChild(pane.moduleItems.audio,'pillBackground').radius,pane.moduleItems.audio.width/2);
+            next.bar.position = 'top';
+            scene.width = 1366;
             pane.settings = Model.copy(next);
-            compare(pane.moduleItems.audio.displayText, 'C\na\nf\ne\u0301');
+            compare(pane.moduleItems.audio.displayText,'Café 🐱');
+            compare(findChild(pane.moduleItems.audio,'pillBackground').radius,2);
         }
-        function test_notificationDigitsStayInsideAndMediaHasFullTooltip() {
+        function test_notificationCountIsInTooltipAndSpectrumFitsCircle() {
             let bell = pane.moduleItems.notifications, badge = findChild(bell,'notificationBadge');
-            compare(badge.text,'9\n9\n9');
-            verify(badge.x >= 0 && badge.x + badge.width <= bell.width);
-            verify(badge.y >= bell.content.y + bell.content.height);
-            verify(badge.y + badge.height <= bell.height);
-            pane.mediaData = {playing:true,title:'A very long music title that remains available in its tooltip',levels:[]};
+            compare(badge.visible,false);
+            verify(bell.tooltipText.indexOf('999') >= 0);
+            pane.mediaData = {playing:true,title:'A long music title stays available in the tooltip',levels:[0.3,0.8,0.6,0.4,1,0.4,0.2,0.6,0.9,0.4,0.3,0.5]};
             let media = pane.moduleItems.media.item;
-            verify(media.displayText.split('\n').length <= 12);
-            compare(media.displayText.slice(-1),'…');
-            verify(media.text.indexOf('tooltip') >= 0);
+            compare(media.displayText,'');
+            compare(media.width,media.height);
+            let spectrum = findChild(media,'mediaSpectrum');
+            compare(spectrum.barCount,5);
+            verify(spectrum.x >= 0 && spectrum.x+spectrum.width <= media.width);
+            verify(spectrum.y >= 0 && spectrum.y+spectrum.height <= media.height);
+            for (let i=0; i<5; ++i) verify(findChild(spectrum,'spectrumBar'+i).width >= 2);
+            compare(findChild(spectrum,'spectrumBar5'),null);
+            verify(media.ToolTip.text.indexOf('tooltip') >= 0);
+            let next = config('left');
+            next.items = [{id:'media',hideIcon:true}];
+            pane.settings = next;
+            compare(spectrum.visible,false);
         }
         function test_menuAnchorInwardAndKeyboardAction_data() { return ['left','right'].map(edge => ({tag:edge,edge:edge})); }
         function test_menuAnchorInwardAndKeyboardAction(data) {
@@ -232,7 +259,7 @@ Item {
         }
         function test_reviewScreenshots_data() { return ['left','right'].map(edge => ({tag:edge,edge:edge})); }
         function test_reviewScreenshots(data) {
-            scene.height = 1100;
+            scene.height = 700;
             pane.settings = config(data.edge);
             pane.ensureItemVisible(pane.moduleItems.calendar);
             wait(250);

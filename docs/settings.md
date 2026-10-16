@@ -80,11 +80,11 @@ the real network. Physical network behavior requires a desktop-session check.
 or Bottom. `bar.position` defaults to `top` for existing settings. On either
 side edge, the left item group sits at the top, the center group stays centered,
 and the right group sits at the bottom, keeping each group's existing order.
-On Left and Right, text uses one upright character per line; symbols and
-accented letters stay intact. Whitespace separates words with a blank row.
-Long labels use height rather than increasing the pane width (40 logical pixels
-by default). Explicit **Hyprpane thickness**, icon/font sizes and inside padding
-still apply. Icons sit above their labels; workspaces and tray icons stack. **Edge margin** applies to
+On Left and Right, Hyprpane shows icons only in circular pills. The calendar
+uses a calendar icon; volume, battery and notification values appear in tooltips
+and their menus. Workspace names become filled/hollow workspace icons with
+identifying tooltips. The pane stays 40 logical pixels wide by default; explicit
+thickness, icon/font sizes and inside padding still apply. **Edge margin** applies to
 the chosen screen edge and **End margins** applies to the two ends. The existing
 `height`, `marginTop`, and `marginSide` keys preserve these preferences.
 
@@ -100,24 +100,27 @@ Top/Center/Bottom alignment groups and moves the middle group only as needed to
 prevent collisions. Compact keeps those groups in order with deliberate gaps
 and centers the shorter pane on its edge. No whole-edge background is added.
 Existing per-item spacing, ordering, shared pills and explicit radii remain.
-Vertical default pill corners are 8 px instead of scaling with a tall label.
+On side edges, shared pill backgrounds appear as individual circles while group
+membership and ordering remain saved. Side circles override corner radii visually;
+saved radii and labels apply again on Top/Bottom.
 
 If the content exceeds the available height, the pane scrolls with a visible
 scrollbar. Wheel over a status item, drag, use the scrollbar, or Tab to a control
 to bring it into view. Workspace wheel switching and tray scroll actions retain
 their existing behavior. The Settings preview supports scrolling and still maps
-click/drag positions correctly. Tray targets are at least 24 px on side edges;
-additional columns fit when the chosen width permits them. Explicit tray text and
-icon hiding remain supported. Enter activates a focused control or tray item;
+click/drag positions correctly. Tray targets use the same circular size as the
+side controls and stack vertically. Saved tray labels return horizontally; icon
+hiding remains supported. Enter activates a focused control or tray item;
 the Menu key opens a tray context menu.
 
-The clock keeps the saved format and custom text, laid out character by character
-on side edges. Hover shows its unstacked label. Media titles show up to 12 stacked
-characters with an ellipsis and retain the full title in the tooltip. Notification
-counts have their own digit column below the bell and keep the complete count.
+The calendar icon opens the existing calendar and shows the saved clock format
+or custom text in its tooltip. Media uses five spectrum bars centered inside a
+circular pill, with the complete title or custom label in the tooltip. Its saved
+icon visibility setting still controls the spectrum. Notification counts stay
+in the tooltip/inbox; the bell color signals unread notifications without digits.
 Menu cards open inward beside their trigger, clamp to the available screen space,
 and scroll their contents when necessary; keyboard focus reveals controls inside
-the card. Top and Bottom keep their horizontal text and layout.
+the card. Top and Bottom keep their horizontal text, counts, spectrum and radii.
 
 Bar layout follows each module's enabled setting and data availability, rather
 than its inherited `Item.visible` value. Hiding the Settings preview or a

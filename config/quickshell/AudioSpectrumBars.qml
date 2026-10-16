@@ -4,6 +4,7 @@ import QtQuick
 Item {
     id: spectrum
     property var levels: []
+    property int barCount: 12
     property bool active: true
     property color color: "#94e2d5"
     property bool variableOpacity: true
@@ -17,14 +18,14 @@ Item {
         anchors.fill: parent
         spacing: spectrum.spacing
         Repeater {
-            model: 12
+            model: spectrum.barCount
             delegate: Rectangle {
                 required property int index
                 objectName: "spectrumBar" + index
                 readonly property real level: spectrum.active ? Math.max(0, Math.min(1, Number(spectrum.levels[index]) || 0)) : 0
                 property real animatedHeight: spectrum.minimumHeight + level * Math.max(0, spectrum.height - spectrum.minimumHeight)
                 anchors.verticalCenter: parent.verticalCenter
-                width: Math.max(0, (spectrum.width - 11 * spectrum.spacing) / 12)
+                width: Math.max(0, (spectrum.width - (spectrum.barCount - 1) * spectrum.spacing) / spectrum.barCount)
                 height: spectrum.active ? animatedHeight : spectrum.minimumHeight
                 radius: Math.min(width / 2, spectrum.minimumHeight * 0.75)
                 antialiasing: true

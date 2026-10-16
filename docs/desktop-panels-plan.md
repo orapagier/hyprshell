@@ -70,9 +70,10 @@ Use the user's 2026-10-16 screenshot as the visual reference for current problem
 the tall narrow panel has awkwardly wrapped date/time text, oversized rounded
 groups, uneven density, and large unused stretches between small controls.
 
-User refinement (2026-10-16): on Left or Right, text must use one upright
-character per line so label length does not widen the pane. Preserve full saved
-labels and use scrolling/tooltips for long content. Implemented behavior and
+Latest user refinement (2026-10-16): Left/Right must be icon-only, with a
+calendar icon and circular pills. This supersedes the earlier character-column
+request. Preserve saved labels for tooltips and horizontal layouts; fit the
+media spectrum to a circular sidebar item. Implemented behavior and
 review screenshots: [Vertical Hyprpane](vertical-hyprpane.md).
 
 - Design an intentional vertical layout rather than squeezing horizontal items

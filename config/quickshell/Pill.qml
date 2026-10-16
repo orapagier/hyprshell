@@ -5,38 +5,11 @@ Item {
     id: pill
     property var settings: ({})
     property bool vertical: false
-    // Side-panel labels are deliberate upright character columns, never wrapped words.
-    property int verticalLineLimit: 0
-    function verticalCharacters(value) {
-        // QV4's Array.from(string) can iterate UTF-16 units. Keep surrogate
-        // pairs, combining marks and joined symbols intact on the same row.
-        let result = [], joinNext = false;
-        for (let i = 0; i < value.length; ++i) {
-            let code = value.charCodeAt(i), letter = value[i];
-            if (code >= 0xd800 && code <= 0xdbff && i + 1 < value.length) {
-                let low = value.charCodeAt(i + 1);
-                if (low >= 0xdc00 && low <= 0xdfff) {
-                    letter += value[++i];
-                    code = 0x10000 + ((code - 0xd800) << 10) + low - 0xdc00;
-                }
-            }
-            let combining = (code >= 0x300 && code <= 0x36f) || (code >= 0xfe00 && code <= 0xfe0f)
-                || (code >= 0x1f3fb && code <= 0x1f3ff) || code === 0x200d;
-            if (result.length && (combining || joinNext)) result[result.length - 1] += letter;
-            else result.push(letter);
-            joinNext = code === 0x200d;
-        }
-        return result;
-    }
-    readonly property string displayText: {
-        if (!vertical) return shownText;
-        let letters = verticalCharacters(shownText.trim().replace(/\s+/g, " "));
-        if (verticalLineLimit > 0 && letters.length > verticalLineLimit)
-            letters = letters.slice(0, verticalLineLimit - 1).concat(["…"]);
-        return letters.join("\n");
-    }
-    readonly property string shownText: settings.hideText ? "" : settings.text || text
-    readonly property string shownIcon: settings.hideIcon ? "" : settings.icon || icon
+    property bool iconOnly: vertical
+    property string compactIcon: ""
+    readonly property string displayText: shownText
+    readonly property string shownText: iconOnly || settings.hideText ? "" : settings.text || text
+    readonly property string shownIcon: settings.hideIcon ? "" : settings.icon || (iconOnly ? compactIcon || icon : icon)
     readonly property color textColor: settings.textColor || (family === "GoMono Nerd Font" ? settings.iconColor : "") || effectiveForeground
     readonly property color iconColor: settings.iconColor || effectiveForeground
     function styledBackground(base) {
@@ -97,15 +70,16 @@ Item {
     readonly property int effectiveTextSize: settings.fontSize || Math.max(8, Math.round(pixelSize * (settings.iconSize || 16) / 16))
     readonly property int iconWidth: shownIcon.length ? effectiveIconSize + 5 : 0
     implicitWidth: Math.min(maximumWidth, Math.max(minimumTextWidth, label.implicitWidth, vertical && shownIcon.length ? effectiveIconSize : 0) + (vertical ? 0 : iconWidth) + effectiveLeftPadding + effectiveRightPadding)
-    readonly property real naturalHeight: vertical ? Math.max(32, (shownIcon.length ? effectiveIconSize + (shownText.length ? 4 : 0) : 0) + (shownText.length ? label.implicitHeight : 0) + 8) : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
+    readonly property real naturalHeight: iconOnly ? width : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
     implicitHeight: naturalHeight
     activeFocusOnTab: interactive
     Keys.onReturnPressed: if (interactive) clicked(null)
     Keys.onSpacePressed: if (interactive) clicked(null)
     Rectangle {
+        objectName: "pillBackground"
         visible: pill.backgroundShown
         anchors.fill: parent
-        radius: pill.settings.radius >= 0 ? pill.settings.radius : pill.vertical ? 8 : height / 2
+        radius: pill.vertical ? Math.min(width, height) / 2 : pill.settings.radius >= 0 ? pill.settings.radius : height / 2
         color: pill.styledBackground(pill.adaptivePalette
             ? (pill.selected ? pill.adaptivePalette.selected : pointer.containsMouse || pill.activeFocus ? pill.adaptivePalette.hover : pill.adaptivePalette.tint)
             : pill.selected ? Qt.rgba(pill.foreground.r, pill.foreground.g, pill.foreground.b, 0.32) : pointer.containsMouse || pill.activeFocus ? pill.hoverTint : pill.tint)
@@ -124,7 +98,8 @@ Item {
             }
         }
         Rectangle {
-            x: 6; y: 1; width: parent.width - 12; height: 1
+            x: pill.vertical ? parent.width * 0.35 : 6; y: 1
+            width: pill.vertical ? parent.width * 0.3 : parent.width - 12; height: 1
             visible: pill.raised
             color: Qt.rgba(1, 1, 1, 0.10)
         }

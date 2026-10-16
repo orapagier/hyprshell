@@ -131,7 +131,7 @@ ColumnLayout {
         Label {
             visible: ["left", "right"].includes(root.settings.position)
             Layout.fillWidth: true
-            text: "Side labels use one upright character per line. Compact keeps the groups together. Long panels scroll; hover an item for its full label."
+            text: "Side panels show icons in circular pills. Compact keeps the groups together. Long panels scroll; hover an icon for its details."
             wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
         GridLayout {

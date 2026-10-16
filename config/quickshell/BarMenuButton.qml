@@ -10,6 +10,13 @@ Pill {
     colorSampler: Settings.adaptive(bar.settings, menu) ? bar.wallpaperColors : null
     colorRoot: bar
     width: vertical ? bar.verticalThickness - 4 : implicitWidth
+    height: vertical ? width : implicitHeight
+    compactIcon: {
+        if ((menu === "launcher" || menu === "settings") && !settings.text && !settings.icon) return "";
+        return ({launcher:"", settings:"󰒓", calendar:"󰃭", notifications:"󰂚",
+            audio:bar.statusData.audio?.icon || "󰕾", wifi:bar.statusData.network?.text || "󰤮",
+            bluetooth:bar.statusData.bluetooth?.text || "󰂲", battery:icon || "󰁹", power:"󰐥"})[menu] || icon;
+    }
     property string tooltipText: {
         let title = ({launcher: "Applications", settings: "Settings", calendar: "Calendar", notifications: "Notifications", audio: "Volume", wifi: "Network", bluetooth: "Bluetooth", battery: "Battery", power: "Power"})[menu] || menu;
         let detail = settings.text || text;
