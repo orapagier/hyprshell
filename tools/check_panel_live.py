@@ -8,6 +8,10 @@ from pathlib import Path
 import subprocess
 import tempfile
 import time
+if __package__:
+    from .panel_live_behavior import QML_CONTROL, run_behavior, write_json
+else:
+    from panel_live_behavior import QML_CONTROL, run_behavior, write_json
 
 ROOT = Path(__file__).resolve().parents[1]
 PAYLOAD = ROOT / 'config/quickshell'
@@ -37,6 +41,7 @@ def wait_for(check, description):
 QML = '''pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "PAYLOAD"
@@ -51,12 +56,13 @@ ShellRoot {
     property var notificationData: ({count:0})
     property string clockText: '12:00'
     SettingsStore { id: preferences }
-    ApplicationService { id: applications; store: preferences; windows: []; entries: [] }
+    ApplicationService { id: applications; store: preferences; windows: shell.control.windows || []; entries: [] }
     DockUtilities { id: dockUtilities }
     QtObject { id: wallpapers; property var sources: ({}) }
     QtObject { id: tray; property var items: [] }
     QtObject { id: settingsController; function open() {} }
 PANELS
+CONTROL
 }
 '''
 
@@ -72,7 +78,7 @@ def fixture_source():
         raise RuntimeError('Production panel composition changed; review the live fixture')
     panels = panels.replace('model: Quickshell.screens\n',
                             "model: Quickshell.screens.filter(s => s.name === Quickshell.env('HYPRSHELL_TEST_OUTPUT'))\n")
-    return QML.replace('PANELS', panels).replace('PAYLOAD', PAYLOAD.as_uri())
+    return QML.replace('PANELS', panels).replace('CONTROL', QML_CONTROL).replace('PAYLOAD', PAYLOAD.as_uri())
 
 
 def layers(output, pid):
@@ -116,6 +122,8 @@ def check_geometry(rows, output, case, pair=('hyprdock', 'hyprbar')):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', action='store_true', help='create and remove a temporary virtual output')
+    parser.add_argument('--checks', choices=('geometry', 'behavior', 'all'), default='geometry',
+                        help='include visibility, menus and reservation checks with injected window data')
     args = parser.parse_args()
     if not __debug__:
         parser.error('run without Python optimization so geometry assertions remain enabled')
@@ -134,15 +142,27 @@ def main():
             root = Path(directory)
             target = root / 'config/hyprshell/settings.json'
             target.parent.mkdir(parents=True)
+            control = root / 'control.json'
+            control.write_text('{}')
             fixture = root / 'Check.qml'
             fixture.write_text(fixture_source())
             config = json.loads((PAYLOAD / 'settings/defaults.json').read_text())
             for name in NAMESPACES:
-                config['panels'][name].update(enabled=True, monitors=[output['name']])
+                config['panels'][name].update(enabled=False, monitors=[output['name']])
                 if name != 'hyprpane':
                     config['panels'][name].update(hideMode='always', animations=False)
             cases = list(itertools.product(itertools.combinations(NAMESPACES, 2),
                                            itertools.permutations(EDGES, 2)))
+            if args.checks == 'behavior':
+                cases = []
+            write_json(target, config)
+            env = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'),
+                       XDG_STATE_HOME=str(root / 'state'), QT_QPA_PLATFORM='wayland',
+                       QT_QPA_PLATFORMTHEME='', HYPRSHELL_TEST_OUTPUT=output['name'],
+                       HYPRSHELL_TEST_CONTROL=str(control))
+            log = (root / 'quickshell.log').open('w+')
+            process = subprocess.Popen(['quickshell', '--log-rules', 'qml.debug=true', '-p', str(fixture)],
+                                       env=env, stdout=log, stderr=subprocess.STDOUT)
             print(f"Live output: {output['width']}x{output['height']} scale={output['scale']}", flush=True)
             for index, (pair, case) in enumerate(cases):
                 for name in NAMESPACES:
@@ -156,13 +176,6 @@ def main():
                 pending = target.with_suffix('.tmp')
                 pending.write_text(json.dumps(config))
                 pending.replace(target)
-                if process is None:
-                    env = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'),
-                               XDG_STATE_HOME=str(root / 'state'), QT_QPA_PLATFORM='wayland',
-                               QT_QPA_PLATFORMTHEME='', HYPRSHELL_TEST_OUTPUT=output['name'])
-                    log = (root / 'quickshell.log').open('w+')
-                    process = subprocess.Popen(['quickshell', '-p', str(fixture)], env=env,
-                                               stdout=log, stderr=subprocess.STDOUT)
                 def ready():
                     if process.poll() is not None:
                         log.seek(0)
@@ -190,6 +203,13 @@ def main():
                                       'layers': layers(output['name'], process.pid)}))
                     raise
                 print(f'PASS {index+1}/{len(cases)} {dict(zip(pair, case))}', flush=True)
+            if args.checks in ('behavior', 'all'):
+                try:
+                    run_behavior(config, target, control, log, process, output, hypr, monitors, wait_for)
+                except Exception:
+                    log.seek(0)
+                    print(log.read())
+                    raise
             process.terminate()
             process.wait(timeout=5)
             log.seek(0)
@@ -209,7 +229,7 @@ def main():
         if output is not None:
             hypr('output', 'remove', output['name'])
             wait_for(lambda: output['name'] not in {m['name'] for m in monitors()}, 'output removal')
-    print('Live three-pair layer geometry passed; temporary output removed.')
+    print(f'Live {args.checks} checks passed; temporary output removed.')
 
 
 if __name__ == '__main__':

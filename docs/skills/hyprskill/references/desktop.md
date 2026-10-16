@@ -20,9 +20,18 @@ layer geometry on a temporary headless output with isolated preferences and
 state, then removes it. All 36 distinct-edge arrangements across the three
 allowed pairs passed at scale 2, using panel composition from `shell.qml`.
 See `docs/panel-coexistence.md` for limits; physical input, workspace transitions,
-fullscreen/hide policies and Show Desktop remain pending. The persistence
+physical fullscreen/hide acceptance and Show Desktop remain pending. The persistence
 transaction matrix is covered in `docs/panel-persistence.md`; fresh-VM and
 physical acceptance remain open.
+
+The subsequent `--checks behavior` mode verifies both app panels on all four
+edges: auto-hide/dodge, programmatic launcher-held visibility, reveal strips,
+compositor reservation deltas, injected fullscreen/overlap metadata, and current
+workspace visibility overrides. Eight baselines and 88 transitions passed at
+scale 2. `--checks all` includes geometry first. These are isolated integration
+checks; real workspace switching, pointer input and physical fullscreen/hotplug
+remain pending. Native layout/workspace settings and recovery UI checks now pass;
+see `docs/panel-persistence.md`. No runtime panel changes or reload are required.
 
 All three panels can be enabled globally and share an edge on separate
 workspaces. Settings → Hyprpane & panels provides each app panel with workspace

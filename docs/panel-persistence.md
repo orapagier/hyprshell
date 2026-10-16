@@ -60,3 +60,20 @@ A clean Fedora VM install and system-level
 update/recovery acceptance also remain separate, as described in
 [acceptance](acceptance.md). Show Desktop remains pending under
 [panel coexistence](panel-coexistence.md). Phases 7 and 8 remain open.
+
+## Native settings and recovery retest (2026-10-17)
+
+The native Settings layout-preset and workspace-visibility tests now pass in
+isolated homes. The recovery UI check also passes, covering invalid confirmation,
+preview, the unsaved-edit gate, confirmed restore and the restored signal. Its
+Quickshell invocation now explicitly enables `qml.debug` so the success marker
+is visible, and asserts a clean exit without QML binding/type errors. This changes
+the verifier only, not the installed recovery runtime. All 16 recovery tests
+passed, including the backend case preserving panel/pin preferences.
+
+The original unavailable native-UI result above remains a historical record;
+this retest supplies current native-UI evidence. It does not perform a real
+desktop restore, system upgrade or fresh-VM install. The separate live panel
+visibility/reservation slice is documented in
+[panel coexistence](panel-coexistence.md#live-visibility-and-reservations-2026-10-17).
+Phases 7 and 8 remain open for their remaining physical and system acceptance.

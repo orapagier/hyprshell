@@ -20,6 +20,15 @@ The opt-in verifier and exact limits are recorded in
 [Panel coexistence](panel-coexistence.md#live-geometry-increment-2026-10-17).
 Phases 7 and 8 remain open.
 
+Visibility/recovery increment (2026-10-17): the isolated live fixture now checks
+app-panel hide modes, menu-held visibility, 3 px reveal strips and compositor
+reservations on all four edges, with injected overlap/fullscreen window data and
+current-workspace visibility overrides. Native settings and recovery UI checks
+also run successfully. See [behavior acceptance](panel-coexistence.md#live-visibility-and-reservations-2026-10-17)
+and [recovery retest](panel-persistence.md#native-settings-and-recovery-retest-2026-10-17).
+Actual workspace switching, physical input/fullscreen/hotplug and fresh-VM checks
+remain separate; neither phase is marked complete by these isolated checks.
+
 ## Names and agreed behavior
 
 | Name | Meaning |

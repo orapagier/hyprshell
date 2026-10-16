@@ -131,3 +131,36 @@ transitions, window actions, physical hotplug and additional scales remain
 unverified. Exclusive-zone sizes and visual polish still need separate checks.
 Phases 7 and 8 remain open. The installed shell, saved preferences and physical
 display layout are preserved; the temporary fixture and output are removed.
+
+## Live visibility and reservations (2026-10-17)
+
+`python3 tools/check_panel_live.py --run --checks behavior` runs the next isolated
+acceptance slice; `--checks all` includes the 36-case geometry matrix first.
+The default command retains geometry-only behavior. The fixture loads commands
+from a temporary JSON file and reports the production `DockVisibility` state
+after the 500 ms hide delay. Reports carry command IDs so stale observations
+cannot satisfy a later scenario. The controller and assertions live in
+`tools/panel_live_behavior.py`.
+
+For both Hyprdock and Hyprbar on every edge, the matrix covers always-visible,
+auto-hide, opening/dismissing the production launcher to hold/release visibility,
+dodge with clear/overlapped geometry, dodge menu interaction, fullscreen Hide/Show
+policies, and hiding/restoring the current workspace through saved overrides.
+It checks actual compositor reservation deltas against the installed shell's
+baseline, including the configured edge margin and window gap, and confirms
+3 logical-pixel reveal surfaces exist only when eligible and unsuppressed in a
+hiding mode. Always-visible has an exclusive zone; auto-hide and dodge have none,
+including while their menus hold the panel open.
+
+Overlap and fullscreen are injected app-service window metadata on the real
+virtual output, not physical toplevel actions. Workspace cases change only the
+isolated settings override for that output's current workspace; they do not
+switch the user's workspace. Menu methods are invoked programmatically, so this
+does not establish pointer/keyboard delivery, reveal-hover usability, native tray
+menus or real fullscreen acceptance. Actual workspace transitions, physical
+hotplug, other scales and Show Desktop remain pending.
+
+The live scale-2 run passed eight always-visible baselines and 88 subsequent
+transitions. Eleven verifier tests, nine Qt visibility checks and native panel
+layout/workspace settings tests passed. No runtime QML or real saved preferences
+changed. The temporary shell/output are removed and the original shell remains.

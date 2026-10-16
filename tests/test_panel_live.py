@@ -1,8 +1,10 @@
 """Geometry verifier checks; these do not create a compositor output."""
 import copy
+import io
 import unittest
 
 from tools.check_panel_live import check_geometry, fixture_source
+from tools.panel_live_behavior import check_state, read_report
 
 
 class PanelLiveGeometryTests(unittest.TestCase):
@@ -60,3 +62,23 @@ class PanelLiveGeometryTests(unittest.TestCase):
             self.assertIn(text, source)
         self.assertNotIn('NotificationInbox {', source)
         self.assertNotIn('DesktopServices {', source)
+
+
+class PanelLiveBehaviorVerifierTests(unittest.TestCase):
+    def test_reports_ignore_previous_control_commands(self):
+        log = io.StringIO('INFO qml: PANEL_LIVE_STATE {"id":1,"states":{"old":true}}\n'
+                          'INFO qml: PANEL_LIVE_STATE {"id":2,"states":{"current":true}}\n')
+        self.assertEqual(read_report(log, 2), {'current':True})
+        self.assertIsNone(read_report(log, 3))
+
+    def test_fullscreen_hide_requires_suppression_and_released_reservation(self):
+        state = dict(shown=False, reserve=False, suppressed=True, eligible=True)
+        check_state(state, shown=False, reserve=False, suppressed=True)
+        for key in ('shown', 'reserve', 'suppressed', 'eligible'):
+            wrong = dict(state, **{key:not state[key]})
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                check_state(wrong, shown=False, reserve=False, suppressed=True)
+
+    def test_menu_can_hold_visibility_without_reserving_space(self):
+        check_state(dict(shown=True, reserve=False, suppressed=False, eligible=True),
+                    shown=True, reserve=False)

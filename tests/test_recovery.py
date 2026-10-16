@@ -279,10 +279,14 @@ ShellRoot {
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
             env = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'),
                        XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software', QT_QPA_PLATFORMTHEME='', HYPRLAND_INSTANCE_SIGNATURE='')
-            result = subprocess.run(['quickshell', '-p', str(fixture)], capture_output=True, text=True, env=env, timeout=12)
+            result = subprocess.run(['quickshell', '--log-rules', 'qml.debug=true', '-p', str(fixture)],
+                                    capture_output=True, text=True, env=env, timeout=12)
             output = result.stdout + result.stderr
+            self.assertEqual(result.returncode, 0, output)
             self.assertIn('RECOVERY_NATIVE_OK', output, output)
             self.assertNotIn('RECOVERY_FAILED', output, output)
+            for error in ('ReferenceError', 'TypeError', 'Binding loop', 'Unable to assign'):
+                self.assertNotIn(error, output)
             self.assertEqual(json.loads(target.read_text())['bar']['height'], 32)
 
 
