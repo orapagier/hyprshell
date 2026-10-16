@@ -59,6 +59,17 @@ ShellRoot {
             test.phase++;
         } else if (test.phase === 3) {
             if (editor.searchResultIndex !== -1) { test.fail("deferred search selected a result after clearing"); return; }
+            let search = test.find(editor.contentItem, "settingsSearch");
+            search.text = "bar thickness";
+            if (editor.searchResultIndex !== 0) { test.fail("matching search did not select first result"); return; }
+            search.text = "zzzz-no-matching-setting-zzzz";
+            if (editor.searchResults.length !== 0 || editor.searchResultIndex !== -1) { test.fail("unmatched search retained result selection"); return; }
+            let section = editor.section;
+            search.accepted();
+            if (editor.section !== section) { test.fail("Enter on unmatched search navigated"); return; }
+            test.phase++;
+        } else if (test.phase === 4) {
+            if (editor.searchResultIndex !== -1) { test.fail("deferred search selected an unmatched result"); return; }
             if (editor.dirty || editor.saving) { test.fail("search changed preferences"); return; }
             console.log("CAPTION_SEARCH_OK"); Qt.quit();
         }
