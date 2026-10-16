@@ -35,6 +35,10 @@ FocusScope {
     property real screenOffsetY: 0
     function itemLength(entry) { return cellSize; }
     property real trailingLength: 0
+    readonly property real startPadding: panel.paddingStart ?? 6
+    readonly property real endPadding: panel.paddingEnd ?? 6
+    readonly property real statusEndPadding: panel.paddingEnd ?? 4
+    readonly property real applicationEndPadding: trailingLength > 0 ? 6 : endPadding
     readonly property real applicationLength: Math.max(1, length - trailingLength)
     readonly property real iconSize: Math.min(panel.iconSize, cellSize - 2)
     TextMetrics {
@@ -45,7 +49,7 @@ FocusScope {
     }
     readonly property real spacing: panel.spacing ?? 4
     property real maximumLength: 800
-    readonly property real naturalLength: 12 + entries.reduce((total, entry) => total + itemLength(entry), 0) + Math.max(0, entries.length - 1) * spacing
+    readonly property real naturalLength: startPadding + applicationEndPadding + entries.reduce((total, entry) => total + itemLength(entry), 0) + Math.max(0, entries.length - 1) * spacing
     readonly property real length: taskbar ? maximumLength : Math.min(maximumLength, naturalLength + trailingLength)
     readonly property bool overflowing: naturalLength > applicationLength
     readonly property real navigationSize: overflowing ? 24 : 0
@@ -125,10 +129,10 @@ FocusScope {
     ListView {
         id: list
         objectName: 'dockApplications'
-        x: dock.vertical ? 2 : 6 + dock.navigationSize
-        y: dock.vertical ? 6 + dock.navigationSize : 2
-        width: dock.vertical ? dock.width-4 : Math.max(0, dock.applicationLength - 12 - 2*dock.navigationSize)
-        height: dock.vertical ? Math.max(0, dock.applicationLength - 12 - 2*dock.navigationSize) : dock.height-4
+        x: dock.vertical ? 2 : dock.startPadding + dock.navigationSize
+        y: dock.vertical ? dock.startPadding + dock.navigationSize : 2
+        width: dock.vertical ? dock.width-4 : Math.max(0, dock.applicationLength - dock.startPadding - dock.applicationEndPadding - 2*dock.navigationSize)
+        height: dock.vertical ? Math.max(0, dock.applicationLength - dock.startPadding - dock.applicationEndPadding - 2*dock.navigationSize) : dock.height-4
         orientation: dock.vertical ? ListView.Vertical : ListView.Horizontal
         model: dock.entries
         spacing: dock.spacing; clip: true

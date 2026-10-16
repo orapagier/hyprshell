@@ -83,7 +83,7 @@ Item {
         WlrLayershell.keyboardFocus:WlrKeyboardFocus.OnDemand
         Dock {
             id:dock
-            trailingLength: status.contentLength > 0 ? statusViewport.extent + 8 : 0
+            trailingLength: status.contentLength > 0 ? statusViewport.extent + 4 + dock.statusEndPadding : 0
             onXChanged: window.closeMenu()
             onYChanged: window.closeMenu()
             x: window.vertical ? 0 : Model.aligned(rail.width,width,window.panel.alignment)
@@ -122,9 +122,9 @@ Item {
                 if(window.vertical) contentY=Math.max(0,Math.min(contentHeight-height,Math.max(point.y+item.height-height,Math.min(contentY,point.y))));
                 else contentX=Math.max(0,Math.min(contentWidth-width,Math.max(point.x+item.width-width,Math.min(contentX,point.x))));
             }
-            readonly property real extent: Math.min(status.contentLength, Math.max(0,dock.maximumLength - Math.max(148,dock.cellSize+76)))
-            x:dock.x + (window.vertical ? 0 : dock.width-width-4)
-            y:dock.y + (window.vertical ? dock.height-height-4 : 0)
+            readonly property real extent: Math.min(status.contentLength, Math.max(0,dock.maximumLength - Math.max(148,dock.cellSize+76+dock.startPadding+dock.statusEndPadding)))
+            x:dock.x + (window.vertical ? 0 : dock.width-width-dock.statusEndPadding)
+            y:dock.y + (window.vertical ? dock.height-height-dock.statusEndPadding : 0)
             width:window.vertical ? rail.width : extent
             height:window.vertical ? extent : rail.height
             visible:visibility.shown && extent > 0

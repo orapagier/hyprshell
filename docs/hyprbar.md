@@ -70,6 +70,12 @@ padding and square network/Bluetooth widths, so zero produces a compact row.
 Custom padding and notification badge space remain available; Hyprpane keeps
 its existing pill dimensions.
 
+Hyprbar and Hyprdock also have Left inside padding and Right inside padding
+sliders (0–100 px) for the space between item targets and the pill ends, separate
+from item spacing and screen margins. On vertical panels these are Top and
+Bottom inside padding. They save `paddingStart` and `paddingEnd` on each panel;
+missing values preserve the existing 6 px app inset and 4 px trailing status inset.
+
 One continuous `PanelPill.qml` backdrop spans the app and status sections. It
 uses the current center Hyprpane pill's glass, rim and adaptive colors. Status
 items retain their glyph colors and behavior but have no individual or group

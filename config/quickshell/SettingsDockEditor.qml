@@ -72,6 +72,22 @@ SettingsCard {
         from:0; to:30; allowReset:false
         onEdited:value => editor.edited('spacingRight',value)
     }
+    SettingsSlider {
+        Layout.fillWidth:true; objectName:'dockStartPaddingControl'
+        label:editor.settings.position === 'left' || editor.settings.position === 'right' ? 'Top inside padding' : 'Left inside padding'
+        description:'Space inside the pill before the first item.'
+        settingValue:editor.settings.paddingStart ?? 6
+        from:0; to:100; suffix:' px'; allowReset:false
+        onEdited:value => editor.edited('paddingStart',value)
+    }
+    SettingsSlider {
+        Layout.fillWidth:true; objectName:'dockEndPaddingControl'
+        label:editor.settings.position === 'left' || editor.settings.position === 'right' ? 'Bottom inside padding' : 'Right inside padding'
+        description:'Space inside the pill after the last item.'
+        settingValue:editor.settings.paddingEnd ?? (editor.selectedItems.length ? 4 : 6)
+        from:0; to:100; suffix:' px'; allowReset:false
+        onEdited:value => editor.edited('paddingEnd',value)
+    }
     Text { Layout.fillWidth:true; text:editor.component === 'hyprbar' ? 'Hyprbar visibility' : 'Dock visibility'; color:Style.Theme.text }
     SettingsComboBox {
         objectName:'dockHideControl'; Layout.fillWidth:true

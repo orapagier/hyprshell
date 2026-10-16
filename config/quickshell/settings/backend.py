@@ -306,6 +306,9 @@ def validate_panels(data, result):
             number(target[key], low, high, True)
         if target['background'] not in ('inherit', 'on', 'off'):
             raise ValueError(f'Invalid {name} background')
+        number(target['paddingStart'], 0, 100, True)
+        if target['paddingEnd'] is not None:
+            number(target['paddingEnd'], 0, 100, True)
         if name in ('hyprdock', 'hyprbar'):
             right_items = target['rightItems']
             allowed_items = {item['id'] for item in result['items']}

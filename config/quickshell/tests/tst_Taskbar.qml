@@ -84,6 +84,33 @@ Item {
             let list=findChild(bar,'dockApplications'); verify(bar.vertical ? list.contentY>0 : list.contentX>0);
             keyClick(Qt.Key_Home); keyClick(Qt.Key_Return); compare(scene.action,'launcher');
         }
+        function test_insidePadding_data() {
+            let rows=[];
+            for(let component of ['hyprbar','hyprdock'])
+                for(let edge of ['top','bottom','left','right'])
+                    rows.push({tag:component+edge,component:component,edge:edge});
+            return rows;
+        }
+        function test_insidePadding(data) {
+            let next=Settings.copy(scene.config);
+            next.panels[data.component]=Object.assign({},next.panels.hyprbar,{position:data.edge,paddingStart:19,paddingEnd:27});
+            scene.config=next; bar.component=data.component; wait(30);
+            let list=findChild(bar,'dockApplications');
+            compare(bar.vertical ? list.y : list.x,19);
+            compare(bar.vertical ? list.height : list.width,bar.applicationLength-46);
+            compare(bar.statusEndPadding,27);
+            if(data.component==='hyprdock') compare(bar.length,bar.naturalLength);
+            next=Settings.copy(scene.config);
+            Object.assign(next.panels[data.component],{paddingStart:0,paddingEnd:0});
+            scene.config=next; wait(30);
+            compare(bar.vertical ? list.y : list.x,0);
+            compare(bar.vertical ? list.height : list.width,bar.applicationLength);
+            compare(bar.statusEndPadding,0);
+            delete next.panels[data.component].paddingStart;
+            delete next.panels[data.component].paddingEnd;
+            scene.config=Settings.copy(next); wait(20);
+            compare(bar.startPadding,6); compare(bar.endPadding,6); compare(bar.statusEndPadding,4);
+        }
         function test_dockSharesWindowBehavior() {
             let next=Settings.copy(scene.config);
             next.panels.hyprdock=Settings.copy(next.panels.hyprbar);

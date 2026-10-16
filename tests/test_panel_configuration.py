@@ -99,6 +99,25 @@ class PanelConfigurationTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 backend.validate(invalid)
 
+    def test_panel_inside_padding(self):
+        for name in ('hyprbar', 'hyprdock'):
+            panel = self.data['panels'][name]
+            panel.pop('paddingStart')
+            panel.pop('paddingEnd')
+            inherited = backend.validate(self.data)['panels'][name]
+            self.assertEqual(inherited['paddingStart'], 6)
+            self.assertIsNone(inherited['paddingEnd'])
+            panel.update(paddingStart=0, paddingEnd=100)
+            result = backend.validate(self.data)['panels'][name]
+            self.assertEqual(result['paddingStart'], 0)
+            self.assertEqual(result['paddingEnd'], 100)
+            for key in ('paddingStart', 'paddingEnd'):
+                for value in (-1, 101, True, 1.5, '6'):
+                    invalid = copy.deepcopy(self.data)
+                    invalid['panels'][name][key] = value
+                    with self.subTest(panel=name, key=key, value=value), self.assertRaises(ValueError):
+                        backend.validate(invalid)
+
     def test_taskbar_independent_spacing(self):
         panel = self.data['panels']['hyprbar']
         panel.pop('spacingRight')
