@@ -72,6 +72,37 @@ selection is all outputs. Disjoint output or workspace selections can reuse an
 edge. No validation path silently disables a component or moves it elsewhere.
 Shortcut reveals are revalidated inside the transaction before writing.
 
+All three components may be enabled and reuse the same edge when they appear on
+separate workspaces. For example, Hyprpane Bottom on workspace 1, Hyprdock Bottom
+on workspace 2, and Hyprbar Bottom on workspace 3 is valid. The two-panel limit
+applies to panels visible together on one monitor/workspace, not to the number
+enabled globally. A workspace override that reveals another panel on the same
+edge is rejected before changing saved preferences.
+
+In Settings → Hyprpane & panels, each app panel now has **workspace visibility**
+controls matching Hyprpane: **Show on all**, **Hide on all**, an individual
+workspace selector and a visibility switch. To make the example layout, first
+hide each panel on all workspaces, then turn Hyprpane on for workspace 1,
+Hyprdock for 2, and Hyprbar for 3. Set each edge to Bottom and enable the app
+panels after assigning visibility. Each selector supports workspaces 1–99;
+repeat the switch on any additional workspaces. The app panels' Enable switches
+remain master gates, and Alt+T still targets Hyprpane only.
+
+Show/Hide on all clears individual overrides and returns to all-workspace scope;
+an individual switch changes only that workspace override. Existing selected
+workspace lists and window-source filters remain available. These visibility
+controls preserve all appearance, app pins, utilities and window filtering.
+
+Native Settings coverage saves the example with the real backend in an isolated
+home, checks forward/return workspace visibility and ensures hidden neighbours
+do not reserve menu space. Qt and backend checks cover all four shared edges,
+both selected lists and overrides, and rejection of overlapping visibility.
+Physical compositor input and exclusive-zone behavior still require live-session
+acceptance.
+This increment passed 320 Qt checks and 58 focused Python tests across panel
+configuration, native workspace controls, layout presets, styling, settings
+transactions and search. All three changed QML components passed Qt's parser.
+
 For adjacent edges, Top/Bottom own the corners. Left/Right will be inset by each
 visible horizontal component's thickness, edge margin and window gap, in addition
 to their own end margins. Opposite edges keep their own end margins. Phase 4

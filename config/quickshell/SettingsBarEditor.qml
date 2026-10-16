@@ -15,6 +15,7 @@ ColumnLayout {
     property var paneItems: []
     signal taskbarEdited(string key, var value)
     signal dockEdited(string key, var value)
+    signal appVisibilityEdited(string component, var settings)
     property int currentWorkspace: 1
     property int selectedWorkspace: currentWorkspace >= 1 && currentWorkspace <= 99 ? currentWorkspace : 1
     signal visibilityEdited(var bar)
@@ -26,7 +27,7 @@ ColumnLayout {
         subtitle: "Hyprpane is your status and menu panel. Hyprdock holds apps; Hyprbar is the classic window taskbar. Configure app panels below."
         Label {
             Layout.fillWidth: true
-            text: "Use one or two components per monitor and workspace, on different screen edges. A conflicting choice is rejected; choose another edge or disable a component."
+            text: "Each monitor and workspace can show up to two panels on different edges. Panels on separate workspaces may use the same edge, and all three can be enabled when their visibility allows it. For example: Hyprpane Bottom on workspace 1, Hyprdock Bottom on workspace 2, and Hyprbar Bottom on workspace 3."
             wrapMode: Text.WordWrap
             color: Style.Theme.text
             font.pixelSize: Style.Theme.bodySize
@@ -52,14 +53,18 @@ ColumnLayout {
         settings:root.taskbarSettings || {}
         paneItems:root.paneItems
         paneSpacing:root.settings.spacing ?? 3
+        currentWorkspace:root.currentWorkspace
         onEdited:(key,value) => root.taskbarEdited(key,value)
+        onVisibilityEdited:settings => root.appVisibilityEdited('hyprbar',settings)
     }
     SettingsDockEditor {
         Layout.fillWidth: true
         visible: root.dockSettings !== null
         settings: root.dockSettings || {}
         paneItems:root.paneItems
+        currentWorkspace:root.currentWorkspace
         onEdited: (key, value) => root.dockEdited(key, value)
+        onVisibilityEdited:settings => root.appVisibilityEdited('hyprdock',settings)
     }
     SettingsCard {
         Layout.fillWidth: true

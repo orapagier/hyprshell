@@ -863,6 +863,11 @@ FloatingWindow {
                             settings: window.draft.bar
                             fullConfig: window.draft
                             onLayoutChosen: config => window.draft = config
+                            onAppVisibilityEdited: (component, settings) => {
+                                let next = Model.copy(window.draft);
+                                next.panels[component] = settings;
+                                window.draft = next;
+                            }
                             paneItems: window.draft.items
                             taskbarSettings: window.draft.panels.hyprbar
                             onTaskbarEdited: (key, value) => {

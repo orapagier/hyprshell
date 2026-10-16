@@ -426,7 +426,7 @@ def validate_panel_layout(data):
             if len(active) > 2:
                 raise ValueError(f'Panel conflict on {location}: at most two components may be visible. Disable a component or change its monitor/workspace visibility.')
             if len(active) == 2 and active[0][1]['position'] == active[1][1]['position']:
-                raise ValueError(f"Panel conflict on {location}: {active[0][0]} and {active[1][0]} both use {active[0][1]['position']}. Choose another edge or disable a component.")
+                raise ValueError(f"Panel conflict on {location}: {active[0][0]} and {active[1][0]} both use {active[0][1]['position']}. Choose another edge, use separate workspaces, or disable a component.")
 
 
 def lock_argv(command):

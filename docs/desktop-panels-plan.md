@@ -23,9 +23,14 @@ All three support Top, Bottom, Left, and Right. Names describe their function,
 not their screen position. In particular, hyprpane can be vertical.
 
 Any pair can coexist: hyprpane + hyprdock, hyprpane + hyprbar, or hyprdock +
-hyprbar. At most two components may be visible on a given monitor, and they must
-occupy different edges. A single component is also supported. Validate these
+hyprbar. At most two components may be visible on a given monitor and workspace,
+and they must occupy different edges. A single component is also supported. Validate these
 rules for each monitor and workspace, including saved visibility overrides.
+All three may be enabled globally and use the same edge on disjoint workspaces:
+for example Hyprpane Bottom on workspace 1, Hyprdock Bottom on workspace 2 and
+Hyprbar Bottom on workspace 3. Settings exposes independent all/individual
+workspace visibility controls for each component; only simultaneous visibility
+on the same monitor/workspace imposes the pair and distinct-edge limits.
 Do not silently move or disable an existing component when a setting conflicts;
 explain the conflict and let the user choose another edge or disable a component.
 

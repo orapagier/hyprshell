@@ -175,7 +175,7 @@ function panelLayoutError(config) {
             if (active.length > 2)
                 return 'Panel conflict on ' + location + ': at most two components may be visible. Disable a component or change its monitor/workspace visibility.';
             if (active.length === 2 && panelConfig(config, active[0]).position === panelConfig(config, active[1]).position)
-                return 'Panel conflict on ' + location + ': ' + active.join(' and ') + ' both use ' + panelConfig(config, active[0]).position + '. Choose another edge or disable a component.';
+                return 'Panel conflict on ' + location + ': ' + active.join(' and ') + ' both use ' + panelConfig(config, active[0]).position + '. Choose another edge, use separate workspaces, or disable a component.';
         }
     }
     return '';

@@ -173,6 +173,29 @@ class PanelConfigurationTests(unittest.TestCase):
         self.data['panels']['hyprbar']['workspaceOverrides'] = {'99': False}
         backend.validate(self.data)
 
+    def test_three_panels_reuse_every_edge_on_separate_workspaces(self):
+        for edge in ('top', 'bottom', 'left', 'right'):
+            for overrides in (False, True):
+                data = copy.deepcopy(self.data)
+                for workspace, name in enumerate(('hyprpane', 'hyprdock', 'hyprbar'), 1):
+                    data['panels'][name]['enabled'] = True
+                    panel = data['bar'] if name == 'hyprpane' else data['panels'][name]
+                    panel.update(position=edge, visible=not overrides,
+                                 workspaceScope='all' if overrides else 'selected',
+                                 workspaceList=[] if overrides else [workspace],
+                                 workspaceOverrides={str(workspace): True} if overrides else {})
+                with self.subTest(edge=edge, overrides=overrides):
+                    validated = backend.validate(data)
+                    for workspace in range(0, 5):
+                        visible = [name for name in data['panels']
+                                   if backend.bar_visible(backend.panel_config(validated, name), workspace)]
+                        self.assertEqual(visible, [['hyprpane'], ['hyprdock'], ['hyprbar']][workspace-1]
+                                         if 1 <= workspace <= 3 else [])
+                    # Sharing an edge becomes invalid only when visibility overlaps.
+                    validated['panels']['hyprdock']['workspaceOverrides']['1'] = True
+                    with self.assertRaisesRegex(ValueError, 'workspace 1.*both use ' + edge):
+                        backend.validate(validated)
+
     def test_disjoint_monitors_and_workspaces_can_share_edge(self):
         pane, dock = self.data['panels']['hyprpane'], self.data['panels']['hyprdock']
         pane['monitors'] = ['eDP-1']

@@ -14,6 +14,16 @@ monitor/workspace scopes and visibility overrides. `PanelLayout.js` and
 `tst_PanelLayout.qml` and `tests/test_panel_layout.py`. Physical acceptance,
 Show Desktop and the final persistence/deployment matrix remain pending.
 
+All three panels can be enabled globally and share an edge on separate
+workspaces. Settings → Hyprpane & panels provides each app panel with workspace
+visibility controls: Show on all, Hide on all, workspace 1–99 selector and an
+individual switch, matching Hyprpane. Hide all then enable selected workspaces
+to put Hyprpane Bottom on 1, Hyprdock Bottom on 2 and Hyprbar Bottom on 3.
+Enable switches remain master gates; appearance, pins and window filters are
+preserved. The two-panel/different-edge rule applies only to panels visible
+together on one monitor/workspace. See `docs/panel-configuration.md` and
+`tests/test_panel_workspaces.py` for behavior and native save coverage.
+
 Paths below are relative to the resolved config/state roots or checkout. Prefer actual local source over upstream examples: this checkout uses Hyprland 0.56+ Lua APIs.
 
 | Concern | Live config / source in checkout |

@@ -3,11 +3,15 @@ import QtQuick
 import QtQuick.Layouts
 import "style" as Style
 import "TaskbarModel.js" as Tasks
+import "SettingsModel.js" as Model
 
 SettingsCard {
     id: editor
+    objectName: component + 'Editor'
     required property var settings
     property string component: 'hyprdock'
+    property int currentWorkspace: 1
+    property int selectedWorkspace: currentWorkspace >= 1 && currentWorkspace <= 99 ? currentWorkspace : 1
     property var paneItems: []
     property real paneSpacing: 3
     readonly property var inheritedItems: Tasks.rightItems({items:paneItems,panels:{hyprbar:{rightItems:null}}})
@@ -20,6 +24,7 @@ SettingsCard {
         {id:'wifi',name:'Network'}, {id:'bluetooth',name:'Bluetooth'},
         {id:'battery',name:'Battery'}, {id:'power',name:'Power'}]
     signal edited(string key, var value)
+    signal visibilityEdited(var settings)
     title: component === 'hyprbar' ? 'Hyprbar' : 'Hyprdock'
     subtitle: 'Shared app and window controls. Hyprdock fits its contents; Hyprbar fills the edge. Icons fit inside the chosen pill thickness. Manage shared or separate pins from Apps & windows.'
     SettingsSwitch {
@@ -36,6 +41,58 @@ SettingsCard {
         currentIndex:['top','bottom','left','right'].indexOf(editor.settings.position || 'bottom')
         Accessible.name:editor.component === 'hyprbar' ? 'Hyprbar screen edge' : 'Dock screen edge'
         onActivated:editor.edited('position',['top','bottom','left','right'][currentIndex])
+    }
+    Text {
+        Layout.fillWidth:true
+        text:editor.component === 'hyprbar' ? 'Hyprbar workspace visibility' : 'Hyprdock workspace visibility'
+        color:Style.Theme.text
+    }
+    Text {
+        Layout.fillWidth:true
+        text:'Panels can share an edge on separate workspaces. Hide on all, then turn on the workspaces where this panel should appear. The Enable switch above remains the master switch.'
+        color:Style.Theme.muted
+        wrapMode:Text.WordWrap
+    }
+    RowLayout {
+        Layout.fillWidth:true
+        SettingsButton {
+            objectName:editor.component + 'ShowAllControl'
+            Layout.fillWidth:true
+            text:'Show on all'
+            onClicked:editor.visibilityEdited(Model.withAllBarVisibility(editor.settings,true))
+        }
+        SettingsButton {
+            objectName:editor.component + 'HideAllControl'
+            Layout.fillWidth:true
+            text:'Hide on all'
+            onClicked:editor.visibilityEdited(Model.withAllBarVisibility(editor.settings,false))
+        }
+    }
+    SettingsComboBox {
+        objectName:editor.component + 'WorkspaceControl'
+        Layout.fillWidth:true
+        model:Array.from({length:99},(_,i) => 'Workspace ' + (i+1))
+        currentIndex:editor.selectedWorkspace-1
+        Accessible.name:editor.component === 'hyprbar' ? 'Hyprbar individual workspace' : 'Hyprdock individual workspace'
+        onActivated:index => editor.selectedWorkspace=index+1
+    }
+    SettingsSwitch {
+        objectName:editor.component + 'WorkspaceVisibleControl'
+        Layout.fillWidth:true
+        text:(editor.component === 'hyprbar' ? 'Show Hyprbar on workspace ' : 'Show Hyprdock on workspace ') + editor.selectedWorkspace
+        checked:Model.barVisible(editor.settings,editor.selectedWorkspace)
+        onToggled:editor.visibilityEdited(Model.withWorkspaceVisibility(editor.settings,editor.selectedWorkspace,checked))
+    }
+    Text {
+        Layout.fillWidth:true
+        text: {
+            let choices=Object.keys(editor.settings.workspaceOverrides || {}).sort((a,b) => Number(a)-Number(b));
+            let baseline=editor.settings.visible === false ? 'Hidden by default.' :
+                editor.settings.workspaceScope === 'selected' ? 'Shown by default on workspaces ' + (editor.settings.workspaceList || []).join(', ') + '.' : 'Shown by default on all workspaces.';
+            return baseline + (choices.length ? ' Individual choices: ' + choices.map(w => w + (editor.settings.workspaceOverrides[w] ? ' on' : ' off')).join(', ') + '.' : '');
+        }
+        color:Style.Theme.muted
+        wrapMode:Text.WordWrap
     }
     SettingsSlider {
         Layout.fillWidth:true; objectName:'dockTransparencyControl'

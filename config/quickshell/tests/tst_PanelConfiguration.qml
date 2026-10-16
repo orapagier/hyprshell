@@ -55,6 +55,29 @@ TestCase {
         config.panels.hyprpane.enabled = false;
         compare(Model.panelVisible(config, 'hyprpane', 'eDP-1', 1), false);
     }
+    function test_threeComponentsOnSameEdge_data() {
+        let rows=[];
+        for (let edge of ['top','bottom','left','right'])
+            for (let overrides of [false,true]) rows.push({tag:edge+':'+overrides,edge:edge,overrides:overrides});
+        return rows;
+    }
+    function test_threeComponentsOnSameEdge(data) {
+        let config=settings(), names=['hyprpane','hyprdock','hyprbar'];
+        for (let i=0;i<names.length;i++) {
+            config.panels[names[i]].enabled=true;
+            let panel=i===0 ? config.bar : config.panels[names[i]];
+            Object.assign(panel,{position:data.edge,visible:!data.overrides,
+                workspaceScope:data.overrides ? 'all' : 'selected',workspaceList:data.overrides ? [] : [i+1],
+                workspaceOverrides:data.overrides ? {[String(i+1)]:true} : {}});
+        }
+        compare(Model.panelLayoutError(config),'');
+        compare(Model.merge(settings(),config).panels,config.panels);
+        for (let ws of [0,1,2,3,4,3,2,1])
+            compare(names.filter(n=>Model.panelVisible(config,n,'eDP-1',ws)),ws>=1 && ws<=3 ? [names[ws-1]] : []);
+        config.panels.hyprdock.workspaceOverrides['1']=true;
+        verify(Model.panelLayoutError(config).includes('workspace 1'));
+        verify(Model.panelLayoutError(config).includes('use separate workspaces'));
+    }
     function test_conflictingMergeThrowsWithoutMutatingPreviousSettings() {
         let defaults = settings(), saved = Model.copy(defaults);
         saved.panels.hyprdock.enabled = true;
