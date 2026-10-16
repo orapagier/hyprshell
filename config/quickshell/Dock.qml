@@ -29,6 +29,7 @@ FocusScope {
     property point dragPoint: Qt.point(0, 0)
     signal launcherRequested(rect trigger)
     signal groupRequested(string key, rect trigger)
+    signal previewsRequested(string key, rect trigger)
     signal interactionStarted()
     implicitWidth: vertical ? thickness : length
     implicitHeight: vertical ? length : thickness
@@ -37,7 +38,7 @@ FocusScope {
     function activate(group, item) {
         interactionStarted();
         if (group.launcher) { interactionStarted(); launcherRequested(itemRect(item)); }
-        else if (group.windows.length > 1) showGroup(group, item);
+        else if (group.windows.length > 1) previewsRequested(group.key, itemRect(item));
         else service.activate(group);
     }
     function focusIndex(index) {

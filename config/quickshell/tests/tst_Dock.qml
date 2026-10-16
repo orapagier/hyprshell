@@ -33,8 +33,10 @@ Item {
         maximumLength:700
         onLauncherRequested:scene.request = 'launcher'
         onGroupRequested:(key,trigger) => scene.request = 'picker:' + key
+        onPreviewsRequested:(key,trigger) => scene.request = 'previews:' + key
     }
     DockActions { id: actions; x:400; width:264; service:scene.appService; group:scene.groups[0] || null }
+    DockPreviews { id: previews; x:20; y:440; width:500; height:implicitHeight; visible:false; service:scene.appService; group:scene.groups[0] || null }
     SettingsDockEditor {
         id: editor
         visible:false; width:400
@@ -57,7 +59,7 @@ Item {
                 panels:{hyprpane:{enabled:true,monitors:[]},hyprdock:{enabled:true,position:'bottom',thickness:56,iconSize:32,spacing:4,marginEdge:5,marginEnds:10,windowGap:0,background:'inherit'}},
                 pins:{mode:'shared',shared:['app0.desktop','app1.desktop'],hyprdock:[],hyprbar:[]}};
             scene.groups=makeGroups(4);
-            scene.action={}; scene.request=''; popup.opened=false; editor.visible=false;
+            scene.action={}; scene.request=''; popup.opened=false; editor.visible=false; previews.visible=false;
             dock.maximumLength=700; dock.draggingId='';
             wait(20);
         }
@@ -101,15 +103,18 @@ Item {
             compare(dock.draggingId,'');
             let next=scene.groups.slice(); next[0]=Object.assign({},next[0],{windows:next[0].windows.concat([{address:'ba',title:'Second',workspaceName:'2',output:'HDMI-A-1'}])}); scene.groups=next; wait(30);
             first=findChild(dock,'dockItem1'); mouseClick(first,20,20,Qt.LeftButton);
-            compare(scene.request,'picker:app:app0.desktop');
+            compare(scene.request,'previews:app:app0.desktop');
             next=scene.groups.slice(); next[0]=Object.assign({},next[0],{windows:[Object.assign({},next[0].windows[0],{active:false}),Object.assign({},next[0].windows[1],{active:true})]}); scene.groups=next; wait(30);
             first=findChild(dock,'dockItem1'); mouseClick(first,20,20,Qt.LeftButton);
-            compare(scene.request,'picker:app:app0.desktop');
-            let picker=findChild(actions,'dockWindowPicker');
-            picker.positionViewAtIndex(1,ListView.Contain); wait(30);
-            let preview=findChild(actions,'dockWindowPreview-ba');
+            compare(scene.request,'previews:app:app0.desktop');
+            previews.visible=true; wait(30);
+            compare(previews.orientation,ListView.Horizontal);
+            let preview=findChild(previews,'dockPreview-ba');
             verify(preview); mouseClick(preview,preview.width/2,40);
             compare(scene.request,'focus:ba');
+            let close=findChild(previews,'dockPreviewClose-ba');
+            verify(close); mouseClick(close,14,14);
+            compare(scene.request,'close:ba');
             mouseClick(first,20,20,Qt.RightButton);
             compare(scene.request,'picker:app:app0.desktop');
         }
@@ -156,6 +161,12 @@ Item {
             if(data.edge==='left') verify(popup.bodyX>popup.triggerRect.x+48);
             if(data.edge==='right') verify(popup.bodyRight<popup.triggerRect.x);
             grabImage(scene).save('/tmp/hyprdock-'+data.edge+'.png');
+        }
+        function test_horizontalPreviewPopover() {
+            popup.preferredBodyWidth=720; popup.showHeader=false; popup.opened=true; wait(30);
+            compare(popup.bodyWidth,720);
+            verify(popup.bodyX>=0 && popup.bodyRight<=scene.width);
+            popup.preferredBodyWidth=300; popup.showHeader=true;
         }
     }
 }

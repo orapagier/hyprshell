@@ -56,6 +56,7 @@ Item {
             onInteractionStarted:window.interactionStarted()
             onLauncherRequested:rect => popup.open('launcher','',Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
             onGroupRequested:(key,rect) => popup.open('group',key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
+            onPreviewsRequested:(key,rect) => popup.open('previews',key,Qt.rect(rect.x+dock.x+rail.originX,rect.y+dock.y+rail.originY,rect.width,rect.height))
         }
     }
     DockPopup { id:popup; screen:window.output; service:window.service; edge:window.edge; wallpaperSource:window.wallpaperSource }

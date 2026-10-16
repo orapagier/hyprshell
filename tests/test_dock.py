@@ -53,6 +53,7 @@ ShellRoot {
             service:service; config:preferences.config; maximumLength:640
         }
         DockActions { id: actions; x:40; y:30; width:280; service:service; group:service.groups('hyprdock').find(g=>g.id==='kitty.desktop') || null }
+        DockPreviews { id: previews; x:340; y:30; width:360; height:implicitHeight; service:service; group:actions.group }
     }
     function check(value,message) { if(!value) throw new Error(message); }
     Timer { interval:150; running:true; repeat:true; onTriggered: {
@@ -65,6 +66,7 @@ ShellRoot {
                 test.check(groups[0].active && !groups[2].installed,'active and missing metadata');
                 test.check(dock.entries.length===4,'launcher and app items');
                 test.check(actions.group.windows.length===2,'window picker data');
+                test.check(previews.count===2 && previews.orientation===ListView.Horizontal,'horizontal preview strip');
                 test.check(service.iconSource('unavailable-icon')!==undefined,'native icon fallback');
                 dock.activate(groups[1],dock);
                 test.check(dock.reorder('org.gnome.Nautilus.desktop','kitty.desktop'),'drag transaction accepted');

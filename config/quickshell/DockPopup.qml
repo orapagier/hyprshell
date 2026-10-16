@@ -16,7 +16,7 @@ PanelWindow {
     readonly property bool opened: !!mode
     function dismiss() { mode = ''; }
     function open(kind, key, rect) { groupKey = key; triggerRect = rect; mode = kind; }
-    onGroupChanged: if (mode === 'group' && !group) dismiss()
+    onGroupChanged: if ((mode === 'group' || mode === 'previews') && (!group || (mode === 'previews' && !group.windows.length))) dismiss()
     onOpenedChanged: if (opened) scope.forceActiveFocus()
     visible: opened
     anchors { top:true; bottom:true; left:true; right:true }
@@ -35,14 +35,23 @@ PanelWindow {
             edge:popup.edge; triggerRect:popup.triggerRect; alignment:'center'
             opened:popup.opened; instant:true; alignToTrigger:true
             wallpaperSource:popup.wallpaperSource
+            showHeader: popup.mode !== 'previews'
+            preferredBodyWidth: popup.mode === 'previews' ? Math.min(900, 36 + (popup.group?.windows.length || 1) * 228 - 8) : 300
             title:popup.mode === 'launcher' ? 'Applications' : popup.mode === 'manage' ? 'Apps & windows' : popup.group ? popup.group.name : 'Application'
             symbol:popup.mode === 'launcher' ? '󰀻' : '󰘳'
-            page:popup.mode === 'launcher' ? launcher : popup.mode === 'manage' ? manager : actions
+            page:popup.mode === 'launcher' ? launcher : popup.mode === 'manage' ? manager : popup.mode === 'previews' ? previews : actions
         }
     }
     Shortcut { sequence:'Escape'; enabled:popup.opened; onActivated:popup.dismiss() }
     Component { id:launcher; LauncherMenu { applicationService:popup.service; active:popup.opened; onLaunched:popup.dismiss() } }
     Component { id:manager; ApplicationManager { service:popup.service } }
+    Component {
+        id: previews
+        DockPreviews {
+            service: popup.service; group: popup.group
+            onCloseRequested: popup.dismiss()
+        }
+    }
     Component {
         id:actions
         DockActions {

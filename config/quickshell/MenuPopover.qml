@@ -24,6 +24,8 @@ Item {
     property color accent: "#b4befe"
     property string title: ""
     property string symbol: ""
+    property bool showHeader: true
+    property real preferredBodyWidth: 300
     property Component page: null
     property Component persistentPage: null
     property bool persistentSelected: false
@@ -35,7 +37,7 @@ Item {
     readonly property bool rendering: opened || surface.opacity > 0
     signal hoverChanged(bool inside)
     signal cardClicked()
-    readonly property real bodyWidth: Math.max(0, Math.min(300, connected && vertical
+    readonly property real bodyWidth: Math.max(0, Math.min(preferredBodyWidth, connected && vertical
         ? (edge === "left" ? width - triggerRect.x - triggerRect.width - 45 : triggerRect.x - 45)
         : width - 24))
     function clamp(value, low, high) { return Math.max(low, Math.min(Math.max(low, high), value)); }
@@ -219,6 +221,7 @@ Item {
             width: bodyScroll.width
             spacing: 12
             RowLayout {
+                visible: popover.showHeader
                 spacing: 10
                 Rectangle {
                     width: 30; height: 30; radius: 10
@@ -229,7 +232,7 @@ Item {
                 MenuLabel { text: popover.title; color: popover.accent; font.bold: true; font.pixelSize: 15; Layout.fillWidth: true }
                 Rectangle { width: 5; height: 5; radius: 3; color: popover.accent; opacity: 0.7 }
             }
-            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Qt.rgba(popover.accent.r, popover.accent.g, popover.accent.b, 0.15) }
+            Rectangle { visible: popover.showHeader; Layout.fillWidth: true; implicitHeight: 1; color: Qt.rgba(popover.accent.r, popover.accent.g, popover.accent.b, 0.15) }
             Loader {
                 id: persistentLoader
                 Layout.fillWidth: true
