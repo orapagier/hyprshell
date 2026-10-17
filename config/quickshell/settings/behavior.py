@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 
-from backend import lock
+from backend import DEFAULTS as SHELL_DEFAULTS, lock, save as save_shell_settings
 from preferences import revision, roots, transaction
 
 DEFAULTS = {'version': 1, 'general': {}, 'workspaces': [], 'rules': []}
@@ -189,7 +189,7 @@ def save(data, expected):
 
 
 def toggle_workspace(mode):
-    if mode not in ('floating', 'pseudotiled'):
+    if mode not in ('floating', 'pseudotiled', 'hover'):
         raise ValueError('Unknown workspace placement mode.')
     active = subprocess.run(['hyprctl', '-j', 'activeworkspace'], capture_output=True, text=True, timeout=5)
     if active.returncode:
@@ -197,6 +197,8 @@ def toggle_workspace(mode):
     workspace = json.loads(active.stdout).get('id')
     if not integer(workspace, 1, 99):
         raise ValueError('Workspace placement toggles require a numbered workspace from 1 to 99.')
+    if mode == 'hover':
+        return save_shell_settings(SHELL_DEFAULTS, toggle_hover=workspace)
     _, state = roots()
     # Serialize shortcut presses; save still checks revisions against Settings edits.
     with lock(state / 'behavior-shortcut.lock'):
@@ -222,12 +224,12 @@ def toggle_workspace(mode):
     return {**result, 'workspace': workspace, 'enabled': enabled, 'message': message}
 
 
-def placement_toast(message, failed=False):
+def placement_toast(message, failed=False, title='Workspace placement'):
     # Use the shell's normal notification cards and delivery preferences.
     try:
         subprocess.run(['notify-send', '--app-name=Hyprshell', '--expire-time=3000',
                         '--icon=' + ('dialog-error' if failed else 'view-grid-symbolic'),
-                        '--', 'Workspace placement', message],
+                        '--', title, message],
                        capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         pass
@@ -257,14 +259,17 @@ def main():
     parser = argparse.ArgumentParser()
     operation = parser.add_mutually_exclusive_group(required=True)
     operation.add_argument('--request-json')
-    operation.add_argument('--toggle-workspace', choices=('floating', 'pseudotiled'))
+    operation.add_argument('--toggle-workspace', choices=('floating', 'pseudotiled', 'hover'))
     args = parser.parse_args()
     try:
         result = toggle_workspace(args.toggle_workspace) if args.toggle_workspace else request(json.loads(args.request_json))
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         result = {'ok': False, 'message': str(error) if isinstance(error, ValueError) else 'Workspace/rule settings could not be updated. Refresh and retry.'}
     if args.toggle_workspace:
-        placement_toast(result['message'], failed=not result['ok'])
+        if args.toggle_workspace == 'hover':
+            placement_toast(result['message'], failed=not result['ok'], title='Hover popdowns')
+        else:
+            placement_toast(result['message'], failed=not result['ok'])
     print(json.dumps(result)); return 0 if result['ok'] else 1
 
 

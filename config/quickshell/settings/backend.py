@@ -739,13 +739,15 @@ def bar_visible(bar, workspace):
     return bar['visible'] and (bar['workspaceScope'] == 'all' or workspace in bar['workspaceList'])
 
 
-def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpane', app_action=None):
+def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpane', app_action=None, toggle_hover=None):
     data = validate(data)
     if toggle_workspace is not None:
         if toggle_component not in ('hyprpane', 'hyprdock', 'hyprbar'):
             raise ValueError('Choose Hyprpane, Hyprdock or Hyprbar')
         if type(toggle_workspace) is not int or not 1 <= toggle_workspace <= 99:
             raise ValueError('Choose a workspace number from 1 to 99')
+    if toggle_hover is not None and (type(toggle_hover) is not int or not 1 <= toggle_hover <= 99):
+        raise ValueError('Choose a workspace number from 1 to 99')
     home = Path.home()
     config = Path(os.environ.get('XDG_CONFIG_HOME') or home / '.config')
     state = Path(os.environ.get('XDG_STATE_HOME') or home / '.local/state')
@@ -758,6 +760,11 @@ def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpa
             data = copy.deepcopy(current)
             panel = data['bar'] if toggle_component == 'hyprpane' else data['panels'][toggle_component]
             panel['workspaceOverrides'][str(toggle_workspace)] = not bar_visible(panel, toggle_workspace)
+        if toggle_hover is not None:
+            data = copy.deepcopy(current)
+            bar = data['bar']
+            enabled = not bar['hoverPopdownOverrides'].get(str(toggle_hover), bar['hoverPopdowns'])
+            bar['hoverPopdownOverrides'][str(toggle_hover)] = enabled
         # A shortcut can reveal a panel on a previously hidden workspace.
         data = validate(data)
         if expected is not None and current != validate(expected):
@@ -823,6 +830,9 @@ def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpa
             if reload_live:
                 subprocess.run(['hyprctl', 'reload'], capture_output=True, timeout=15)
             raise
+        if toggle_hover is not None:
+            return {'ok': True, 'backup': str(backup), 'workspace': toggle_hover, 'enabled': enabled,
+                    'message': f"Workspace {toggle_hover}: Hover popdowns {'enabled' if enabled else 'disabled'}"}
         return {'ok': True, 'message': 'Settings applied.' + (' Hyprland changes will load next session.' if hypr_changed and not reload_live else ''), 'backup': str(backup)}
 
 

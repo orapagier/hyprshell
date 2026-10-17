@@ -72,6 +72,24 @@ class SettingsTests(unittest.TestCase):
             data['bar']['hoverPopdowns'] = bad
             with self.assertRaises(ValueError): backend.validate(data)
 
+    def test_hover_shortcut_toggles_latest_effective_value_and_preserves_settings(self):
+        for default in (True, False):
+            self.data['bar'].update(hoverPopdowns=default, hoverPopdownOverrides={'2': False}, spacing=17)
+            backend.save(self.data)
+            for enabled in (not default, default):
+                before = json.loads(self.path.read_text())
+                result = backend.save(backend.DEFAULTS, toggle_hover=3)
+                self.assertEqual(result['enabled'], enabled)
+                self.assertEqual(result['workspace'], 3)
+                self.assertIn('enabled' if enabled else 'disabled', result['message'])
+                before['bar']['hoverPopdownOverrides']['3'] = enabled
+                self.assertEqual(json.loads(self.path.read_text()), before)
+        previous = self.path.read_bytes()
+        for invalid in (0, 100, True, '3'):
+            with self.assertRaises(ValueError):
+                backend.save(backend.DEFAULTS, toggle_hover=invalid)
+            self.assertEqual(self.path.read_bytes(), previous)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='hyprshell-settings-')
         self.addCleanup(self.temp.cleanup)

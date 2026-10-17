@@ -23,6 +23,7 @@ end, { description = "Close Hyprview from any screen" })
 hl.bind(mainMod .. " + SHIFT + P", hl.dsp.window.pseudo(), { description = "Toggle pseudo tiling" })
 hl.bind(mainMod .. " + CTRL + F", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/behavior.py" --toggle-workspace floating'), { description = "Toggle auto floating on current workspace" })
 hl.bind(mainMod .. " + CTRL + S", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/behavior.py" --toggle-workspace pseudotiled'), { description = "Toggle auto pseudotiling on current workspace" })
+hl.bind(mainMod .. " + CTRL + H", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/behavior.py" --toggle-workspace hover'), { description = "Toggle hover popdowns on current workspace" })
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"), { description = "Toggle split direction" })    -- dwindle only
 
 hl.bind("SUPER + K", hl.dsp.exec_cmd('"$HOME/.local/bin/keybindings-launcher"'), { description = "Show searchable keybindings" })

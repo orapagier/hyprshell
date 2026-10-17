@@ -239,6 +239,15 @@ assert(#actions == 5 and other.pseudo)
                 self.assertEqual(behavior.main(), int(failed))
                 toast.assert_called_once_with('reload failed' if failed else 'Workspace 2: Auto floating enabled', failed=failed)
 
+    def test_hover_shortcut_targets_active_workspace_and_uses_modern_toast(self):
+        active = subprocess.CompletedProcess([], 0, '{"id": 7}', '')
+        result = {'ok': True, 'enabled': False, 'workspace': 7, 'message': 'Workspace 7: Hover popdowns disabled'}
+        with patch.object(sys, 'argv', ['behavior.py', '--toggle-workspace', 'hover']), patch.object(behavior.subprocess, 'run', return_value=active), patch.object(behavior, 'save_shell_settings', return_value=result) as save_hover, patch.object(behavior, 'placement_toast') as toast, patch('builtins.print'):
+            self.assertEqual(behavior.main(), 0)
+            save_hover.assert_called_once_with(behavior.SHELL_DEFAULTS, toggle_hover=7)
+            toast.assert_called_once_with(result['message'], failed=False, title='Hover popdowns')
+        self.assertFalse(behavior.paths()[0].exists())
+
     def test_inaccessible_discovery_keeps_editing_available(self):
         with patch.object(behavior.subprocess, 'run', side_effect=OSError()):
             result = behavior.status()
