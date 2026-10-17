@@ -150,7 +150,7 @@ Item {
             wait(250);
             grabImage(root).save("/tmp/quickshell-attached-launcher.png");
         }
-        function test_clickOnlyWorkspacePreviewKeepsNavigation() {
+        function test_clickOnlyWorkspaceClickPreviewsAndRightClickNavigates() {
             state.hoverEnabled = false; bar.hoverPopdowns = false;
             let before = bar.statusData;
             try {
@@ -161,8 +161,18 @@ Item {
                 bar.previewWorkspaceId = 3;
                 mouseMove(button, button.width / 2, button.height / 2);
                 wait(180); compare(state.section, ""); compare(bar.previewWorkspaceId, 3);
-                mouseClick(button, button.width / 2, button.height / 2, Qt.RightButton);
+                mouseClick(button, button.width / 2, button.height / 2, Qt.LeftButton);
                 compare(state.section, "workspacePreview"); compare(bar.previewWorkspaceId, 2);
+                bar.previewWorkspaceId = 3;
+                let other = bar.previewWorkspaceItem;
+                bar.previewWorkspaceId = 2;
+                mouseClick(other, other.width / 2, other.height / 2, Qt.LeftButton);
+                compare(state.section, "workspacePreview"); compare(bar.previewWorkspaceId, 3);
+                mouseClick(other, other.width / 2, other.height / 2, Qt.LeftButton);
+                compare(state.section, "");
+                mouseClick(button, button.width / 2, button.height / 2, Qt.RightButton);
+                compare(state.section, "workspace");
+                state.close(); state.hoverEnabled = true; bar.hoverPopdowns = true;
                 mouseClick(button, button.width / 2, button.height / 2, Qt.LeftButton);
                 compare(state.section, "workspace");
             } finally { bar.statusData = before; }

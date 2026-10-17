@@ -456,9 +456,10 @@ Item {
                 onEntered: if (bar.hoverPopdowns) { bar.previewWorkspaceId = modelData.id; bar.menuHovered("workspacePreview"); }
                 onExited: bar.menuLeft("workspacePreview")
                 onClicked: mouse => {
-                    if (!bar.hoverPopdowns && mouse && mouse.button === Qt.RightButton) {
+                    if (!bar.hoverPopdowns && (!mouse || mouse.button !== Qt.RightButton)) {
+                        let changePreview = bar.activeMenu === "workspacePreview" && bar.previewWorkspaceId !== modelData.id;
                         bar.previewWorkspaceId = modelData.id;
-                        bar.action("workspacePreview", null);
+                        if (!changePreview) bar.action("workspacePreview", null);
                     } else bar.action("workspace", modelData.id);
                 }
                 onWheel: event => { bar.action("workspace-scroll", event.angleDelta.y > 0 ? -1 : 1); event.accepted = true; }
