@@ -30,6 +30,9 @@ import Quickshell
 import "''' + (ROOT / 'config/quickshell').as_uri() + '''"
 ShellRoot {
     id: test
+    property int switchedWorkspace: 0
+    property int settingsOpened: 0
+    property int closedMenus: 0
     Window {
         id: window
         visible: true; width: 650; height: 400
@@ -61,6 +64,29 @@ ShellRoot {
             try {
                 let shell = Qt.createComponent("''' + (payload / 'Dropdown.qml').as_uri() + '''");
                 test.check(shell.status === Component.Ready, shell.errorString());
+                let dropdown = shell.createObject(test, {
+                    services: {audioIcon:'', workspace: id => { test.switchedWorkspace = id; }},
+                    inbox: null, movePointerOnOpen:false, previewWorkspace:{id:2,name:'Work'},
+                    section:'workspacePreview'
+                });
+                test.check(dropdown !== null, 'create production dropdown');
+                dropdown.closeRequested.connect(() => { test.closedMenus++; dropdown.section = ''; });
+                dropdown.settingsRequested.connect(() => { test.settingsOpened++; });
+                let popover = test.find(dropdown.contentItem, 'dropdownPopover');
+                test.check(popover && popover.cardClickable, 'workspace preview card is clickable');
+                popover.cardClicked();
+                test.check(test.switchedWorkspace === 2 && test.closedMenus === 1 && !test.settingsOpened,
+                    'preview click switches to the previewed workspace and closes the menu');
+                dropdown.previewWorkspace = {id:3,name:'Other'};
+                dropdown.section = 'workspacePreview';
+                popover.cardClicked();
+                test.check(test.switchedWorkspace === 3 && test.closedMenus === 2,
+                    'preview click follows the latest preview target');
+                dropdown.section = 'settings';
+                popover.cardClicked();
+                test.check(test.settingsOpened === 1 && test.switchedWorkspace === 3,
+                    'settings card still opens settings');
+                dropdown.destroy();
                 test.check(workspace.workspaceWindows.length === 1,'filter windows by workspace');
                 test.check(workspace.height > 160 && workspace.height < 170,'monitor aspect ratio');
                 let image = test.find(workspace,'previewCapture');

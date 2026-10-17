@@ -1617,7 +1617,8 @@ there; **Use default on this workspace** removes that override.
 
 When disabled, panel menus and app previews require clicks and hovering a neighbor
 does not replace the open menu. Media becomes clickable; workspace left-click
-opens its preview and right-click switches workspaces. Clicking another workspace
+opens its preview; clicking the preview switches to that workspace. Right-clicking
+the workspace number switches directly. Clicking another workspace
 number updates the open preview; clicking the same number again closes it. Existing app activation,
 tray clicks, shortcuts, edge reveal, and menu dismissal controls remain available.
 Changing workspace closes popdowns as before. Disabling hover cancels pending

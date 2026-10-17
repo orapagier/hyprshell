@@ -123,7 +123,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Hover popdowns"
-        subtitle: "Choose where hovering opens menus and previews across Hyprpane, Hyprdock and Hyprbar. When disabled, click to open. Click a workspace number for its preview; right-click it to switch workspaces."
+        subtitle: "Choose where hovering opens menus and previews across Hyprpane, Hyprdock and Hyprbar. When disabled, click to open. Click a workspace number for its preview, then click the preview to switch there. Right-clicking the number also switches directly."
         SettingsSwitch {
             objectName: "hoverPopdownsDefaultControl"
             Layout.fillWidth: true

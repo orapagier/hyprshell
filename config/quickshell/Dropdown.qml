@@ -59,6 +59,7 @@ PanelWindow {
         Keys.onEscapePressed: dropdown.closeRequested()
         MenuPopover {
             id: popover
+            objectName: "dropdownPopover"
             anchors.fill: parent
             panelBounds: dropdown.panelBounds
             wallpaperSource: dropdown.wallpaperSource
@@ -72,10 +73,14 @@ PanelWindow {
             persistentPage: launcherPage
             persistentSelected: dropdown.displayedSection === "launcher"
             instant: persistentSelected
-            cardClickable: dropdown.displayedSection === "settings"
+            cardClickable: dropdown.displayedSection === "settings" || dropdown.displayedSection === "workspacePreview"
             onCardClicked: {
+                let workspaceId = dropdown.previewWorkspace?.id;
+                let workspacePreview = dropdown.displayedSection === "workspacePreview";
                 dropdown.closeRequested();
-                dropdown.settingsRequested();
+                if (workspacePreview) {
+                    if (workspaceId > 0) dropdown.services.workspace(workspaceId);
+                } else dropdown.settingsRequested();
             }
             title: dropdown.displayedSection === "workspacePreview" ? "Workspace " + (dropdown.previewWorkspace?.name || dropdown.previewWorkspace?.id || "") : ({media:"Now playing",launcher:"Applications",settings:"Hyprshell",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",notifications:"Notifications",battery:"Battery",power:"Power options"})[dropdown.displayedSection] || ""
             symbol: ({workspacePreview:"󰍹",media:"󰎆",launcher:"",settings:"󰒓",calendar:"󰃭",audio:dropdown.services.audioIcon || "󰕾",wifi:"󰤨",bluetooth:"󰂯",notifications:"󰂚",battery:"󰁹",power:"󰐥"})[dropdown.displayedSection] || ""
