@@ -38,12 +38,16 @@ def validate(data):
         raise ValueError('Choose at most 99 workspaces')
     seen = set()
     for row in data['workspaces']:
-        if not isinstance(row, dict) or (set(row) - {'floating'}) != {'id', 'name', 'layout', 'persistent'} or not integer(row['id'], 1, 99) or row['id'] in seen:
+        if not isinstance(row, dict) or (set(row) - {'floating', 'pseudotiled'}) != {'id', 'name', 'layout', 'persistent'} or not integer(row['id'], 1, 99) or row['id'] in seen:
             raise ValueError('Workspace numbers must be unique, from 1 to 99')
         if not text(row['name'], 60) or row['layout'] not in ('inherit', *LAYOUTS) or type(row['persistent']) is not bool:
             raise ValueError('Invalid workspace name, layout, or persistence')
         if 'floating' in row and type(row['floating']) is not bool:
             raise ValueError('Workspace floating preference must be enabled or disabled')
+        if 'pseudotiled' in row and type(row['pseudotiled']) is not bool:
+            raise ValueError('Workspace pseudotiling preference must be enabled or disabled')
+        if row.get('floating') and row.get('pseudotiled'):
+            raise ValueError('Choose floating windows or pseudotiling for each workspace')
         seen.add(row['id'])
     if not isinstance(data['rules'], list) or len(data['rules']) > 100:
         raise ValueError('Choose at most 100 application rules')
@@ -123,6 +127,26 @@ def render(data):
             '    for _, w in ipairs(hl.get_windows()) do floatWorkspaceWindow(w) end',
             'end)',
         ])
+    pseudotiled = [row['id'] for row in data['workspaces'] if row.get('pseudotiled', False)]
+    if pseudotiled:
+        for ident in pseudotiled:
+            lines.append('hl.window_rule(' + encode({'name': 'hyprshell-workspace-pseudo-' + str(ident),
+                'match': {'workspace': str(ident)}, 'tile': True, 'pseudo': True}) + ')')
+        lines.extend([
+            'local pseudotiledWorkspaces = {' + ', '.join('[' + str(ident) + '] = true' for ident in pseudotiled) + '}',
+            'local function pseudotileWorkspaceWindow(w)',
+            '    if w and w.mapped and w.workspace and pseudotiledWorkspaces[w.workspace.id] and w.fullscreen == 0 then',
+            '        if w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "unset" })) end',
+            '        hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "enable" }))',
+            '    end',
+            'end',
+            'hl.on("window.open", pseudotileWorkspaceWindow)',
+            'hl.on("window.move_to_workspace", pseudotileWorkspaceWindow)',
+            'hl.on("window.fullscreen", pseudotileWorkspaceWindow)',
+            'hl.on("config.reloaded", function()',
+            '    for _, w in ipairs(hl.get_windows()) do pseudotileWorkspaceWindow(w) end',
+            'end)',
+        ])
     return '\n'.join(lines) + '\n'
 
 
@@ -161,7 +185,7 @@ def save(data, expected):
             try: reload_live()
             except Exception: pass
             raise
-    return {'ok': True, 'backup': backup, 'message': 'Workspace and application rules saved. Floating workspace preferences also apply to existing windows and windows moved in. Application placement and size apply to newly opened windows.' + (' They load at the next session.' if not os.environ.get('HYPRLAND_INSTANCE_SIGNATURE') else '')}
+    return {'ok': True, 'backup': backup, 'message': 'Workspace and application rules saved. Floating and pseudotiling workspace preferences also apply to existing windows and windows moved in. Application placement and size apply to newly opened windows.' + (' They load at the next session.' if not os.environ.get('HYPRLAND_INSTANCE_SIGNATURE') else '')}
 
 
 def status():

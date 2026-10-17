@@ -36,7 +36,8 @@ ShellRoot {
             }
             return null;
         }
-        function check(value) { if (!value) throw Error("Floating switch assertion failed"); }
+        property int checks: 0
+        function check(value) { checks++; if (!value) throw Error("Workspace switch assertion " + checks + " failed"); }
         Timer {
             interval: 100; running: true
             onTriggered: {
@@ -49,10 +50,23 @@ ShellRoot {
                     fixture.check(editor.draft.workspaces[0].persistent === true);
                     fixture.check(editor.draft.workspaces[1].floating === undefined);
                     fixture.check(editor.draft.general.layout === "master");
+                    control = fixture.find(editor, "workspaceFloating-0");
                     control.checked = false; control.toggled();
                     fixture.check(editor.draft.workspaces[0].floating === false);
+                    let pseudo = fixture.find(editor, "workspacePseudotiled-0");
+                    fixture.check(pseudo && !pseudo.checked);
+                    pseudo.checked = true; pseudo.toggled();
+                    fixture.check(editor.draft.workspaces[0].pseudotiled === true);
+                    fixture.check(editor.draft.workspaces[0].floating === false);
+                    fixture.check(editor.draft.workspaces[1].pseudotiled === undefined);
+                    control = fixture.find(editor, "workspaceFloating-0");
+                    control.checked = true; control.toggled();
+                    fixture.check(editor.draft.workspaces[0].floating === true);
+                    fixture.check(editor.draft.workspaces[0].pseudotiled === false);
+                    fixture.check(editor.draft.workspaces[0].layout === "scrolling");
                     editor.add("workspaces");
                     fixture.check(editor.draft.workspaces[2].floating === false);
+                    fixture.check(editor.draft.workspaces[2].pseudotiled === false);
                     console.warn("WORKSPACE_FLOATING_OK");
                 } catch (error) { console.error("WORKSPACE_FLOATING_FAILED", error); }
                 Qt.quit();

@@ -29,12 +29,18 @@ ColumnLayout {
     }
     function editGeneral(key, value) { if (value === undefined) delete draft.general[key]; else draft.general[key] = value; pending = true; }
     function editRow(group, index, key, value) { draft[group][index][key] = value; pending = true; }
+    function editWorkspacePlacement(index, key, value) {
+        let next = Model.copy(draft);
+        next.workspaces[index][key] = value;
+        if (value) next.workspaces[index][key === "floating" ? "pseudotiled" : "floating"] = false;
+        draft = next; pending = true;
+    }
     function add(group) {
         let next = Model.copy(draft);
         if (group === "workspaces") {
             let ident = 1; while (next.workspaces.some(row => row.id === ident)) ident++;
             if (ident > 99) return;
-            next.workspaces.push({id: ident, name: "", layout: "inherit", persistent: false, floating: false});
+            next.workspaces.push({id: ident, name: "", layout: "inherit", persistent: false, floating: false, pseudotiled: false});
         } else next.rules.push({class: "", mode: "inherit", workspace: 0, pin: false, noAnimations: false, width: 0, height: 0});
         draft = next; pending = true;
     }
@@ -86,7 +92,9 @@ ColumnLayout {
                 }
                 SettingsTextField { Layout.fillWidth: true; placeholderText: "Name (optional)"; text: workspaceRow.modelData.name; color: Style.Theme.text; onTextEdited: page.editRow("workspaces", workspaceRow.index, "name", text); selectByMouse: true }
                 SettingsComboBox { Layout.fillWidth: true; model: ["Use default layout", "Dwindle", "Master", "Scrolling"]; currentIndex: page.layouts.indexOf(workspaceRow.modelData.layout); onActivated: index => page.editRow("workspaces", workspaceRow.index, "layout", page.layouts[index]) }
-                SettingsSwitch { objectName: "workspaceFloating-" + workspaceRow.index; text: "Floating windows"; checked: workspaceRow.modelData.floating === true; Layout.fillWidth: true; onToggled: page.editRow("workspaces", workspaceRow.index, "floating", checked) }
+                SettingsSwitch { objectName: "workspaceFloating-" + workspaceRow.index; text: "Floating windows"; checked: workspaceRow.modelData.floating === true; Layout.fillWidth: true; onToggled: page.editWorkspacePlacement(workspaceRow.index, "floating", checked) }
+                SettingsSwitch { objectName: "workspacePseudotiled-" + workspaceRow.index; text: "Pseudotiled windows"; checked: workspaceRow.modelData.pseudotiled === true; Layout.fillWidth: true; onToggled: page.editWorkspacePlacement(workspaceRow.index, "pseudotiled", checked) }
+                SettingsLabel { text: "Pseudotiling keeps windows tiled at their preferred size. Use the Dwindle layout. Floating and pseudotiling are alternative choices. Changes cover existing, new and moved-in windows; turning either off keeps existing placement."; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 SettingsSwitch { text: "Keep available when empty"; checked: workspaceRow.modelData.persistent; Layout.fillWidth: true; onToggled: page.editRow("workspaces", workspaceRow.index, "persistent", checked) }
                 SettingsButton { text: "Remove preference"; onClicked: page.remove("workspaces", workspaceRow.index) }
             }

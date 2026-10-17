@@ -114,6 +114,70 @@ assert(#actions == 3)
         result = subprocess.run(['lua', '-'], input=harness, text=True, capture_output=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_pseudotiling_schema_roundtrip_and_conflicting_modes(self):
+        data = self.sample()
+        self.assertNotIn('pseudotiledWorkspaces', behavior.render(data))
+        for invalid in (1, 'true', None, [], {}):
+            data['workspaces'][0]['pseudotiled'] = invalid
+            with self.assertRaises(ValueError): behavior.validate(data)
+        data['workspaces'][0]['pseudotiled'] = False
+        self.assertNotIn('pseudotiledWorkspaces', behavior.render(data))
+        data['workspaces'][0]['pseudotiled'] = True
+        behavior.save(data, revision(behavior.paths()))
+        self.assertEqual(behavior.saved(), data)
+        data['workspaces'][0]['floating'] = True
+        with self.assertRaisesRegex(ValueError, 'floating windows or pseudotiling'):
+            behavior.validate(data)
+
+    def test_pseudotiling_events_tile_target_windows_without_toggling(self):
+        data = self.sample()
+        data['workspaces'][0]['pseudotiled'] = True
+        source = behavior.render(data)
+        self.assertIn('tile = true, pseudo = true', source)
+        self.assertGreater(source.index('hyprshell-workspace-pseudo-2'), source.index('hyprshell-user-0'))
+        harness = r'''local callbacks, actions, windows = {}, {}, {}
+hl = {
+    config = function() end, workspace_rule = function() end, window_rule = function() end,
+    on = function(name, fn) callbacks[name] = fn end,
+    get_windows = function() return windows end,
+    dsp = {window = {
+        float = function(args) args.kind = "float"; return args end,
+        pseudo = function(args) args.kind = "pseudo"; return args end,
+    }},
+    dispatch = function(args)
+        table.insert(actions, args)
+        if args.kind == "float" then
+            assert(args.action == "unset"); args.window.floating = false
+        else
+            assert(args.action == "enable"); args.window.pseudo = true
+        end
+    end,
+}
+''' + source + r'''
+local target = {mapped=true, workspace={id=2}, floating=true, fullscreen=0}
+local other = {mapped=true, workspace={id=3}, floating=false, fullscreen=0}
+local full = {mapped=true, workspace={id=2}, floating=false, fullscreen=2}
+local closed = {mapped=false, workspace={id=2}, floating=false, fullscreen=0}
+windows = {target, other, full, closed}
+callbacks["config.reloaded"]()
+assert(#actions == 2 and target.pseudo and not target.floating)
+assert(not other.pseudo and not full.pseudo and not closed.pseudo)
+callbacks["window.open"](target)
+assert(#actions == 3 and target.pseudo) -- repeated events enable, never toggle
+other.workspace.id = 2
+callbacks["window.move_to_workspace"](other)
+assert(#actions == 4 and other.pseudo)
+full.fullscreen = 0
+callbacks["window.fullscreen"](full)
+assert(#actions == 5 and full.pseudo)
+other.workspace.id = 3
+callbacks["window.move_to_workspace"](other)
+callbacks["window.open"](nil)
+assert(#actions == 5 and other.pseudo)
+'''
+        result = subprocess.run(['lua', '-'], input=harness, text=True, capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_inaccessible_discovery_keeps_editing_available(self):
         with patch.object(behavior.subprocess, 'run', side_effect=OSError()):
             result = behavior.status()
