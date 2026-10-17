@@ -1,47 +1,35 @@
 # Hyprshell
 
-Hyprshell uses one **rolling** update channel for Arch and Fedora. Supported
-Fedora releases, dependency requirements and per-platform evidence are recorded
-in [compatibility.json](compatibility.json). Arch targets fully updated systems;
-its last user-reported working test was **October 11, 2026**. See the
-[rolling support policy and reported issues](docs/updates.md#rolling-support-policy).
+Hyprshell is a configurable desktop shell for **Hyprland on Arch Linux and
+Fedora**, built with **Quickshell and Qt 6**. It brings application launching,
+window and workspace controls, status menus, notifications, and desktop settings
+into one interface, with wallpaper-adaptive glass surfaces.
 
-Hyprshell is a configurable desktop shell for **Hyprland on Arch Linux and Fedora**, built
-with **Quickshell**. It brings the application launcher, status bar, desktop
-menus, notification inbox, and settings into one native Qt 6 interface.
+Choose the desktop layout that suits you:
 
-**Hyprpane** is Hyprshell's status/menu panel on any screen edge, formerly
-called hyprbar. **Hyprdock** is the app dock; **Hyprbar** is reserved for
-the planned classic taskbar. Existing `bar` settings and IPC names remain compatible.
+- **Hyprpane** is the status and menu panel, with configurable items and groups.
+- **Hyprdock** is a compact application dock with pins and running applications.
+- **Hyprbar** is a classic taskbar combining application buttons and status controls.
 
-The goal is a consistent desktop experience from boot and login through daily
-use, with a lightweight foundation that gives beauty and performance equal
-priority. Hyprshell builds on Hyprland and native Qt 6 components, brings
-desktop controls into a shared shell, and keeps additional applications
-optional. Development should favor efficient rendering, responsive controls,
-and minimal background work as the desktop grows.
+All three support Top, Bottom, Left, and Right placement, monitor selection, and
+workspace-specific visibility. Use them separately or combine two on different
+edges of the same monitor/workspace. Existing `bar` settings and IPC names refer
+to Hyprpane, which was formerly called hyprbar.
 
-The bar uses translucent glass surfaces that adapt to the wallpaper beneath
-each item. Its layout and appearance can be changed through a graphical
-settings window, including the position of modules and selected Hyprland
-appearance options.
+The repository includes the shell, editable Hyprland Lua configuration, desktop
+utilities, boot/login themes, and an installer. Setup runs on an existing
+**x86_64 Arch Linux or traditional DNF-based Fedora 44** system. It installs
+packages and desktop integration; it does not partition disks or install an
+operating system or bootloader. Fresh installations start with the saved
+configuration in this checkout. Ordinary updates preserve existing preferences.
 
-This repository includes the shell, a Hyprland configuration, an Arch/Fedora
-installer, desktop utilities, and wallpapers. Together they provide a common
-desktop setup that users can install and customize through the same workflow.
-It installs onto an existing system; it does not install the operating
-system, partition disks, or install a bootloader. It installs common firmware, CPU
-microcode, and Mesa graphics drivers; vendor-specific drivers still need review. It can
-configure the animated Hyprshell Glass splash for a supported existing boot setup.
-Full setup also installs the matching animated SDDM login theme. Fresh installs
-use the author’s personal configuration; existing user preferences are retained.
-
-The **Fedora setup** has separate package manifests, DNF-backed
-Settings controls, and dracut boot splash support. See [Fedora installation
-and validation](docs/fedora.md) for installation on Workstation, desktop Spins,
-Server, or Everything, the default COPR and opt-out, and current validation limits. See [daily-driver setup](docs/daily-driver.md)
-for system services, firmware, application defaults, and hardware checks. The instructions below
-describe the established Arch installation unless stated otherwise.
+Hyprshell uses one **rolling** update channel. Supported platforms, dependency
+minimums, and recorded version evidence are in
+[compatibility.json](compatibility.json); see the
+[rolling support policy](docs/updates.md#rolling-support-policy).
+For Fedora-specific repositories, package setup, and dracut integration, see
+[the Fedora guide](docs/fedora.md). For services and hardware checks, see
+[daily-driver setup](docs/daily-driver.md).
 
 ## Contents
 
@@ -51,7 +39,7 @@ describe the established Arch installation unless stated otherwise.
 - [Installation](#installation)
 - [Installing alongside an existing desktop](#installing-alongside-an-existing-desktop)
 - [Fedora installation](docs/fedora.md)
-- [A consistent desktop experience](#a-consistent-desktop-experience)
+- [How Hyprshell works](#how-hyprshell-works)
 - [First login and machine-specific configuration](#first-login-and-machine-specific-configuration)
 - [Using the desktop](#using-the-desktop)
 - [Keyboard and mouse shortcuts](#keyboard-and-mouse-shortcuts)
@@ -61,7 +49,7 @@ describe the established Arch installation unless stated otherwise.
 - [Saving your setup to GitHub](#saving-your-setup-to-github)
 - [Updating, backups, and restoring files](#updating-backups-and-restoring-files)
 - [Troubleshooting](#troubleshooting)
-- [Project structure and development](#project-structure-and-development)
+- [Project structure and references](#project-structure-and-references)
 
 ## Screenshots
 
@@ -99,19 +87,23 @@ To add or refresh only the tiled windows view, use
 | Boot appearance | Animated Hyprshell Glass Plymouth splash, plus matching static artwork for supported unified kernel images. |
 | Login screen | Matching animated Glass SDDM theme with user, password, session, keyboard layout, and power controls. |
 | Application launcher | Search installed desktop applications and launch them from the bar or Super key. |
-| Workspace controls | Switch between Hyprland workspaces. |
-| Media display | Playback information and a twelve-band audio spectrum captured from speaker output. |
+| Panels | Hyprpane status/menu panel, Hyprdock app dock, and Hyprbar taskbar; four-edge layouts, monitor/workspace scopes, previews, and presets. |
+| Apps and windows | Shared or separate pins, drag reordering, running-window grouping, window pickers, focus/close/move actions, and optional recoverable Show Desktop. |
+| Workspace controls | Switch workspaces and hover for a miniature wallpaper/window preview without switching. |
+| Media display | Playback information, a speaker-output spectrum (12 bars horizontally, 5 on side panels), and a Now playing hover preview. |
 | Calendar | Date and time with a calendar menu; bundled holiday data covers the Philippines. |
 | Notifications | Persistent inbox with search, expansion, dismissal, and clearing; optional popups configured in Settings. |
-| Audio controls | Output and microphone volume, mute controls, and output selection. |
+| Audio controls | Output/input selection, volume and mute, per-application volumes, a test tone, and an opt-in microphone meter. |
 | Wi-Fi | NetworkManager integration for wireless connections. |
 | Bluetooth | BlueZ integration with device controls and pairing prompts. |
 | Battery | Charge and health information when available from the hardware. |
 | System tray | Application-provided tray icons. |
 | Power menu | Lock, sleep, logout, reboot, and shutdown actions. |
-| Settings | A live bar preview, drag-to-reorder modules, desktop and application appearance, displays, input, power, default apps, login startup, and a shortcut editor. |
+| Displays and projection | Saved output modes/scales/positions, Duplicate / Extend overlay, and Hyprview projection of the active window. |
+| Settings | Searchable controls for panels, application appearance, window rules, displays, input, power, default apps, startup, shortcuts, accessibility, and region. |
 | Shortcut overlay | Search every active Hyprland binding and scoped shell/terminal controls with `Super+K`, including mouse, media, submap and release details. |
-| Optional management tools | Screen locking, scheduled file cleanup, and GitHub configuration sync. |
+| System controls | Screen locking, network profiles, firewall rules and website blocks, DNS configuration, and printing/scanning tools. |
+| Maintenance and recovery | Reviewed cleanup, setup backup/restore, opt-in personal-file snapshots, system upgrades, diagnostics, and GitHub configuration sync. |
 
 The interface and service bindings use QML and JavaScript. A small C helper
 captures and analyzes audio for the spectrum; Python helpers handle settings
@@ -444,7 +436,7 @@ The main install includes Hyprlock, XDG utilities and clipboard tools,
 Loupe, Papers, mpv, File Roller, rsync, htop, Déjà Dup, Restic, rclone,
 and yt-dlp, plus Mousepad, media controls, archives, clipboard-history tools,
 printing/scanning, firmware, keyring support, time synchronization and firewall.
-This checkout enables Hyprlock after 60 idle minutes and before sleep.
+This checkout enables Hyprlock after 10 idle minutes and before sleep.
 Clipboard capture stays disabled until enabled in Settings. Backup destinations
 and schedules need to be configured after installation.
 
@@ -464,29 +456,55 @@ screen. If you do not use a display manager, log in on a TTY and run:
 uwsm start -e -D Hyprland hyprland.desktop
 ```
 
-Use `Super+T` to open a terminal and press and release `Super` to open the
+Use `Super+Z` to open a terminal with the saved shortcuts (`Super+T` in the
+base configuration), and press and release `Super` to open the
 application launcher. The Windows key is normally the Super key.
 
-## A consistent desktop experience
+## How Hyprshell works
 
-Full `./setup.sh` brings the bundled boot appearance, matching SDDM login
-theme, and Hyprshell desktop together on an installed Arch system. The
-configuration in the checkout defines the experience, so each installation
-starts with the same shell components, visual design, and desktop preferences.
+Hyprland handles window placement, workspaces, input, and compositor effects.
+The entry point `~/.config/hypr/hyprland.lua` loads editable sections from
+`~/.config/hyprshell/hyprland/`, then applies generated Settings overrides.
+The supplied session uses UWSM to manage the session and application launches.
 
-| Component | Included setup |
+Quickshell loads `~/.config/quickshell/shell.qml`. One shell instance provides
+the panels, launcher, menus, Settings, and notification service. The panels
+share application discovery, window matching, pins, and desktop services rather
+than starting separate app or notification services for each panel.
+
+| Integration | Backend |
 | --- | --- |
-| Boot splash | Plymouth Glass artwork, animated title and progress, quiet-boot preferences, and matching static UKI artwork on supported boot layouts. |
-| Login screen | Animated `hyprshell-glass` SDDM theme with the same visual language as the boot splash and desktop. |
-| Desktop shell | Quickshell bar, launcher, menus, notification inbox, settings, and wallpaper-adaptive glass surfaces. |
-| Desktop preferences | Saved layout and appearance, Hyprland configuration, shortcuts, display settings when saved, input, power, locking, and cleanup preferences. |
-| Application integration | Saved application appearance, default-app and login-startup choices, portals, and managed autostart entries. |
-| Utilities and wallpapers | Launch helpers, Bash shortcuts, application shortcuts, and bundled wallpapers. |
+| Audio | PipeWire / PipeWire Pulse and WirePlumber; a native helper analyzes the speaker-output spectrum. |
+| Network and Bluetooth | NetworkManager and BlueZ. |
+| Battery and power | UPower and the installed supported power-profile provider. |
+| Notifications | Hyprshell owns `org.freedesktop.Notifications` and stores inbox history locally. |
+| Wallpaper | `awww`, with per-output wallpaper sampling for adaptive panel colors. |
+| Locking | Hyprlock, with a Hypridle child managed by the shell when enabled. |
+| Preferences | Versioned JSON, validated Python transactions, backups, and generated Lua where needed. |
 
-Use `./setup.sh` for the desktop and everyday applications. Add `--extra` for
-containers and terminal decoration. After installation, Settings lets users adjust
-the experience through the same interface, while the configuration and
-installer remain available for further customization.
+Installed configuration files are **copies of the checkout**, not symlinks.
+Settings changes apply to the installed configuration. Sync to GitHub captures
+those changes into the checkout before committing and pushing them. Setup and
+reviewed updates validate files and preserve preferences; there is no background
+Git saver.
+
+### Saved configuration in this checkout
+
+The saved configuration is distinct from component fallback defaults. At the
+time of this README update, both the checkout and installed preferences use:
+
+| Preference | Saved choice |
+| --- | --- |
+| Panel layout | Hyprpane at the top on workspaces 1–4; Hyprbar at the bottom on workspace 5; Hyprdock at the bottom on workspace 6. All three master switches are enabled. |
+| Appearance | Wallpaper-adaptive colors and random vibrant item colors enabled. |
+| App pins | Shared Brave and COSMIC Files pins. |
+| Locking | Hyprlock after 10 idle minutes and before sleep. |
+| Notifications | Popups enabled for 3 seconds; Do Not Disturb off; critical bypass enabled. |
+| Clipboard history | Capture disabled until enabled in Settings. |
+| Shortcuts | Terminal remapped to `Super+Z`, Hyprpane toggle to `Alt+X`, and reload on `Alt+Q`. |
+
+These are editable preferences, not requirements for using Hyprshell. Fresh setup
+uses the checkout's saved values; existing installations retain their own choices.
 
 ## First login and machine-specific configuration
 
@@ -498,15 +516,15 @@ own hardware and preferences:
 | Display resolution, refresh rate, scale, and position | Settings → Displays; underlying rules in `~/.config/hyprshell/hyprland/monitors.lua` and `hypr/hyprland-gui.lua`. |
 | Keyboard layout | The `input.kb_layout` value in `~/.config/hyprshell/hyprland/input.lua`; bundled value is `us`. |
 | Terminal and file manager | The `terminal` and `fileManager` entries in `~/.config/hyprshell/hyprland/programs.lua`. |
-| Browser shortcut | The `Super+B` default binding in `hyprshell/hyprland/shortcuts.lua`; it launches Brave from Flathub, which the base installer provides on Fedora and Arch. |
+| Browser shortcut | `Super+B` uses `hyprshell-browser` to open the configured default browser; fresh setup provides Brave from Flathub. Change the default in Settings → Applications. |
 | Startup wallpaper | `~/.config/hypr/wallpaper-start.sh`. |
 | Clock display | Hyprshell Settings → Hyprpane & panels. |
 | Holiday data | `~/.config/quickshell/Calendar.js`. |
 
-The main configuration has an automatic preferred-mode monitor rule, but
-`hyprland-gui.lua` also contains an explicit **`eDP-1`, 1920×1080 at 60.01 Hz,
-scale 1** rule. Update or remove that rule if it does not match your display.
-Inspect connected outputs inside Hyprland with:
+New displays use an automatic preferred-mode, position, and scale rule. Confirm machine-specific choices
+in **Settings → Displays**; Apply / Keep provides a 15-second rollback window.
+Saved connector preferences override the automatic fallback. Inspect connected
+outputs inside Hyprland with:
 
 ```bash
 hyprctl monitors
@@ -525,7 +543,7 @@ component defaults. Review the Settings window after your first login.
 
 ## Using the desktop
 
-### Bar and menus
+### Hyprpane and menus
 
 Hover over a menu icon to open its menu, then move into the menu to interact
 with it. Hovering another icon switches menus. Click an icon to pin its menu
@@ -546,11 +564,42 @@ Hold Shift with those shortcuts to move the focused window to a workspace.
 Regular application windows tile; the supplied rules float common dialogs and
 file choosers.
 
+### Hyprdock, Hyprbar, and app pins
+
+Click an idle pinned app to launch it, a single-window app to focus it, or a
+group to choose a window. Right-click an app for pin/unpin, new instance, close,
+and workspace-move actions; middle-click opens another instance. Drag pins or
+use Ctrl+arrow keys to reorder them. Overflow scrolls when the panel is full.
+
+Right-click a launcher result, or select it and press `Ctrl+P`, to pin it.
+**Apps & windows** manages shared or separate pin lists, running windows, and
+explicit app matching when a window has the wrong identity. Hyprbar can group
+windows and filter them by workspace and monitor. Its trailing status items can
+inherit Hyprpane's selection or use their own list.
+
+Enable **Show Desktop shortcut** in either app panel to hide and restore the
+current workspace's windows. Recovery survives shell restarts; **Apps & windows →
+Restore desktop windows** remains available if a restore needs retrying. The
+`Super+H` / `Super+Shift+H` single-window shortcuts use a separate stack.
+
+### Displays and Hyprview
+
+`Super+P` opens a compact **Duplicate / Extend** overlay. Either choice applies,
+saves, and closes the overlay. Use **Settings → Displays** for individual output
+resolution, refresh rate, scale, position, rotation, and mirror sources.
+
+`Super+V` projects the active window through **Hyprview**, without moving the
+original window. It fills an enabled non-mirrored external display (HDMI is
+preferred), or opens a floating viewer when only one screen is available. The
+projection is view only. `Super+Shift+V` closes it from any screen; when the
+viewer is focused, F11 toggles fullscreen and Escape leaves fullscreen or closes.
+
 ### Audio, networking, and Bluetooth
 
 The audio menu provides volume and microphone sliders, mute controls, and
-output selection. Sliders support clicking and dragging. The visualizer
-captures the **speaker output monitor**, not microphone input.
+output selection. Sliders support clicking and dragging. Settings → Sound adds
+per-stream volumes, input/output selection, an explicit microphone meter, and a
+test tone. The visualizer captures the **speaker output monitor**, not microphone input.
 
 The Wi-Fi menu uses NetworkManager. The Bluetooth menu uses BlueZ and handles
 pairing prompts in the interface. Their availability depends on the relevant
@@ -558,7 +607,9 @@ services, hardware, and radio state.
 
 ### Notifications
 
-Notifications appear in the bell's inbox without toast popups. Click a
+Notifications remain available in the bell's inbox. **Settings → Notifications**
+controls popups, Do Not Disturb, critical bypass, timeout, and per-app delivery.
+This checkout enables popups; fallback component defaults leave them off. Click a
 notification to expand its full title and body, scroll to read long messages,
 and use its corner × to dismiss it. Search and Clear all are available.
 
@@ -579,25 +630,30 @@ uses `awww`; bar colors adapt to the wallpaper on each output.
 
 ## Keyboard and mouse shortcuts
 
-These shortcuts belong to the bundled Hyprland configuration. Changing your
-keybindings changes the behavior described here.
+The table follows the saved configuration shipped in this checkout, including
+its shortcut remaps. `Super+K` shows the active bindings on your installation.
+The Windows key is normally Super.
 
 | Shortcut | Action |
 | --- | --- |
-| `Super+T` | Open Kitty. |
+| `Super+Z` | Open Kitty (base binding: `Super+T`). |
 | Press and release `Super` | Toggle the application launcher. |
 | `Super+E` | Open a COSMIC Files window. |
 | `Super+K` | Toggle the searchable shortcut overlay. |
-| `Alt+T` | Show or hide the topbar. |
+| `Alt+X` | Toggle Hyprpane on the current workspace (base binding: `Alt+T`). |
+| `Alt+D` / `Alt+Z` | Toggle Hyprdock / Hyprbar on the current workspace. |
 | `Alt+S` | Open Hyprshell Settings. |
 | `Alt+C` / `Alt+N` | Toggle calendar / notifications. |
 | `Alt+A` / `Alt+W` | Toggle audio / Wi-Fi. |
 | `Alt+V` / `Alt+B` / `Alt+P` | Toggle Bluetooth / battery / power options. |
-| `Super+B` | Launch Brave (the default browser); customize this binding for another browser. |
+| `Super+B` | Open the configured default browser. |
 | `Super+Q` | Close the focused window. |
 | `Super+M` | Toggle maximized mode. |
-| `Super+V` | Toggle floating mode. |
+| `Super+V` / `Super+Shift+V` | Project the active window in Hyprview / close Hyprview. |
+| `Super+Alt+V` | Toggle floating mode. |
 | `Super+Arrow keys` | Move focus between windows. |
+| `Super+Shift+Arrow keys` | Swap the active tiled window with its neighbor. |
+| `Super+Alt+Arrow keys` | Move and retile the active window in that direction. |
 | `Super+1…9`, `Super+0` | Switch to workspace 1…10. |
 | `Super+Shift+1…9`, `Super+Shift+0` | Move the focused window to workspace 1…10. |
 | `Super+Mouse wheel` | Switch to the next or previous workspace. |
@@ -606,6 +662,9 @@ keybindings changes the behavior described here.
 | `Super+P` | Open Duplicate / Extend display controls. |
 | `Super+Shift+P` | Toggle pseudotiling. |
 | `Super+J` | Toggle the split direction in the dwindle layout. |
+| `Super+Ctrl+F` / `Super+Ctrl+S` | Toggle automatic floating / pseudotiling for the current workspace. |
+| `Super+Ctrl+H` | Toggle hover popdowns for the current workspace. |
+| `Super+L` | Lock the screen. |
 | `Super+S` | Toggle the `magic` special workspace. |
 | `Super+Shift+S` | Move the focused window to that special workspace. |
 | `Super+H` / `Super+Shift+H` | Hide / restore a window. |
@@ -620,7 +679,7 @@ keybindings changes the behavior described here.
 The saved shortcut customizations in this checkout also bind `Alt+Q` to reload
 Hyprland, then Quickshell, so saved shortcuts and shell changes activate together.
 Use `Super+K` to inspect active shortcuts after customizations. The
-Alt menu shortcuts work while the topbar is hidden.
+Alt menu shortcuts work while Hyprpane is hidden.
 
 Playback keybindings use `playerctl`, included in the base installation. Brightness bindings depend on the system's backlight
 support.
@@ -636,16 +695,48 @@ on the bar and select **Open Hyprshell Settings**. From a terminal:
 ~/.local/bin/hyprshell-settings
 ```
 
-The bar must be running. Settings opens inside the existing Quickshell process
+The shell must be running. Use the search field to find controls across pages.
+Settings opens inside the existing Quickshell process
 and includes a preview with sample statuses. The preview's colors and visible
 sample modules may differ from live hardware and wallpaper colors.
 
+### Choose panels and workspace layouts
+
+Open **Settings → Hyprpane & panels**. Each panel has an enable switch, edge,
+monitor selection, and workspace visibility controls. Master enablement gates
+all workspace choices. **Show on all** and **Hide on all** clear individual
+choices; use the workspace selector and switch to make exceptions.
+
+At most **two panels may be visible together on one monitor/workspace**, and
+they must occupy different edges. All three can remain enabled globally when
+workspace or monitor scopes separate them. Auto-hide panels still count toward
+this limit. Invalid placements show an error and retain the last saved layout.
+
+**Panel layout preview & presets** shows draft placement for a selected monitor
+and workspace. Selecting a preset only previews it; **Apply layout preset**
+changes enablement and edges together. Presets preserve appearance, pins, and
+visibility scopes, so check whether a selected panel is hidden on that workspace.
+
+For example, use **Hide on all**, then enable workspaces 1–4 for Hyprpane,
+workspace 5 for Hyprbar, and workspace 6 for Hyprdock to reproduce the saved
+layout. For a status panel plus app dock on every workspace, apply the
+Hyprpane Top + Hyprdock Bottom preset (which disables Hyprbar), then choose
+**Show on all** for both panels.
+
+Hyprdock and Hyprbar offer **Always visible**, **Auto-hide**, and **Hide when
+overlapped**. Always-visible panels reserve window space; the other modes do
+not, and reveal from a 3 px screen-edge strip. Choose whether they hide in
+fullscreen, then tune alignment, margins, thickness, icon size, spacing, inside
+padding, indicators, and animations. Files, Settings, Trash, and Show Desktop
+shortcuts are optional. Empty Trash requires confirmation.
+
 ### Layout and appearance
 
-Use the preview to select an item or drag it into the left, center, or right
-group. You can reorder items, show or hide built-in modules, and adjust:
+For Hyprpane, use the preview to select an item or drag it into the left,
+center, or right group. You can reorder items, show or hide built-in modules, and adjust:
 
-- Bar height, margins, spacing, and clock format.
+- Screen edge, height, margins, spacing, and clock format.
+- Full-edge or compact presentation on side edges.
 - Global and individual icon sizes from 8–48 px.
 - Per-item text and icon glyphs, font size, and extra spacing.
 - Text, icon, background, and outline colors using `#RRGGBB`.
@@ -662,6 +753,43 @@ Avoid overcrowding the bar: unusually wide labels or too many center items can
 overlap other groups. Shorten text, reduce sizes, hide items, or move them to
 another group. Status services continue running when their bar items are hidden.
 
+### Tune readability and responsiveness
+
+Start with panel thickness, icon size, and spacing before changing individual
+items. Side Hyprpane layouts use compact circular controls, with the first group
+at the top and the last at the bottom. Move back to Top or Bottom to restore
+horizontal labels and pill styling. Hover workspaces for window-layout previews
+and the media spectrum for Now playing; captures run only while previews are open.
+
+For a quieter desktop, disable notification popups or enable Do Not Disturb,
+turn off hover popdowns on selected workspaces, and hide unneeded items.
+Hiding an item does not stop its shared desktop service.
+
+**Settings → Windows** controls compositor blur, shadows, opacity, gaps, and
+animations. Reducing blur size/passes or disabling effects can reduce rendering
+work. **Accessibility → Reduced motion** disables panel fades; text scale and
+high contrast help readability. Display scale belongs in **Displays**, while
+application font, cursor, and GTK appearance belong in **Appearance**.
+
+### Tune applications and system behavior
+
+| What to change | Settings page |
+| --- | --- |
+| Default browser, file associations, and apps started at login | Applications; startup choices take effect next login. |
+| Per-workspace floating/pseudotiling and app-specific rules | Workspaces & rules. |
+| Touchpad, scrolling, pointer, and keyboard behavior | Mouse & keyboard. |
+| Dimming, screen-off, sleep, lid action, and AC/battery policies | Power & battery. |
+| Hidden Wi-Fi and saved profiles; advanced VPN/IP configuration | Network; advanced editing opens the network connection editor. |
+| Firewall state, ports/services, website blocks, and DNS mode | Firewall; system rules and block lists stay outside GitHub sync. |
+| Bounded text/image clipboard history | Clipboard history; capture is opt-in. |
+| Printer/scanner tools and optional dependencies | Printing & scanning. |
+| Locale and timezone | Language & region. |
+
+Default-app choices and explicit shortcut commands are separate settings. A
+custom shortcut that names a specific app continues to launch that command.
+For sound, select devices and per-app volumes in **Sound**; device state is
+managed by PipeWire/WirePlumber and is not exported by GitHub sync.
+
 ### Saving and Hyprland appearance
 
 Most bar, appearance, and locking preferences save automatically after a short
@@ -675,7 +803,7 @@ Preferences live in:
 ~/.config/hyprshell/settings.json
 ```
 
-The Hyprland appearance page controls selected options such as gaps, borders,
+The Windows page controls selected options such as gaps, borders,
 rounding, opacity, blur, shadows, and animations. Empty or “Use config” values
 leave that option controlled by your underlying Hyprland configuration.
 
@@ -694,8 +822,8 @@ points.
 
 ### Editing shortcuts
 
-Open **Settings → Keybindings** to search active shortcuts, select one to edit,
-or choose **+ New**. Record a key combination or enter it manually, add an
+Open **Settings → Keyboard shortcuts** to search active shortcuts and select
+one to edit, or choose **+ New**. Record a key combination or enter it manually, add an
 action description, and keep the existing action or supply a command. Click
 **Save shortcut** to apply it. **Restore** resets an edited built-in shortcut;
 **Remove** deletes an added shortcut.
@@ -709,7 +837,7 @@ shows active bindings, including these edits.
 ## Screen locking
 
 The component default for automatic locking is disabled, but this checkout's
-saved preferences enable Hyprlock after 60 idle minutes and before sleep.
+saved preferences enable Hyprlock after 10 idle minutes and before sleep.
 Setup restores those saved preferences and installs Hyprlock and Hypridle in
 the base manifest. To repair missing packages on an existing Arch installation:
 
@@ -734,22 +862,27 @@ window does not stop it.
 
 ## System cleanup
 
-Open **Settings → System cleanup** to configure cleanup of old thumbnail cache
+Open **Settings → Cleanup** to configure cleanup of old thumbnail cache
 files, eligible temporary files owned by your user, and old Hyprshell backups.
 
 Choose Off, Daily, Weekly, or Monthly, select categories, and click **Save
 cleanup settings**. Scheduling starts Off. The default age limit is 30 days,
 and the newest five backup sets are retained.
 
-Use **Clean System Now…** to review eligible paths and sizes. **Delete previewed
-files** confirms that specific cleanup. Scheduled runs use the saved rules
+Use **Preview scheduled cleanup rules…** to review eligible paths and sizes.
+**Delete previewed files** confirms that specific cleanup. Scheduled runs use the saved rules
 without prompting. Symlinks and active configurations are excluded, and
 recently accessed or changed files are kept.
 
 The schedule uses the systemd user timer `hyprshell-cleanup.timer`. Results are
 recorded in `~/.local/state/hyprshell/cleanup-last.json` and the service journal.
-Package-cache cleanup is separate; this page reports the existing system
-`paccache.timer` rather than including package caches in the file preview.
+The separate **Clean now · your files** controls let you analyze selected cache
+and recovery-history categories, inspect individual files, exclude entries, and
+confirm the preview. **System files · administrator access** provides separately
+authenticated maintenance using each tool's retention policy. These manual
+choices do not change automatic cleanup rules. Manual setup backups and
+personal-file snapshots remain outside cleanup targets. See
+[the settings reference](docs/settings.md) for category and preview behavior.
 
 ## Saving your setup to GitHub
 
@@ -789,16 +922,10 @@ from the live snapshot. Files outside the explicit project paths remain
 uncommitted. Review project and custom configuration content before syncing
 to a public repository.
 
-Manual desktop edits remain live and uncommitted until you choose **Sync to GitHub**.
-Agents commit successfully completed, validated tasks locally with meaningful
-descriptions; questions and tasks needing follow-up do not trigger commits.
-There is no background Git saver. Sync reconciles live and checkout changes,
-validates them, creates a local commit if needed, then pushes. Existing commits
-keep their original subjects and bodies, including completed agent task descriptions.
-Sync creates a new commit only for remaining uncommitted edits, with a subject naming
-the affected components and a body listing added, modified, and removed files.
-A failed push leaves
-the local commit for retry.
+Manual desktop edits remain live and uncommitted until you choose **Sync to
+GitHub**. Sync reconciles installed and checkout files, validates them, creates
+a local commit for remaining changes, then pushes. Existing commits keep their
+original subjects and bodies. A failed push leaves the local commit for retry.
 Staged changes, unfinished merges, or conflicting repo/live copies require
 resolution before publishing. Configure a Git commit identity on fresh clones.
 
@@ -825,8 +952,14 @@ incoming commits, files, package requirements and compatibility findings. Once
 blocking issues are resolved, acknowledge the hardware limitations and click
 **Sync now**. The preview shows the exact source repository and branch.
 
-The update preserves preferences and original Git history, stages and validates
-the candidate, and retains recovery files. Log out and back in after completion.
+**Keep my preferences** is the default, including when incoming preferences
+changed without a Git conflict. Choose **Use developer preferences** for all
+shown categories, or select individual categories. Kitty, mpv, and the default
+wallpaper have separate choices. Use **Show comparison** to inspect differences;
+after changing choices, click **Review choices** before syncing.
+
+The update preserves selected preferences and original Git history, stages and
+validates the candidate, and retains recovery files. Log out and back in after completion.
 For an already updated local checkout, `./setup.sh --update` applies and validates
 its desktop files without upgrading system packages. Use full setup when new
 system dependencies or root-owned integration changes require it.
@@ -845,13 +978,30 @@ directories or personal documents. Use the documented rollback command in
 directory with a partial deployment backup. Settings transactions retain their
 own separate backup sets.
 
+### Setup backups and personal files
+
+**Settings → Backup & restore** creates dated Hyprshell setup backups covering
+preferences, editable desktop Lua, displays, shortcuts, app integration, and
+appearance. Select a backup to preview and restore it, then log out and back
+in. A before-restore backup provides an undo path. These backups exclude installed shell code, system
+packages, and personal documents. They are stored under
+`~/.local/state/hyprshell/setup-backups/` and protected from cleanup.
+
+The separate **Personal-file backups** controls copy selected folders to a local
+destination, optionally on a schedule, and verify snapshot checksums. This is
+off until configured. Snapshots, paths, and schedules stay local and do not go
+to GitHub. Open the snapshot folder to recover files; snapshots are not deleted
+automatically. Copy backups to another drive for protection against drive failure.
+
 ### Configuration and state paths
 
 | Path | Purpose |
 | --- | --- |
-| `~/.config/hypr/` | Hyprland configuration, wallpaper scripts, and Hyprlock configuration. |
+| `~/.config/hypr/` | Hyprland entry point, wallpaper scripts, and Hyprlock configuration. |
 | `~/.config/quickshell/` | Installed shell components and helpers. |
+| `~/.config/hyprshell/hyprland/` | Editable Lua sections for monitors, input, shortcuts, startup, and window rules. |
 | `~/.config/hyprshell/settings.json` | Saved Hyprshell preferences. |
+| `~/.config/hyprshell/displays.json` / `displays.lua` | Confirmed display choices and generated monitor rules. |
 | `~/.config/hyprshell/cleanup.json` | Saved cleanup rules and schedule. |
 | `~/.config/hyprshell/keybindings.json` / `keybindings.lua` | Saved shortcut edits and generated Lua bindings. |
 | `~/.config/autostart/nm-applet.desktop` | Managed override hiding the duplicate network tray icon. |
@@ -925,8 +1075,9 @@ or an `/etc/fstab` entry.
 
 Ensure another notification daemon is not already holding
 `org.freedesktop.Notifications` in your user session. Disable a conflicting
-daemon's service or autostart, then restart Hyprshell. Toast popups are not
-expected; check the bell's inbox. You can send a test message with:
+daemon's service or autostart, then restart Hyprshell. Check Settings →
+Notifications for popup, Do Not Disturb, and per-app delivery choices, then check
+the bell's inbox. You can send a test message with:
 
 ```bash
 notify-send 'Hyprshell test' 'Check the notification inbox.'
@@ -947,8 +1098,9 @@ installation, check that GCC, libpulse, and FFTW are installed.
 
 ### Display, shortcuts, or icons do not look right
 
-Review the explicit `eDP-1` monitor rule and keyboard layout described in the
-first-login section. Change shortcuts that invoke applications you do not use.
+Review Settings → Displays and the keyboard layout described in the
+first-login section; new outputs use the automatic monitor fallback. Change
+shortcuts that invoke applications you do not use.
 Missing glyphs usually indicate missing fonts; install the manifest's fonts
 and restart the session. If bar groups overlap, reduce item widths or move
 modules between groups.
@@ -973,7 +1125,12 @@ Use **Lock now** to test the saved locker command first. Check that Hypridle
 and the locker are installed, another Hypridle process is not conflicting,
 and Hyprshell is running. Review errors on the Screen locking page.
 
-## Project structure and development
+## Project structure and references
+
+For focused usage details, see [panel layout controls](docs/panel-layout-settings.md),
+[Hyprdock](docs/hyprdock.md), [Hyprbar](docs/hyprbar.md),
+[Show Desktop and recovery](docs/show-desktop.md), and
+[settings, inheritance, and persistence](docs/settings.md).
 
 | Location | Contents |
 | --- | --- |
@@ -1017,7 +1174,7 @@ Bundled holiday rules may need updates for special government declarations.
 Bundled wallpapers are third-party images; inclusion here does not grant new
 ownership or licensing rights over them.
 
-## Agent machine context
+### Optional Hyprskill integration
 
 [Hyprskill](docs/hyprskill.md) gives Codex, Claude Code, and OpenCode reusable
 context about this desktop from any working directory. Open **Settings →
