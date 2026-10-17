@@ -8,6 +8,7 @@ Item {
     property var settings: ({})
     property bool compactItemPadding: false
     property bool statusIconsOnly: false
+    property bool hoverPopdowns: true
     readonly property string position: settings.bar?.position || "top"
     readonly property bool vertical: position === "left" || position === "right"
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
@@ -452,9 +453,14 @@ Item {
                 colorStyle: active ? "emphasized" : "muted"
                 selected: active
                 raised: false
-                onEntered: { bar.previewWorkspaceId = modelData.id; bar.menuHovered("workspacePreview"); }
+                onEntered: if (bar.hoverPopdowns) { bar.previewWorkspaceId = modelData.id; bar.menuHovered("workspacePreview"); }
                 onExited: bar.menuLeft("workspacePreview")
-                onClicked: bar.action("workspace", modelData.id)
+                onClicked: mouse => {
+                    if (!bar.hoverPopdowns && mouse && mouse.button === Qt.RightButton) {
+                        bar.previewWorkspaceId = modelData.id;
+                        bar.action("workspacePreview", null);
+                    } else bar.action("workspace", modelData.id);
+                }
                 onWheel: event => { bar.action("workspace-scroll", event.angleDelta.y > 0 ? -1 : 1); event.accepted = true; }
             }
         }
@@ -477,6 +483,8 @@ Item {
             text: bar.mediaData.title || ""
             levels: bar.mediaData.levels || []
             maximumWidth: bar.vertical ? bar.verticalThickness - 4 : bar.mediaMaximumWidth
+            interactive: !bar.hoverPopdowns
+            onClicked: bar.action("media", null)
             onEntered: bar.menuHovered("media")
             onExited: bar.menuLeft("media")
             width: bar.vertical ? bar.verticalThickness - 4 : implicitWidth

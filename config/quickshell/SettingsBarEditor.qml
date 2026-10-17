@@ -18,6 +18,7 @@ ColumnLayout {
     signal appVisibilityEdited(string component, var settings)
     property int currentWorkspace: 1
     property int selectedWorkspace: currentWorkspace >= 1 && currentWorkspace <= 99 ? currentWorkspace : 1
+    property int hoverWorkspace: selectedWorkspace
     signal visibilityEdited(var bar)
     signal edited(string key, var value)
     spacing: 16
@@ -113,6 +114,51 @@ ColumnLayout {
                 let baseline = root.settings.visible === false ? "Hidden by default." :
                     root.settings.workspaceScope === "selected" ? "Shown by default on workspaces " + (root.settings.workspaceList || []).join(", ") + "." : "Shown by default on all workspaces.";
                 return baseline + (choices.length ? " Individual choices: " + choices.map(w => w + (root.settings.workspaceOverrides[w] ? " on" : " off")).join(", ") + "." : "");
+            }
+            wrapMode: Text.WordWrap
+            color: Style.Theme.muted
+            font.pixelSize: Style.Theme.captionSize
+        }
+    }
+    SettingsCard {
+        Layout.fillWidth: true
+        title: "Hover popdowns"
+        subtitle: "Choose where hovering opens menus and previews across Hyprpane, Hyprdock and Hyprbar. When disabled, click to open. Workspace buttons still switch workspaces; right-click one for its preview."
+        SettingsSwitch {
+            objectName: "hoverPopdownsDefaultControl"
+            Layout.fillWidth: true
+            text: "Enable hover popdowns by default"
+            checked: root.settings.hoverPopdowns !== false
+            onToggled: root.edited("hoverPopdowns", checked)
+        }
+        SettingsComboBox {
+            objectName: "hoverPopdownWorkspaceControl"
+            Layout.fillWidth: true
+            model: Array.from({length: 99}, (_, i) => "Workspace " + (i + 1))
+            currentIndex: root.hoverWorkspace - 1
+            onActivated: index => root.hoverWorkspace = index + 1
+        }
+        SettingsSwitch {
+            objectName: "hoverPopdownWorkspaceEnabledControl"
+            Layout.fillWidth: true
+            text: "Enable hover popdowns on workspace " + root.hoverWorkspace
+            checked: Model.hoverPopdownsEnabled(root.settings, root.hoverWorkspace)
+            onToggled: root.edited("hoverPopdownOverrides", Object.assign({}, root.settings.hoverPopdownOverrides || {}, {[String(root.hoverWorkspace)]: checked}))
+        }
+        SettingsButton {
+            text: "Use default on this workspace"
+            onClicked: {
+                let next = Object.assign({}, root.settings.hoverPopdownOverrides || {});
+                delete next[String(root.hoverWorkspace)];
+                root.edited("hoverPopdownOverrides", next);
+            }
+        }
+        Label {
+            Layout.fillWidth: true
+            text: {
+                let choices = root.settings.hoverPopdownOverrides || {};
+                let keys = Object.keys(choices).sort((a, b) => Number(a) - Number(b));
+                return keys.length ? "Workspace overrides: " + keys.map(w => w + (choices[w] ? " on" : " off")).join(", ") : "All workspaces follow the default.";
             }
             wrapMode: Text.WordWrap
             color: Style.Theme.muted

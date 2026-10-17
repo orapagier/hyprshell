@@ -1606,3 +1606,18 @@ reset and narrow layouts. These checks do not establish live session rendering.
 Panel naming and reserved component settings are documented in
 [Panel configuration — Phase 1](panel-configuration.md), including the compatibility
 mapping, shared/separate desktop-ID pins, placement validation and corner policy.
+
+### Hover popdowns by workspace
+
+Settings → Hyprpane & panels → Hover popdowns controls hover opening for all
+three panels on each output's current workspace. Hover is enabled by default,
+including when loading older saved settings. The default switch applies to
+workspaces without an override. Select workspace 1–99 to enable or disable hover
+there; **Use default on this workspace** removes that override.
+
+When disabled, panel menus and app previews require clicks and hovering a neighbor
+does not replace the open menu. Media becomes clickable; workspace left-click
+continues navigation and right-click opens its preview. Existing app activation,
+tray clicks, shortcuts, edge reveal, and menu dismissal controls remain available.
+Changing workspace closes popdowns as before. Disabling hover cancels pending
+hover timers and closes hover-opened menus while retaining click-opened menus.

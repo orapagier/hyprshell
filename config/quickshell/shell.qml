@@ -82,7 +82,7 @@ ShellRoot {
         PanelWindow {
             id: panel
             required property var modelData
-            MenuController { id: menuState; dismissPinnedOnLeave: (!panel.visible || openedByShortcut) && !panelDropdown.managingApplications }
+            MenuController { id: menuState; hoverEnabled: Settings.hoverPopdownsEnabled(preferences.config.bar, panel.workspace); dismissPinnedOnLeave: (!panel.visible || openedByShortcut) && !panelDropdown.managingApplications }
             screen: modelData
             visible: {
                 // The window's resolved screen can change while hiding/showing.
@@ -127,6 +127,7 @@ ShellRoot {
             Bar {
                 id: bar
                 settings: preferences.config
+                hoverPopdowns: menuState.hoverEnabled
                 anchors.fill: parent
                 statusData: shell.statusData
                 mediaData: shell.mediaData
@@ -141,6 +142,7 @@ ShellRoot {
                 trayModel: tray.items
                 activeMenu: menuState.section
                 onMenuHovered: name => {
+                    if (!menuState.hoverEnabled) return;
                     panel.closeDockMenus();
                     for (let other of panels.instances) if (other !== panel) other.closeMenu();
                     menuState.hover(name);

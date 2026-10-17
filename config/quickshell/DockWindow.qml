@@ -51,7 +51,8 @@ Item {
         interacting: status.activeFocus || !!statusState.section || popup.opened || !!dock.draggingId || (dock.activeFocus && dock.keyboardInteraction)
         onSuppressedChanged: if (suppressed) { window.closeMenu(); if (dock) dock.draggingId = ''; }
     }
-    MenuController { id:statusState }
+    readonly property bool hoverPopdowns: Settings.hoverPopdownsEnabled(config.bar || {}, workspace)
+    MenuController { id:statusState; hoverEnabled: window.hoverPopdowns }
     Connections {
         target: window.showDesktop
         function onActionFinished(success) {
@@ -124,6 +125,7 @@ Item {
                 } else window.utilities.run(key);
             }
             width:implicitWidth; height:implicitHeight
+            hoverPopdowns:window.hoverPopdowns
             component:window.component; outputName:(window.output?.name || ''); workspace:window.workspace
             service:window.service; config:window.config
             maximumLength:Math.max(1, (window.vertical ? (rail.screen?.height || 1)-window.insets.top-window.insets.bottom : (rail.screen?.width || 1)) - 2*window.panel.marginEnds)
@@ -176,10 +178,11 @@ Item {
                 screenWidth:(window.output?.width || 1); screenHeight:(window.output?.height || 1)
                 screenOffsetX:rail.originX+statusViewport.x-statusViewport.contentX
                 screenOffsetY:rail.originY+statusViewport.y-statusViewport.contentY
+                hoverPopdowns:window.hoverPopdowns
                 activeMenu:statusState.section
                 onItemFocusRequested:item => statusViewport.revealItem(item)
                 onPreviewUnavailable:statusState.close()
-                onMenuHovered:name => { window.statusInteraction(); statusState.hover(name); }
+                onMenuHovered:name => { if (!window.hoverPopdowns) return; window.statusInteraction(); statusState.hover(name); }
                 onMenuLeft:name => statusState.leave(name)
                 onAction:(name,argument) => {
                     window.statusInteraction();
@@ -247,6 +250,7 @@ Item {
     }
     DockPopup {
         id:popup
+        hoverEnabled:window.hoverPopdowns
         component:window.component; taskGroups:dock.groups
         screen:window.output; service:window.service; edge:window.edge; wallpaperSource:window.wallpaperSource
         utilities:window.utilities

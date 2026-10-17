@@ -53,7 +53,7 @@ Item {
         name: "HoverMenus"
         when: windowShown
         function init() { mouseMove(root, 5, 480); wait(20); state.close(); }
-        function cleanup() { state.close(); bar.settings = {}; root.width = 1366; }
+        function cleanup() { state.close(); state.hoverEnabled = true; bar.hoverPopdowns = true; bar.settings = {}; bar.mediaData = {}; root.width = 1366; }
         function hover(name) {
             let trigger = findChild(bar, name === "notifications" ? "notificationBell" : name + "Trigger");
             verify(trigger !== null);
@@ -149,6 +149,55 @@ Item {
             compare(root.actionCount, before + 1);
             wait(250);
             grabImage(root).save("/tmp/quickshell-attached-launcher.png");
+        }
+        function test_clickOnlyWorkspacePreviewKeepsNavigation() {
+            state.hoverEnabled = false; bar.hoverPopdowns = false;
+            let before = bar.statusData;
+            try {
+                bar.statusData = Object.assign({}, before, {workspaces:[{id:2,name:"2"},{id:3,name:"3"}]});
+                bar.previewWorkspaceId = 2;
+                tryVerify(() => bar.previewWorkspaceItem !== null);
+                let button = bar.previewWorkspaceItem;
+                bar.previewWorkspaceId = 3;
+                mouseMove(button, button.width / 2, button.height / 2);
+                wait(180); compare(state.section, ""); compare(bar.previewWorkspaceId, 3);
+                mouseClick(button, button.width / 2, button.height / 2, Qt.RightButton);
+                compare(state.section, "workspacePreview"); compare(bar.previewWorkspaceId, 2);
+                mouseClick(button, button.width / 2, button.height / 2, Qt.LeftButton);
+                compare(state.section, "workspace");
+            } finally { bar.statusData = before; }
+        }
+        function test_clickOnlyMediaOpensPopdown() {
+            state.hoverEnabled = false; bar.hoverPopdowns = false;
+            bar.mediaData = {playing:true, title:"Test song", levels:[]};
+            let slot = findChild(bar, "mediaSlot");
+            tryVerify(() => slot.item !== null);
+            mouseMove(slot.item, slot.item.width / 2, slot.item.height / 2);
+            wait(180); compare(state.section, "");
+            mouseClick(slot.item, slot.item.width / 2, slot.item.height / 2);
+            compare(state.section, "media"); verify(state.pinned);
+        }
+        function test_clickOnlyMenusDoNotOpenOrSwitchOnHover() {
+            state.hoverEnabled = false; bar.hoverPopdowns = false;
+            let audio = findChild(bar, "audioTrigger");
+            mouseMove(audio, audio.width / 2, audio.height / 2);
+            wait(180); compare(state.section, "");
+            mouseClick(audio, audio.width / 2, audio.height / 2);
+            compare(state.section, "audio"); verify(state.pinned);
+            let wifi = findChild(bar, "wifiTrigger");
+            mouseMove(wifi, wifi.width / 2, wifi.height / 2);
+            wait(180); compare(state.section, "audio");
+            mouseClick(wifi, wifi.width / 2, wifi.height / 2);
+            compare(state.section, "wifi");
+        }
+        function test_disableCancelsPendingHoverButPreservesClickedMenu() {
+            state.hover("audio"); state.hoverEnabled = false;
+            wait(180); compare(state.section, "");
+            state.activate("audio"); state.hoverEnabled = true; state.hoverEnabled = false;
+            compare(state.section, "audio"); verify(state.pinned);
+            state.close(); state.hoverEnabled = true;
+            state.hover("wifi"); tryCompare(state, "section", "wifi");
+            state.hoverEnabled = false; compare(state.section, "");
         }
         function test_hoverSwitchesToNeighbor() {
             hover("audio");

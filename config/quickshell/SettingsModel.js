@@ -22,6 +22,11 @@ var vibrantIds = ['launcher', 'settings', 'workspaces', 'media', 'calendar', 'tr
     'notifications', 'audio', 'wifi', 'bluetooth', 'battery', 'power'];
 
 function copy(value) { return JSON.parse(JSON.stringify(value)); }
+function hoverPopdownsEnabled(bar, workspace) {
+    let overrides = bar.hoverPopdownOverrides || {};
+    let choice = overrides[String(workspace)];
+    return typeof choice === 'boolean' ? choice : bar.hoverPopdowns !== false;
+}
 function barVisible(bar, workspace) {
     let overrides = bar.workspaceOverrides || {};
     if (typeof overrides[String(workspace)] === 'boolean') return overrides[String(workspace)];

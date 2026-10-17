@@ -5,6 +5,8 @@
     "workspaceScope": "all",
     "workspaceList": [],
     "workspaceOverrides": {},
+    "hoverPopdowns": true,
+    "hoverPopdownOverrides": {},
     "adaptiveColors": true,
     "randomVibrantColors": false,
     "height": 32,

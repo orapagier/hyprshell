@@ -9,6 +9,7 @@ PanelWindow {
     id: popup
     required property var service
     property var utilities: null
+    property bool hoverEnabled: true
     readonly property string mode: menuState.mode
     readonly property string groupKey: menuState.groupKey
     readonly property rect triggerRect: menuState.triggerRect
@@ -25,7 +26,7 @@ PanelWindow {
     function open(kind, key, rect) { menuState.activateItem(kind, key, rect); }
     function hoverItem(kind, key, rect) { menuState.hoverItem(kind, key, rect); }
     function leaveItem(kind, key, rect) { menuState.leaveItem(kind, key, rect); }
-    DockMenuController { id: menuState }
+    DockMenuController { id: menuState; hoverEnabled: popup.hoverEnabled }
     onGroupChanged: if ((mode === 'group' || mode === 'previews') && (!group || (mode === 'previews' && !group.windows.length))) dismiss()
     onOpenedChanged: if (opened) { interactionStarted(); scope.forceActiveFocus(); }
     // Keep the surface mapped and the dock reachable while hovering neighboring items.

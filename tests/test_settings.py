@@ -56,6 +56,22 @@ class SettingsTests(unittest.TestCase):
             data = copy.deepcopy(self.data); data['accessibility'].update(changes)
             with self.assertRaises(ValueError): backend.save(data)
             self.assertFalse(self.path.exists())
+    def test_hover_popdown_defaults_and_workspace_validation(self):
+        bar = backend.validate({'version': 1})['bar']
+        self.assertTrue(bar['hoverPopdowns'])
+        self.assertEqual(bar['hoverPopdownOverrides'], {})
+        data = copy.deepcopy(self.data)
+        data['bar'].update(hoverPopdowns=False, hoverPopdownOverrides={'2': True, '99': False})
+        backend.save(data)
+        self.assertEqual(json.loads(self.path.read_text())['bar']['hoverPopdownOverrides'], {'2': True, '99': False})
+        for bad in (None, [], {'0': False}, {'100': False}, {'02': False}, {'2': 0}, {'a': True}):
+            data['bar']['hoverPopdownOverrides'] = bad
+            with self.assertRaises(ValueError): backend.validate(data)
+        data['bar']['hoverPopdownOverrides'] = {}
+        for bad in (0, 'false', None):
+            data['bar']['hoverPopdowns'] = bad
+            with self.assertRaises(ValueError): backend.validate(data)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='hyprshell-settings-')
         self.addCleanup(self.temp.cleanup)

@@ -112,6 +112,14 @@ def validate(data):
         for key, value in overrides.items()
     ):
         raise ValueError('Workspace overrides must map workspace numbers 1–99 to booleans')
+    if type(bar['hoverPopdowns']) is not bool:
+        raise ValueError('Hover popdowns must be boolean')
+    hover_overrides = bar['hoverPopdownOverrides']
+    if not isinstance(hover_overrides, dict) or any(
+        not isinstance(key, str) or not re.fullmatch(r'[1-9][0-9]?', key) or type(value) is not bool
+        for key, value in hover_overrides.items()
+    ):
+        raise ValueError('Hover popdown overrides must map workspace numbers 1–99 to booleans')
     number(bar['popdownTranslucency'], 0, 1)
     if type(bar['adaptiveColors']) is not bool:
         raise ValueError('adaptiveColors must be boolean')

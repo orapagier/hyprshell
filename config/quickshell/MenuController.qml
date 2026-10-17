@@ -7,6 +7,12 @@ Item {
     property string displayedSection: ""
     onSectionChanged: if (section.length) displayedSection = section
     property string hoveredMenu: ""
+    property bool hoverEnabled: true
+    onHoverEnabledChanged: {
+        openDelay.stop();
+        hoveredMenu = "";
+        if (!hoverEnabled && !pinned) close();
+    }
     property bool pinned: false
     property bool openedByShortcut: false
     property bool dismissPinnedOnLeave: false
@@ -16,7 +22,7 @@ Item {
     function hover(name) {
         hoveredMenu = name;
         closeDelay.stop();
-        if (section !== name) openDelay.restart();
+        if (hoverEnabled && section !== name) openDelay.restart();
     }
     function leave(name) {
         if (hoveredMenu !== name) return;
@@ -50,7 +56,7 @@ Item {
         id: openDelay
         interval: 110
         onTriggered: {
-            if (!controller.hoveredMenu.length) return;
+            if (!controller.hoverEnabled || !controller.hoveredMenu.length) return;
             if (controller.section !== controller.hoveredMenu) {
                 controller.pinned = false;
                 controller.openedByShortcut = false;

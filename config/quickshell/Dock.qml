@@ -7,6 +7,7 @@ import "TaskbarModel.js" as Tasks
 
 FocusScope {
     id: dock
+    property bool hoverPopdowns: true
     required property var service
     required property var config
     property string component: 'hyprdock'
@@ -236,7 +237,7 @@ FocusScope {
                 function leavePreview() {
                     if (hoverKind) dock.itemLeft(hoverKind, button.modelData.key, dock.itemRect(button));
                 }
-                onEntered: if (hoverKind && !dock.draggingId) {
+                onEntered: if (hoverKind && !dock.draggingId && dock.hoverPopdowns) {
                     dock.interactionStarted();
                     dock.itemHovered(hoverKind, button.modelData.key, dock.itemRect(button));
                 }
