@@ -34,7 +34,7 @@ ColumnLayout {
         if (group === "workspaces") {
             let ident = 1; while (next.workspaces.some(row => row.id === ident)) ident++;
             if (ident > 99) return;
-            next.workspaces.push({id: ident, name: "", layout: "inherit", persistent: false});
+            next.workspaces.push({id: ident, name: "", layout: "inherit", persistent: false, floating: false});
         } else next.rules.push({class: "", mode: "inherit", workspace: 0, pin: false, noAnimations: false, width: 0, height: 0});
         draft = next; pending = true;
     }
@@ -70,7 +70,7 @@ ColumnLayout {
     }
     SettingsCard {
         title: "Workspace preferences"
-        subtitle: "Give numbered workspaces a name or their own layout. Persistent workspaces stay available even when empty. Monitor assignment stays automatic."
+        subtitle: "Give numbered workspaces a name or their own layout. Persistent workspaces stay available even when empty. Monitor assignment stays automatic. Floating workspaces float existing windows, new windows and windows moved in, overriding application tiling rules. Turning this off stops automatic floating; existing windows keep their placement."
         Layout.fillWidth: true; enabled: page.loaded && !page.busy
         Repeater {
             model: page.draft.workspaces
@@ -86,6 +86,7 @@ ColumnLayout {
                 }
                 SettingsTextField { Layout.fillWidth: true; placeholderText: "Name (optional)"; text: workspaceRow.modelData.name; color: Style.Theme.text; onTextEdited: page.editRow("workspaces", workspaceRow.index, "name", text); selectByMouse: true }
                 SettingsComboBox { Layout.fillWidth: true; model: ["Use default layout", "Dwindle", "Master", "Scrolling"]; currentIndex: page.layouts.indexOf(workspaceRow.modelData.layout); onActivated: index => page.editRow("workspaces", workspaceRow.index, "layout", page.layouts[index]) }
+                SettingsSwitch { objectName: "workspaceFloating-" + workspaceRow.index; text: "Floating windows"; checked: workspaceRow.modelData.floating === true; Layout.fillWidth: true; onToggled: page.editRow("workspaces", workspaceRow.index, "floating", checked) }
                 SettingsSwitch { text: "Keep available when empty"; checked: workspaceRow.modelData.persistent; Layout.fillWidth: true; onToggled: page.editRow("workspaces", workspaceRow.index, "persistent", checked) }
                 SettingsButton { text: "Remove preference"; onClicked: page.remove("workspaces", workspaceRow.index) }
             }

@@ -38,10 +38,12 @@ def validate(data):
         raise ValueError('Choose at most 99 workspaces')
     seen = set()
     for row in data['workspaces']:
-        if not isinstance(row, dict) or set(row) != {'id', 'name', 'layout', 'persistent'} or not integer(row['id'], 1, 99) or row['id'] in seen:
+        if not isinstance(row, dict) or (set(row) - {'floating'}) != {'id', 'name', 'layout', 'persistent'} or not integer(row['id'], 1, 99) or row['id'] in seen:
             raise ValueError('Workspace numbers must be unique, from 1 to 99')
         if not text(row['name'], 60) or row['layout'] not in ('inherit', *LAYOUTS) or type(row['persistent']) is not bool:
             raise ValueError('Invalid workspace name, layout, or persistence')
+        if 'floating' in row and type(row['floating']) is not bool:
+            raise ValueError('Workspace floating preference must be enabled or disabled')
         seen.add(row['id'])
     if not isinstance(data['rules'], list) or len(data['rules']) > 100:
         raise ValueError('Choose at most 100 application rules')
@@ -101,6 +103,26 @@ def render(data):
         if row['noAnimations']: rule['no_anim'] = True
         if row['width']: rule['size'] = [row['width'], row['height']]
         lines.append('hl.window_rule(' + encode(rule) + ')')
+    floating = [row['id'] for row in data['workspaces'] if row.get('floating', False)]
+    if floating:
+        # Run after application placement rules, including explicit tile rules.
+        for ident in floating:
+            lines.append('hl.window_rule(' + encode({'name': 'hyprshell-workspace-float-' + str(ident),
+                'match': {'workspace': str(ident)}, 'float': True}) + ')')
+        lines.extend([
+            'local floatingWorkspaces = {' + ', '.join('[' + str(ident) + '] = true' for ident in floating) + '}',
+            'local function floatWorkspaceWindow(w)',
+            '    if w and w.mapped and w.workspace and floatingWorkspaces[w.workspace.id] and not w.floating and w.fullscreen == 0 then',
+            '        hl.dispatch(hl.dsp.window.float({ window = w, action = "set" }))',
+            '    end',
+            'end',
+            'hl.on("window.open", floatWorkspaceWindow)',
+            'hl.on("window.move_to_workspace", floatWorkspaceWindow)',
+            'hl.on("window.fullscreen", floatWorkspaceWindow)',
+            'hl.on("config.reloaded", function()',
+            '    for _, w in ipairs(hl.get_windows()) do floatWorkspaceWindow(w) end',
+            'end)',
+        ])
     return '\n'.join(lines) + '\n'
 
 
@@ -139,7 +161,7 @@ def save(data, expected):
             try: reload_live()
             except Exception: pass
             raise
-    return {'ok': True, 'backup': backup, 'message': 'Workspace and application rules saved. Placement and size apply to newly opened windows.' + (' They load at the next session.' if not os.environ.get('HYPRLAND_INSTANCE_SIGNATURE') else '')}
+    return {'ok': True, 'backup': backup, 'message': 'Workspace and application rules saved. Floating workspace preferences also apply to existing windows and windows moved in. Application placement and size apply to newly opened windows.' + (' They load at the next session.' if not os.environ.get('HYPRLAND_INSTANCE_SIGNATURE') else '')}
 
 
 def status():

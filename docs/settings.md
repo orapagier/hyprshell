@@ -1280,7 +1280,14 @@ loader and wait for short in-flight commands before unloading.
 **Workspaces & rules** saves `hyprshell/behavior.json` and generated `behavior.lua`.
 Unedited controls inherit personal Lua; applying an override never rewrites the
 editable base modules. Workspaces use numbered IDs (1–99), optional names, layout
-and persistence, with hardware-adaptive monitor assignment. Rules match exact
+and persistence, with hardware-adaptive monitor assignment. Each workspace has a
+**Floating windows** switch (off by default, including older preferences).
+Enabling it floats existing windows on Apply, newly opened windows and windows
+moved into that workspace, taking priority over application tiling rules.
+Fullscreen remains available; fullscreen windows float when they leave fullscreen. Disabling or removing the preference stops automatic
+floating; existing windows retain their placement, including when moved out.
+Use the existing floating shortcut to tile them if desired. Compositor Lua events
+handle opening, workspace moves and reloads without polling or a shell watcher. Rules match exact
 application classes, escaped as anchored expressions. Running-class discovery
 reads only classes, not window titles. Placement/size rules affect newly opened
 windows. Pinning and size require a floating rule. Every save validates schema,

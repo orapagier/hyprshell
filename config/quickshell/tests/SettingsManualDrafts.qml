@@ -30,7 +30,9 @@ ShellRoot {
             } else if (test.phase === 1) {
                 let page = test.control("settingsBehaviorLoader").item;
                 if (!page || !page.loaded || page.busy) return;
-                page.editGeneral("layout", "master"); controller.window.section = -17; test.phase++;
+                page.editGeneral("layout", "master");
+                page.add("workspaces");
+                controller.window.section = -17; test.phase++;
             } else if (test.phase === 2) {
                 let page = test.control("settingsRegionalLoader").item;
                 if (!page || !page.loaded || page.busy) return;
@@ -38,6 +40,9 @@ ShellRoot {
                 if (!page.dirty) { test.fail("regional draft not tracked"); return; }
                 controller.window.section = -1; test.phase++;
             } else if (test.phase === 3) {
+                let floating = test.control("workspaceFloating-0");
+                if (!floating) { test.fail("floating workspace switch missing"); return; }
+                floating.checked = true; floating.toggled();
                 if (!test.control("settingsBehaviorLoader").active || !test.control("settingsRegionalLoader").active || !controller.window.manualDirty) { test.fail("navigation discarded draft"); return; }
                 controller.window.contentItem.Window.window.close(); test.phase++;
             } else if (test.phase === 4) {
@@ -46,11 +51,12 @@ ShellRoot {
             } else if (test.phase === 5) {
                 let page = test.control("settingsBehaviorLoader").item;
                 if (page.busy) return;
-                if (page.draft.general.layout !== "master") { test.fail("reopen reset workspace draft"); return; }
+                if (page.draft.general.layout !== "master" || page.draft.workspaces[0].floating !== true) { test.fail("reopen reset workspace draft"); return; }
                 page.request("save"); test.phase++;
             } else if (test.phase === 6) {
                 let page = test.control("settingsBehaviorLoader").item;
                 if (page.busy || page.dirty) return;
+                if (page.draft.workspaces[0].floating !== true) { test.fail("save lost floating preference"); return; }
                 controller.window.section = -17; test.phase++;
             } else if (test.phase === 7) {
                 let page = test.control("settingsRegionalLoader").item;
