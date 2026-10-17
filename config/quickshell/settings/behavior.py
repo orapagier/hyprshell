@@ -223,9 +223,11 @@ def toggle_workspace(mode):
 
 
 def placement_toast(message, failed=False):
-    # Compositor feedback remains visible when shell notification popups are off.
+    # Use the shell's normal notification cards and delivery preferences.
     try:
-        subprocess.run(['hyprctl', 'notify', '3' if failed else '1', '3000', '0', message],
+        subprocess.run(['notify-send', '--app-name=Hyprshell', '--expire-time=3000',
+                        '--icon=' + ('dialog-error' if failed else 'view-grid-symbolic'),
+                        '--', 'Workspace placement', message],
                        capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         pass
