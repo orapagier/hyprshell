@@ -6,6 +6,8 @@ Pill {
     id: control
     required property var bar
     required property string menu
+    iconOnly: vertical || (bar.statusIconsOnly && menu !== "calendar")
+    implicitHeight: !vertical && iconOnly ? Math.max(28, effectiveIconSize + 8) : naturalHeight
     objectName: menu + "Trigger"
     colorSampler: Settings.adaptive(bar.settings, menu) ? bar.wallpaperColors : null
     colorRoot: bar

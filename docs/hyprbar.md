@@ -49,7 +49,10 @@ polling is created. Geometry sampling remains limited to eligible dodge panels.
 The trailing section (right on Top/Bottom, bottom on Left/Right) reuses Hyprpane's
 controls and inward menus with the same desktop services, notification inbox,
 tray and clock. By default, `rightItems: null` follows the current enabled
-right-side Hyprpane items in their saved order and preserves their appearance.
+right-side Hyprpane items in their saved order. Hyprbar displays status icons
+without labels or notification counts; the horizontal clock keeps its text.
+Media shows its spectrum without a title. Hyprpane and Hyprdock retain their
+existing label presentation.
 The current selection is System tray, Notifications, Audio, Network, Bluetooth,
 Battery and Power; conditional items retain their existing availability rules.
 

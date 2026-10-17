@@ -7,6 +7,7 @@ Item {
     id: bar
     property var settings: ({})
     property bool compactItemPadding: false
+    property bool statusIconsOnly: false
     readonly property string position: settings.bar?.position || "top"
     readonly property bool vertical: position === "left" || position === "right"
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
@@ -469,6 +470,7 @@ Item {
         visible: active
         sourceComponent: MediaPill {
             vertical: bar.vertical
+            iconOnly: vertical || bar.statusIconsOnly
             settings: bar.appearance("media")
             colorSampler: Settings.adaptive(bar.settings, "media") ? bar.wallpaperColors : null
             colorRoot: bar
@@ -592,7 +594,7 @@ Item {
         effectiveRightPadding: bar.compactItemPadding && !bar.vertical
             ? Math.max(0, (badge.visible ? badge.implicitWidth + 1 : 0) + (settings.paddingRight || 0))
             : Math.max(0, (bar.vertical ? Math.min(4, rightPadding) : rightPadding) + (settings.paddingRight || 0))
-        implicitHeight: naturalHeight
+        implicitHeight: !vertical && iconOnly ? Math.max(28, effectiveIconSize + 8) : naturalHeight
         content.y: (height - content.height) / 2
         foreground: bar.notificationData && bar.notificationData.count > 0 ? "#f9e2af" : "#a6adc8"
         tint: bar.rgba("#a6adc8", 0.18)
@@ -604,7 +606,7 @@ Item {
             // the pill width or number of digits in the count.
             x: bar.vertical ? (bell.width - width) / 2 : bell.content.x + (bell.content.width + bell.content.implicitWidth) / 2 - 2
             y: bar.vertical ? bell.height - height - 4 : bell.content.y - 2
-            visible: !bar.vertical && !!bar.notificationData && bar.notificationData.count > 0
+            visible: !bar.vertical && !bar.statusIconsOnly && !!bar.notificationData && bar.notificationData.count > 0
             text: {
                 let count = bar.notificationData ? String(bar.notificationData.count || "") : "";
                 return bar.vertical ? Array.from(count).join("\n") : count;
