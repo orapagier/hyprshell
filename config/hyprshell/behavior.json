@@ -6,14 +6,14 @@
   "workspaces": [
     {
       "id": 1,
-      "name": "Auto Floating Windows",
+      "name": "",
       "layout": "inherit",
       "persistent": false,
       "floating": true
     },
     {
       "id": 2,
-      "name": "Auto Pseudo-Tiling Windows",
+      "name": "",
       "layout": "inherit",
       "persistent": false,
       "floating": false,

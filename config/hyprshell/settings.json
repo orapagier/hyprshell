@@ -14,6 +14,10 @@
       "5": false,
       "6": false
     },
+    "hoverPopdowns": true,
+    "hoverPopdownOverrides": {
+      "2": false
+    },
     "adaptiveColors": true,
     "randomVibrantColors": true,
     "height": 32,
