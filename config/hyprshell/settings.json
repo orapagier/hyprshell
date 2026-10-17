@@ -16,7 +16,7 @@
     },
     "hoverPopdowns": true,
     "hoverPopdownOverrides": {
-      "2": false
+      "2": true
     },
     "adaptiveColors": true,
     "randomVibrantColors": true,

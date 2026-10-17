@@ -18,6 +18,14 @@
       "persistent": false,
       "floating": false,
       "pseudotiled": true
+    },
+    {
+      "id": 5,
+      "name": "",
+      "layout": "inherit",
+      "persistent": false,
+      "pseudotiled": true,
+      "floating": false
     }
   ],
   "rules": []

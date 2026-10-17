@@ -2,6 +2,7 @@
 hl.config({general = {resize_on_border = true}})
 hl.workspace_rule({workspace = "1", persistent = false})
 hl.workspace_rule({workspace = "2", persistent = false})
+hl.workspace_rule({workspace = "5", persistent = false})
 hl.window_rule({name = "hyprshell-workspace-float-1", match = {workspace = "1"}, float = true})
 local floatingWorkspaces = {[1] = true}
 local function floatWorkspaceWindow(w)
@@ -16,7 +17,8 @@ hl.on("config.reloaded", function()
     for _, w in ipairs(hl.get_windows()) do floatWorkspaceWindow(w) end
 end)
 hl.window_rule({name = "hyprshell-workspace-pseudo-2", match = {workspace = "2"}, tile = true, pseudo = true})
-local pseudotiledWorkspaces = {[2] = true}
+hl.window_rule({name = "hyprshell-workspace-pseudo-5", match = {workspace = "5"}, tile = true, pseudo = true})
+local pseudotiledWorkspaces = {[2] = true, [5] = true}
 local function pseudotileWorkspaceWindow(w)
     if w and w.mapped and w.workspace and pseudotiledWorkspaces[w.workspace.id] and w.fullscreen == 0 then
         if w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "unset" })) end
