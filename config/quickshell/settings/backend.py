@@ -731,9 +731,11 @@ def bar_visible(bar, workspace):
     return bar['visible'] and (bar['workspaceScope'] == 'all' or workspace in bar['workspaceList'])
 
 
-def save(data, expected=None, *, toggle_workspace=None, app_action=None):
+def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpane', app_action=None):
     data = validate(data)
     if toggle_workspace is not None:
+        if toggle_component not in ('hyprpane', 'hyprdock', 'hyprbar'):
+            raise ValueError('Choose Hyprpane, Hyprdock or Hyprbar')
         if type(toggle_workspace) is not int or not 1 <= toggle_workspace <= 99:
             raise ValueError('Choose a workspace number from 1 to 99')
     home = Path.home()
@@ -746,7 +748,8 @@ def save(data, expected=None, *, toggle_workspace=None, app_action=None):
             data = application_action(current, app_action)
         if toggle_workspace is not None:
             data = copy.deepcopy(current)
-            data['bar']['workspaceOverrides'][str(toggle_workspace)] = not bar_visible(current['bar'], toggle_workspace)
+            panel = data['bar'] if toggle_component == 'hyprpane' else data['panels'][toggle_component]
+            panel['workspaceOverrides'][str(toggle_workspace)] = not bar_visible(panel, toggle_workspace)
         # A shortcut can reveal a panel on a previously hidden workspace.
         data = validate(data)
         if expected is not None and current != validate(expected):
@@ -819,6 +822,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--save-json')
     parser.add_argument('--toggle-bar', type=int, metavar='WORKSPACE')
+    parser.add_argument('--toggle-panel', nargs=2, metavar=('COMPONENT', 'WORKSPACE'))
     parser.add_argument('--app-action-json')
     parser.add_argument('--lock', action='store_true')
     parser.add_argument('--idle', action='store_true')
@@ -830,6 +834,11 @@ def main():
             return run_locker()
         if args.idle:
             return run_idle(args.battery)
+        if args.toggle_panel is not None:
+            component, workspace = args.toggle_panel
+            result = save(DEFAULTS, toggle_workspace=int(workspace), toggle_component=component)
+            print(json.dumps(result))
+            return 0
         if args.toggle_bar is not None:
             result = save(DEFAULTS, toggle_workspace=args.toggle_bar)
             print(json.dumps(result))

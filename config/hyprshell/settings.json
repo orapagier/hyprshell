@@ -437,7 +437,9 @@
       "workspaceList": [
         6
       ],
-      "workspaceOverrides": {},
+      "workspaceOverrides": {
+        "1": false
+      },
       "thickness": 34,
       "backgroundOpacity": 1,
       "marginEdge": 5,
@@ -471,7 +473,9 @@
       "workspaceList": [
         5
       ],
-      "workspaceOverrides": {},
+      "workspaceOverrides": {
+        "1": false
+      },
       "thickness": 32,
       "marginEdge": 3,
       "marginEnds": 5,

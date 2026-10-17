@@ -53,6 +53,15 @@ ShellRoot {
         } else if (test.phase===3) {
             if (!editor.success) { test.fail(editor.message); return; }
             let names=['hyprpane','hyprdock','hyprbar'];
+            // Shortcut toggles use the current Settings draft and retain other panels.
+            let original=JSON.stringify(editor.draft);
+            for (let name of names) {
+                let workspace=names.indexOf(name)+1;
+                editor.toggleWorkspacePanel(name,workspace);
+                if (Model.panelVisible(editor.draft,name,'eDP-1',workspace)) { test.fail('shortcut did not hide '+name); return; }
+                editor.toggleWorkspacePanel(name,workspace);
+                if (JSON.stringify(editor.draft)!==original) { test.fail('shortcut did not restore draft '+name); return; }
+            }
             // Verify runtime visibility, corner/menu protection and return transitions.
             for (let ws of [1,2,3,4,3,2,1]) {
                 let active=names.filter(n=>Model.panelVisible(editor.draft,n,'eDP-1',ws));

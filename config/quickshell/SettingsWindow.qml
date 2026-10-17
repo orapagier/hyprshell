@@ -257,6 +257,13 @@ FloatingWindow {
     function toggleWorkspaceBar(workspace) {
         updateBarSettings(Model.withWorkspaceVisibility(draft.bar, workspace, !Model.barVisible(draft.bar, workspace)));
     }
+    function toggleWorkspacePanel(component, workspace) {
+        if (component === 'hyprpane') { toggleWorkspaceBar(workspace); return; }
+        let next = Model.copy(draft);
+        let panel = next.panels[component];
+        next.panels[component] = Model.withWorkspaceVisibility(panel, workspace, !Model.barVisible(panel, workspace));
+        draft = next;
+    }
     function updateHypr(key, value) {
         let next = Model.copy(draft);
         if (value === "")

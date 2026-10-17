@@ -20,6 +20,19 @@ ShellRoot {
     readonly property var notificationData: notificationInbox.statusData
     readonly property int currentWorkspace: Hyprland.focusedMonitor && Hyprland.focusedMonitor.activeWorkspace ? Hyprland.focusedMonitor.activeWorkspace.id : 0
     property var pendingBarToggles: []
+    function toggleWorkspacePanel(component) {
+        let workspace = shell.currentWorkspace;
+        if (workspace < 1 || workspace > 99) {
+            console.warn(component + " toggle needs an active numbered workspace (1–99).");
+            return;
+        }
+        let ui = settingsController.window;
+        if (ui) ui.toggleWorkspacePanel(component, workspace);
+        else {
+            shell.pendingBarToggles.push({component:component, workspace:workspace});
+            barToggleQueue.restart();
+        }
+    }
     SettingsStore { id: preferences }
     ApplicationService {
         id: applications; store: preferences
@@ -266,8 +279,8 @@ ShellRoot {
                 try {
                     let result = JSON.parse(text);
                     if (result.ok) preferences.reload();
-                    else console.warn("Hyprpane toggle: " + result.message);
-                } catch (error) { console.warn("Hyprpane toggle failed: " + error); }
+                    else console.warn("Panel toggle: " + result.message);
+                } catch (error) { console.warn("Panel toggle failed: " + error); }
             }
         }
     }
@@ -276,8 +289,8 @@ ShellRoot {
         interval: 0
         onTriggered: {
             if (barVisibilityWriter.running || shell.pendingBarToggles.length === 0) return;
-            let workspace = shell.pendingBarToggles.shift();
-            barVisibilityWriter.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/backend.py").toString().replace(/^file:\/\//, "")), "--toggle-bar", String(workspace)];
+            let request = shell.pendingBarToggles.shift();
+            barVisibilityWriter.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/backend.py").toString().replace(/^file:\/\//, "")), "--toggle-panel", request.component, String(request.workspace)];
             barVisibilityWriter.running = true;
         }
     }
@@ -322,18 +335,10 @@ ShellRoot {
             hyprviewWindow.dismiss();
         }
         function toggleBar(): void {
-            let workspace = shell.currentWorkspace;
-            if (workspace < 1 || workspace > 99) {
-                console.warn("Hyprpane toggle needs an active numbered workspace (1–99).");
-                return;
-            }
-            let ui = settingsController.window;
-            if (ui) ui.toggleWorkspaceBar(workspace);
-            else {
-                shell.pendingBarToggles.push(workspace);
-                barToggleQueue.restart();
-            }
+            shell.toggleWorkspacePanel('hyprpane');
         }
+        function toggleDock(): void { shell.toggleWorkspacePanel('hyprdock'); }
+        function toggleTaskbar(): void { shell.toggleWorkspacePanel('hyprbar'); }
         function toggleMenu(name: string): void {
             if (!["calendar", "notifications", "audio", "wifi", "bluetooth", "battery", "power", "launcher"].includes(name)) return;
             let focused = Hyprland.focusedMonitor;

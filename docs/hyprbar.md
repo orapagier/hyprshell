@@ -38,6 +38,12 @@ without rewriting saved preferences. Side-panel reserved width follows the icon
 rail thickness; horizontal panels
 own adjacent corners.
 
+Alt+Z toggles Hyprbar and Alt+D toggles Hyprdock on the focused monitor's
+current numbered workspace, matching Hyprpane's toggle (personally remapped
+to Alt+X). Toggles persist an individual workspace override, retain global
+enablement and other workspace choices, and respect panel layout conflicts.
+When Settings is open they update its draft through the normal autosave flow.
+
 Implementation uses the existing Dock/DockWindow/DockPopup surfaces with an
 explicit component selector; their default remains Hyprdock. `TaskbarModel.js`
 owns task filtering and grouping, and `SettingsTaskbarEditor.qml` selects Hyprbar in the common
