@@ -442,7 +442,8 @@
         6
       ],
       "workspaceOverrides": {
-        "1": false
+        "1": false,
+        "2": false
       },
       "thickness": 34,
       "backgroundOpacity": 1,
@@ -478,13 +479,14 @@
         5
       ],
       "workspaceOverrides": {
-        "1": false
+        "1": false,
+        "2": false
       },
       "thickness": 32,
       "marginEdge": 3,
       "marginEnds": 5,
       "windowGap": 0,
-      "iconSize": 22,
+      "iconSize": 18,
       "spacing": 10,
       "paddingStart": 8,
       "paddingEnd": 10,
