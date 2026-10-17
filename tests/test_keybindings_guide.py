@@ -75,6 +75,14 @@ def configured_bindings(config):
 
 
 class KeybindingsGuideTests(unittest.TestCase):
+    def test_workspace_placement_shortcuts_are_unique_and_call_saved_toggles(self):
+        rows = configured_bindings(ROOT / 'config')
+        for key, mode in (('F', 'floating'), ('S', 'pseudotiled')):
+            matches = [row for row in rows if row['modmask'] == 68 and row['key'].upper() == key]
+            self.assertEqual(len(matches), 1)
+            self.assertEqual(matches[0]['dispatcher'], 'exec_cmd')
+            self.assertIn('behavior.py" --toggle-workspace ' + mode, matches[0]['arg'])
+
     def test_hyprview_close_callback_invokes_helper(self):
         # Exercise only this callback with an inert exec function. Nothing is
         # launched, and no other desktop callback runs.

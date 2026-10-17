@@ -188,6 +188,49 @@ def save(data, expected):
     return {'ok': True, 'backup': backup, 'message': 'Workspace and application rules saved. Floating and pseudotiling workspace preferences also apply to existing windows and windows moved in. Application placement and size apply to newly opened windows.' + (' They load at the next session.' if not os.environ.get('HYPRLAND_INSTANCE_SIGNATURE') else '')}
 
 
+def toggle_workspace(mode):
+    if mode not in ('floating', 'pseudotiled'):
+        raise ValueError('Unknown workspace placement mode.')
+    active = subprocess.run(['hyprctl', '-j', 'activeworkspace'], capture_output=True, text=True, timeout=5)
+    if active.returncode:
+        raise ValueError('The active workspace could not be read. Check desktop access and retry.')
+    workspace = json.loads(active.stdout).get('id')
+    if not integer(workspace, 1, 99):
+        raise ValueError('Workspace placement toggles require a numbered workspace from 1 to 99.')
+    _, state = roots()
+    # Serialize shortcut presses; save still checks revisions against Settings edits.
+    with lock(state / 'behavior-shortcut.lock'):
+        expected = revision(paths())
+        data = saved()
+        row = next((row for row in data['workspaces'] if row['id'] == workspace), None)
+        if row is None:
+            row = {'id': workspace, 'name': '', 'layout': 'inherit', 'persistent': False}
+            data['workspaces'].append(row)
+        enabled = not row.get(mode, False)
+        row[mode] = enabled
+        other = 'pseudotiled' if mode == 'floating' else 'floating'
+        switched = enabled and row.get(other, False)
+        if enabled:
+            row[other] = False
+        result = save(data, expected)
+    labels = {'floating': 'Auto floating', 'pseudotiled': 'Auto pseudotiling'}
+    message = f"Workspace {workspace}: {labels[mode]} {'enabled' if enabled else 'disabled'}"
+    if switched:
+        message += f'; {labels[other].lower()} disabled'
+    if not enabled:
+        message += ' (existing window placement kept)'
+    return {**result, 'workspace': workspace, 'enabled': enabled, 'message': message}
+
+
+def placement_toast(message, failed=False):
+    # Compositor feedback remains visible when shell notification popups are off.
+    try:
+        subprocess.run(['hyprctl', 'notify', '3' if failed else '1', '3000', '0', message],
+                       capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def status():
     classes, discovery = [], ''
     try:
@@ -209,10 +252,17 @@ def request(payload):
 
 
 def main():
-    parser = argparse.ArgumentParser(); parser.add_argument('--request-json', required=True); args = parser.parse_args()
-    try: result = request(json.loads(args.request_json))
+    parser = argparse.ArgumentParser()
+    operation = parser.add_mutually_exclusive_group(required=True)
+    operation.add_argument('--request-json')
+    operation.add_argument('--toggle-workspace', choices=('floating', 'pseudotiled'))
+    args = parser.parse_args()
+    try:
+        result = toggle_workspace(args.toggle_workspace) if args.toggle_workspace else request(json.loads(args.request_json))
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         result = {'ok': False, 'message': str(error) if isinstance(error, ValueError) else 'Workspace/rule settings could not be updated. Refresh and retry.'}
+    if args.toggle_workspace:
+        placement_toast(result['message'], failed=not result['ok'])
     print(json.dumps(result)); return 0 if result['ok'] else 1
 
 

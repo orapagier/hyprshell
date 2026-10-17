@@ -178,6 +178,67 @@ assert(#actions == 5 and other.pseudo)
         result = subprocess.run(['lua', '-'], input=harness, text=True, capture_output=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_workspace_shortcuts_preserve_settings_and_switch_modes(self):
+        data = self.sample()
+        behavior.save(data, revision(behavior.paths()))
+        active = subprocess.CompletedProcess([], 0, '{"id": 3}', '')
+        with patch.object(behavior.subprocess, 'run', return_value=active), patch.object(behavior, 'parse_lua'):
+            result = behavior.toggle_workspace('floating')
+            self.assertTrue(result['enabled'])
+            self.assertIn('Workspace 3: Auto floating enabled', result['message'])
+            updated = behavior.saved()
+            self.assertEqual(updated['general'], data['general'])
+            self.assertEqual(updated['rules'], data['rules'])
+            self.assertEqual(updated['workspaces'][0], data['workspaces'][0])
+            self.assertTrue(updated['workspaces'][1]['floating'])
+            result = behavior.toggle_workspace('pseudotiled')
+            self.assertIn('auto floating disabled', result['message'])
+            row = behavior.saved()['workspaces'][1]
+            self.assertTrue(row['pseudotiled'])
+            self.assertFalse(row['floating'])
+            result = behavior.toggle_workspace('pseudotiled')
+            self.assertFalse(result['enabled'])
+            self.assertIn('Auto pseudotiling disabled', result['message'])
+            self.assertNotIn('pseudotiledWorkspaces', behavior.paths()[1].read_text())
+            self.assertEqual(len(behavior.saved()['workspaces']), 2)
+
+    def test_workspace_shortcut_preserves_existing_workspace_metadata(self):
+        data = self.sample()
+        behavior.save(data, revision(behavior.paths()))
+        active = subprocess.CompletedProcess([], 0, '{"id": 2}', '')
+        with patch.object(behavior.subprocess, 'run', return_value=active), patch.object(behavior, 'parse_lua'):
+            behavior.toggle_workspace('pseudotiled')
+            row = behavior.saved()['workspaces'][0]
+            for key, value in data['workspaces'][0].items():
+                self.assertEqual(row[key], value)
+            behavior.toggle_workspace('floating')
+            self.assertFalse(behavior.saved()['workspaces'][0]['pseudotiled'])
+
+    def test_workspace_shortcut_rejects_unsupported_or_inaccessible_workspace(self):
+        for output, code in (('{"id": -99}', 0), ('{"id": 100}', 0), ('{}', 0), ('', 1)):
+            with patch.object(behavior.subprocess, 'run', return_value=subprocess.CompletedProcess([], code, output, '')):
+                with self.assertRaises(ValueError):
+                    behavior.toggle_workspace('floating')
+            self.assertFalse(behavior.paths()[0].exists())
+
+    def test_workspace_shortcut_reload_failure_rolls_back(self):
+        active = subprocess.CompletedProcess([], 0, '{"id": 2}', '')
+        with patch.object(behavior.subprocess, 'run', return_value=active), patch.object(behavior, 'parse_lua'), patch.object(behavior, 'reload_live', side_effect=ValueError('reload failed')):
+            with self.assertRaisesRegex(ValueError, 'reload failed'):
+                behavior.toggle_workspace('floating')
+        self.assertFalse(behavior.paths()[0].exists())
+        self.assertFalse(behavior.paths()[1].exists())
+
+    def test_workspace_shortcut_cli_displays_result_and_failure_toasts(self):
+        for failed in (False, True):
+            with patch.object(sys, 'argv', ['behavior.py', '--toggle-workspace', 'floating']), patch.object(behavior, 'toggle_workspace') as toggle, patch.object(behavior, 'placement_toast') as toast, patch('builtins.print'):
+                if failed:
+                    toggle.side_effect = ValueError('reload failed')
+                else:
+                    toggle.return_value = {'ok': True, 'message': 'Workspace 2: Auto floating enabled'}
+                self.assertEqual(behavior.main(), int(failed))
+                toast.assert_called_once_with('reload failed' if failed else 'Workspace 2: Auto floating enabled', failed=failed)
+
     def test_inaccessible_discovery_keeps_editing_available(self):
         with patch.object(behavior.subprocess, 'run', side_effect=OSError()):
             result = behavior.status()
