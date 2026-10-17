@@ -3,6 +3,14 @@
   "general": {
     "resizeOnBorder": true
   },
-  "workspaces": [],
+  "workspaces": [
+    {
+      "id": 1,
+      "name": "",
+      "layout": "inherit",
+      "persistent": false,
+      "floating": true
+    }
+  ],
   "rules": []
 }
