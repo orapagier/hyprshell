@@ -39,6 +39,29 @@ run before deployment. Local edits retained in an update remain uncommitted.
 Already committed branch histories can produce a merge commit independently of
 unsynced edits; existing commits are never rewritten.
 
+The review also offers **Personal preferences and configuration updates**.
+**Keep my preferences** is the default, even when the developer changes a
+preference that you have never customized. **Use developer preferences** selects
+all displayed preference categories; you can instead select categories individually.
+Categories include desktop appearance/panels/locking, application theme,
+shortcuts, displays, window behavior, default apps/startup, cleanup and region.
+Editable desktop Lua and terminal selection are also preserved by default.
+Generated Lua follows its JSON source and is regenerated during staged validation.
+A category choice includes all its files and any additions or deletions; display
+preferences remain hardware dependent. New optional settings inherit schema
+defaults without replacing existing choices.
+
+Independent configuration changes (Kitty, mpv and the bundled default wallpaper) also offer individual local/developer choices,
+including changes without Git conflicts. These default to developer updates when
+unchanged locally, or keep local when customized. Other shell implementation
+files, including startup/service/portal integration, update together because they
+share dependencies; existing explicit conflict
+choices remain available. Open **Show comparison** to inspect file contents and
+diffs. After changing any choice, select **Review choices** to rebuild the exact
+candidate and rerun compatibility checks before **Sync now** can be enabled.
+All choices use the existing immutable revision, stale-preview checks, staged
+validation and rollback backups. No update is applied by changing a checkbox.
+
 Existing settings, user Lua sections, the optional GUI Lua overrides, terminal
 preferences, shortcuts, display, theme, application, cleanup and regional
 preferences survive ordinary updates. Optional preferences absent from the
@@ -70,7 +93,7 @@ versions work. Versions outside the recorded baseline get a warning. Hardware
 behavior is never declared certified from version/vendor detection alone.
 The user acknowledges these limitations before **Sync now** becomes available.
 Unsupported systems, missing dependencies, incompatible schemas and unresolved conflicts
-prevent applying until you choose a version. System package upgrades and root-owned boot/login changes are
+prevent applying until the review issues are resolved. System package upgrades and root-owned boot/login changes are
 separate from this user-level update.
 
 When required packages are missing, the preview lists them and shows a copyable

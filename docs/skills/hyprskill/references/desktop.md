@@ -212,3 +212,12 @@ Git saver. Sync from GitHub presents conflict choices before continuing. Sync fr
 before confirmation, preserves preferences/history, and runs a detached worker.
 See `docs/updates.md` and `docs/acceptance.md`. No public release or physical
 hardware certification should be inferred from isolated tests.
+
+Preference selection in reviewed updates (2026-10-17): Sync from GitHub keeps
+personal preferences by default even for non-conflicting developer taste changes.
+The review offers bulk Keep my preferences / Use developer preferences and
+individual category choices, with generated Lua grouped with its JSON source.
+Kitty/mpv/default-wallpaper changes offer individual version choices; core shell
+and startup/service/portal integration update together. Existing core conflict
+choices remain available. Changed choices require Review choices before syncing.
+See `docs/updates.md`, `update_merge.py` and the focused Python/Qt update tests.

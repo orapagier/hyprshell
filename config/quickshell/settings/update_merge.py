@@ -112,12 +112,13 @@ def difference(left, right):
     return diff[:48000] + ('\n… Diff truncated.' if len(diff) > 48000 else '')
 
 
-def merge_directories(base, local, incoming, output, choices):
+def merge_directories(base, local, incoming, output, choices, skipped=()):
     """Three-way merge, with explicit full-file choices for conflicting changes."""
     output.mkdir(parents=True, exist_ok=True)
     ancestors, ours, theirs = files(base), files(local), files(incoming)
     conflicts = []
     for name in sorted(ancestors.keys() | ours.keys() | theirs.keys()):
+        if name in skipped: continue
         old, left, right = ancestors.get(name), ours.get(name), theirs.get(name)
         b, l, r = version(old), version(left), version(right)
         chosen = None
@@ -158,6 +159,64 @@ def write_tree(repo, root):
         return subprocess.run(command + ['write-tree'], env=env, check=True, capture_output=True, text=True, timeout=15).stdout.strip()
 
 
+# Generated preference files travel with their editable source. Core shell code
+# is deliberately excluded from optional updates because its files depend on one another.
+PREFERENCE_GROUPS = {
+    'settings': ('Desktop appearance, panels and locking', ('settings.json', 'overrides.lua')),
+    'theme': ('Application theme, fonts and cursor', ('theme.json',)),
+    'keybindings': ('Keyboard shortcuts', ('keybindings.json', 'keybindings.lua')),
+    'displays': ('Displays (hardware dependent)', ('displays.json', 'displays.lua')),
+    'behavior': ('Window behavior', ('behavior.json', 'behavior.lua')),
+    'applications': ('Default apps and startup', ('applications.json',)),
+    'regional': ('Language and region', ('regional.json',)),
+    'cleanup': ('Cleanup schedule', ('cleanup.json',)),
+}
+OPTIONAL_CONFIGS = ('config/kitty/', 'config/mpv/')
+
+
+def selections(base, local, incoming, choices):
+    """Return explicit preference groups and independent configuration choices."""
+    ancestors, ours, theirs = files(base), files(local), files(incoming)
+    names = ancestors.keys() | ours.keys() | theirs.keys()
+    groups, grouped = [], set()
+    for label, members in PREFERENCE_GROUPS.values():
+        paths = ['config/hyprshell/' + name for name in members]
+        groups.append((paths[0], label, paths, True))
+        grouped.update(paths)
+    for name in sorted(names - grouped):
+        if deployment.protected(name):
+            groups.append((name, 'Desktop configuration: ' + name, [name], True))
+        elif (name.startswith(OPTIONAL_CONFIGS) or name == 'assets/wallpapers/default.jpg') and version(ancestors.get(name)) != version(theirs.get(name)):
+            groups.append((name, name, [name], False))
+    rows, policies = [], []
+    for key, label, paths, preference in groups:
+        paths = [name for name in paths if name in names]
+        if not paths: continue
+        default = 'local' if preference or any(version(ours.get(name)) != version(ancestors.get(name)) for name in paths) else 'github'
+        decision = choices.get(key, default)
+        policies.append((paths, decision))
+        if not any(version(ours.get(name)) != version(theirs.get(name)) for name in paths):
+            continue
+        def preview(mapping):
+            if len(paths) == 1: return describe(mapping.get(paths[0]))
+            return '\n\n'.join(name + '\n' + describe(mapping.get(name)) for name in paths)
+        rows.append({'path': key, 'label': label, 'files': paths, 'preference': preference,
+                     'choice': decision, 'local': preview(ours), 'github': preview(theirs),
+                     'diff': '\n'.join(name + '\n' + difference(ours.get(name), theirs.get(name))
+                                       for name in paths if version(ours.get(name)) != version(theirs.get(name)))})
+    return rows, policies
+
+
+def apply_selections(output, local, incoming, policies):
+    for paths, decision in policies:
+        selected = local if decision == 'local' else incoming
+        for name in paths:
+            source, target = selected / name, output / name
+            if source.is_file():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, target)
+
+
 def build(repo, base, incoming, choices):
     from github_update import archive
     ancestor = git(repo, 'merge-base', base, incoming)
@@ -166,16 +225,20 @@ def build(repo, base, incoming, choices):
         for name, revision in (('ancestor', ancestor), ('committed', base), ('incoming', incoming)):
             archive(repo, revision, root / name)
         effective_local(repo, root / 'local')
-        conflicts = merge_directories(root / 'ancestor', root / 'local', root / 'incoming', root / 'result', choices)
-        committed_conflicts = merge_directories(root / 'ancestor', root / 'committed', root / 'incoming', root / 'history', choices)
+        rows, policies = selections(root / 'ancestor', root / 'local', root / 'incoming', choices)
+        skipped = {name for paths, _ in policies for name in paths}
+        conflicts = merge_directories(root / 'ancestor', root / 'local', root / 'incoming', root / 'result', choices, skipped)
+        committed_conflicts = merge_directories(root / 'ancestor', root / 'committed', root / 'incoming', root / 'history', choices, skipped)
         seen = {c['path'] for c in conflicts}
         conflicts.extend(c for c in committed_conflicts if c['path'] not in seen)
-        unknown = set(choices) - {c['path'] for c in conflicts}
+        unknown = set(choices) - {c['path'] for c in conflicts + rows}
         if unknown or any(v not in ('local', 'github') for v in choices.values()):
             raise ValueError('Invalid conflict choices. Review the update again.')
+        apply_selections(root / 'result', root / 'local', root / 'incoming', policies)
+        apply_selections(root / 'history', root / 'committed', root / 'incoming', policies)
         return {'tree': write_tree(repo, root / 'result'), 'history_tree': write_tree(repo, root / 'history'),
                 'checkout_tree': capture_tree(repo),
-                'conflicts': conflicts}
+                'conflicts': conflicts, 'selections': rows}
 
 
 def capture_tree(repo):

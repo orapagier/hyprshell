@@ -314,6 +314,73 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(shell.read_bytes(), original)
 
 
+class UpdateSelectionTests(unittest.TestCase):
+    def setUp(self):
+        import update_merge
+        self.merge = update_merge
+        temp = tempfile.TemporaryDirectory(); self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        for name in ('base', 'local', 'incoming', 'result'):
+            (self.root / name).mkdir()
+
+    def put(self, folder, name, value):
+        path = self.root / folder / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(value)
+
+    def select(self, choices=None):
+        rows, policies = self.merge.selections(self.root / 'base', self.root / 'local', self.root / 'incoming', choices or {})
+        skipped = {p for paths, _ in policies for p in paths}
+        conflicts = self.merge.merge_directories(self.root / 'base', self.root / 'local', self.root / 'incoming', self.root / 'result', choices or {}, skipped)
+        self.merge.apply_selections(self.root / 'result', self.root / 'local', self.root / 'incoming', policies)
+        return rows, conflicts
+
+    def test_unchanged_local_preferences_do_not_adopt_new_developer_taste(self):
+        path = 'config/hyprshell/settings.json'
+        for folder, value in [('base', 'original taste'), ('local', 'original taste'), ('incoming', 'new taste')]:
+            self.put(folder, path, value)
+        self.put('incoming', 'config/quickshell/new.qml', 'new feature')
+        rows, conflicts = self.select()
+        self.assertEqual(conflicts, [])
+        self.assertEqual(rows[0]['choice'], 'local')
+        self.assertEqual((self.root / 'result' / path).read_text(), 'original taste')
+        self.assertEqual((self.root / 'result/config/quickshell/new.qml').read_text(), 'new feature')
+
+    def test_generated_files_follow_selected_category_and_other_preferences_stay_local(self):
+        for name in ('behavior.json', 'behavior.lua', 'theme.json'):
+            for folder in ('base', 'local', 'incoming'):
+                self.put(folder, 'config/hyprshell/' + name, folder)
+        rows, _ = self.select({'config/hyprshell/behavior.json': 'github'})
+        for name in ('behavior.json', 'behavior.lua'):
+            self.assertEqual((self.root / 'result/config/hyprshell' / name).read_text(), 'incoming')
+        self.assertEqual((self.root / 'result/config/hyprshell/theme.json').read_text(), 'local')
+        self.assertEqual(len(rows), 2)
+
+    def test_optional_config_can_be_kept_even_without_a_conflict(self):
+        path = 'config/kitty/kitty.conf'
+        self.put('base', path, 'old'); self.put('local', path, 'old'); self.put('incoming', path, 'new')
+        rows, _ = self.select({'config/kitty/kitty.conf': 'local'})
+        self.assertFalse(rows[0]['preference'])
+        self.assertEqual((self.root / 'result' / path).read_text(), 'old')
+
+    def test_optional_config_default_retains_local_edits(self):
+        path = 'config/mpv/mpv.conf'
+        self.put('base', path, 'old'); self.put('local', path, 'custom'); self.put('incoming', path, 'new')
+        rows, _ = self.select()
+        self.assertEqual(rows[0]['choice'], 'local')
+        self.assertEqual((self.root / 'result' / path).read_text(), 'custom')
+
+    def test_developer_deletion_requires_opt_in_for_preferences(self):
+        path = 'config/hyprshell/theme.json'
+        self.put('base', path, 'old'); self.put('local', path, 'mine')
+        rows, _ = self.select()
+        self.assertTrue((self.root / 'result' / path).exists())
+        # Fresh output, as used by every actual review.
+        shutil.rmtree(self.root / 'result'); (self.root / 'result').mkdir()
+        self.select({path: 'github'})
+        self.assertFalse((self.root / 'result' / path).exists())
+
+
 class GitUpdateTests(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory(); self.addCleanup(temp.cleanup)
@@ -526,7 +593,7 @@ class GitUpdateTests(unittest.TestCase):
         self.assertEqual(self.git('config', 'branch.personal.merge'), 'refs/heads/personal')
         self.assertEqual(github_update.git(fork, 'rev-parse', 'personal'), self.base)
 
-    def test_live_settings_conflict_displays_values_and_applies_reviewed_choice(self):
+    def test_live_settings_preserved_by_default_and_developer_choice_is_reviewed(self):
         self.git('reset', '--hard', self.target)
         source = self.repo / 'config/hyprshell/settings.json'
         source.parent.mkdir(parents=True)
@@ -545,8 +612,9 @@ class GitUpdateTests(unittest.TestCase):
         local = copy.deepcopy(defaults); local['bar']['height'] = 47
         live.write_text(json.dumps(local, indent=2) + '\n')
         review = github_update.preview(self.repo)
-        self.assertFalse(review['ready'])
-        conflict = next(c for c in review['conflicts'] if c['path'] == 'config/hyprshell/settings.json')
+        self.assertTrue(review['ready'])
+        conflict = next(c for c in review['selections'] if c['path'] == 'config/hyprshell/settings.json')
+        self.assertEqual(conflict['choice'], 'local')
         self.assertEqual(json.loads(conflict['local'])['bar']['height'], 47)
         self.assertEqual(json.loads(conflict['github'])['bar']['height'], 43)
         self.assertIn('-    "height": 47', conflict['diff'])
@@ -634,6 +702,30 @@ class GitUpdateTests(unittest.TestCase):
         self.assertEqual(live.read_text(), '// local')
         self.assertIn('shell.qml', self.git('diff', '--name-only'))
         self.assertEqual(self.git('diff', '--cached', '--name-only'), '')
+
+    def test_skip_nonconflicting_optional_config_applies_core_update_and_records_choice(self):
+        self.git('reset', '--hard', self.target)
+        optional = self.repo / 'config/kitty/kitty.conf'
+        optional.parent.mkdir(parents=True)
+        optional.write_text('font_size 14\n')
+        self.git('add', '.'); self.git('commit', '-m', 'Add optional terminal config'); self.git('push')
+        incoming = self.git('rev-parse', 'HEAD')
+        self.git('reset', '--hard', self.base)
+        review = github_update.preview(self.repo)
+        row = next(r for r in review['selections'] if r['path'] == 'config/kitty/kitty.conf')
+        self.assertEqual(row['choice'], 'github')
+        self.assertTrue(review['ready'])
+        selected = github_update.preview(self.repo, {row['path']: 'local'}, review['token'])
+        def install(candidate, **kwargs):
+            self.assertFalse((candidate / 'config/kitty/kitty.conf').exists())
+            self.assertEqual((candidate / 'config/quickshell/shell.qml').read_text(), '// new')
+            return {'backup': ''}
+        with patch.object(deployment, 'install', side_effect=install):
+            github_update.apply(self.repo, selected['token'])
+        self.assertFalse(optional.exists())
+        self.assertEqual((self.repo / 'config/quickshell/shell.qml').read_text(), '// new')
+        self.assertEqual(self.git('rev-parse', 'HEAD^2'), incoming)
+        self.assertEqual(self.git('status', '--porcelain'), '')
 
     def test_choices_are_bound_to_review_and_reject_stale_or_unknown_paths(self):
         live = self.root / 'config/quickshell/shell.qml'; live.write_text('// local')

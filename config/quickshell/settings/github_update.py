@@ -148,7 +148,7 @@ def preview(repo, choices=None, previous=None):
             notes = candidate / 'CHANGELOG.md'
             result = {'ok': True, 'ready': not blockers and not unresolved and incoming,
                       'message': 'No new updates from the developer’s GitHub repository.' if not incoming else ('Choose which version to keep for each conflict.' if unresolved else 'Review the developer’s updates and compatibility results before syncing.'),
-                      'conflicts': combined['conflicts'],
+                      'conflicts': combined['conflicts'], 'selections': combined['selections'],
                       'repository': selection['url'], 'branch': selection['branch'], 'base': base, 'target': target,
                       'commits': commits, 'changes': changes, 'notes': notes.read_text()[:12000] if notes.exists() else '',
                       'packagesAdded': sorted(set(wanted) - set(old)), 'packagesRemoved': sorted(set(old) - set(wanted)),

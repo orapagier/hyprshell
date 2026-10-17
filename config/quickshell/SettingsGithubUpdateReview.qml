@@ -51,11 +51,27 @@ Popup {
         next[path] = value;
         conflictChoices = next;
     }
-    readonly property bool choicesComplete: {
-        let rows = review.conflicts || [];
-        return rows.length > 0 && rows.every(row => conflictChoices[row.path] === "local" || conflictChoices[row.path] === "github");
+    readonly property var reviewRows: (review.selections || []).concat(review.conflicts || [])
+    function choiceFor(row) {
+        return conflictChoices[row.path] === undefined ? row.choice : conflictChoices[row.path];
     }
-    readonly property bool choicesReviewed: (review.conflicts || []).every(row => row.choice && row.choice === conflictChoices[row.path])
+    function reviewedChoices() {
+        let values = ({});
+        for (let row of reviewRows) values[row.path] = choiceFor(row);
+        return values;
+    }
+    function choosePreferences(value) {
+        let next = Object.assign({}, conflictChoices);
+        for (let row of review.selections || []) {
+            if (row.preference) next[row.path] = value;
+        }
+        conflictChoices = next;
+    }
+    readonly property bool choicesComplete: {
+        let rows = reviewRows;
+        return rows.length > 0 && rows.every(row => choiceFor(row) === "local" || choiceFor(row) === "github");
+    }
+    readonly property bool choicesReviewed: reviewRows.every(row => row.choice && row.choice === choiceFor(row))
     onOpened: { checkAfterStatus = true; run(["--status"]); }
     contentItem: ColumnLayout {
         spacing: 12
@@ -107,7 +123,7 @@ Popup {
                     add("Packages no longer required (not automatically removed)", r.packagesRemoved);
                     add("Changed files", r.changes);
                     if (r.notes) sections.push("Release notes\n" + r.notes);
-                    sections.push("Local changes are preserved where they combine with the update. Choose the full file to keep for each conflict, then review your choices. Checking and updating do not commit your unsynced edits. Log out and back in after completion.");
+                    sections.push("Personal preferences stay yours unless you choose the developer’s version. Independent configurations can be selected below. Core shell files update together; conflicting core files still require a choice. Review any changed choices before syncing. Checking and updating do not commit your unsynced edits. Log out and back in after completion.");
                     return sections.join("\n\n");
                 }
             }
@@ -139,14 +155,14 @@ Popup {
                     id: dependencyApproval
                     objectName: "githubDependencyApproval"
                     text: "I allow this package installation" + (dialog.review.dependencyFullUpgrade ? " and full system upgrade." : ".")
-                    enabled: !dialog.busy && !dialog.dependenciesStarted && dialog.review.canInstallDependencies === true
+                    enabled: !dialog.busy && !dialog.dependenciesStarted && dialog.review.canInstallDependencies === true && dialog.choicesReviewed
                     palette.windowText: Style.Theme.text
                     Accessible.name: text
                 }
                 SettingsButton {
                     objectName: "githubDependencyInstall"
                     text: dialog.installingDependencies ? "Installing…" : "Install dependencies"
-                    enabled: !dialog.busy && !dialog.dependenciesStarted && dialog.review.canInstallDependencies === true && dependencyApproval.checked
+                    enabled: !dialog.busy && !dialog.dependenciesStarted && dialog.review.canInstallDependencies === true && dialog.choicesReviewed && dependencyApproval.checked
                     onClicked: dialog.run(["--install-dependencies", dialog.review.token, "--acknowledge"])
                 }
                 BusyIndicator { running: dialog.installingDependencies; visible: running }
@@ -163,15 +179,40 @@ Popup {
                     }
                 }
             }
+            SettingsCard {
+                Layout.fillWidth: true
+                visible: (dialog.review.selections || []).length > 0
+                title: "Personal preferences and configuration updates"
+                subtitle: "Keep my preferences is the default. Choose individual categories below, or adopt all developer preferences. Generated files follow their source. Display choices depend on your hardware. Core shell files update together."
+                RowLayout {
+                    SettingsButton {
+                        objectName: "githubKeepPreferences"
+                        text: "Keep my preferences"
+                        enabled: !dialog.busy
+                        onClicked: dialog.choosePreferences("local")
+                    }
+                    SettingsButton {
+                        objectName: "githubUsePreferences"
+                        text: "Use developer preferences"
+                        enabled: !dialog.busy
+                        onClicked: dialog.choosePreferences("github")
+                    }
+                }
+            }
             Repeater {
-                model: dialog.review.conflicts || []
+                model: dialog.reviewRows
                 delegate: ColumnLayout {
                     id: conflict
                     required property var modelData
                     Layout.fillWidth: true
                     spacing: 8
-                    Label { text: conflict.modelData.path; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: Style.Theme.accentText; Layout.fillWidth: true }
-                    Label { text: "This choice keeps the entire file, including a deletion."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                    Label { text: conflict.modelData.label || conflict.modelData.path; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: Style.Theme.accentText; Layout.fillWidth: true }
+                    Label { text: (conflict.modelData.preference ? "Personal preference. " : "") + "This choice keeps the entire file or category, including deletions. Files: " + (conflict.modelData.files || [conflict.modelData.path]).join(", "); color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                    CheckBox {
+                        id: comparison
+                        text: "Show comparison"
+                        palette.windowText: Style.Theme.text
+                    }
                     RowLayout {
                         Layout.fillWidth: true
                         Repeater {
@@ -184,18 +225,19 @@ Popup {
                                 CheckBox {
                                     objectName: version.modelData === "local" ? "githubConflictKeepLocal" : "githubConflictUseDeveloper"
                                     text: version.modelData === "local" ? "Keep your local version" : "Use developer’s version"
-                                    checked: dialog.conflictChoices[conflict.modelData.path] === version.modelData
+                                    checked: dialog.choiceFor(conflict.modelData) === version.modelData
                                     enabled: !dialog.busy
                                     palette.windowText: Style.Theme.text
                                     Accessible.name: text + " for " + conflict.modelData.path
                                     onClicked: dialog.choose(conflict.modelData.path, checked ? version.modelData : "")
                                 }
                                 ScrollView {
+                                    visible: comparison.checked
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 160
                                     clip: true
                                     TextArea {
-                                        text: conflict.modelData[version.modelData]
+                                        text: conflict.modelData[version.modelData] || ""
                                         textFormat: TextEdit.PlainText
                                         readOnly: true
                                         selectByMouse: true
@@ -208,10 +250,12 @@ Popup {
                         }
                     }
                     Label {
+                        visible: comparison.checked
                         text: "Differences (− local, + developer)"
                         color: Style.Theme.text
                     }
                     ScrollView {
+                        visible: comparison.checked
                         Layout.fillWidth: true
                         Layout.preferredHeight: 140
                         clip: true
@@ -232,11 +276,11 @@ Popup {
             SettingsButton {
                 objectName: "githubConflictReview"
                 text: "Review choices"
-                visible: (dialog.review.conflicts || []).length > 0
+                visible: dialog.reviewRows.length > 0
                 enabled: !dialog.busy && dialog.choicesComplete
                 onClicked: {
                     acknowledgement.checked = false;
-                    dialog.run(["--resolve", dialog.review.token, "--choices-json", JSON.stringify(dialog.conflictChoices)]);
+                    dialog.run(["--resolve", dialog.review.token, "--choices-json", JSON.stringify(dialog.reviewedChoices())]);
                 }
             }
             }

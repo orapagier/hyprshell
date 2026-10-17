@@ -57,6 +57,39 @@ Item {
             dialog.review = ({});
             acknowledgement.checked = false;
         }
+        function test_preferencesDefaultToLocalAndBulkChoicesRequireNewReview() {
+            let confirm = find(dialog.contentItem, "githubUpdateConfirm");
+            let acknowledgement = find(dialog.contentItem, "githubUpdateAcknowledgement");
+            dialog.conflictChoices = ({});
+            let rows = [
+                {path: "config/hyprshell/settings.json", label: "Desktop and panels", preference: true, choice: "local"},
+                {path: "config/hyprshell/theme.json", label: "Theme", preference: true, choice: "local"},
+                {path: "config/kitty/kitty.conf", preference: false, choice: "github"}
+            ];
+            dialog.review = {ready: true, token: "prefs", selections: rows};
+            verify(dialog.choicesComplete);
+            verify(dialog.choicesReviewed);
+            acknowledgement.checked = true;
+            verify(confirm.enabled);
+            dialog.choosePreferences("github");
+            verify(!dialog.choicesReviewed);
+            verify(!confirm.enabled);
+            compare(dialog.choiceFor(rows[2]), "github");
+            let reviewButton = find(dialog.contentItem, "githubConflictReview");
+            verify(reviewButton.enabled);
+            requests.clear(); reviewButton.clicked();
+            let args = requests.signalArguments[0][0];
+            compare(args[0], "--resolve");
+            let choices = JSON.parse(args[3]);
+            compare(choices[rows[0].path], "github");
+            compare(choices[rows[1].path], "github");
+            compare(choices[rows[2].path], "github");
+            dialog.choosePreferences("local");
+            verify(dialog.choicesReviewed);
+            dialog.review = ({});
+            dialog.conflictChoices = ({});
+            acknowledgement.checked = false;
+        }
         function test_dependencyInstallationNeedsSeparateConsentAndRecheck() {
             dialog.dependenciesStarted = false;
             dialog.review = {ready: false, token: "dependencies", base: "000000000000", target: "111111111111",
