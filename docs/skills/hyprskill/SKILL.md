@@ -13,6 +13,45 @@ classic window taskbar. Legacy `bar` settings, `Bar.qml`, IPC and Alt+T still
 target Hyprpane. Interpret older “top bar”/“topbar” references as Hyprpane;
 use context to distinguish historical hyprbar from the new taskbar.
 
+## Mandatory automatic checkpoints and rollback
+
+For **every task that changes this machine or Hyprshell**, create and verify a
+recoverable checkpoint **before the first mutation**, without waiting for the
+user to request a backup or asking permission for routine local backups. This
+applies to all agents using this skill, including delegated agents. Read-only
+investigations need no checkpoint. Successful Git commits do not replace backups:
+Git misses live files, untracked files, pre-existing edits, and runtime state.
+
+- Read [Checkpoint and rollback procedure](references/rollback.md) before making
+  changes. Use the bundled `scripts/checkpoint.py` for ordinary files. Capture
+  each affected checkout and installed file independently, including planned new
+  paths, generated outputs, and any files changed indirectly by a command.
+- Record the task, baseline Git status/diffs, checkpoint location, validation
+  plan, and exact recovery commands in the checkpoint directory. For service,
+  package, database, privileged, or runtime changes, also capture the relevant
+  prior state and use a suitable native backup/recovery method. A file checkpoint
+  is not a whole-system snapshot. If a required recovery point cannot be created
+  and verified, stop the dependent mutation and explain the concrete limitation.
+- Expand the checkpoint before touching newly discovered paths. Keep the original
+  pre-task baseline; never overwrite it with a later or already broken version.
+  Coordinate ownership when delegating so agents do not back up or restore over
+  one another's edits.
+- Record the resulting file state immediately after each owned edit batch, before
+  validation or reload. Validate before activation, then check affected live
+  behavior. If the change fails, restore only this task's changes and validate
+  recovery; do not leave the machine in a known broken state. Stop repeated
+  activation attempts once recovery is needed. If restoration conflicts with
+  newer work, preserve both versions and reconcile only your own changes.
+- Keep checkpoints after success and failure, outside the checkout and ordinary
+  cleanup targets. Do not prune them automatically. In the final response give
+  the checkpoint location, copy changes, checks, and a usable rollback command;
+  report partial recovery or checks that could not run precisely. Routine recovery
+  of your own failed change is part of the task; destructive or unrelated actions
+  still require their existing authorization.
+
+These are standing instructions for agents that load Hyprskill, not a filesystem
+hook or a guarantee that an agent bypassing the skill will make backups.
+
 ## Mandatory task scope and feature preservation
 
 These rules apply to every agent using Hyprskill, including Codex, Claude Code,
