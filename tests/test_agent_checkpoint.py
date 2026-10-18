@@ -5,6 +5,8 @@ import io
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -167,6 +169,65 @@ class AgentCheckpointTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'newer edits'):
             checkpoint.restore(undo, apply=True)
         self.assertEqual(other.read_text(), 'someone else')
+
+    def test_listing_empty_history_does_not_create_state(self):
+        self.assertEqual(checkpoint.backups(), [])
+        self.assertFalse(self.state.exists())
+
+    def test_list_cli_returns_shared_metadata_without_captured_contents(self):
+        folder = self.create()
+        self.live.write_text('secret current content')
+        checkpoint.record_after(folder)
+        result = subprocess.run(
+            [sys.executable, str(Path(SPEC.origin)), 'list', '--json'],
+            capture_output=True, text=True, check=True, cwd='/tmp')
+        rows = json.loads(result.stdout)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['id'], folder.name)
+        self.assertEqual(rows[0]['paths'], [str(self.live)])
+        self.assertTrue(rows[0]['recorded_after'])
+        self.assertIsNone(rows[0]['error'])
+        self.assertNotIn('secret current content', result.stdout)
+        self.assertNotIn('data', rows[0])
+        self.assertEqual(self.live.read_text(), 'secret current content')
+
+    def test_legacy_and_damaged_backups_remain_discoverable(self):
+        folder = self.create()
+        manifest = folder / 'before.json'
+        data = json.loads(manifest.read_text())
+        data.pop('created_at')
+        manifest.write_text(json.dumps(data))
+        damaged = folder.parent / 'damaged'
+        damaged.mkdir()
+        (damaged / 'before.json').write_text('{broken')
+        malformed = folder.parent / 'malformed'
+        malformed.mkdir()
+        (malformed / 'before.json').write_text(json.dumps(
+            {'version': 1, 'task': 'invalid files', 'files': ['not a mapping']}))
+        rows = checkpoint.backups()
+        self.assertEqual({row['id'] for row in rows}, {folder.name, 'damaged', 'malformed'})
+        legacy = next(row for row in rows if row['id'] == folder.name)
+        self.assertIsNotNone(legacy['created_at'])
+        self.assertFalse(legacy['recorded_after'])
+        self.assertIsNone(legacy['error'])
+        self.assertTrue(next(row for row in rows if row['id'] == 'damaged')['error'])
+        self.assertTrue(next(row for row in rows if row['id'] == 'malformed')['error'])
+
+    def test_list_and_restore_selected_version_does_not_touch_another_task(self):
+        folder = self.create()
+        self.live.write_text('mine')
+        checkpoint.record_after(folder)
+        other = self.root / 'other'
+        other.write_text('other original')
+        newer = self.create(other)
+        other.write_text('other changed')
+        checkpoint.record_after(newer)
+        rows = checkpoint.backups()
+        self.assertEqual(rows[0]['id'], newer.name)
+        selected = next(row for row in rows if row['id'] == folder.name)
+        checkpoint.restore(Path(selected['checkpoint']), apply=True)
+        self.assertEqual(self.live.read_bytes(), b'dirty pre-existing work\x00\xff')
+        self.assertEqual(other.read_text(), 'other changed')
 
 
 if __name__ == '__main__':

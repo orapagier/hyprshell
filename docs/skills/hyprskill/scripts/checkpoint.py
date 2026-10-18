@@ -77,7 +77,10 @@ def create(label, paths):
     os.chmod(root, 0o700)
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ-')
     folder = Path(tempfile.mkdtemp(prefix=stamp, dir=root))
-    write_json(folder / 'before.json', {'version': 1, 'task': label, 'files': files})
+    write_json(folder / 'before.json', {
+        'version': 1, 'task': label,
+        'created_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'files': files})
     # Read back every byte before declaring the checkpoint ready.
     load(folder)
     return folder
@@ -85,7 +88,10 @@ def create(label, paths):
 
 def load(folder):
     data = json.loads((folder / 'before.json').read_text())
-    if data['version'] != 1 or not data['files']:
+    if (not isinstance(data, dict) or data.get('version') != 1 or
+            not isinstance(data.get('files'), dict) or not data['files'] or
+            not isinstance(data.get('task'), str) or
+            ('created_at' in data and not isinstance(data['created_at'], str))):
         raise ValueError('Unsupported or empty checkpoint')
     for path, entry in data['files'].items():
         if not Path(path).is_absolute() or canonical(path) != Path(path):
@@ -98,6 +104,31 @@ def record_after(folder):
     before = load(folder)
     after = {p: capture(p) for p in before['files']}
     write_json(folder / 'after.json', after)
+
+
+def backups():
+    """Return metadata only, including damaged checkpoints that need inspection."""
+    root = Path(os.environ.get('XDG_STATE_HOME') or Path.home() / '.local/state')
+    root = root / 'hyprshell/agent-backups'
+    if not root.exists():
+        return []
+    result = []
+    for folder in root.iterdir():
+        if folder.is_symlink() or not folder.is_dir():
+            continue
+        manifest = folder / 'before.json'
+        row = {'id': folder.name, 'checkpoint': str(folder),
+               'created_at': None, 'task': None, 'paths': [],
+               'recorded_after': (folder / 'after.json').is_file(), 'error': None}
+        try:
+            data = load(folder)
+            row.update(task=data['task'], paths=list(data['files']),
+                       created_at=data.get('created_at') or datetime.datetime.fromtimestamp(
+                           manifest.stat().st_mtime, datetime.timezone.utc).isoformat())
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            row['error'] = str(exc)
+        result.append(row)
+    return sorted(result, key=lambda row: (row['created_at'] or '', row['id']), reverse=True)
 
 
 def replace(path, entry):
@@ -162,6 +193,8 @@ def restore(folder, apply=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
+    listing = commands.add_parser('list', help='list shared backups without file contents')
+    listing.add_argument('--json', action='store_true', help='machine-readable metadata')
     new = commands.add_parser('create')
     new.add_argument('--label', required=True)
     new.add_argument('paths', nargs='+')
@@ -172,7 +205,19 @@ def main():
     recovery.add_argument('--apply', action='store_true')
     args = parser.parse_args()
     try:
-        if args.command == 'create':
+        if args.command == 'list':
+            rows = backups()
+            if args.json:
+                print(json.dumps(rows, indent=2))
+            elif not rows:
+                print('No Hyprskill agent backups found.')
+            else:
+                for row in rows:
+                    print(f"{row['id']}  {row['created_at'] or 'unknown time'}  "
+                          f"{len(row['paths'])} paths  {json.dumps(row['task'])}")
+                    if row['error']:
+                        print(f"  Unavailable: {json.dumps(row['error'])}")
+        elif args.command == 'create':
             print(create(args.label, args.paths))
         elif args.command == 'record-after':
             record_after(args.checkpoint)

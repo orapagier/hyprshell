@@ -9,8 +9,19 @@ hl.window_rule({name = "hyprshell-workspace-float-3", match = {workspace = "3"},
 hl.window_rule({name = "hyprshell-workspace-float-4", match = {workspace = "4"}, float = true})
 local floatingWorkspaces = {[3] = true, [4] = true}
 local function floatWorkspaceWindow(w)
-    if w and w.mapped and w.workspace and floatingWorkspaces[w.workspace.id] and not w.floating and w.fullscreen == 0 then
-        hl.dispatch(hl.dsp.window.float({ window = w, action = "set" }))
+    if w and w.mapped and w.workspace and floatingWorkspaces[w.workspace.id] and w.fullscreen == 0 then
+        if not w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "set" })) end
+        local m = w.monitor
+        if not m then return end
+        local width, height = m.width, m.height
+        if m.transform % 2 == 1 then width, height = height, width end
+        local r = m.reserved
+        local border = hl.get_config("general.border_size") or 0
+        width = math.floor(width / m.scale - r.left - r.right - 2 * border)
+        height = math.floor(height / m.scale - r.top - r.bottom - 2 * border)
+        if width < 1 or height < 1 then return end
+        hl.dispatch(hl.dsp.window.resize({ window = w, x = width, y = height, relative = false }))
+        hl.dispatch(hl.dsp.window.move({ window = w, x = m.x + r.left + border, y = m.y + r.top + border, relative = false }))
     end
 end
 hl.on("window.open", floatWorkspaceWindow)

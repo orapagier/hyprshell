@@ -114,6 +114,61 @@ assert(#actions == 3)
         result = subprocess.run(['lua', '-'], input=harness, text=True, capture_output=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_floating_windows_fill_monitor_work_area(self):
+        data = self.sample()
+        data['workspaces'][0]['floating'] = True
+        harness = r'''local callbacks, actions = {}, {}
+hl = {
+    config = function() end, workspace_rule = function() end, window_rule = function() end,
+    on = function(name, fn) callbacks[name] = fn end,
+    get_config = function(key) assert(key == "general.border_size"); return 2 end,
+    dsp = {window = {
+        float = function(a) a.kind = "float"; return a end,
+        resize = function(a) a.kind = "resize"; return a end,
+        move = function(a) a.kind = "move"; return a end,
+    }},
+    dispatch = function(a)
+        table.insert(actions, a)
+        if a.kind == "float" then a.window.floating = true end
+    end,
+}
+''' + behavior.render(data) + r'''
+-- A window already floated by its map-time rule must still be fitted.
+local m = {width=3840, height=2160, scale=2, transform=0, x=-1920, y=100,
+           reserved={left=40, right=30, top=50, bottom=60}}
+local w = {mapped=true, workspace={id=2}, floating=true, fullscreen=0, monitor=m}
+hl.get_windows = function() return {w} end
+callbacks["window.open"](w)
+assert(#actions == 2)
+assert(actions[1].kind == "resize" and actions[1].window == w)
+assert(actions[1].x == 1846 and actions[1].y == 966 and not actions[1].relative)
+assert(actions[2].kind == "move" and actions[2].window == w)
+assert(actions[2].x == -1878 and actions[2].y == 152 and not actions[2].relative)
+-- Rotation, fractional scale and a different panel edge on another output.
+actions = {}
+m.width, m.height, m.scale, m.transform, m.x, m.y = 1920, 1080, 1.25, 1, 1920, -100
+m.reserved = {left=0, right=32, top=0, bottom=0}
+w.floating = false
+callbacks["window.move_to_workspace"](w)
+assert(#actions == 3 and actions[1].kind == "float")
+assert(actions[2].x == 828 and actions[2].y == 1532)
+assert(actions[3].x == 1922 and actions[3].y == -98)
+-- Reload fits existing windows; fullscreen, closed and other workspaces are untouched.
+actions = {}
+callbacks["config.reloaded"]()
+assert(#actions == 2)
+actions = {}
+w.fullscreen = 2
+callbacks["window.fullscreen"](w)
+w.fullscreen, w.workspace.id = 0, 3
+callbacks["window.open"](w)
+w.workspace.id, w.mapped = 2, false
+callbacks["window.open"](w)
+assert(#actions == 0)
+'''
+        result = subprocess.run(['lua', '-'], input=harness, text=True, capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_pseudotiling_schema_roundtrip_and_conflicting_modes(self):
         data = self.sample()
         self.assertNotIn('pseudotiledWorkspaces', behavior.render(data))

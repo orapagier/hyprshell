@@ -55,6 +55,21 @@ answer, with any necessary reload steps. Do not automatically prune checkpoints.
 
 ## Rollback
 
+Use `/hypr-rollback` in Claude Code or OpenCode, or `$hypr-rollback` in Codex
+(`/prompts:hypr-rollback` is also installed for Codex versions supporting legacy
+custom prompts). The shared skill lists dated task checkpoints, lets the user
+select by stable ID, previews the affected files, and restores that selection.
+No arguments means browse only; it never silently restores the newest backup.
+Append a checkpoint ID to request restoration directly. These are per-task file
+checkpoints, not complete machine versions. Older overlapping changes can block
+restoration; do not overwrite them or silently roll back intervening tasks.
+
+To list backups directly, including their exact affected paths without contents:
+
+```bash
+python3 "$helper" list --json
+```
+
 Preview, then apply when recovering your failed change or when asked to roll back:
 
 ```bash

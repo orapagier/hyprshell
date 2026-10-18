@@ -52,6 +52,12 @@ Git misses live files, untracked files, pre-existing edits, and runtime state.
 These are standing instructions for agents that load Hyprskill, not a filesystem
 hook or a guarantee that an agent bypassing the skill will make backups.
 
+For user-selected rollback, use the sibling [hypr-rollback skill](../hypr-rollback/SKILL.md).
+Claude Code and OpenCode expose `/hypr-rollback`; Codex exposes `$hypr-rollback`
+and a compatibility `/prompts:hypr-rollback` command. All share the same backup
+history. Run `python3 <checkout>/tools/install_hyprskill.py` to install the entry
+points without replacing existing custom skills or commands.
+
 ## Mandatory task scope and feature preservation
 
 These rules apply to every agent using Hyprskill, including Codex, Claude Code,
