@@ -74,6 +74,11 @@ ShellRoot {
     NotificationPopups { inbox: notificationInbox }
     Tray { id: tray }
     WallpaperWatcher { id: wallpapers }
+    SystemMonitor {
+        id: systemMonitor
+        services: desktopServices
+        wallpaperSources: wallpapers.sources
+    }
     Component.onCompleted: updateClock()
     Timer { interval: 1000; running: true; repeat: true; onTriggered: shell.updateClock() }
     Variants {
@@ -310,6 +315,7 @@ ShellRoot {
     }
     IpcHandler {
         target: "bar"
+        function toggleSystemMonitor(): void { systemMonitor.shown = !systemMonitor.shown; }
         function restoreDesktop(): void { applications.desktop.run('restore'); }
         function ready(): bool {
             if (panels.instances.length === 0) return false;
