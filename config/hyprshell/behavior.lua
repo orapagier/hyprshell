@@ -3,8 +3,11 @@ hl.config({general = {resize_on_border = true}})
 hl.workspace_rule({workspace = "1", persistent = false})
 hl.workspace_rule({workspace = "2", persistent = false})
 hl.workspace_rule({workspace = "5", persistent = false})
-hl.window_rule({name = "hyprshell-workspace-float-1", match = {workspace = "1"}, float = true})
-local floatingWorkspaces = {[1] = true}
+hl.workspace_rule({workspace = "3", persistent = false})
+hl.workspace_rule({workspace = "4", persistent = false})
+hl.window_rule({name = "hyprshell-workspace-float-3", match = {workspace = "3"}, float = true})
+hl.window_rule({name = "hyprshell-workspace-float-4", match = {workspace = "4"}, float = true})
+local floatingWorkspaces = {[3] = true, [4] = true}
 local function floatWorkspaceWindow(w)
     if w and w.mapped and w.workspace and floatingWorkspaces[w.workspace.id] and not w.floating and w.fullscreen == 0 then
         hl.dispatch(hl.dsp.window.float({ window = w, action = "set" }))

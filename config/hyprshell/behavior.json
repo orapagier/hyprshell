@@ -9,7 +9,8 @@
       "name": "",
       "layout": "inherit",
       "persistent": false,
-      "floating": true
+      "floating": false,
+      "pseudotiled": false
     },
     {
       "id": 2,
@@ -26,6 +27,22 @@
       "persistent": false,
       "pseudotiled": true,
       "floating": false
+    },
+    {
+      "id": 3,
+      "name": "",
+      "layout": "inherit",
+      "persistent": false,
+      "floating": true,
+      "pseudotiled": false
+    },
+    {
+      "id": 4,
+      "name": "",
+      "layout": "inherit",
+      "persistent": false,
+      "floating": true,
+      "pseudotiled": false
     }
   ],
   "rules": []
