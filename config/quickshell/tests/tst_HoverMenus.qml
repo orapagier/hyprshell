@@ -72,12 +72,12 @@ Item {
             verify(popover.bodyX >= 12);
             compare(popover.bodyX, expectedBodyX(bar.side(data.menu)));
             let trigger = bar.menuRect(data.menu);
-            compare(popover.neckY, trigger.y + trigger.height - 1);
+            compare(popover.neckY, trigger.y + trigger.height);
             compare(popover.tipX, trigger.x + trigger.width / 2);
             if (data.menu === "launcher") {
                 verify(findChild(popover, "menuFunnel").visible);
                 tryCompare(popover, "fluidProgress", 1, 800);
-                compare(popover.bodyY, popover.neckY + 34);
+                compare(popover.bodyY, popover.neckY + 33);
             }
         }
         function test_pointerCanCrossBridgeAndUseMenu() {

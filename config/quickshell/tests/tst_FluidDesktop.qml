@@ -45,7 +45,9 @@ TestCase {
         });
         let halfWidth = (popover.vertical ? 28 : 60) / 2;
         compare(popover.attachmentHalfWidth, halfWidth);
-        verify(popover.neckHalfWidth > 0 && popover.neckHalfWidth < halfWidth);
+        verify(popover.neckHalfWidth > 0 && popover.neckHalfWidth < halfWidth * 0.4);
+        compare(popover.attachmentRadius, 14);
+        compare(popover.attachmentY, popover.neckY - 14);
         let footX = popover.tipX, footY = popover.neckY;
         popover.opened = true;
         tryVerify(() => popover.fluidProgress > 0 && popover.fluidProgress < 1);

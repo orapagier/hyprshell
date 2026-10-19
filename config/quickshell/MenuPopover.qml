@@ -93,14 +93,20 @@ Item {
     readonly property real shapeY: edge === "bottom" ? height - bodyBottom : edge === "right" ? width - bodyRight : vertical ? bodyX : bodyY
     readonly property real shapeWidth: vertical ? bodyHeight : bodyWidth
     readonly property real shapeHeight: vertical ? bodyWidth : bodyHeight
-    readonly property real neckY: edge === "bottom" ? height - triggerRect.y - 1
-        : edge === "right" ? width - triggerRect.x - 1
-        : edge === "left" ? triggerRect.x + triggerRect.width - 1 : triggerRect.y + triggerRect.height - 1
+    readonly property real neckY: edge === "bottom" ? height - triggerRect.y
+        : edge === "right" ? width - triggerRect.x
+        : edge === "left" ? triggerRect.x + triggerRect.width : triggerRect.y + triggerRect.height
     readonly property real tipX: vertical ? triggerRect.y + triggerRect.height / 2 : triggerRect.x + triggerRect.width / 2
     readonly property real attachmentHalfWidth: Math.max(0, (vertical ? triggerRect.height : triggerRect.width) / 2)
-    readonly property real neckHalfWidth: attachmentHalfWidth * 0.52
+    // Cut out the pill's inward rounded edge: the foot touches its silhouette
+    // instead of laying a flat strip across it. Coordinates rotate with the edge.
+    property real triggerRadius: Math.min(triggerRect.width, triggerRect.height) / 2
+    readonly property real attachmentRadius: Math.max(0, Math.min(attachmentHalfWidth,
+        (vertical ? triggerRect.width : triggerRect.height) / 2, triggerRadius))
+    readonly property real attachmentY: neckY - attachmentRadius
+    readonly property real neckHalfWidth: Math.min(12, attachmentHalfWidth * 0.32)
     readonly property real waistX: tipX + 3 * fluidWave
-    readonly property real waistY: neckY + (shapeY - neckY) * 0.4
+    readonly property real waistY: neckY + (shapeY - neckY) * 0.38
     readonly property real shoulder: clamp(tipX, shapeX + 52, shapeX + shapeWidth - 52)
     readonly property bool pointerInside: opened && tracking.hovered && containsPointer(tracking.point.position)
 
@@ -181,15 +187,27 @@ Item {
                     GradientStop { position: 0.23; color: glass.topColor }
                     GradientStop { position: 1; color: glass.bottomColor }
                 }
-                startX: popover.tipX - popover.attachmentHalfWidth; startY: popover.neckY
-                PathLine { x: popover.tipX + popover.attachmentHalfWidth; y: popover.neckY }
+                startX: popover.tipX - popover.attachmentHalfWidth; startY: popover.attachmentY
+                // Follow the two quarter-circles and the straight part of the
+                // pill boundary. The filled connector stays outside the pill.
                 PathCubic {
-                    control1X: popover.tipX + popover.attachmentHalfWidth; control1Y: popover.neckY + 5
-                    control2X: popover.waistX + popover.neckHalfWidth; control2Y: popover.waistY - 3
+                    control1X: popover.tipX - popover.attachmentHalfWidth; control1Y: popover.attachmentY + popover.attachmentRadius * 0.55228475
+                    control2X: popover.tipX - popover.attachmentHalfWidth + popover.attachmentRadius * 0.44771525; control2Y: popover.neckY
+                    x: popover.tipX - popover.attachmentHalfWidth + popover.attachmentRadius; y: popover.neckY
+                }
+                PathLine { x: popover.tipX + popover.attachmentHalfWidth - popover.attachmentRadius; y: popover.neckY }
+                PathCubic {
+                    control1X: popover.tipX + popover.attachmentHalfWidth - popover.attachmentRadius * 0.44771525; control1Y: popover.neckY
+                    control2X: popover.tipX + popover.attachmentHalfWidth; control2Y: popover.attachmentY + popover.attachmentRadius * 0.55228475
+                    x: popover.tipX + popover.attachmentHalfWidth; y: popover.attachmentY
+                }
+                PathCubic {
+                    control1X: popover.tipX + popover.attachmentHalfWidth; control1Y: popover.neckY + 2
+                    control2X: popover.waistX + popover.neckHalfWidth; control2Y: popover.waistY - 8
                     x: popover.waistX + popover.neckHalfWidth; y: popover.waistY
                 }
                 PathCubic {
-                    control1X: popover.waistX + popover.neckHalfWidth; control1Y: popover.waistY + 12
+                    control1X: popover.waistX + popover.neckHalfWidth; control1Y: popover.waistY + 8
                     control2X: popover.shoulder + 12; control2Y: popover.shapeY
                     x: popover.shoulder + 36; y: popover.shapeY
                 }
@@ -204,13 +222,13 @@ Item {
                 PathLine { x: popover.shoulder - 36; y: popover.shapeY }
                 PathCubic {
                     control1X: popover.shoulder - 12; control1Y: popover.shapeY
-                    control2X: popover.waistX - popover.neckHalfWidth; control2Y: popover.waistY + 12
+                    control2X: popover.waistX - popover.neckHalfWidth; control2Y: popover.waistY + 8
                     x: popover.waistX - popover.neckHalfWidth; y: popover.waistY
                 }
                 PathCubic {
-                    control1X: popover.waistX - popover.neckHalfWidth; control1Y: popover.waistY - 3
-                    control2X: popover.tipX - popover.attachmentHalfWidth; control2Y: popover.neckY + 5
-                    x: popover.tipX - popover.attachmentHalfWidth; y: popover.neckY
+                    control1X: popover.waistX - popover.neckHalfWidth; control1Y: popover.waistY - 8
+                    control2X: popover.tipX - popover.attachmentHalfWidth; control2Y: popover.neckY + 2
+                    x: popover.tipX - popover.attachmentHalfWidth; y: popover.attachmentY
                 }
             }
         }
