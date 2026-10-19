@@ -367,6 +367,8 @@
     "enabled": false,
     "command": "hyprlock",
     "backgroundTransparency": 85,
+    "blurSize": 8,
+    "blurPasses": 2,
     "idleMinutes": 5,
     "beforeSleep": true
   },

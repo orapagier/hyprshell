@@ -33,6 +33,8 @@ class LockingTests(unittest.TestCase):
                            ('idleMinutes', -1), ('idleMinutes', 241), ('idleMinutes', 1.5),
                            ('backgroundTransparency', -1), ('backgroundTransparency', 101),
                            ('backgroundTransparency', True), ('backgroundTransparency', 1.5),
+                           ('blurSize', 0), ('blurSize', 21), ('blurSize', True), ('blurSize', 1.5),
+                           ('blurPasses', -1), ('blurPasses', 5), ('blurPasses', True), ('blurPasses', 1.5),
                            ('command', ''), ('command', '"unterminated'),
                            ('command', 'hyprlock\nshutdown'), ('unknown', True)]:
             with self.subTest(key=key, value=value):
@@ -61,19 +63,32 @@ class LockingTests(unittest.TestCase):
             self.assertEqual(backend.lock_theme_args(['hyprlock'], {}, root, root), ['hyprlock'])
             self.assertFalse((root / 'hyprshell/hyprlock.conf').exists())
 
+    def test_blur_is_independent_of_transparency_and_preserves_custom_themes(self):
+        template = (ROOT / 'config/hypr/hyprlock.conf').read_text()
+        for passes in (0, 1, 4):
+            rendered = backend.render_lock_theme(template, 100, 12, passes)
+            self.assertIn('$hyprshell_lock_overlay = rgba(1e1e2e00)', rendered)
+            self.assertIn('$hyprshell_lock_blur_size = 12', rendered)
+            self.assertIn('$hyprshell_lock_blur_passes = ' + str(passes), rendered)
+            self.assertIn('blur_passes = $hyprshell_lock_blur_passes', rendered)
+        custom = '$hyprshell_lock_overlay = rgba(000000ff)\n$hyprshell_lock_field = rgba(000000ff)\nbackground {\n    blur_passes = 3\n}\n'
+        self.assertIn('blur_passes = 3', backend.render_lock_theme(custom, 100, 12, 0))
+
     def test_default_locker_uses_saved_transparency(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'hypr').mkdir()
             (root / 'hypr/hyprlock.conf').write_text((ROOT / 'config/hypr/hyprlock.conf').read_text())
             with patch.dict(os.environ, XDG_CONFIG_HOME=directory, XDG_STATE_HOME=directory), \
-                 patch.object(backend, 'read_locking', return_value={'command': 'hyprlock', 'backgroundTransparency': 100}), \
+                 patch.object(backend, 'read_locking', return_value={'command': 'hyprlock', 'backgroundTransparency': 100, 'blurSize': 12, 'blurPasses': 0}), \
                  patch.object(backend.shutil, 'which', return_value='/bin/hyprlock'), \
                  patch.object(backend, 'supervise_locker', return_value=0) as supervise:
                 self.assertEqual(backend.run_locker(), 0)
                 generated = root / 'hyprshell/hyprlock.conf'
                 self.assertEqual(supervise.call_args.args[0], ['hyprlock', '--config', str(generated)])
                 self.assertIn('$hyprshell_lock_overlay = rgba(1e1e2e00)', generated.read_text())
+                self.assertIn('$hyprshell_lock_blur_size = 12', generated.read_text())
+                self.assertIn('$hyprshell_lock_blur_passes = 0', generated.read_text())
                 self.assertEqual(generated.stat().st_mode & 0o777, 0o600)
 
     def test_user_command_never_becomes_hyprlang(self):

@@ -227,6 +227,8 @@ def validate(data):
             raise ValueError(f'{key} must be boolean')
     number(locking['idleMinutes'], 0, 240, True)
     number(locking['backgroundTransparency'], 0, 100, True)
+    number(locking['blurSize'], 1, 20, True)
+    number(locking['blurPasses'], 0, 4, True)
     lock_argv(locking['command'])
     notifications = data.get('notifications', {})
     if not isinstance(notifications, dict) or set(notifications) - set(result['notifications']):
@@ -545,8 +547,8 @@ def read_power():
     return read_preferences()['power']
 
 
-def render_lock_theme(template, transparency):
-    """Change only the bundled theme's two named color tokens."""
+def render_lock_theme(template, transparency, blur_size=8, blur_passes=2):
+    """Change only the bundled theme's named appearance tokens."""
     number(transparency, 0, 100, True)
     tokens = {
         'hyprshell_lock_overlay': f'rgba(1e1e2e{round(255 * (1 - transparency / 100)):02x})',
@@ -557,6 +559,13 @@ def render_lock_theme(template, transparency):
         if not re.search(pattern, template):
             return None  # A custom theme is never rewritten.
         template = re.sub(pattern, lambda match: '$' + name + ' = ' + value, template)
+    number(blur_size, 1, 20, True)
+    number(blur_passes, 0, 4, True)
+    for name, value in (('hyprshell_lock_blur_size', blur_size),
+                        ('hyprshell_lock_blur_passes', blur_passes)):
+        # Older/custom templates without blur tokens retain their own blur.
+        template = re.sub(r'(?m)^\$' + name + r'\s*=.*$',
+                          lambda match: '$' + name + ' = ' + str(value), template)
     return template
 
 
@@ -566,7 +575,8 @@ def lock_theme_args(args, settings, config, state):
     template = config / 'hypr/hyprlock.conf'
     if not template.is_file():
         return args
-    rendered = render_lock_theme(template.read_text(), settings.get('backgroundTransparency', 85))
+    rendered = render_lock_theme(template.read_text(), settings.get('backgroundTransparency', 85),
+                                 settings.get('blurSize', 8), settings.get('blurPasses', 2))
     if rendered is None:
         return args
     target = state / 'hyprshell/hyprlock.conf'

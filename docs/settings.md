@@ -1,11 +1,15 @@
 # Settings implementation
 
 Locking → Your lock screen includes Background transparency (0–100%, default
-85%). It controls the tint over the blurred desktop snapshot and softens the
+85%). It controls the tint over the desktop snapshot and softens the
 password field while retaining its contrast. The bundled theme uses a drawn
 avatar rather than a font glyph. Changes apply on the next lock through the
 existing manual, idle and sleep paths; adjusting appearance does not restart the
-idle timer. The backend renders only the bundled theme's named color tokens to
+idle timer. Background blur passes (0–4, default 2) independently controls the
+glass effect; 0 gives a clear snapshot. Background blur strength (1–20, default 8)
+sets the size of each pass and is disabled while passes are 0, retaining its value.
+These controls are separate from window glass settings and apply on the next lock.
+The backend renders only the bundled theme's named appearance tokens to
 `state/hyprshell/hyprlock.conf` when locking. Custom locker commands, explicit
 `hyprlock --config` commands and themes without those tokens stay untouched.
 
