@@ -107,6 +107,17 @@ def render(data):
         if row['noAnimations']: rule['no_anim'] = True
         if row['width']: rule['size'] = [row['width'], row['height']]
         lines.append('hl.window_rule(' + encode(rule) + ')')
+    # Keep the shell's Settings placement above workspace-wide automation.
+    lines.extend([
+        'local function keepSettingsFloating(w)',
+        '    if not w or (w.initial_title ~= "Hyprshell Settings" and w.title ~= "Hyprshell Settings") then return false end',
+        '    if w.mapped and w.fullscreen == 0 then',
+        '        hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "disable" }))',
+        '        if not w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "set" })) end',
+        '    end',
+        '    return true',
+        'end',
+    ])
     floating = [row['id'] for row in data['workspaces'] if row.get('floating', False)]
     if floating:
         # Run after application placement rules, including explicit tile rules.
@@ -116,6 +127,7 @@ def render(data):
         lines.extend([
             'local floatingWorkspaces = {' + ', '.join('[' + str(ident) + '] = true' for ident in floating) + '}',
             'local function floatWorkspaceWindow(w)',
+            '    if keepSettingsFloating(w) then return end',
             '    if w and w.mapped and w.workspace and floatingWorkspaces[w.workspace.id] and w.fullscreen == 0 then',
             '        if not w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "set" })) end',
             '        local m = w.monitor',
@@ -132,8 +144,6 @@ def render(data):
             '    end',
             'end',
             'hl.on("window.open", floatWorkspaceWindow)',
-            'hl.on("window.move_to_workspace", floatWorkspaceWindow)',
-            'hl.on("window.fullscreen", floatWorkspaceWindow)',
             'hl.on("config.reloaded", function()',
             '    for _, w in ipairs(hl.get_windows()) do floatWorkspaceWindow(w) end',
             'end)',
@@ -146,18 +156,65 @@ def render(data):
         lines.extend([
             'local pseudotiledWorkspaces = {' + ', '.join('[' + str(ident) + '] = true' for ident in pseudotiled) + '}',
             'local function pseudotileWorkspaceWindow(w)',
+            '    if keepSettingsFloating(w) then return end',
             '    if w and w.mapped and w.workspace and pseudotiledWorkspaces[w.workspace.id] and w.fullscreen == 0 then',
             '        if w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "unset" })) end',
             '        hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "enable" }))',
             '    end',
             'end',
             'hl.on("window.open", pseudotileWorkspaceWindow)',
-            'hl.on("window.move_to_workspace", pseudotileWorkspaceWindow)',
-            'hl.on("window.fullscreen", pseudotileWorkspaceWindow)',
             'hl.on("config.reloaded", function()',
             '    for _, w in ipairs(hl.get_windows()) do pseudotileWorkspaceWindow(w) end',
             'end)',
         ])
+    lines.append('hl.window_rule({ name = "hyprshell-settings-workspace-placement", match = { initial_title = "^Hyprshell Settings$" }, float = true, pseudo = false })')
+    # Moves reset both placement flags, even when no auto-mode is configured.
+    # Keep map/reload application rules and manual placement changes intact.
+    lines.extend([
+        'local pendingWorkspacePlacement = setmetatable({}, {__mode = "k"})',
+        'local function moveWorkspaceWindow(w)',
+        '    if keepSettingsFloating(w) then return end',
+        '    if not w or not w.mapped or not w.workspace then return end',
+        '    if w.workspace.id < 1 or w.workspace.id > 99 then',
+        '        pendingWorkspacePlacement[w] = nil',
+        '        return',
+        '    end',
+        '    if w.fullscreen ~= 0 then',
+        '        pendingWorkspacePlacement[w] = true',
+        '        return',
+        '    end',
+        '    pendingWorkspacePlacement[w] = nil',
+    ])
+    if pseudotiled:
+        lines.extend([
+            '    if pseudotiledWorkspaces[w.workspace.id] then',
+            '        pseudotileWorkspaceWindow(w)',
+            '        return',
+            '    end',
+        ])
+    lines.append('    hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "disable" }))')
+    if floating:
+        lines.extend([
+            '    if floatingWorkspaces[w.workspace.id] then',
+            '        floatWorkspaceWindow(w)',
+            '        return',
+            '    end',
+        ])
+    lines.extend([
+        '    if w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "unset" })) end',
+        'end',
+        'hl.on("window.move_to_workspace", moveWorkspaceWindow)',
+        'hl.on("window.fullscreen", function(w)',
+        '    if w and pendingWorkspacePlacement[w] then',
+        '        moveWorkspaceWindow(w)',
+        '        return',
+        '    end',
+    ])
+    if floating:
+        lines.append('    floatWorkspaceWindow(w)')
+    if pseudotiled:
+        lines.append('    pseudotileWorkspaceWindow(w)')
+    lines.append('end)')
     return '\n'.join(lines) + '\n'
 
 

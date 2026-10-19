@@ -1,0 +1,23 @@
+mode = "auto" # auto, overlay, window
+enabled = true
+graphs = true
+x = 1.0
+y = 0.08
+# Copy to ~/.config/hyprmonitor/config.toml. All fields are optional.
+interval_ms = 2000
+slow_interval_secs = 30
+process_interval_secs = 6
+history = 60
+width = 1000
+height = 1000
+margin_x = 24
+margin_y = 56
+anchor = "top-right" # top-left, bottom-left, bottom-right
+opacity = 0.72
+accent = "#67e8c1"
+click_through = false
+font_size = 13.0
+# font = "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf"
+# output = "eDP-1" # omit to let the compositor choose
+# interfaces = ["wlp0s20f3"] # omit to monitor physical interfaces
+# workspaces = ["1", "3"] # Hyprland only; empty means every workspace

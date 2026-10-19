@@ -5,10 +5,19 @@ hl.workspace_rule({workspace = "2", persistent = false})
 hl.workspace_rule({workspace = "5", persistent = false})
 hl.workspace_rule({workspace = "3", persistent = false})
 hl.workspace_rule({workspace = "4", persistent = false})
+local function keepSettingsFloating(w)
+    if not w or (w.initial_title ~= "Hyprshell Settings" and w.title ~= "Hyprshell Settings") then return false end
+    if w.mapped and w.fullscreen == 0 then
+        hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "disable" }))
+        if not w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "set" })) end
+    end
+    return true
+end
 hl.window_rule({name = "hyprshell-workspace-float-3", match = {workspace = "3"}, float = true})
 hl.window_rule({name = "hyprshell-workspace-float-4", match = {workspace = "4"}, float = true})
 local floatingWorkspaces = {[3] = true, [4] = true}
 local function floatWorkspaceWindow(w)
+    if keepSettingsFloating(w) then return end
     if w and w.mapped and w.workspace and floatingWorkspaces[w.workspace.id] and w.fullscreen == 0 then
         if not w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "set" })) end
         local m = w.monitor
@@ -25,8 +34,6 @@ local function floatWorkspaceWindow(w)
     end
 end
 hl.on("window.open", floatWorkspaceWindow)
-hl.on("window.move_to_workspace", floatWorkspaceWindow)
-hl.on("window.fullscreen", floatWorkspaceWindow)
 hl.on("config.reloaded", function()
     for _, w in ipairs(hl.get_windows()) do floatWorkspaceWindow(w) end
 end)
@@ -35,14 +42,47 @@ hl.window_rule({name = "hyprshell-workspace-pseudo-2", match = {workspace = "2"}
 hl.window_rule({name = "hyprshell-workspace-pseudo-5", match = {workspace = "5"}, tile = true, pseudo = true})
 local pseudotiledWorkspaces = {[1] = true, [2] = true, [5] = true}
 local function pseudotileWorkspaceWindow(w)
+    if keepSettingsFloating(w) then return end
     if w and w.mapped and w.workspace and pseudotiledWorkspaces[w.workspace.id] and w.fullscreen == 0 then
         if w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "unset" })) end
         hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "enable" }))
     end
 end
 hl.on("window.open", pseudotileWorkspaceWindow)
-hl.on("window.move_to_workspace", pseudotileWorkspaceWindow)
-hl.on("window.fullscreen", pseudotileWorkspaceWindow)
 hl.on("config.reloaded", function()
     for _, w in ipairs(hl.get_windows()) do pseudotileWorkspaceWindow(w) end
+end)
+hl.window_rule({ name = "hyprshell-settings-workspace-placement", match = { initial_title = "^Hyprshell Settings$" }, float = true, pseudo = false })
+local pendingWorkspacePlacement = setmetatable({}, {__mode = "k"})
+local function moveWorkspaceWindow(w)
+    if keepSettingsFloating(w) then return end
+    if not w or not w.mapped or not w.workspace then return end
+    if w.workspace.id < 1 or w.workspace.id > 99 then
+        pendingWorkspacePlacement[w] = nil
+        return
+    end
+    if w.fullscreen ~= 0 then
+        pendingWorkspacePlacement[w] = true
+        return
+    end
+    pendingWorkspacePlacement[w] = nil
+    if pseudotiledWorkspaces[w.workspace.id] then
+        pseudotileWorkspaceWindow(w)
+        return
+    end
+    hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "disable" }))
+    if floatingWorkspaces[w.workspace.id] then
+        floatWorkspaceWindow(w)
+        return
+    end
+    if w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "unset" })) end
+end
+hl.on("window.move_to_workspace", moveWorkspaceWindow)
+hl.on("window.fullscreen", function(w)
+    if w and pendingWorkspacePlacement[w] then
+        moveWorkspaceWindow(w)
+        return
+    end
+    floatWorkspaceWindow(w)
+    pseudotileWorkspaceWindow(w)
 end)

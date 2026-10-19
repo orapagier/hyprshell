@@ -65,6 +65,7 @@ slurp
 swappy
 # Helper build, config installer, notification-history import, session utilities
 gcc
+rust
 python
 python-gobject
 sqlite

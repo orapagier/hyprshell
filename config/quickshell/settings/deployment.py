@@ -36,7 +36,7 @@ def protected(key):
 
 
 def ignored(path):
-    return any(p in ('__pycache__', '.git') for p in path.parts) or path.suffix in ('.pyc', '.pyo') or path.name == 'audio-spectrum' or ('wallpapers' in path.parts and path.name != 'default.jpg')
+    return any(p in ('__pycache__', '.git') for p in path.parts) or path.suffix in ('.pyc', '.pyo') or path.name in ('audio-spectrum', 'hyprmonitor') and 'helpers' in path.parts or ('wallpapers' in path.parts and path.name != 'default.jpg')
 
 
 def payload(repo):
@@ -115,7 +115,7 @@ def inspect(repo, locations=None, base_repo=None):
         changes.append(key)
     removed = []
     for key, record in old.items():
-        if (key not in files and not protected(key) and key != 'config/quickshell/helpers/audio-spectrum'
+        if (key not in files and not protected(key) and key not in ('config/quickshell/helpers/audio-spectrum', 'home/.local/bin/hyprmonitor')
                 and not (key.startswith('home/Pictures/Wallpapers/') and Path(key).name != 'default.jpg')):
             target = destination(key, locations)
             safe_target(target, locations[key.split('/')[0]])
@@ -244,7 +244,7 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
                 files.setdefault(key, source)
         if resolved:
             plan['removed'] = [key for key in load_manifest(locations)['files'] if key not in files and destination(key, locations).exists()
-                and key != 'config/quickshell/helpers/audio-spectrum'
+                and key not in ('config/quickshell/helpers/audio-spectrum', 'home/.local/bin/hyprmonitor')
                 and not (key.startswith('home/Pictures/Wallpapers/') and Path(key).name != 'default.jpg')]
         removed_before = {key: digest(destination(key, locations)) for key in plan['removed']}
         state = locations['state']
@@ -273,9 +273,20 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
             subprocess.run(['cc', '-O2', str(helper.with_suffix('.c')), '-o', str(helper),
                             '-lpulse-simple', '-lpulse', '-lfftw3', '-lm'], check=True,
                            capture_output=True, text=True, timeout=60)
+            monitor_manifest = repo / 'apps/hyprmonitor-rs/Cargo.toml'
+            monitor_binary = None
+            if monitor_manifest.is_file():
+                target_dir = repo / 'apps/hyprmonitor-rs/target'
+                subprocess.run(['cargo', 'build', '--release', '--locked', '--manifest-path', str(monitor_manifest),
+                                '--target-dir', str(target_dir)], check=True, capture_output=True, text=True, timeout=600)
+                monitor_binary = stage / 'home/.local/bin/hyprmonitor'
+                monitor_binary.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(target_dir / 'release/hyprmonitor', monitor_binary)
             validate_staged(stage, native)
             staged = {key: stage / key for key in files}
             staged['config/quickshell/helpers/audio-spectrum'] = helper
+            if monitor_binary:
+                staged['home/.local/bin/hyprmonitor'] = monitor_binary
             for name in PREFERENCES:
                 key = 'config/hyprshell/' + name
                 if (stage / key).is_file():

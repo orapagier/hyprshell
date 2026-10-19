@@ -294,6 +294,14 @@ hl.layer_rule({
 
 -- Frosted shortcut overlay; transparent space around the card stays clear.
 hl.layer_rule({
+    name = "hyprmonitor-rust-glass",
+    match = { namespace = "^hyprmonitor$" },
+    blur = true,
+    ignore_alpha = 0.05,
+})
+
+-- Frosted shortcut overlay; transparent space around the card stays clear.
+hl.layer_rule({
     name = "hyprshell-keybindings-glass",
     match = { namespace = "^hyprshell-keybindings$" },
     blur = true,

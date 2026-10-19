@@ -1,5 +1,18 @@
 {
   "version": 1,
+  "systemMonitor": {
+    "enabled": false,
+    "workspaceOverrides": {
+      "2": false,
+      "4": false,
+      "1": false
+    },
+    "transparency": 0,
+    "x": 0.987691066576087,
+    "y": 0.73193359375,
+    "width": 1000,
+    "height": 1000
+  },
   "bar": {
     "visible": true,
     "workspaceScope": "selected",
@@ -12,7 +25,11 @@
       "3": true,
       "4": true,
       "5": false,
-      "6": false
+      "6": false,
+      "9": true,
+      "10": true,
+      "11": true,
+      "12": true
     },
     "hoverPopdowns": true,
     "hoverPopdownOverrides": {

@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import "style" as Style
+import "SettingsModel.js" as Model
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 

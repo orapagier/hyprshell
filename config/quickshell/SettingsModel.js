@@ -41,6 +41,10 @@ function withWorkspaceVisibility(bar, workspace, visible) {
 function withAllBarVisibility(bar, visible) {
     return Object.assign(copy(bar), {visible: visible, workspaceScope: 'all', workspaceList: [], workspaceOverrides: {}});
 }
+function monitorVisible(settings, workspace) {
+    let choice = (settings.workspaceOverrides || {})[String(workspace)];
+    return typeof choice === 'boolean' ? choice : settings.enabled !== false;
+}
 function item(config, id) { return (config.items || []).find(i => i.id === id) || {}; }
 function popdownTranslucency(config, id) {
     let value = item(config, id).popdownTranslucency;
@@ -59,6 +63,7 @@ function merge(defaults, saved) {
     result.pins = Object.assign(result.pins || {}, saved.pins || {});
     let conflict = panelLayoutError(result);
     if (conflict) throw new Error(conflict);
+    result.systemMonitor = Object.assign(result.systemMonitor || {}, saved.systemMonitor || {});
     result.hyprland = saved.hyprland || {};
     result.clipboard = Object.assign(result.clipboard || {}, saved.clipboard || {});
     result.accessibility = Object.assign(result.accessibility || {}, saved.accessibility || {});

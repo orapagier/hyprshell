@@ -1,37 +1,32 @@
-# Desktop system monitor
+# Standalone Rust Hyprmonitor
 
-The click-through system dashboard appears at the upper right of the first
-Quickshell output, below application windows, without reserving screen space.
-It uses Hyprpane's `WallpaperColors` and `AdaptiveColors` implementation:
-wallpaper-region contrast, hue-preserving text and contrasting outlines on
-textured backgrounds. No continuous visual animations or blur are added.
+The monitor now owns its UI and settings instead of using a Quickshell
+controller. Its source is in `apps/hyprmonitor-rs`; see that project's README
+for the detailed readings, configuration, desktop support and build instructions.
 
-Toggle it for the current shell session:
+Right-click anywhere in the monitor to open its native Rust settings menu.
+Configuration lives in `~/.config/hyprmonitor/config.toml`. Legacy Hyprshell
+monitor preferences are imported when no standalone configuration exists.
 
-```sh
-quickshell -p ~/.config/quickshell ipc call bar toggleSystemMonitor
-```
+The native executable is installed directly to `~/.local/bin/hyprmonitor`.
+Hyprland startup launches it independently of Quickshell. Alt+I invokes
+`hyprmonitor --toggle-workspace` directly. On other Linux desktops, configure a
+shortcut for `hyprmonitor --toggle` or `hyprmonitor --settings` as desired.
 
-The monitor starts visible after a shell restart. Hiding stops its collector.
-No independent service or package is installed. The existing wallpaper watcher
-and native network, Bluetooth and UPower services are reused.
+The app selects a layer-shell overlay when available and otherwise uses a normal
+Wayland/X11 window. Background blur is compositor-dependent; the portable RGB
+window uses glass-styled cards on a dark background. NetworkManager and Bluetooth
+metadata come from native Rust D-Bus calls, with no Qt service bridge.
 
-One Python standard-library process reads kernel counters every three seconds.
-Storage usage and CPU temperatures refresh every 30 seconds. Hardware identity
-is collected once at startup. Network totals/rates cover physical links visible
-in the collector's network namespace; virtual links are excluded to avoid
-double counting. Disk throughput sums physical whole-device counters, excluding
-partitions and virtual mappings. Tasks means kernel scheduling tasks (threads),
-not a process count. CPU frequency is an average of available cpufreq policies;
-CPU temperature is the hottest available package sensor. Missing sensors show
-Unavailable. GPU identity/driver is shown; privileged Intel GPU profiling,
-SMART probing, package scans and process scans are deliberately not polled.
+The previous QML monitor renderer, Python collector, Quickshell controller and
+monitor settings card are removed from the source payload. Legacy settings
+validation remains for migration compatibility. Other Hyprshell settings and
+panels are unaffected.
 
-OS age is explicitly an **estimate from root filesystem creation** (`stat %W /`).
-Reinstalls, snapshots and restored filesystems can make this differ from actual
-installation. No birth timestamp means Unknown, rather than a fabricated date.
-Root and home can show the same capacity on a shared filesystem.
-
-Checks: `python3 -m unittest discover -s tests -p test_system_monitor.py`.
-The native check loads both monitor components and renders the view at desktop
-and small-screen heights without changing the active desktop.
+The standalone executable builds and passes all 16 native unit tests plus strict
+Clippy checks. The monitor migration is installed locally: Alt+I now targets the
+Rust executable in the on-disk shortcuts file. Run `hyprctl reload` from the
+Hyprland terminal to activate the binding if it has not reloaded automatically.
+The agent sandbox could not reach compositor IPC; interactive native backend and
+settings behavior still need live verification. Other desktops use the normal
+window fallback and their own shortcut configuration.

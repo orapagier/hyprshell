@@ -26,7 +26,7 @@ def git(repo, *args):
 
 
 def excluded(name):
-    return name in ('__pycache__', '.git', 'audio-spectrum') or any(
+    return name in ('__pycache__', '.git', 'audio-spectrum', 'hyprmonitor', 'target') or any(
         fnmatch.fnmatch(name, pattern) for pattern in ('*.pyc', '*.pyo', '*.bak*', '*.log', '.DS_Store'))
 
 
@@ -145,7 +145,7 @@ def snapshot_managed_files(repo, config, home):
         destination.write_text(json.dumps(data, indent=2) + '\n')
 
 
-PROJECT_PATHS = ('config', 'bin', 'assets', 'tools', 'tests', 'docs', '.github',
+PROJECT_PATHS = ('config', 'bin', 'assets', 'apps', 'tools', 'tests', 'docs', '.github',
                  '.gitignore', 'README.md', 'setup.sh', 'packages.txt',
                  'packages-apps.txt', 'packages-fallback.txt', 'packages-fedora.txt',
                  'packages-apps-fedora.txt', 'compatibility.json', 'CHANGELOG.md')
@@ -269,7 +269,7 @@ def save_local(repo, config, home=None):
         with tempfile.TemporaryDirectory(prefix='hyprshell-local-') as directory:
             candidate = Path(directory)
             # Managed ancillary filenames come from the checkout, never private files.
-            for name in ('config', 'bin', 'assets'):
+            for name in ('config', 'bin', 'assets', 'apps'):
                 if (repo / name).exists():
                     shutil.copytree(repo / name, candidate / name,
                                     ignore=copy_exclusions)

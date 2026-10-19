@@ -11,25 +11,24 @@ startup_failed() {
 }
 [[ -n "$shell_bin" ]] || startup_failed
 export QT_QPA_PLATFORM=wayland
-if ! timeout 20 "$shell_bin" --no-duplicate --daemonize --path "$config" >>"$state_dir/bar.log" 2>&1; then
-    startup_failed
-fi
-ready=false
-for _attempt in {1..40}; do
+deadline=$((SECONDS + 30))
+next_launch=0
+while (( SECONDS < deadline )); do
+    # A just-killed instance can remain registered until its shutdown finishes.
+    if (( SECONDS >= next_launch )); then
+        timeout 5 "$shell_bin" --no-duplicate --daemonize --path "$config" >>"$state_dir/bar.log" 2>&1 || true
+        next_launch=$((SECONDS + 2))
+    fi
     if [[ $(timeout 2 "$shell_bin" ipc --path "$config" call bar ready 2>/dev/null) == true ]]; then
-        ready=true
-        break
+        # Readiness can precede registration of the notification service.
+        shell_pid=$(timeout 2 "$shell_bin" list --path "$config" --json | sed -n 's/.*"pid": *\([0-9][0-9]*\).*/\1/p' | head -1)
+        owner_pid=
+        read -r _owner_type owner_pid < <(timeout 2 busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus GetConnectionUnixProcessID s org.freedesktop.Notifications 2>/dev/null) || true
+        if [[ -n "$shell_pid" && "$owner_pid" == "$shell_pid" ]]; then
+            exit 0
+        fi
     fi
     sleep 0.25
 done
-if [[ "$ready" != true ]]; then
-    "$shell_bin" kill --path "$config" >>"$state_dir/bar.log" 2>&1 || true
-    startup_failed
-fi
-# Confirm this Quickshell instance also owns the notification service.
-shell_pid=$("$shell_bin" list --path "$config" --json | sed -n 's/.*"pid": *\([0-9][0-9]*\).*/\1/p' | head -1)
-read -r _owner_type owner_pid < <(busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus GetConnectionUnixProcessID s org.freedesktop.Notifications 2>/dev/null) || true
-if [[ -z "$shell_pid" || "${owner_pid:-}" != "$shell_pid" ]]; then
-    "$shell_bin" kill --path "$config" >>"$state_dir/bar.log" 2>&1 || true
-    startup_failed
-fi
+timeout 5 "$shell_bin" kill --path "$config" >>"$state_dir/bar.log" 2>&1 || true
+startup_failed
