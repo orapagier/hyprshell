@@ -113,13 +113,19 @@ Item {
     property string marqueeKey: ""
     property real marqueeStarted: 0
     property string marquee: ""
-    readonly property var mediaData: ({playing: playing, levels: spectrum.levels, title: marquee, tooltip: fullTitle,
-        fullTitle: fullTitle, artUrl: player ? player.trackArtUrl : "",
-        trackTitle: player ? player.trackTitle : fullTitle,
-        artist: player ? player.trackArtist : "",
-        appId: player ? player.desktopEntry : stream ? stream.properties["application.id"] || "" : "",
-        appName: player ? player.identity : stream ? stream.properties["application.name"] || "" : "",
-        processId: !player && stream ? Number(stream.properties["application.process.id"] || 0) : 0})
+    readonly property QtObject mediaData: MediaState {
+        playing: services.playing
+        levels: spectrum.levels
+        title: services.marquee
+        tooltip: services.fullTitle
+        fullTitle: services.fullTitle
+        artUrl: services.player ? services.player.trackArtUrl : ""
+        trackTitle: services.player ? services.player.trackTitle : services.fullTitle
+        artist: services.player ? services.player.trackArtist : ""
+        appId: services.player ? services.player.desktopEntry : services.stream ? services.stream.properties["application.id"] || "" : ""
+        appName: services.player ? services.player.identity : services.stream ? services.stream.properties["application.name"] || "" : ""
+        processId: !services.player && services.stream ? Number(services.stream.properties["application.process.id"] || 0) : 0
+    }
     Timer {
         interval: 67; running: true; repeat: true
         onTriggered: {

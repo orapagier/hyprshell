@@ -36,6 +36,39 @@ Item {
             tryCompare(sampler, "ready", true);
         }
         function sample(x) { return sampler.sampleRect(Qt.rect(x, 10, 30, 18)); }
+        function test_pixelsUseExactByteStorage() {
+            verify(sampler.pixels instanceof Uint8Array);
+            compare(sampler.pixels.byteLength, sampler.pixels.length);
+            for (let channel of sampler.pixels)
+                verify(Number.isInteger(channel) && channel >= 0 && channel <= 255);
+        }
+        function benchmark_repeatedRegionSampling() {
+            sampler.sampleRect(Qt.rect(20, 10, 300, 18), true);
+        }
+        function test_cachedSamplesInvalidateWithPixelChanges() {
+            let rect = Qt.rect(185, 10, 30, 18);
+            let original = sampler.pixels;
+            let first = sampler.sampleRect(rect, true);
+            verify(sampler.sampleRect(rect, true) === first);
+            fuzzyCompare(sampler.sampleRect(rect), first.average, 0.001);
+            try {
+                sampler.pixels = original.map((value, index) => index % 4 === 3 ? 255 : 0);
+                let next = sampler.sampleRect(rect, true);
+                verify(next !== first);
+                fuzzyCompare(next.average, Qt.rgba(0,0,0,1), 0.001);
+                fuzzyCompare(next.minimum, Qt.rgba(0,0,0,1), 0.001);
+                fuzzyCompare(next.maximum, Qt.rgba(0,0,0,1), 0.001);
+            } finally {
+                sampler.pixels = original;
+            }
+        }
+        function test_sampleCacheStaysBoundedDuringMovement() {
+            for (let x = 0; x < 300; ++x) sampler.sampleRect(Qt.rect(x, 10, 30, 18), true);
+            verify(sampler.sampleCache.keys.length <= 128);
+            verify(Object.keys(sampler.sampleCache.entries).length <= 128);
+            fuzzyCompare(sample(20), Qt.rgba(0,0,0,1), 0.01);
+            fuzzyCompare(sample(250), Qt.rgba(1,1,1,1), 0.01);
+        }
         function test_samplesEachLocalRegionAtBarHeight() {
             fuzzyCompare(sample(20), Qt.rgba(0,0,0,1), 0.01);
             fuzzyCompare(sample(250), Qt.rgba(1,1,1,1), 0.01);

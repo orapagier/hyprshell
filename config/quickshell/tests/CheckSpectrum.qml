@@ -7,15 +7,31 @@ ShellRoot {
     property var capture
     property int stage: 0
     property int received: 0
+    property int updates: 0
     function assertThat(condition, message) {
         if (!condition) { console.error("FAIL: " + message); Qt.quit(); throw new Error(message); }
     }
     AudioSpectrum {
         id: spectrum
-        onLevelsChanged: if (levels[8] > 0.6) check.received++
+        onLevelsChanged: {
+            check.updates++;
+            if (levels[8] > 0.6) check.received++;
+        }
     }
     MediaPill { id: pill; levels: spectrum.levels; text: "Native pipeline" }
     Component.onCompleted: {
+        spectrum.acceptFrame(Array(12).fill(0));
+        updates = 0;
+        for (let i = 0; i < 63; ++i) spectrum.acceptFrame(Array(12).fill(0));
+        assertThat(updates === 0, "duplicate silence frames do not invalidate UI");
+        for (let i = 1; i <= 63; ++i) spectrum.acceptFrame(Array(12).fill(i / 63));
+        assertThat(updates === 63, "every changed spectrum frame is delivered");
+        spectrum.acceptFrame(Array(12).fill(1));
+        for (let invalid of [[], Array(12).fill(NaN), Array(12).fill(-1), Array(12).fill(2), Array(12).fill("1")])
+            spectrum.acceptFrame(invalid);
+        assertThat(updates === 63 && spectrum.levels[0] === 1, "duplicates and invalid frames do not update UI");
+        spectrum.acceptFrame(Array(12).fill(0));
+        received = 0;
         for (let i = 0; i < spectrum.data.length; ++i)
             if (spectrum.data[i].objectName === "spectrumCapture") capture = spectrum.data[i];
         assertThat(!!capture, "capture object exists");

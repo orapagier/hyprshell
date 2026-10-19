@@ -12,6 +12,10 @@ Item {
     property real bandWidth: screenWidth
     property real regionOffsetX: 0
     property var pixels: []
+    // Cache exact pixel rectangles, including contrast extrema. Layout and
+    // animation bindings often ask for the same region on successive frames.
+    property var sampleCache: ({entries: Object.create(null), keys: []})
+    onPixelsChanged: sampleCache = ({entries: Object.create(null), keys: []})
     readonly property var linearChannels: Array.from({length: 256}, (_, value) => {
         let channel = value / 255;
         return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
@@ -40,6 +44,12 @@ Item {
         let x1 = Math.max(x0 + 1, Math.min(strip.width, Math.ceil((rect.x + rect.width - regionOffsetX) / bandWidth * strip.width)));
         let y0 = Math.max(0, Math.min(strip.height - 1, Math.floor((rect.y - offsetY) / bandHeight * strip.height)));
         let y1 = Math.max(y0 + 1, Math.min(strip.height, Math.ceil((rect.y + rect.height - offsetY) / bandHeight * strip.height)));
+        let cache = sampleCache;
+        let key = [x0, x1, y0, y1, !!includeBounds].join(":");
+        if (cache.entries[key] !== undefined) return cache.entries[key];
+        // Read QML properties once, outside the pixel loop.
+        let pixels = sampler.pixels;
+        let linearChannels = sampler.linearChannels;
         let r = 0, g = 0, b = 0, count = 0;
         let low = Infinity, high = -Infinity, lowIndex = 0, highIndex = 0;
         for (let y = y0; y < y1; ++y) for (let x = x0; x < x1; ++x) {
@@ -54,9 +64,14 @@ Item {
             }
         }
         let average = Qt.rgba(r / count / 255, g / count / 255, b / count / 255, 1);
-        return includeBounds ? {average: average,
+        let result = includeBounds ? {average: average,
             minimum: Qt.rgba(pixels[lowIndex]/255, pixels[lowIndex+1]/255, pixels[lowIndex+2]/255, 1),
             maximum: Qt.rgba(pixels[highIndex]/255, pixels[highIndex+1]/255, pixels[highIndex+2]/255, 1)} : average;
+        // Bound memory while dragging or scrolling across many unique regions.
+        if (cache.keys.length >= 128) delete cache.entries[cache.keys.shift()];
+        cache.keys.push(key);
+        cache.entries[key] = result;
+        return result;
     }
     function paletteFor(item, root, accent, style) {
         let x = offsetX, y = offsetY;
@@ -107,8 +122,10 @@ Item {
             ctx.clearRect(0, 0, width, height);
             ctx.drawImage(wallpaper, sx, sy, sw, sh, 0, 0, width, height);
             let data = ctx.getImageData(0, 0, width, height).data;
-            let copy = [];
-            for (let i = 0; i < data.length; ++i) copy.push(data[i]);
+            // Canvas channels are bytes. A typed copy preserves every channel
+            // without retaining a large garbage-collected JS number array.
+            let copy = new Uint8Array(data.length);
+            copy.set(data);
             sampler.pixels = copy;
         }
     }
