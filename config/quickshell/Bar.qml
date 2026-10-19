@@ -358,10 +358,17 @@ Item {
         }
         readonly property var knotVariants: arrangeKnots(segments, patternSeed)
         onKnotVariantsChanged: requestPaint()
-        function colorAt(along, cross, span) {
+        function colorAt(along, cross, span, neutral) {
             let region = bar.wallpaperColors.sampleRect(bar.vertical
                 ? Qt.rect(bar.screenOffsetX + cross - 3, bar.screenOffsetY + along - span / 2 - bar.scrollOffset, 6, span)
                 : Qt.rect(bar.screenOffsetX + along - span / 2, bar.screenOffsetY + cross - 3, span, 6), true);
+            // Neutral cord separates the line from the vivid knot palette.
+            if (neutral) {
+                let silver = Qt.rgba(0.82, 0.82, 0.82, 1);
+                let charcoal = Qt.rgba(0.18, 0.18, 0.18, 1);
+                return Colors.contrast(silver, region.average) >= Colors.contrast(charcoal, region.average)
+                    ? silver : charcoal;
+            }
             // Rotate a vivid palette through the local wallpaper complement.
             // Position supplies variety even when the wallpaper is a flat color;
             // the sample still shifts every hue when the wallpaper changes.
@@ -374,12 +381,12 @@ Item {
             let length = end - start;
             let steps = Math.max(1, Math.ceil(length / 16)), stops = [];
             for (let i = 0; i <= steps; ++i)
-                stops.push(colorAt(start + length * i / steps, cross, 8));
+                stops.push(colorAt(start + length * i / steps, cross, 8, true));
             let count = workspace ? 1 : Math.max(1, Math.floor(length / 42)), knots = [];
             for (let i = 0; i < count; ++i)
                 knots.push(colorAt(start + length * (i + 0.5) / count, cross, 12));
             return {start:start, end:end, cross:cross, workspace:workspace,
-                ink:colorAt((start + end) / 2, cross, 8), stops:stops, knots:knots};
+                ink:colorAt((start + end) / 2, cross, 8, true), stops:stops, knots:knots};
         }
         readonly property var segments: {
             let ids = Object.keys(bar.moduleItems).filter(id => bar.itemShown(id));
