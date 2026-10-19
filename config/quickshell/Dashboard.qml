@@ -11,6 +11,49 @@ PanelWindow {
     property bool opened: false
     property var resourceData: ({})
     property var previousCounters: null
+    readonly property bool pointerInside: tracking.hovered
+    property real revealProgress: opened ? 1 : 0
+    Behavior on revealProgress {
+        NumberAnimation { duration: Style.Theme.duration(dashboard, 350); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve }
+    }
+    function reveal(output) {
+        if (output) screen = output;
+        opened = true;
+        leaveDelay.stop();
+    }
+    // A short grace period bridges surface handoff and permits reversing mid-slide.
+    Timer {
+        id: leaveDelay
+        interval: 120
+        onTriggered: if (!dashboard.pointerInside && !reveals.instances.some(r => r.hovered)) dashboard.opened = false
+    }
+    Variants {
+        id: reveals
+        model: Quickshell.screens
+        PanelWindow {
+            id: edge
+            required property var modelData
+            readonly property bool hovered: edgeHover.hovered
+            screen: modelData
+            visible: !dashboard.opened || dashboard.screen !== modelData
+            anchors { left: true }
+            implicitWidth: 4
+            implicitHeight: 96
+            color: "transparent"
+            exclusionMode: ExclusionMode.Ignore
+            exclusiveZone: -1
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.namespace: "hyprshell-dashboard-reveal"
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+            HoverHandler {
+                id: edgeHover
+                onHoveredChanged: {
+                    if (hovered) dashboard.reveal(edge.modelData);
+                    else if (dashboard.opened) leaveDelay.restart();
+                }
+            }
+        }
+    }
     signal settingsRequested()
     signal lockRequested()
     signal menuRequested(string name)
@@ -27,14 +70,14 @@ PanelWindow {
             if (!sampler.running) sampler.running = true;
         }
     }
-    visible: opened || card.opacity > 0
+    visible: opened || revealProgress > 0
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     exclusiveZone: -1
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "hyprshell-dashboard"
-    WlrLayershell.keyboardFocus: opened ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: opened ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     Timer {
         interval: 2000; running: dashboard.opened; repeat: true
         onTriggered: if (!sampler.running) sampler.running = true
@@ -56,29 +99,33 @@ PanelWindow {
         }
         stderr: StdioCollector {}
     }
-    Rectangle {
-        anchors.fill: parent
-        color: "#66000000"
-        opacity: dashboard.opened ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: Style.Theme.duration(dashboard, 200) } }
+    // Only the dashboard accepts input; the rest of the desktop stays usable.
+    mask: Region { item: hoverArea }
+    Item {
+        id: hoverArea
+        objectName: "dashboardHoverArea"
+        x: 0; y: card.y
+        width: card.width; height: card.height
+        HoverHandler {
+            id: tracking
+            onHoveredChanged: {
+                if (hovered) leaveDelay.stop();
+                else if (dashboard.opened) leaveDelay.restart();
+            }
+        }
     }
-    MouseArea { anchors.fill: parent; onClicked: dashboard.opened = false }
     Rectangle {
         id: card
         objectName: "dashboardCard"
-        anchors.centerIn: parent
+        x: (dashboard.revealProgress - 1) * (width + 5)
+        y: (dashboard.height - height) / 2
         width: Math.max(1, Math.min(1100, dashboard.width - 40))
         height: Math.max(1, Math.min(content.implicitHeight + 40, dashboard.height - 64))
         color: "#f21e1e2e"
         radius: 32
         border.width: 1
         border.color: "#22cdd6f4"
-        opacity: dashboard.opened ? 1 : 0
-        transform: Translate {
-            y: dashboard.opened ? 0 : -24
-            Behavior on y { NumberAnimation { duration: Style.Theme.duration(dashboard, 350); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
-        }
-        Behavior on opacity { NumberAnimation { duration: Style.Theme.duration(dashboard, 200); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
+        opacity: Math.max(0, Math.min(1, dashboard.revealProgress))
         MouseArea { anchors.fill: parent }
         Flickable {
             anchors.fill: parent; anchors.margins: 20

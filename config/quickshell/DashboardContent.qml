@@ -12,28 +12,17 @@ ColumnLayout {
     property var resourceData: ({})
     property bool active: false
     property date now: new Date()
-    property int currentTab: 0
     readonly property var player: Mpris.players.values.find(p => p.isPlaying) || Mpris.players.values[0] || null
     readonly property real memoryPercent: resourceData.memoryTotal ? resourceData.memoryUsed / resourceData.memoryTotal * 100 : 0
     signal dismissRequested()
     signal settingsRequested()
     signal lockRequested()
     signal menuRequested(string name)
-    function focusFirst() { overview.forceActiveFocus(); }
+    function focusFirst() { page.forceActiveFocus(); }
     spacing: 18
     Keys.onEscapePressed: dismissRequested()
     Timer { interval: 1000; repeat: true; running: page.active; onTriggered: page.now = new Date() }
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: 8
-        MenuButton { id: overview; objectName: "dashboardOverview"; text: "Dashboard"; accent: page.currentTab === 0 ? "#cba6f7" : "#cdd6f4"; onClicked: page.currentTab = 0 }
-        MenuButton { objectName: "dashboardMedia"; text: "Media"; accent: page.currentTab === 1 ? "#cba6f7" : "#cdd6f4"; onClicked: page.currentTab = 1 }
-        MenuButton { objectName: "dashboardPerformance"; text: "Performance"; accent: page.currentTab === 2 ? "#cba6f7" : "#cdd6f4"; onClicked: page.currentTab = 2 }
-        Item { Layout.fillWidth: true }
-        MenuButton { text: "Close"; objectName: "dashboardClose"; onClicked: page.dismissRequested() }
-    }
     GridLayout {
-        visible: page.currentTab === 0
         Layout.fillWidth: true
         columns: page.width >= 800 ? 3 : page.width >= 560 ? 2 : 1
         columnSpacing: 14; rowSpacing: 14
@@ -62,14 +51,17 @@ ColumnLayout {
         }
         Card {
             Layout.fillWidth: true; Layout.fillHeight: true
-            implicitHeight: 290
+            implicitHeight: desktopDetails.implicitHeight + 44
             ColumnLayout {
+                id: desktopDetails
                 anchors.fill: parent; anchors.margins: 22; spacing: 14
                 MenuLabel { text: "YOUR DESKTOP"; color: "#a6adc8"; font.pixelSize: 11; font.letterSpacing: 2 }
                 MenuLabel { text: page.services.statusData.network.tooltip; Layout.fillWidth: true; font.pixelSize: 15 }
                 MenuLabel { text: page.services.batteryInfo.present ? page.services.batteryInfo.percentage + "% · " + (page.services.batteryInfo.pluggedIn ? "Plugged in" : "On battery") : "Desktop power"; color: "#a6e3a1" }
                 Meter { Layout.fillWidth: true; title: "CPU"; value: page.resourceData.cpuPercent ?? 0; available: page.resourceData.cpuPercent !== null && page.resourceData.cpuPercent !== undefined }
                 Meter { Layout.fillWidth: true; title: "Memory"; value: page.memoryPercent; available: !!page.resourceData.memoryTotal }
+                MenuLabel { objectName: "dashboardMemoryDetails"; text: page.resourceData.memoryTotal ? (page.resourceData.memoryUsed / 1048576).toFixed(1) + " / " + (page.resourceData.memoryTotal / 1048576).toFixed(1) + " GiB RAM" : page.resourceData.error || "Reading resource counters…"; color: "#a6adc8"; Layout.fillWidth: true }
+                MenuLabel { objectName: "dashboardUptime"; text: page.resourceData.uptime !== undefined ? "Uptime · " + Math.floor(page.resourceData.uptime / 3600) + "h " + Math.floor(page.resourceData.uptime / 60 % 60) + "m" : ""; color: "#a6adc8" }
                 Item { Layout.fillHeight: true }
                 RowLayout {
                     Layout.fillWidth: true
@@ -86,12 +78,11 @@ ColumnLayout {
     }
     Card {
         Layout.fillWidth: true
-        visible: page.currentTab !== 2
-        implicitHeight: page.currentTab === 1 ? 350 : 156
+        implicitHeight: 156
         RowLayout {
             anchors.fill: parent; anchors.margins: 22; spacing: 22
             Rectangle {
-                Layout.preferredWidth: page.currentTab === 1 ? Math.min(240, page.width * 0.25) : Math.min(108, page.width * 0.2)
+                Layout.preferredWidth: Math.min(108, page.width * 0.2)
                 Layout.fillHeight: true
                 radius: 24; color: "#313244"
                 Image {
@@ -113,20 +104,6 @@ ColumnLayout {
                     MenuButton { text: "Next"; enabled: !!page.player && page.player.canGoNext; onClicked: page.player.next() }
                 }
             }
-        }
-    }
-    Card {
-        Layout.fillWidth: true
-        visible: page.currentTab === 2
-        implicitHeight: 320
-        ColumnLayout {
-            anchors.fill: parent; anchors.margins: 28; spacing: 24
-            MenuLabel { text: "Performance"; font.pixelSize: 28; font.weight: Font.DemiBold }
-            Meter { Layout.fillWidth: true; title: "CPU utilization"; value: page.resourceData.cpuPercent ?? 0; available: page.resourceData.cpuPercent !== null && page.resourceData.cpuPercent !== undefined }
-            Meter { Layout.fillWidth: true; title: "Memory"; value: page.memoryPercent; available: !!page.resourceData.memoryTotal }
-            MenuLabel { text: page.resourceData.memoryTotal ? (page.resourceData.memoryUsed / 1048576).toFixed(1) + " / " + (page.resourceData.memoryTotal / 1048576).toFixed(1) + " GiB RAM" : page.resourceData.error || "Reading resource counters…"; color: "#a6adc8" }
-            MenuLabel { text: page.resourceData.uptime !== undefined ? "Uptime · " + Math.floor(page.resourceData.uptime / 3600) + "h " + Math.floor(page.resourceData.uptime / 60 % 60) + "m" : ""; color: "#a6adc8" }
-            Item { Layout.fillHeight: true }
         }
     }
     component Card: Rectangle {

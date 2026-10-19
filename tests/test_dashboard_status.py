@@ -38,7 +38,7 @@ class ResourceStatusTests(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which('quickshell'), 'Native Quickshell is needed')
 class DashboardNativeTests(unittest.TestCase):
-    def test_tabs_dismissal_and_sampling_stop(self):
+    def test_hover_single_page_and_sampling_stop(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             payload = root / 'shell'
@@ -50,16 +50,18 @@ class DashboardNativeTests(unittest.TestCase):
             # dashboard logic/content and substitute only its native window base.
             source = (ROOT / 'config/quickshell/Dashboard.qml').read_text().replace('PanelWindow {', 'FloatingWindow {')
             source = '\n'.join(line for line in source.splitlines() if not any(
-                token in line for token in ('anchors { top:', 'exclusionMode:', 'exclusiveZone:', 'WlrLayershell.')))
+                token in line for token in ('anchors { top:', 'anchors { left:', 'exclusionMode:', 'exclusiveZone:', 'WlrLayershell.')))
             (payload / 'Dashboard.qml').write_text(source)
             entry = root / 'Check.qml'
             entry.write_text('''import QtQuick
+import QtTest
 import Quickshell
 import "shell"
 ShellRoot {
     id: test
     property int step: 0
     property real stoppedCounter: 0
+    TestCase { id: input; name: "DashboardPointer"; when: false }
     Dashboard {
         id: dashboard
         implicitWidth: 1100; implicitHeight: 850
@@ -81,17 +83,33 @@ ShellRoot {
                 } else if (test.step === 1) {
                     let content = test.find(dashboard.contentItem, 'dashboardContent');
                     test.check(content !== null, "Production dashboard content loads");
-                    test.find(content, 'dashboardMedia').clicked();
-                    test.check(content.currentTab === 1, "Media tab opens");
-                    test.find(content, 'dashboardPerformance').clicked();
-                    test.check(content.currentTab === 2, "Performance tab opens");
+                    test.check(test.find(content, 'dashboardMedia') === null, "No media tab");
+                    test.check(test.find(content, 'dashboardPerformance') === null, "No performance tab");
+                    test.check(test.find(content, 'dashboardClose') === null, "No close button");
+                    test.check(test.find(content, 'dashboardMemoryDetails').visible, "Memory details on main page");
+                    test.check(test.find(content, 'dashboardUptime').visible, "Uptime on main page");
+                    let details = test.find(content, 'dashboardUptime');
+                    let detailsCard = details.parent.parent;
+                    test.check(details.y + details.height <= details.parent.height, "Resource details fit their card");
+                    test.check(detailsCard.height >= details.parent.implicitHeight + 44, "Resource card fits its controls");
+                    let card = test.find(dashboard.contentItem, 'dashboardCard');
+                    test.check(Math.abs(card.x) < 1, "Dashboard arrives from left");
+                    test.check(Math.abs(card.y - (dashboard.height - card.height) / 2) < 1, "Dashboard vertically centered");
+                    input.mouseMove(dashboard.contentItem, 100, dashboard.height / 2);
+                    test.check(dashboard.pointerInside, "Pointer enters dashboard over its content");
                     test.check(dashboard.resourceData.cpuTotal > 0, "Local resource sampler runs");
+                    input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
+                    test.check(!dashboard.pointerInside, "Pointer leaves dashboard");
+                } else if (test.step === 2) {
+                    test.check(!dashboard.opened, "Pointer exit closes dashboard");
                     test.stoppedCounter = dashboard.resourceData.cpuTotal;
-                    content.dismissRequested();
-                    test.check(!dashboard.opened, "Dismissal closes dashboard");
                 } else if (test.step === 8) {
-                    test.check(!dashboard.visible, "Window unmaps after exit animation");
+                    test.check(!dashboard.visible, "Dashboard unmaps after exit animation");
                     test.check(dashboard.resourceData.cpuTotal === test.stoppedCounter, "Hidden dashboard stops sampling");
+                    dashboard.reveal(null);
+                    test.check(dashboard.opened, "Edge reveal reopens dashboard");
+                    dashboard.toggle(null);
+                    test.check(!dashboard.opened, "Shortcut still toggles dashboard");
                     console.log('DASHBOARD_NATIVE_OK'); Qt.quit();
                 }
                 test.step++;
