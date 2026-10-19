@@ -1,5 +1,4 @@
-"""Resource counter correctness, including guest accounting and idle I/O time."""
-import importlib.util
+"""Native dashboard interaction and absence of live resource polling."""
 import os
 from pathlib import Path
 import shutil
@@ -8,58 +7,9 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location('dashboard_status', ROOT / 'config/quickshell/helpers/dashboard-status.py')
-STATUS = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(STATUS)
-
-
-class ResourceStatusTests(unittest.TestCase):
-    def test_memory_uses_available_and_cpu_does_not_double_count_guests(self):
-        with tempfile.TemporaryDirectory() as directory:
-            proc = Path(directory)
-            (proc / 'stat').write_text('cpu  100 20 30 400 50 6 7 8 60 10\ncpu0 1 2 3\n')
-            (proc / 'meminfo').write_text('MemTotal: 10000 kB\nMemFree: 1000 kB\nMemAvailable: 3500 kB\n')
-            (proc / 'uptime').write_text('12345.50 8000.0\n')
-            result = STATUS.read_status(proc)
-            self.assertEqual(result['cpuTotal'], 621)
-            self.assertEqual(result['cpuIdle'], 450)
-            self.assertEqual(result['memoryUsed'], 6500)
-            self.assertEqual(result['memoryTotal'], 10000)
-            self.assertEqual(result['uptime'], 12345.5)
-
-    def test_missing_available_uses_free_memory(self):
-        with tempfile.TemporaryDirectory() as directory:
-            proc = Path(directory)
-            (proc / 'stat').write_text('cpu 1 2 3 4\n')
-            (proc / 'meminfo').write_text('MemTotal: 1000 kB\nMemFree: 250 kB\n')
-            (proc / 'uptime').write_text('10 5\n')
-            self.assertEqual(STATUS.read_status(proc)['memoryUsed'], 750)
-
-    def test_process_stat_handles_names_exits_and_resident_memory(self):
-        with tempfile.TemporaryDirectory() as directory:
-            proc = Path(directory)
-            task = proc / '123'
-            task.mkdir()
-            # Fields 3 through 24, including a comm with spaces and parentheses.
-            fields = ['S'] + ['0'] * 21
-            fields[11:13] = ['150', '25']
-            fields[19] = '9876'
-            fields[21] = '42'
-            (task / 'stat').write_text('123 (worker (pool)) ' + ' '.join(fields))
-            (proc / '124').mkdir()  # Exited/inaccessible process is skipped.
-            (proc / '125').mkdir()
-            (proc / '125' / 'stat').write_text('invalid')
-            result = STATUS.read_processes(proc)
-            self.assertEqual(len(result), 1)
-            self.assertEqual(result[0], {
-                'pid': 123, 'name': 'worker (pool)', 'cpuTicks': 175,
-                'startTime': '9876', 'memoryKiB': 42 * os.sysconf('SC_PAGE_SIZE') // 1024,
-            })
-
-
 @unittest.skipUnless(shutil.which('quickshell'), 'Native Quickshell is needed')
 class DashboardNativeTests(unittest.TestCase):
-    def test_hover_single_page_and_sampling_stop(self):
+    def test_hover_single_page_and_static_system_info(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             payload = root / 'shell'
@@ -94,7 +44,7 @@ import "shell/style" as Style
 ShellRoot {
     id: test
     property int step: 0
-    property real stoppedCounter: 0
+    property var stoppedSnapshot: null
     property int motionFrames: 0
     TestCase { id: input; name: "DashboardPointer"; when: false }
     Dashboard {
@@ -129,16 +79,9 @@ ShellRoot {
                     test.check(test.find(content, 'dashboardClose') === null, "No close button");
                     test.check(test.find(content, 'dashboardSystemInfo').visible, "Upper card shows system information");
                     test.check(dashboard.resourceData.system.os.length > 0, "System identity populated");
-                    test.check(dashboard.resourceData.topProcesses.length === Math.min(5, dashboard.resourceData.processes.length), "Up to five processes populated");
-                    test.check(dashboard.resourceData.topProcesses.every(p => p.memoryKiB >= 0), "Process resident RAM populated");
-                    test.check(test.find(content, 'dashboardMemoryDetails').visible, "Memory details on main page");
-                    test.check(test.find(content, 'dashboardUptime').visible, "Uptime on main page");
-                    let details = test.find(content, 'dashboardUptime');
-                    let detailsCard = details.parent.parent;
-                    test.check(details.y + details.height <= details.parent.height, "Resource details fit their card");
-                    test.check(detailsCard.height >= details.parent.implicitHeight + 32, "Resource card fits its controls");
-                    let mediaDetails = test.find(content, 'dashboardMediaDetails');
-                    test.check(mediaDetails.parent.parent.height >= mediaDetails.implicitHeight + 32, "Compact media card fits every control");
+                    test.check(dashboard.resourceData.cpuTotal === undefined && dashboard.resourceData.processes === undefined, "No live resource counters or processes");
+                    test.check(test.find(content, 'dashboardMemoryDetails').visible, "Static RAM capacity shown");
+                    test.check(test.find(content, 'dashboardMediaDetails') === null, "Music card removed");
                     test.check(popover.edge === 'left' && popover.connected, "Left-edge dashboard");
                     test.check(popover.edgeAttached && popover.bodyX === 0, "Dashboard sits flush with screen edge");
                     test.check(popover.footRadius > 0 && popover.footRadius <= 28, "Feet fit screen boundaries");
@@ -154,15 +97,15 @@ ShellRoot {
                     test.check(dashboard.mask.regions[0].intersection === Intersection.Subtract, "Corner stays on its dedicated hover surface");
                     test.check(dashboard.mask.regions[0].width === 24 && dashboard.mask.regions[0].y + dashboard.mask.regions[0].height === dashboard.height,
                         "Only the physical corner is excluded from dashboard input");
-                    test.check(popover.bodyWidth === 620 && popover.bodyHeight <= 700 && popover.bodyHeight > popover.bodyWidth,
-                        "Dashboard is a compact vertical rectangle");
+                    test.check(popover.bodyWidth === 620 && popover.bodyHeight <= 700 && popover.bodyHeight > 0,
+                        "Dashboard fits its compact content");
                     test.check(dashboard.inputRect.height === dashboard.height, "Full-height input while open");
                     input.mouseMove(dashboard.contentItem, 10, dashboard.height - 24);
                     test.check(dashboard.pointerInside, "Pointer enters bridge from trigger");
                     controller.leave('dashboard');
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
                     test.check(dashboard.pointerInside, "Pointer enters dashboard over its content");
-                    test.check(dashboard.resourceData.cpuTotal > 0, "Local resource sampler runs");
+                    test.check(dashboard.resourceData.system.memoryTotal > 0, "Static system identity loaded");
                     input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
                     test.check(!dashboard.pointerInside, "Pointer leaves dashboard");
                 } else if (test.step === 2) {
@@ -202,11 +145,11 @@ ShellRoot {
                     input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
                 } else if (test.step === 5) {
                     test.check(!dashboard.opened, "Repeated exit closes dashboard");
-                    test.stoppedCounter = dashboard.resourceData.cpuTotal;
+                    test.stoppedSnapshot = dashboard.resourceData;
                 } else if (test.step === 10) {
                     test.check(dashboard.visible && !popover.rendering, "Window stays mapped but dashboard finishes exit animation");
                     test.check(popover.edgeProgress === 0, "Closing motion fully retracts to edge");
-                    test.check(dashboard.resourceData.cpuTotal === test.stoppedCounter, "Hidden dashboard stops sampling");
+                    test.check(dashboard.resourceData === test.stoppedSnapshot, "Hidden dashboard keeps static identity");
                     dashboard.toggle(null);
                     test.check(dashboard.opened, "Shortcut opens dashboard");
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
@@ -219,10 +162,7 @@ ShellRoot {
                     test.check(dashboard.opened, "Reveal opens dashboard");
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
                     input.wait(5400);
-                    test.check(dashboard.resourceData.cpuPercent !== null, "Five-second refresh measures CPU");
-                    let processes = dashboard.resourceData.topProcesses;
-                    test.check(processes.length > 0 && processes.some(p => p.cpuPercent !== null), "Process CPU deltas populated");
-                    test.check(processes.every((p, i) => i === 0 || (processes[i - 1].cpuPercent ?? 0) >= (p.cpuPercent ?? 0)), "Processes ranked by CPU");
+                    test.check(dashboard.resourceData === test.stoppedSnapshot, "No polling or reopening refresh after five seconds");
                     let content = test.find(dashboard.contentItem, 'dashboardContent');
                     content.dismissRequested();
                     test.check(!dashboard.opened, "Escape dismissal still works");

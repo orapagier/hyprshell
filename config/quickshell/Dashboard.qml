@@ -15,7 +15,6 @@ PanelWindow {
     readonly property int revealSize: 24
     readonly property rect revealRect: Qt.rect(0, Math.max(0, height - revealSize), Math.min(revealSize, width), Math.min(revealSize, height))
     property var resourceData: ({})
-    property var previousCounters: null
     function enterCorner(output) {
         if (output) screen = output;
         menuState.hover("dashboard");
@@ -77,9 +76,6 @@ PanelWindow {
             // Keep the trigger-to-drawer handoff alive through the unfolding.
             entryGrace.restart();
             menuState.retain(true);
-            previousCounters = null;
-            resourceData = ({});
-            if (!sampler.running) sampler.running = true;
         } else entryGrace.stop();
     }
     Timer {
@@ -97,32 +93,15 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "hyprshell-dashboard"
     WlrLayershell.keyboardFocus: opened ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
-    Timer {
-        interval: 5000; running: dashboard.opened; repeat: true
-        onTriggered: if (!sampler.running) sampler.running = true
-    }
     Process {
         id: sampler
+        // Static identity is read once per shell load, never on hover or a timer.
+        running: true
         command: ["python3", decodeURIComponent(Qt.resolvedUrl("helpers/dashboard-status.py").toString().replace(/^file:\/\//, ""))]
         stdout: StdioCollector {
             onStreamFinished: {
-                if (!dashboard.opened) return;
-                try {
-                    let next = JSON.parse(text), previous = dashboard.previousCounters;
-                    let total = previous ? next.cpuTotal - previous.cpuTotal : 0;
-                    next.cpuPercent = total > 0 ? Math.max(0, Math.min(100, 100 * (1 - (next.cpuIdle - previous.cpuIdle) / total))) : null;
-                    let elapsed = previous ? next.uptime - previous.uptime : 0;
-                    let oldProcesses = {};
-                    for (let process of previous?.processes || []) oldProcesses[process.pid] = process;
-                    next.topProcesses = (next.processes || []).map(process => {
-                        let old = oldProcesses[process.pid];
-                        process.cpuPercent = elapsed > 0 && old && old.startTime === process.startTime
-                            ? Math.max(0, 100 * (process.cpuTicks - old.cpuTicks) / next.clockTicks / elapsed) : null;
-                        return process;
-                    }).sort((a, b) => (b.cpuPercent ?? 0) - (a.cpuPercent ?? 0) || b.memoryKiB - a.memoryKiB || a.pid - b.pid).slice(0, 5);
-                    dashboard.previousCounters = next;
-                    dashboard.resourceData = next;
-                } catch (e) { dashboard.resourceData = ({error: "Resource counters unavailable"}); }
+                try { dashboard.resourceData = JSON.parse(text); }
+                catch (e) { dashboard.resourceData = ({error: "System information unavailable"}); }
             }
         }
         stderr: StdioCollector {}
