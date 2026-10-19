@@ -315,24 +315,60 @@ Item {
             policy: bar.overflowing ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
             active: bar.overflowing
         }
-    // Outlined cords and knots follow the sampled wallpaper and icon palette.
+    // Borderless cordwork follows the wallpaper beneath each part of the cord.
     Canvas {
         id: connectors
         objectName: "panelConnectors"
         anchors.fill: parent
         z: 0
         visible: !bar.statusIconsOnly
-        function segmentFor(start, end, cross, itemId, workspace) {
+        function shuffledKnots() {
+            let order = [0, 1, 2, 3, 4, 5];
+            for (let i = order.length - 1; i > 0; --i) {
+                let j = Math.floor(Math.random() * (i + 1));
+                [order[i], order[j]] = [order[j], order[i]];
+            }
+            return order;
+        }
+        property var knotOrder: shuffledKnots()
+        function reshuffleKnots() {
+            let next = shuffledKnots();
+            if (next.join() === knotOrder.join()) next.push(next.shift());
+            knotOrder = next;
+        }
+        onKnotOrderChanged: requestPaint()
+        Connections {
+            target: bar
+            function onWallpaperSourceChanged() { connectors.reshuffleKnots(); }
+        }
+        function colorAt(along, cross, span) {
             let region = bar.wallpaperColors.sampleRect(bar.vertical
-                ? Qt.rect(bar.screenOffsetX + cross - 8, bar.screenOffsetY + start - bar.scrollOffset, 16, end - start)
-                : Qt.rect(bar.screenOffsetX + start, bar.screenOffsetY + cross - 8, end - start, 16), true);
-            let style = Settings.appearance(bar.settings, itemId, bar.wallpaperSource.toString());
-            let accent = style.vibrantColor ? Qt.color(style.vibrantColor)
-                : region.average.hsvSaturation > 0.08
-                    ? Qt.hsva(region.average.hsvHue, 0.65, 0.95, 1) : Qt.color("#ed9876");
-            let palette = Colors.palette(region.average, accent, region.minimum, region.maximum, "bare-normal");
+                ? Qt.rect(bar.screenOffsetX + cross - 3, bar.screenOffsetY + along - span / 2 - bar.scrollOffset, 6, span)
+                : Qt.rect(bar.screenOffsetX + along - span / 2, bar.screenOffsetY + cross - 3, span, 6), true);
+            // Use the actual nearby wallpaper hue, independently of icon color
+            // randomization. Complement it and adjust lightness for visibility.
+            let hue = region.average.hsvSaturation > 0.08 ? (region.average.hsvHue + 0.5) % 1 : 0.06;
+            let dark = Colors.luminance(region.average) < 0.179;
+            let best, score = -1;
+            for (let i = 0; i <= 20; ++i) {
+                let ink = Qt.hsla(hue, 0.75, dark ? 0.60 + i * 0.015 : 0.40 - i * 0.015, 1);
+                let contrast = Math.min(Colors.contrast(ink, region.average),
+                    Colors.contrast(ink, region.minimum), Colors.contrast(ink, region.maximum));
+                if (contrast > score) { best = ink; score = contrast; }
+                if (contrast >= 4.6) break;
+            }
+            return best;
+        }
+        function segmentFor(start, end, cross, workspace) {
+            let length = end - start;
+            let steps = Math.max(1, Math.ceil(length / 16)), stops = [];
+            for (let i = 0; i <= steps; ++i)
+                stops.push(colorAt(start + length * i / steps, cross, 8));
+            let count = workspace ? 1 : Math.max(1, Math.floor(length / 38)), knots = [];
+            for (let i = 0; i < count; ++i)
+                knots.push(colorAt(start + length * (i + 0.5) / count, cross, 12));
             return {start:start, end:end, cross:cross, workspace:workspace,
-            ink:palette.foreground, edge:Colors.glyphEdge(palette.foreground)};
+                ink:colorAt((start + end) / 2, cross, 8), stops:stops, knots:knots};
         }
         readonly property var segments: {
             let ids = Object.keys(bar.moduleItems).filter(id => bar.itemShown(id));
@@ -349,7 +385,7 @@ Item {
                 let end = bar.vertical ? b.y : b.x;
                 if (end - start < 2) continue;
                 let cross = bar.vertical ? bar.width / 2 : bar.height / 2;
-                result.push(segmentFor(start, end, cross, first, false));
+                result.push(segmentFor(start, end, cross, false));
             }
             if (bar.itemShown("workspaces")) {
                 // Follow the actual filtered delegates, including their polished
@@ -360,7 +396,7 @@ Item {
                     let start = bar.vertical ? workspaceRow.y + a.y + a.height : workspaceRow.x + a.x + a.width;
                     let end = bar.vertical ? workspaceRow.y + b.y : workspaceRow.x + b.x;
                     let cross = bar.vertical ? workspaceRow.x + a.x + a.width / 2 : workspaceRow.y + a.y + a.height / 2;
-                    if (end - start >= 2) result.push(segmentFor(start, end, cross, "workspaces", true));
+                    if (end - start >= 2) result.push(segmentFor(start, end, cross, true));
                 }
             }
             return result;
@@ -424,39 +460,31 @@ Item {
                 let a = point(segment.start, segment.cross), b = point(segment.end, segment.cross);
                 ctx.lineCap = "round"; ctx.lineJoin = "round";
                 ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-                ctx.strokeStyle = Colors.alpha(segment.edge, 0.85); ctx.lineWidth = 3.6;
-                ctx.stroke();
-                ctx.strokeStyle = segment.ink; ctx.lineWidth = 1.8;
+                let gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+                for (let i = 0; i < segment.stops.length; ++i)
+                    gradient.addColorStop(i / (segment.stops.length - 1), segment.stops[i]);
+                ctx.strokeStyle = gradient; ctx.lineWidth = 1.8;
                 ctx.stroke();
                 let length = segment.end - segment.start;
                 // One complete knot per icon gap, and a knot every ~38 px on open cord.
-                let count = segment.workspace ? 1 : Math.max(1, Math.floor(length / 38));
+                let count = segment.knots.length;
                 for (let knotIndex = 0; knotIndex < count; ++knotIndex) {
                     let p = point(segment.start + length * (knotIndex + 0.5) / count, segment.cross);
                     let size = Math.min(4.8, length / 3.6);
-                    let variant = (segmentIndex + knotIndex) % 6;
-                    let glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2);
-                    glow.addColorStop(0, Colors.alpha(segment.ink, 0.32));
-                    glow.addColorStop(1, Colors.alpha(segment.ink, 0));
-                    ctx.fillStyle = glow;
-                    ctx.fillRect(p.x - size * 2, p.y - size * 2, size * 4, size * 4);
+                    let variant = knotOrder[(segmentIndex * 5 + knotIndex) % knotOrder.length];
+                    let ink = segment.knots[knotIndex];
                     ctx.save(); ctx.translate(p.x, p.y);
                     if (bar.vertical) ctx.rotate(Math.PI / 2);
-                    // A narrow outline separates overlapping strands, while
-                    // paired strands evoke the bundled cords of mizuhiki.
+                    // Single-color strokes keep the bundled cords light and open.
                     knotPath(variant, size);
-                    ctx.strokeStyle = segment.edge; ctx.lineWidth = 3.4; ctx.stroke();
-                    ctx.strokeStyle = segment.ink; ctx.lineWidth = 1.35; ctx.stroke();
+                    ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.stroke();
                     if (variant >= 3) {
                         knotPath(variant, size * 0.72);
-                        ctx.strokeStyle = segment.edge; ctx.lineWidth = 2.6; ctx.stroke();
-                        ctx.strokeStyle = segment.ink; ctx.lineWidth = 0.85; ctx.stroke();
+                        ctx.lineWidth = 0.9; ctx.stroke();
                     }
-                    // One strand bridges the center over the returning loops.
                     ctx.beginPath();
                     ctx.moveTo(-size * 0.25, size * 0.22); ctx.lineTo(size * 0.25, -size * 0.22);
-                    ctx.strokeStyle = segment.edge; ctx.lineWidth = 3.1; ctx.stroke();
-                    ctx.strokeStyle = segment.ink; ctx.lineWidth = 1.2; ctx.stroke();
+                    ctx.lineWidth = 1.2; ctx.stroke();
                     ctx.restore();
                 }
             }
