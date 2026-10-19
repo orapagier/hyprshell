@@ -362,19 +362,13 @@ Item {
             let region = bar.wallpaperColors.sampleRect(bar.vertical
                 ? Qt.rect(bar.screenOffsetX + cross - 3, bar.screenOffsetY + along - span / 2 - bar.scrollOffset, 6, span)
                 : Qt.rect(bar.screenOffsetX + along - span / 2, bar.screenOffsetY + cross - 3, span, 6), true);
-            // Use the actual nearby wallpaper hue, independently of icon color
-            // randomization. Complement it and adjust lightness for visibility.
-            let hue = region.average.hsvSaturation > 0.08 ? (region.average.hsvHue + 0.5) % 1 : 0.06;
-            let dark = Colors.luminance(region.average) < 0.179;
-            let best, score = -1;
-            for (let i = 0; i <= 20; ++i) {
-                let ink = Qt.hsla(hue, 0.75, dark ? 0.60 + i * 0.015 : 0.40 - i * 0.015, 1);
-                let contrast = Math.min(Colors.contrast(ink, region.average),
-                    Colors.contrast(ink, region.minimum), Colors.contrast(ink, region.maximum));
-                if (contrast > score) { best = ink; score = contrast; }
-                if (contrast >= 4.6) break;
-            }
-            return best;
+            // Rotate a vivid palette through the local wallpaper complement.
+            // Position supplies variety even when the wallpaper is a flat color;
+            // the sample still shifts every hue when the wallpaper changes.
+            let base = region.average.hsvSaturation > 0.08
+                ? region.average.hsvHue : (region.average.r + region.average.g + region.average.b) / 3;
+            let hue = (base + 0.5 + along / 110) % 1;
+            return Colors.vibrantForeground(region.average, Qt.hsva(hue, 0.86, 1, 1));
         }
         function segmentFor(start, end, cross, workspace) {
             let length = end - start;
@@ -426,6 +420,10 @@ Item {
         onPaint: {
             let ctx = getContext("2d");
             ctx.reset();
+            // Protect saturated strokes on light or busy wallpaper without
+            // darkening or bleaching their color to meet text contrast targets.
+            ctx.shadowColor = "#c0080a10";
+            ctx.shadowBlur = 2;
             function point(along, cross) {
                 return bar.vertical ? {x:cross, y:along} : {x:along, y:cross};
             }
