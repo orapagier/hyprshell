@@ -54,7 +54,7 @@ Item {
     }
     readonly property bool fluidSurface: connected && !attachedLeft
     readonly property bool motionEnabled: !instant && Style.Theme.duration(popover, 1) > 0
-    readonly property real connectorGap: 24
+    readonly property real connectorGap: 20
     readonly property alias fluidMotion: fluid
     property rect panelBounds: Qt.rect(0, 0, width, height)
     readonly property real safeLeft: panelBounds.x + 12
@@ -93,8 +93,8 @@ Item {
     readonly property real shoulder: clamp(tipX, shapeX + 40, shapeX + shapeWidth - 40)
     readonly property real tipX: vertical ? triggerRect.y + triggerRect.height / 2 : triggerRect.x + triggerRect.width / 2
     readonly property real attachmentHalfWidth: Math.max(0, (vertical ? triggerRect.height : triggerRect.width) / 2)
-    // Cut out the pill's inward rounded edge: the foot touches its silhouette
-    // instead of laying a flat strip across it. Coordinates rotate with the edge.
+    // Keep the pill bounds as the anchor reference; the small connector starts
+    // at its outer edge. Coordinates rotate with the edge.
     property real triggerRadius: Math.min(triggerRect.width, triggerRect.height) / 2
     readonly property real attachmentRadius: Math.max(0, Math.min(attachmentHalfWidth,
         (vertical ? triggerRect.width : triggerRect.height) / 2, triggerRadius))
@@ -199,26 +199,37 @@ Item {
             radius: popover.fluidSurface ? 24 : 20; color: "#28000000"
             transform: Matrix4x4 { matrix: popover.cardTransform(cardShadow.x, cardShadow.y) }
         }
-        Shape {
-            visible: popover.connected && !popover.attachedLeft
-            objectName: "menuFunnel"
-            anchors.fill: parent
-            preferredRendererType: Shape.GeometryRenderer
-            transform: Matrix4x4 {
-                matrix: popover.edge === "bottom" ? Qt.matrix4x4(1,0,0,0, 0,-1,0,popover.height, 0,0,1,0, 0,0,0,1)
-                    : popover.edge === "left" ? Qt.matrix4x4(0,1,0,0, 1,0,0,0, 0,0,1,0, 0,0,0,1)
-                    : popover.edge === "right" ? Qt.matrix4x4(0,-1,0,popover.width, 1,0,0,0, 0,0,1,0, 0,0,0,1)
-                    : Qt.matrix4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
-            }
-            ShapePath {
-                strokeWidth: 0.65
-                strokeColor: Qt.alpha(glass.rimColor, 0.55)
-                fillGradient: LinearGradient {
-                    x1: 0; y1: popover.neckY; x2: 0; y2: (popover.shapeY + popover.shapeHeight)
-                    GradientStop { position: 0; color: glass.topColor }
-                    GradientStop { position: 1; color: glass.bottomColor }
+        // Clip in screen coordinates so neither fill nor antialiased rim can
+        // wrap over the trigger pill, including during the jelly animation.
+        Item {
+            id: connectorClip
+            clip: true
+            visible: popover.fluidSurface
+            x: popover.edge === "left" ? popover.triggerRect.x + popover.triggerRect.width : 0
+            y: popover.edge === "top" ? popover.triggerRect.y + popover.triggerRect.height : 0
+            width: popover.edge === "right" ? popover.triggerRect.x : popover.width - x
+            height: popover.edge === "bottom" ? popover.triggerRect.y : popover.height - y
+            Shape {
+                visible: popover.connected && !popover.attachedLeft
+                objectName: "menuFunnel"
+                anchors.fill: parent
+                preferredRendererType: Shape.GeometryRenderer
+                transform: Matrix4x4 {
+                    matrix: popover.edge === "bottom" ? Qt.matrix4x4(1,0,0,-connectorClip.x, 0,-1,0,popover.height-connectorClip.y, 0,0,1,0, 0,0,0,1)
+                        : popover.edge === "left" ? Qt.matrix4x4(0,1,0,-connectorClip.x, 1,0,0,-connectorClip.y, 0,0,1,0, 0,0,0,1)
+                        : popover.edge === "right" ? Qt.matrix4x4(0,-1,0,popover.width-connectorClip.x, 1,0,0,-connectorClip.y, 0,0,1,0, 0,0,0,1)
+                        : Qt.matrix4x4(1,0,0,-connectorClip.x, 0,1,0,-connectorClip.y, 0,0,1,0, 0,0,0,1)
                 }
-                PathSvg { path: popover.fluidOutline.path }
+                ShapePath {
+                    strokeWidth: 0.65
+                    strokeColor: Qt.alpha(glass.rimColor, 0.55)
+                    fillGradient: LinearGradient {
+                        x1: 0; y1: popover.neckY; x2: 0; y2: (popover.shapeY + popover.shapeHeight)
+                        GradientStop { position: 0; color: glass.topColor }
+                        GradientStop { position: 1; color: glass.bottomColor }
+                    }
+                    PathSvg { path: popover.fluidOutline.path }
+                }
             }
         }
         Shape {

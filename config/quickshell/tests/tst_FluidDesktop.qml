@@ -52,9 +52,12 @@ TestCase {
         tryVerify(() => motion.progress > 0 && motion.progress < 1);
         tryVerify(() => Math.abs(motion.stretchT - 1) > 0.001);
         compare(popover.tipX, footX); compare(popover.neckY, footY);
-        // The new foot is tangent to the pill, with no filled area inside it.
-        let join = popover.fluidOutline, capRight = footX + half - 14;
-        fuzzyCompare(Math.hypot(join.footRight - capRight, join.footY - (footY - 14)), 14, 0.01);
+        // The small foot stays entirely beyond the pill's bounding edge.
+        let join = popover.fluidOutline;
+        verify(join.footY >= footY);
+        verify(join.footLeft > footX - half && join.footRight < footX + half);
+        verify(join.footRight - join.footLeft <= 10);
+        verify(join.waistHalf * 2 <= 4);
         verify(!join.path.includes("NaN") && !join.path.includes("Infinity"));
         popover.opened = false;
         wait(50);
@@ -76,6 +79,12 @@ TestCase {
         verify(image.red(sx,sy) !== image.red(1,1) || image.green(sx,sy) !== image.green(1,1)
             || image.blue(sx,sy) !== image.blue(1,1), "The settled waist remains painted");
         compare(image.pixel(430,314), image.pixel(1,1), "The pill interior has no second translucent fill");
+        // Check the entire pill bounding box, including the rim where the old
+        // contour-wrapping foot used to draw. The new cap remains outside it.
+        let rect = popover.triggerRect;
+        for (let py = Math.ceil(rect.y); py < Math.floor(rect.y + rect.height); ++py)
+            for (let px = Math.ceil(rect.x); px < Math.floor(rect.x + rect.width); ++px)
+                compare(image.pixel(px,py), image.pixel(1,1), "Connector stays outside pill bounds");
         // A neighbouring menu excites the same springs even while opened stays true.
         popover.triggerRect = popover.vertical ? Qt.rect(400, 220, 60, 28) : Qt.rect(500, 300, 60, 28);
         tryVerify(() => motion.running);
