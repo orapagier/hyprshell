@@ -12,8 +12,11 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear) {
     let waistHalf = Math.min(4.8, footHalf * 0.25);
     let waistY = footY + gap * 0.35;
     let waistX = tip;
-    // Bend the stem toward the straight top edge, leaving both corner arcs intact.
-    let shoulder = Math.max(x + corner + flare, Math.min(x + width - corner - flare, tip));
+    // Keep the neck under its pill. Trim each shoulder independently instead of
+    // pushing the whole stem sideways to fit a full-width flare near a corner.
+    let shoulder = Math.max(x + corner, Math.min(x + width - corner, tip));
+    let leftFlare = Math.min(flare, shoulder - x - corner);
+    let rightFlare = Math.min(flare, x + width - corner - shoulder);
     let path = [];
     function n(value) { return Number(value.toFixed(3)); }
     function p(px, py) { return n(px) + ' ' + n(py); }
@@ -25,7 +28,7 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear) {
     path.push('C ' + p(tip + footHalf * 0.25,footY) + ' '
         + p(waistX + waistHalf,waistY - (waistY - footY) * (0.42 / 0.65)) + ' ' + p(waistX + waistHalf,waistY));
     path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
-        + p(shoulder + flare * 0.25,y) + ' ' + p(shoulder + flare,y));
+        + p(shoulder + rightFlare * 0.25,y) + ' ' + p(shoulder + rightFlare,y));
     line(x + width - corner,y);
     quad(x + width,y,x + width,y + corner);
     line(x + width,y + height - corner);
@@ -34,8 +37,8 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear) {
     quad(x,y + height,x,y + height - corner);
     line(x,y + corner);
     quad(x,y,x + corner,y);
-    line(shoulder - flare,y);
-    path.push('C ' + p(shoulder - flare * 0.25,y) + ' '
+    line(shoulder - leftFlare,y);
+    path.push('C ' + p(shoulder - leftFlare * 0.25,y) + ' '
         + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
     path.push('C ' + p(waistX - waistHalf,waistY - (waistY - footY) * (0.42 / 0.65)) + ' '
         + p(tip - footHalf * 0.25,footY) + ' ' + p(tip - footHalf,footY));
