@@ -45,6 +45,9 @@ ShellRoot {
     Dashboard {
         id: dashboardWindow
         services: desktopServices
+        wallpaperSource: wallpapers.sources[dashboardWindow.screen?.name] || ""
+        translucency: preferences.config.bar.popdownTranslucency ?? 0.06
+        onOpenedChanged: if (opened) for (let panel of panels.instances) panel.closeMenu()
         onSettingsRequested: settingsController.open()
         onLockRequested: locking.lockNow()
         onMenuRequested: name => {

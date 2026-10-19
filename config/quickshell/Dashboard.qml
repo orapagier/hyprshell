@@ -3,39 +3,36 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
-import "style" as Style
 
 PanelWindow {
     id: dashboard
     required property var services
-    property bool opened: false
+    property url wallpaperSource: ""
+    property real translucency: 0.06
+    readonly property bool opened: menuState.section.length > 0
+    readonly property bool pointerInside: popover.pointerInside
+    readonly property rect inputRect: Qt.rect(4, 0, Math.max(0, width - 4), opened ? height : 0)
     property var resourceData: ({})
     property var previousCounters: null
-    readonly property bool pointerInside: tracking.hovered
-    property real revealProgress: opened ? 1 : 0
-    Behavior on revealProgress {
-        NumberAnimation { duration: Style.Theme.duration(dashboard, 350); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve }
-    }
     function reveal(output) {
         if (output) screen = output;
-        opened = true;
-        leaveDelay.stop();
+        menuState.section = "dashboard";
+        menuState.pinned = false;
+        menuState.retain(popover.pointerInside);
     }
-    // A short grace period bridges surface handoff and permits reversing mid-slide.
-    Timer {
-        id: leaveDelay
-        interval: 120
-        onTriggered: if (!dashboard.pointerInside && !reveals.instances.some(r => r.hovered)) dashboard.opened = false
+    MenuController {
+        id: menuState
+        objectName: "dashboardMenuState"
+        dismissPinnedOnLeave: true
     }
     Variants {
-        id: reveals
         model: Quickshell.screens
         PanelWindow {
             id: edge
             required property var modelData
-            readonly property bool hovered: edgeHover.hovered
             screen: modelData
-            visible: !dashboard.opened || dashboard.screen !== modelData
+            // Never unmap the trigger during hover: that can leave a stale enter.
+            visible: true
             anchors { left: true }
             implicitWidth: 4
             implicitHeight: 96
@@ -46,10 +43,11 @@ PanelWindow {
             WlrLayershell.namespace: "hyprshell-dashboard-reveal"
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
             HoverHandler {
-                id: edgeHover
                 onHoveredChanged: {
-                    if (hovered) dashboard.reveal(edge.modelData);
-                    else if (dashboard.opened) leaveDelay.restart();
+                    if (hovered) {
+                        dashboard.screen = edge.modelData;
+                        menuState.hover("dashboard");
+                    } else menuState.leave("dashboard");
                 }
             }
         }
@@ -58,10 +56,11 @@ PanelWindow {
     signal lockRequested()
     signal menuRequested(string name)
     function toggle(output) {
-        if (opened) { opened = false; return; }
+        if (opened) { menuState.close(); return; }
         if (output) screen = output;
-        opened = true;
-        Qt.callLater(() => content.focusFirst());
+        menuState.activate("dashboard", true);
+        menuState.retain(popover.pointerInside);
+        Qt.callLater(() => popover.pageItem?.focusFirst());
     }
     onOpenedChanged: {
         if (opened) {
@@ -70,7 +69,9 @@ PanelWindow {
             if (!sampler.running) sampler.running = true;
         }
     }
-    visible: opened || revealProgress > 0
+    // Match Dropdown: stay mapped and observe movement outside the card while
+    // open, so Wayland reliably delivers exit from the menu and its bridge.
+    visible: true
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     exclusiveZone: -1
@@ -99,49 +100,38 @@ PanelWindow {
         }
         stderr: StdioCollector {}
     }
-    // Only the dashboard accepts input; the rest of the desktop stays usable.
-    mask: Region { item: hoverArea }
-    Item {
-        id: hoverArea
-        objectName: "dashboardHoverArea"
-        x: 0; y: card.y
-        width: card.width; height: card.height
-        HoverHandler {
-            id: tracking
-            onHoveredChanged: {
-                if (hovered) leaveDelay.stop();
-                else if (dashboard.opened) leaveDelay.restart();
-            }
+    mask: Region { x: dashboard.inputRect.x; y: dashboard.inputRect.y; width: dashboard.inputRect.width; height: dashboard.inputRect.height }
+    MouseArea { anchors.fill: parent; onClicked: menuState.close() }
+    FocusScope {
+        anchors.fill: parent
+        focus: true
+        Keys.onEscapePressed: menuState.close()
+        MenuPopover {
+            id: popover
+            objectName: "dashboardPopover"
+            anchors.fill: parent
+            edge: "left"
+            triggerRect: Qt.rect(0, dashboard.height / 2 - 48, 4, 96)
+            preferredBodyWidth: 1100
+            opened: dashboard.opened
+            wallpaperSource: dashboard.wallpaperSource
+            translucency: dashboard.translucency
+            showHeader: false
+            persistentSelected: true
+            persistentPage: dashboardPage
+            onHoverChanged: inside => menuState.retain(inside)
         }
     }
-    Rectangle {
-        id: card
-        objectName: "dashboardCard"
-        x: (dashboard.revealProgress - 1) * (width + 5)
-        y: (dashboard.height - height) / 2
-        width: Math.max(1, Math.min(1100, dashboard.width - 40))
-        height: Math.max(1, Math.min(content.implicitHeight + 40, dashboard.height - 64))
-        color: "#f21e1e2e"
-        radius: 32
-        border.width: 1
-        border.color: "#22cdd6f4"
-        opacity: Math.max(0, Math.min(1, dashboard.revealProgress))
-        MouseArea { anchors.fill: parent }
-        Flickable {
-            anchors.fill: parent; anchors.margins: 20
-            contentWidth: width; contentHeight: content.implicitHeight
-            clip: true; boundsBehavior: Flickable.StopAtBounds
-            DashboardContent {
-                id: content
-                width: parent.width
-                active: dashboard.opened
-                services: dashboard.services
-                resourceData: dashboard.resourceData
-                onDismissRequested: dashboard.opened = false
-                onSettingsRequested: { dashboard.opened = false; dashboard.settingsRequested(); }
-                onLockRequested: { dashboard.opened = false; dashboard.lockRequested(); }
-                onMenuRequested: name => { dashboard.opened = false; dashboard.menuRequested(name); }
-            }
+    Component {
+        id: dashboardPage
+        DashboardContent {
+            active: dashboard.opened
+            services: dashboard.services
+            resourceData: dashboard.resourceData
+            onDismissRequested: menuState.close()
+            onSettingsRequested: { menuState.close(); dashboard.settingsRequested(); }
+            onLockRequested: { menuState.close(); dashboard.lockRequested(); }
+            onMenuRequested: name => { menuState.close(); dashboard.menuRequested(name); }
         }
     }
 }

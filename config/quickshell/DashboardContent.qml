@@ -33,7 +33,7 @@ ColumnLayout {
                 anchors.fill: parent; anchors.margins: 22
                 MenuLabel { text: "GOOD " + (page.now.getHours() < 12 ? "MORNING" : page.now.getHours() < 18 ? "AFTERNOON" : "EVENING"); color: "#a6adc8"; font.pixelSize: 11; font.letterSpacing: 2 }
                 Item { Layout.fillHeight: true }
-                MenuLabel { text: Qt.formatTime(page.now, "hh:mm"); font.pixelSize: 58; font.weight: Font.Light; color: "#cba6f7" }
+                MenuLabel { text: Qt.formatTime(page.now, "hh:mm"); font.pixelSize: 58; font.weight: Font.Light; color: "#b4befe" }
                 MenuLabel { text: Qt.formatDate(page.now, "dddd, d MMMM"); font.pixelSize: 15; Layout.fillWidth: true }
                 Item { Layout.fillHeight: true }
                 MenuLabel { text: Quickshell.env("USER") || "Welcome home"; font.pixelSize: 20; font.weight: Font.DemiBold }
@@ -84,14 +84,14 @@ ColumnLayout {
             Rectangle {
                 Layout.preferredWidth: Math.min(108, page.width * 0.2)
                 Layout.fillHeight: true
-                radius: 24; color: "#313244"
+                radius: 14; color: "#1fffffff"
                 Image {
                     id: art
                     anchors.fill: parent; anchors.margins: 8
                     source: page.player ? page.player.trackArtUrl : ""
                     fillMode: Image.PreserveAspectFit; asynchronous: true
                 }
-                MenuLabel { anchors.centerIn: parent; text: "♫"; font.pixelSize: 42; color: "#cba6f7"; visible: art.status !== Image.Ready }
+                MenuLabel { anchors.centerIn: parent; text: "♫"; font.pixelSize: 42; color: "#b4befe"; visible: art.status !== Image.Ready }
             }
             ColumnLayout {
                 Layout.fillWidth: true; spacing: 10
@@ -100,15 +100,17 @@ ColumnLayout {
                 MenuLabel { text: page.player ? page.player.trackArtist : "Play something in your favorite app"; color: "#a6adc8"; Layout.fillWidth: true }
                 RowLayout {
                     MenuButton { text: "Previous"; enabled: !!page.player && page.player.canGoPrevious; onClicked: page.player.previous() }
-                    MenuButton { text: page.player && page.player.isPlaying ? "Pause" : "Play"; enabled: !!page.player && page.player.canTogglePlaying; accent: "#cba6f7"; onClicked: page.player.togglePlaying() }
+                    MenuButton { text: page.player && page.player.isPlaying ? "Pause" : "Play"; enabled: !!page.player && page.player.canTogglePlaying; accent: "#b4befe"; onClicked: page.player.togglePlaying() }
                     MenuButton { text: "Next"; enabled: !!page.player && page.player.canGoNext; onClicked: page.player.next() }
                 }
             }
         }
     }
     component Card: Rectangle {
-        radius: 26
-        color: "#313244"
+        radius: 16
+        color: "#0bffffff"
+        border.width: 1
+        border.color: "#1fffffff"
         implicitWidth: 250
     }
     component Meter: ColumnLayout {
@@ -120,13 +122,13 @@ ColumnLayout {
         RowLayout {
             Layout.fillWidth: true
             MenuLabel { text: meter.title; Layout.fillWidth: true }
-            MenuLabel { text: meter.available ? Math.round(meter.value) + "%" : "—"; color: "#cba6f7" }
+            MenuLabel { text: meter.available ? Math.round(meter.value) + "%" : "—"; color: "#b4befe" }
         }
         Rectangle {
             Layout.fillWidth: true; implicitHeight: 8
-            radius: 4; color: "#45475a"
+            radius: 4; color: "#1fffffff"
             Rectangle {
-                height: parent.height; radius: 4; color: "#cba6f7"
+                height: parent.height; radius: 4; color: "#b4befe"
                 width: parent.width * Math.max(0, Math.min(100, meter.value || 0)) / 100
                 Behavior on width { NumberAnimation { duration: Style.Theme.duration(meter, 350); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
             }

@@ -77,10 +77,12 @@ ShellRoot {
         interval: 400; running: true; repeat: true
         onTriggered: {
             try {
+                let popover = test.find(dashboard.contentItem, 'dashboardPopover');
+                let controller = test.find(dashboard.contentItem, 'dashboardMenuState');
                 if (test.step === 0) {
-                    dashboard.toggle(null);
-                    test.check(dashboard.opened, "Dashboard opens");
+                    controller.hover('dashboard');
                 } else if (test.step === 1) {
+                    test.check(dashboard.opened, "Hover delay opens dashboard");
                     let content = test.find(dashboard.contentItem, 'dashboardContent');
                     test.check(content !== null, "Production dashboard content loads");
                     test.check(test.find(content, 'dashboardMedia') === null, "No media tab");
@@ -92,24 +94,48 @@ ShellRoot {
                     let detailsCard = details.parent.parent;
                     test.check(details.y + details.height <= details.parent.height, "Resource details fit their card");
                     test.check(detailsCard.height >= details.parent.implicitHeight + 44, "Resource card fits its controls");
-                    let card = test.find(dashboard.contentItem, 'dashboardCard');
-                    test.check(Math.abs(card.x) < 1, "Dashboard arrives from left");
-                    test.check(Math.abs(card.y - (dashboard.height - card.height) / 2) < 1, "Dashboard vertically centered");
-                    input.mouseMove(dashboard.contentItem, 100, dashboard.height / 2);
+                    test.check(popover.edge === 'left' && popover.connected, "Shared left-edge connector");
+                    test.check(Math.abs(popover.bodyY - (dashboard.height - popover.bodyHeight) / 2) < 1, "Dashboard vertically centered");
+                    test.check(dashboard.inputRect.x === 4 && dashboard.inputRect.width === dashboard.width - 4, "Input observes outside-card movement but preserves trigger");
+                    test.check(dashboard.inputRect.height === dashboard.height, "Full-height input while open");
+                    input.mouseMove(dashboard.contentItem, 10, dashboard.height / 2);
+                    test.check(dashboard.pointerInside, "Pointer enters bridge from trigger");
+                    controller.leave('dashboard');
+                    input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
                     test.check(dashboard.pointerInside, "Pointer enters dashboard over its content");
                     test.check(dashboard.resourceData.cpuTotal > 0, "Local resource sampler runs");
                     input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
                     test.check(!dashboard.pointerInside, "Pointer leaves dashboard");
                 } else if (test.step === 2) {
                     test.check(!dashboard.opened, "Pointer exit closes dashboard");
+                    test.check(dashboard.inputRect.height === 0, "Closed dashboard releases desktop input immediately");
+                    controller.hover('dashboard');
+                } else if (test.step === 3) {
+                    test.check(dashboard.opened, "Repeated hover reopens dashboard");
+                    input.mouseMove(dashboard.contentItem, 10, dashboard.height / 2);
+                    controller.leave('dashboard');
+                    input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
+                    input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
+                } else if (test.step === 4) {
+                    test.check(dashboard.opened, "Reentry cancels close delay");
+                    input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
+                } else if (test.step === 5) {
+                    test.check(!dashboard.opened, "Repeated exit closes dashboard");
                     test.stoppedCounter = dashboard.resourceData.cpuTotal;
-                } else if (test.step === 8) {
-                    test.check(!dashboard.visible, "Dashboard unmaps after exit animation");
+                } else if (test.step === 10) {
+                    test.check(dashboard.visible && !popover.rendering, "Window stays mapped but dashboard finishes exit animation");
                     test.check(dashboard.resourceData.cpuTotal === test.stoppedCounter, "Hidden dashboard stops sampling");
-                    dashboard.reveal(null);
-                    test.check(dashboard.opened, "Edge reveal reopens dashboard");
                     dashboard.toggle(null);
-                    test.check(!dashboard.opened, "Shortcut still toggles dashboard");
+                    test.check(dashboard.opened, "Shortcut opens dashboard");
+                    input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
+                    input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
+                } else if (test.step === 11) {
+                    test.check(!dashboard.opened, "Shortcut-opened dashboard also closes on leave");
+                    dashboard.reveal(null);
+                    test.check(dashboard.opened, "Reveal opens dashboard");
+                    let content = test.find(dashboard.contentItem, 'dashboardContent');
+                    content.dismissRequested();
+                    test.check(!dashboard.opened, "Escape dismissal still works");
                     console.log('DASHBOARD_NATIVE_OK'); Qt.quit();
                 }
                 test.step++;
