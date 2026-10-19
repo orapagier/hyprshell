@@ -322,25 +322,42 @@ Item {
         anchors.fill: parent
         z: 0
         visible: !bar.statusIconsOnly
-        function shuffledKnots() {
-            let order = [0, 1, 2, 3, 4, 5];
-            for (let i = order.length - 1; i > 0; --i) {
-                let j = Math.floor(Math.random() * (i + 1));
-                [order[i], order[j]] = [order[j], order[i]];
-            }
-            return order;
-        }
-        property var knotOrder: shuffledKnots()
+        property int patternSeed: Math.floor(Math.random() * 0x7fffffff) || 1
         function reshuffleKnots() {
-            let next = shuffledKnots();
-            if (next.join() === knotOrder.join()) next.push(next.shift());
-            knotOrder = next;
+            let next = Math.floor(Math.random() * 0x7fffffff) || 1;
+            patternSeed = next === patternSeed ? (next % 0x7ffffffe) + 1 : next;
         }
-        onKnotOrderChanged: requestPaint()
         Connections {
             target: bar
             function onWallpaperSourceChanged() { connectors.reshuffleKnots(); }
         }
+        function arrangeKnots(spans, seed) {
+            let result = spans.map(() => []), slots = [];
+            for (let i = 0; i < spans.length; ++i) {
+                let span = spans[i], count = span.knots.length;
+                for (let j = 0; j < count; ++j)
+                    slots.push({segment:i, knot:j, position:span.start + (span.end - span.start) * (j + 0.5) / count});
+            }
+            // Workspace gaps and module gaps share one spatial sequence.
+            slots.sort((a, b) => a.position - b.position);
+            let state = seed >>> 0, previous = -1;
+            let weights = [3, 3, 1, 3, 3, 1]; // Butterfly/scissor loops occur less often.
+            for (let slot of slots) {
+                let options = [0, 1, 2, 3, 4, 5].filter(v => v % 3 !== previous);
+                let total = options.reduce((sum, v) => sum + weights[v], 0);
+                state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+                let pick = state / 4294967296 * total, variant = options[options.length - 1];
+                for (let option of options) {
+                    pick -= weights[option];
+                    if (pick < 0) { variant = option; break; }
+                }
+                result[slot.segment][slot.knot] = variant;
+                previous = variant % 3; // Single/paired versions also count as the same motif.
+            }
+            return result;
+        }
+        readonly property var knotVariants: arrangeKnots(segments, patternSeed)
+        onKnotVariantsChanged: requestPaint()
         function colorAt(along, cross, span) {
             let region = bar.wallpaperColors.sampleRect(bar.vertical
                 ? Qt.rect(bar.screenOffsetX + cross - 3, bar.screenOffsetY + along - span / 2 - bar.scrollOffset, 6, span)
@@ -364,7 +381,7 @@ Item {
             let steps = Math.max(1, Math.ceil(length / 16)), stops = [];
             for (let i = 0; i <= steps; ++i)
                 stops.push(colorAt(start + length * i / steps, cross, 8));
-            let count = workspace ? 1 : Math.max(1, Math.floor(length / 38)), knots = [];
+            let count = workspace ? 1 : Math.max(1, Math.floor(length / 42)), knots = [];
             for (let i = 0; i < count; ++i)
                 knots.push(colorAt(start + length * (i + 0.5) / count, cross, 12));
             return {start:start, end:end, cross:cross, workspace:workspace,
@@ -463,15 +480,15 @@ Item {
                 let gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
                 for (let i = 0; i < segment.stops.length; ++i)
                     gradient.addColorStop(i / (segment.stops.length - 1), segment.stops[i]);
-                ctx.strokeStyle = gradient; ctx.lineWidth = 1.8;
+                ctx.strokeStyle = gradient; ctx.lineWidth = 1.71;
                 ctx.stroke();
                 let length = segment.end - segment.start;
-                // One complete knot per icon gap, and a knot every ~38 px on open cord.
+                // One complete knot per icon gap, and a knot every ~42 px on open cord.
                 let count = segment.knots.length;
                 for (let knotIndex = 0; knotIndex < count; ++knotIndex) {
                     let p = point(segment.start + length * (knotIndex + 0.5) / count, segment.cross);
                     let size = Math.min(4.8, length / 3.6);
-                    let variant = knotOrder[(segmentIndex * 5 + knotIndex) % knotOrder.length];
+                    let variant = knotVariants[segmentIndex][knotIndex];
                     let ink = segment.knots[knotIndex];
                     ctx.save(); ctx.translate(p.x, p.y);
                     if (bar.vertical) ctx.rotate(Math.PI / 2);
