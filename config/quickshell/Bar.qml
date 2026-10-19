@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import "SettingsModel.js" as Settings
+import "AdaptiveColors.js" as Colors
 
 Item {
     id: bar
@@ -314,12 +315,12 @@ Item {
             policy: bar.overflowing ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
             active: bar.overflowing
         }
-    // A fine cord joins exposed pill edges; shared pills remain one surface.
+    // Outlined cords and knots follow the sampled wallpaper and icon palette.
     Canvas {
         id: connectors
         objectName: "panelConnectors"
         anchors.fill: parent
-        z: -2
+        z: 0
         visible: !bar.statusIconsOnly
         readonly property var segments: {
             let ids = Object.keys(bar.moduleItems).filter(id => bar.itemShown(id));
@@ -329,17 +330,25 @@ Item {
             let result = [];
             for (let i = 1; i < ids.length; ++i) {
                 let first = ids[i - 1], second = ids[i];
-                if (!bar.vertical && bar.side(first) === bar.side(second)
-                    && bar.pillName(first) && bar.pillName(first) === bar.pillName(second)) continue;
                 let a = bar.moduleItems[first], b = bar.moduleItems[second];
                 let start = bar.vertical ? a.y + a.height : a.x + a.width;
                 let end = bar.vertical ? b.y : b.x;
                 if (end - start < 2) continue;
-                result.push({start:start, end:end,
-                    cross:bar.vertical ? bar.width / 2 : bar.height / 2});
+                let cross = bar.vertical ? bar.width / 2 : bar.height / 2;
+                let region = bar.wallpaperColors.sampleRect(bar.vertical
+                    ? Qt.rect(bar.screenOffsetX + cross - 8, bar.screenOffsetY + start - bar.scrollOffset, 16, end - start)
+                    : Qt.rect(bar.screenOffsetX + start, bar.screenOffsetY + cross - 8, end - start, 16), true);
+                let style = Settings.appearance(bar.settings, first, bar.wallpaperSource.toString());
+                let accent = style.vibrantColor ? Qt.color(style.vibrantColor)
+                    : region.average.hsvSaturation > 0.08
+                        ? Qt.hsva(region.average.hsvHue, 0.65, 0.95, 1) : Qt.color("#ed9876");
+                let palette = Colors.palette(region.average, accent, region.minimum, region.maximum, "bare-normal");
+                result.push({start:start, end:end, cross:cross,
+                    ink:palette.foreground, edge:Colors.glyphEdge(palette.foreground)});
             }
             return result;
         }
+        onAvailableChanged: if (available) requestPaint()
         onSegmentsChanged: requestPaint()
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
@@ -350,53 +359,92 @@ Item {
             function point(along, cross) {
                 return bar.vertical ? {x:cross, y:along} : {x:along, y:cross};
             }
+            function diamond(x, y, r) {
+                ctx.moveTo(x, y - r); ctx.lineTo(x + r, y);
+                ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath();
+            }
+            function knotPath(variant, size) {
+                ctx.beginPath();
+                if (variant === 0 || variant === 1) {
+                    diamond(0, 0, size);
+                    if (variant === 1) diamond(0, 0, size * 0.48);
+                } else if (variant === 2) {
+                    for (let i = 0; i <= 64; ++i) {
+                        let angle = i / 64 * Math.PI * 2;
+                        let x = size * 1.3 * Math.sin(angle), y = size * 0.8 * Math.sin(2 * angle);
+                        if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+                    }
+                } else if (variant === 3 || variant === 4 || variant === 5) {
+                    let petals = variant === 3 ? 3 : variant === 4 ? 4 : 5;
+                    for (let i = 0; i <= 80; ++i) {
+                        let angle = i / 80 * Math.PI * 2;
+                        let radius = size * (0.28 + 0.85 * Math.abs(Math.cos(petals * angle / 2)));
+                        let x = Math.cos(angle - Math.PI / 2) * radius;
+                        let y = Math.sin(angle - Math.PI / 2) * radius;
+                        if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+                    }
+                    ctx.closePath();
+                } else if (variant === 6) {
+                    diamond(0, -size * 0.55, size * 0.65);
+                    diamond(0, size * 0.55, size * 0.65);
+                } else if (variant === 7) {
+                    ctx.arc(0, 0, size, 0, Math.PI * 2);
+                    ctx.moveTo(-size * 0.7, 0); ctx.lineTo(size * 0.7, 0);
+                    ctx.moveTo(0, -size * 0.7); ctx.lineTo(0, size * 0.7);
+                } else if (variant === 8) {
+                    ctx.rect(-size * 0.75, -size * 0.75, size * 1.5, size * 1.5);
+                    diamond(0, 0, size * 1.2);
+                } else if (variant === 9) {
+                    // Four returning loops suggest a woven cord crossing.
+                    for (let i = 0; i <= 80; ++i) {
+                        let angle = i / 80 * Math.PI * 2;
+                        let radius = size * 1.2 * Math.sin(2 * angle);
+                        let x = radius * Math.cos(angle), y = radius * Math.sin(angle);
+                        if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+                    }
+                } else if (variant === 10) {
+                    diamond(-size * 0.55, 0, size * 0.65);
+                    diamond(size * 0.55, 0, size * 0.65);
+                } else {
+                    // A small hexagonal seal with a central crossing.
+                    for (let i = 0; i <= 6; ++i) {
+                        let angle = i * Math.PI / 3;
+                        if (i) ctx.lineTo(Math.cos(angle) * size, Math.sin(angle) * size);
+                        else ctx.moveTo(size, 0);
+                    }
+                    ctx.moveTo(-size * 0.5, -size * 0.5); ctx.lineTo(size * 0.5, size * 0.5);
+                    ctx.moveTo(size * 0.5, -size * 0.5); ctx.lineTo(-size * 0.5, size * 0.5);
+                }
+            }
             for (let segmentIndex = 0; segmentIndex < segments.length; ++segmentIndex) {
                 let segment = segments[segmentIndex];
                 let a = point(segment.start, segment.cross), b = point(segment.end, segment.cross);
-                ctx.strokeStyle = "#ce765044";
-                ctx.lineWidth = 1.2;
-                ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+                ctx.lineCap = "round"; ctx.lineJoin = "round";
+                ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+                ctx.strokeStyle = Colors.alpha(segment.edge, 0.85); ctx.lineWidth = 4;
+                ctx.stroke();
+                ctx.strokeStyle = segment.ink; ctx.lineWidth = 2;
+                ctx.stroke();
                 let length = segment.end - segment.start;
-                let knots = length > 100 ? [0.22, 0.5, 0.78] : [0.5];
-                for (let knotIndex = 0; knotIndex < knots.length; ++knotIndex) {
-                    let p = point(segment.start + length * knots[knotIndex], segment.cross);
-                    let size = 3.2;
-                    let along = Math.min(size, length / 3);
-                    let glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2.5);
-                    glow.addColorStop(0, "#886f392b"); glow.addColorStop(1, "transparent");
+                // One complete knot per icon gap, and a knot every ~38 px on open cord.
+                let count = Math.max(1, Math.floor(length / 38));
+                for (let knotIndex = 0; knotIndex < count; ++knotIndex) {
+                    let p = point(segment.start + length * (knotIndex + 0.5) / count, segment.cross);
+                    let size = Math.min(4.8, length / 3.6);
+                    let variant = (segmentIndex * 5 + knotIndex) % 12;
+                    let glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2);
+                    glow.addColorStop(0, Colors.alpha(segment.ink, 0.32));
+                    glow.addColorStop(1, Colors.alpha(segment.ink, 0));
                     ctx.fillStyle = glow;
-                    ctx.fillRect(p.x - size * 2.5, p.y - size * 2.5, size * 5, size * 5);
-                    ctx.save();
-                    ctx.translate(p.x, p.y);
+                    ctx.fillRect(p.x - size * 2, p.y - size * 2, size * 4, size * 4);
+                    ctx.save(); ctx.translate(p.x, p.y);
                     if (bar.vertical) ctx.rotate(Math.PI / 2);
-                    ctx.strokeStyle = "#ed9876";
-                    ctx.fillStyle = "#e9825e";
-                    ctx.lineWidth = 1;
-                    // Narrow gaps keep a tall diamond; open cord alternates
-                    // diamond, interlaced loops, open lozenge and four-petal knots.
-                    let variant = length < 12 ? 0 : (segmentIndex + knotIndex) % 4;
-                    ctx.beginPath();
-                    if (variant === 1) {
-                        ctx.moveTo(0, 0);
-                        ctx.bezierCurveTo(-along * 2, -size * 1.6, -along * 2, size * 1.6, 0, 0);
-                        ctx.bezierCurveTo(along * 2, -size * 1.6, along * 2, size * 1.6, 0, 0);
-                        ctx.stroke();
-                    } else if (variant === 3) {
-                        ctx.moveTo(0, 0);
-                        ctx.bezierCurveTo(-along * 2, -size, -along, -size * 2, 0, 0);
-                        ctx.bezierCurveTo(along, -size * 2, along * 2, -size, 0, 0);
-                        ctx.bezierCurveTo(along * 2, size, along, size * 2, 0, 0);
-                        ctx.bezierCurveTo(-along, size * 2, -along * 2, size, 0, 0);
-                        ctx.stroke();
-                    } else {
-                        ctx.moveTo(0, -size); ctx.lineTo(along, 0);
-                        ctx.lineTo(0, size); ctx.lineTo(-along, 0);
-                        ctx.closePath();
-                        if (variant === 2) ctx.stroke();
-                        else ctx.fill();
-                    }
-                    ctx.fillStyle = "#ffd0a0";
-                    ctx.beginPath(); ctx.arc(0, 0, 0.8, 0, Math.PI * 2); ctx.fill();
+                    knotPath(variant, size);
+                    ctx.strokeStyle = segment.edge; ctx.lineWidth = 3.8; ctx.stroke();
+                    ctx.strokeStyle = segment.ink; ctx.lineWidth = 1.8; ctx.stroke();
+                    if (variant === 0) { ctx.fillStyle = segment.ink; ctx.fill(); }
+                    ctx.beginPath(); ctx.arc(0, 0, 1.2, 0, Math.PI * 2);
+                    ctx.fillStyle = segment.ink; ctx.fill();
                     ctx.restore();
                 }
             }
