@@ -315,7 +315,7 @@ Item {
             policy: bar.overflowing ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
             active: bar.overflowing
         }
-    // Angular steel links use a dark keyline to stay legible over any wallpaper.
+    // Angular steel links adapt their stroke color to the local wallpaper.
     Canvas {
         id: connectors
         objectName: "panelConnectors"
@@ -362,13 +362,12 @@ Item {
             let region = bar.wallpaperColors.sampleRect(bar.vertical
                 ? Qt.rect(bar.screenOffsetX + cross - 3, bar.screenOffsetY + along - span / 2 - bar.scrollOffset, 6, span)
                 : Qt.rect(bar.screenOffsetX + along - span / 2, bar.screenOffsetY + cross - 3, span, 6), true);
-            // Restrained steel and ice-blue inks; the opaque dark keyline below
-            // preserves their silhouette even on bright or detailed wallpaper.
-            if (neutral) return Qt.rgba(0.72, 0.79, 0.84, 1);
-            let steel = Qt.rgba(0.88, 0.93, 0.96, 1);
-            let ice = Qt.rgba(0.48, 0.78, 0.91, 1);
-            return Colors.contrast(ice, region.average) >= Colors.contrast(steel, region.average)
-                ? ice : steel;
+            // Single strokes switch between light steel and deep slate/blue
+            // for local contrast without adding an outline around the links.
+            let light = neutral ? Qt.rgba(0.78, 0.84, 0.88, 1) : Qt.rgba(0.66, 0.86, 0.95, 1);
+            let dark = neutral ? Qt.rgba(0.20, 0.26, 0.31, 1) : Qt.rgba(0.14, 0.30, 0.40, 1);
+            return Colors.contrast(light, region.average) >= Colors.contrast(dark, region.average)
+                ? light : dark;
         }
         function segmentFor(start, end, cross, workspace) {
             let length = end - start;
@@ -444,7 +443,6 @@ Item {
                 }
             }
             function strokeMetal(ink, width) {
-                ctx.strokeStyle = "#111820"; ctx.lineWidth = width + 2.2; ctx.stroke();
                 ctx.strokeStyle = ink; ctx.lineWidth = width; ctx.stroke();
             }
             for (let segmentIndex = 0; segmentIndex < segments.length; ++segmentIndex) {
@@ -466,7 +464,7 @@ Item {
                     let ink = segment.knots[knotIndex];
                     ctx.save(); ctx.translate(p.x, p.y);
                     if (bar.vertical) ctx.rotate(Math.PI / 2);
-                    // The same two-tone outline protects every mechanical joint.
+                    // Keep the mechanical joints crisp with a single adaptive stroke.
                     knotPath(variant, size);
                     strokeMetal(ink, 1.6);
                     if (variant >= 3) {
