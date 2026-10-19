@@ -54,7 +54,7 @@ Item {
     }
     readonly property bool fluidSurface: connected && !attachedLeft
     readonly property bool motionEnabled: !instant && Style.Theme.duration(popover, 1) > 0
-    readonly property real connectorGap: 20
+    readonly property real connectorGap: 32
     readonly property alias fluidMotion: fluid
     property rect panelBounds: Qt.rect(0, 0, width, height)
     readonly property real safeLeft: panelBounds.x + 12
