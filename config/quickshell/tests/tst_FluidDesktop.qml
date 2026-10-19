@@ -36,6 +36,36 @@ TestCase {
         compare(button.scale, 1);
         compare(Style.Theme.duration(button, 350), 0);
     }
+    function test_connected_wave_keeps_pill_foot_fixed_data() {
+        return ["top", "bottom", "left", "right"].map(edge => ({tag: edge, edge: edge}));
+    }
+    function test_connected_wave_keeps_pill_foot_fixed(data) {
+        let popover = createTemporaryObject(popoverComponent, test, {
+            connected: true, edge: data.edge, triggerRect: Qt.rect(400, 300, 60, 28)
+        });
+        let halfWidth = (popover.vertical ? 28 : 60) / 2;
+        compare(popover.attachmentHalfWidth, halfWidth);
+        verify(popover.neckHalfWidth > 0 && popover.neckHalfWidth < halfWidth);
+        let footX = popover.tipX, footY = popover.neckY;
+        popover.opened = true;
+        tryVerify(() => popover.fluidProgress > 0 && popover.fluidProgress < 1);
+        wait(100);
+        verify(Math.abs(popover.fluidWave) > 0.01);
+        compare(popover.tipX, footX); compare(popover.neckY, footY);
+        compare(popover.attachmentHalfWidth, halfWidth);
+        // Reverse mid-wave without losing the stable foot or leaving motion running.
+        popover.opened = false;
+        wait(50);
+        popover.opened = true;
+        tryCompare(popover, "fluidProgress", 1, 800);
+        fuzzyCompare(popover.fluidOffset, 0, 0.001);
+        fuzzyCompare(popover.waistX, footX, 0.001);
+        Style.Theme.preferences = ({reducedMotion: true});
+        popover.opened = false;
+        compare(popover.fluidProgress, 0);
+        popover.opened = true;
+        compare(popover.fluidProgress, 1);
+    }
     function test_popover_keeps_exit_rendering() {
         let popover = createTemporaryObject(popoverComponent, test);
         popover.opened = true;

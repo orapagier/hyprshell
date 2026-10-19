@@ -275,13 +275,9 @@ Item {
             return Qt.rect(point.x, point.y, item.width, item.height);
         }
         if (name === "media") return itemRect("media");
-        // Read layout positions directly so the connector follows screen and
-        // status-width changes, including movement of the containing row.
-        // Anchor on the visible content, which asymmetric inside-pill padding
-        // shifts away from the item's geometric centre.
-        let contentShift = vertical ? 0 : (item.effectiveLeftPadding - item.effectiveRightPadding) / 2;
-        let rect = itemRect(name);
-        return Qt.rect(rect.x + contentShift, rect.y, rect.width, rect.height);
+        // The connector foot spans the visible pill, including asymmetric padding.
+        // itemRect also tracks scroll movement on a vertical rail.
+        return itemRect(name);
     }
     function menuAccent(name) {
         let item = menuTargets[name];

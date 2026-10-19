@@ -51,6 +51,17 @@ Item {
             easing.bezierCurve: popover.opened ? [0.22, 1.32, 0.36, 1, 1, 1] : [0.4, 0, 0.2, 1, 1, 1]
         }
     }
+    // Deform the shared surface instead of translating the foot off its pill.
+    // A damped wave crosses the waist and body, then becomes exactly still.
+    property real fluidProgress: opened ? 1 : 0
+    Behavior on fluidProgress {
+        enabled: popover.connected && !popover.attachedLeft && !popover.instant && Style.Theme.duration(popover, 1) > 0
+        NumberAnimation { duration: popover.opened ? 620 : 280; easing.type: Easing.Linear }
+    }
+    readonly property real fluidWave: connected && !attachedLeft
+        ? Math.sin(fluidProgress * Math.PI * 4) * Math.sin(fluidProgress * Math.PI) * (1 - fluidProgress) : 0
+    readonly property real fluidOffset: connected && !attachedLeft
+        ? 10 * Math.pow(1 - fluidProgress, 3) + 4 * fluidWave : 0
     property rect panelBounds: Qt.rect(0, 0, width, height)
     readonly property real safeLeft: panelBounds.x + 12
     readonly property real safeRight: panelBounds.x + panelBounds.width - 12
@@ -65,14 +76,14 @@ Item {
     function clamp(value, low, high) { return Math.max(low, Math.min(Math.max(low, high), value)); }
     readonly property real bodyX: attachedLeft ? 0 : !connected || !vertical
         ? (alignToTrigger && connected ? clamp(triggerRect.x + triggerRect.width / 2 - bodyWidth / 2, safeLeft, safeRight - bodyWidth) : alignment === "left" ? safeLeft : alignment === "right" ? safeRight - bodyWidth : panelBounds.x + (panelBounds.width - bodyWidth) / 2)
-        : edge === "left" ? clamp(triggerRect.x + triggerRect.width + 33, safeLeft, safeRight - bodyWidth)
-        : clamp(triggerRect.x - 33 - bodyWidth, safeLeft, safeRight - bodyWidth)
+        : edge === "left" ? clamp(triggerRect.x + triggerRect.width + 33 + fluidOffset, safeLeft, safeRight - bodyWidth)
+        : clamp(triggerRect.x - 33 - bodyWidth - fluidOffset, safeLeft, safeRight - bodyWidth)
     readonly property real availableHeight: !connected ? Math.max(0, Math.min(panelBounds.height - 64, safeBottom - bodyY)) : vertical ? Math.max(0, safeBottom - safeTop)
         : edge === "bottom" ? triggerRect.y - 33 - safeTop - 4 : safeBottom - triggerRect.y - triggerRect.height - 33 - 4
     readonly property real bodyHeight: Math.max(0, Math.min(availableHeight, maximumBodyHeight, contents.implicitHeight + 36))
     readonly property real bodyY: attachedCorner ? safeBottom - bodyHeight : !connected ? Math.max(safeTop + 36, triggerRect.y + triggerRect.height + 12)
-        : edge === "top" ? triggerRect.y + triggerRect.height + 33
-        : edge === "bottom" ? triggerRect.y - 33 - bodyHeight
+        : edge === "top" ? clamp(triggerRect.y + triggerRect.height + 33 + fluidOffset, safeTop, safeBottom - bodyHeight)
+        : edge === "bottom" ? clamp(triggerRect.y - 33 - bodyHeight - fluidOffset, safeTop, safeBottom - bodyHeight)
         : clamp(triggerRect.y + triggerRect.height / 2 - bodyHeight / 2, safeTop, safeBottom - bodyHeight)
     readonly property real bodyRight: bodyX + bodyWidth
     readonly property real bodyBottom: bodyY + bodyHeight
@@ -86,9 +97,10 @@ Item {
         : edge === "right" ? width - triggerRect.x - 1
         : edge === "left" ? triggerRect.x + triggerRect.width - 1 : triggerRect.y + triggerRect.height - 1
     readonly property real tipX: vertical ? triggerRect.y + triggerRect.height / 2 : triggerRect.x + triggerRect.width / 2
-    readonly property real neckHalfWidth: 0.75
-    readonly property real attachmentHalfWidth: 8
-    readonly property real waistY: neckY + 7
+    readonly property real attachmentHalfWidth: Math.max(0, (vertical ? triggerRect.height : triggerRect.width) / 2)
+    readonly property real neckHalfWidth: attachmentHalfWidth * 0.52
+    readonly property real waistX: tipX + 3 * fluidWave
+    readonly property real waistY: neckY + (shapeY - neckY) * 0.4
     readonly property real shoulder: clamp(tipX, shapeX + 52, shapeX + shapeWidth - 52)
     readonly property bool pointerInside: opened && tracking.hovered && containsPointer(tracking.point.position)
 
@@ -129,8 +141,8 @@ Item {
                 : popover.attachedLeft ? 1 + 0.035 * Math.sin(Math.PI * popover.edgeProgress) : 1
         }, Translate {
             id: arrival
-            x: popover.opened || popover.attachedLeft ? 0 : popover.edge === "left" ? -12 : popover.edge === "right" ? 12 : 0
-            y: popover.opened ? 0 : popover.edge === "bottom" ? 12 : popover.vertical ? 0 : -12
+            x: popover.opened || popover.connected ? 0 : popover.edge === "left" ? -12 : popover.edge === "right" ? 12 : 0
+            y: popover.opened || (popover.connected && !popover.attachedLeft) ? 0 : popover.edge === "bottom" ? 12 : popover.vertical ? 0 : -12
             Behavior on x { NumberAnimation { duration: popover.instant ? 0 : Style.Theme.duration(popover, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
             Behavior on y { NumberAnimation { duration: popover.instant ? 0 : Style.Theme.duration(popover, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
         }]
@@ -172,12 +184,12 @@ Item {
                 startX: popover.tipX - popover.attachmentHalfWidth; startY: popover.neckY
                 PathLine { x: popover.tipX + popover.attachmentHalfWidth; y: popover.neckY }
                 PathCubic {
-                    control1X: popover.tipX + popover.neckHalfWidth; control1Y: popover.neckY + 1
-                    control2X: popover.tipX + popover.neckHalfWidth; control2Y: popover.waistY - 3
-                    x: popover.tipX + popover.neckHalfWidth; y: popover.waistY
+                    control1X: popover.tipX + popover.attachmentHalfWidth; control1Y: popover.neckY + 5
+                    control2X: popover.waistX + popover.neckHalfWidth; control2Y: popover.waistY - 3
+                    x: popover.waistX + popover.neckHalfWidth; y: popover.waistY
                 }
                 PathCubic {
-                    control1X: popover.tipX + popover.neckHalfWidth; control1Y: popover.waistY + 12
+                    control1X: popover.waistX + popover.neckHalfWidth; control1Y: popover.waistY + 12
                     control2X: popover.shoulder + 12; control2Y: popover.shapeY
                     x: popover.shoulder + 36; y: popover.shapeY
                 }
@@ -192,12 +204,12 @@ Item {
                 PathLine { x: popover.shoulder - 36; y: popover.shapeY }
                 PathCubic {
                     control1X: popover.shoulder - 12; control1Y: popover.shapeY
-                    control2X: popover.tipX - popover.neckHalfWidth; control2Y: popover.waistY + 12
-                    x: popover.tipX - popover.neckHalfWidth; y: popover.waistY
+                    control2X: popover.waistX - popover.neckHalfWidth; control2Y: popover.waistY + 12
+                    x: popover.waistX - popover.neckHalfWidth; y: popover.waistY
                 }
                 PathCubic {
-                    control1X: popover.tipX - popover.neckHalfWidth; control1Y: popover.waistY - 3
-                    control2X: popover.tipX - popover.neckHalfWidth; control2Y: popover.neckY + 1
+                    control1X: popover.waistX - popover.neckHalfWidth; control1Y: popover.waistY - 3
+                    control2X: popover.tipX - popover.attachmentHalfWidth; control2Y: popover.neckY + 5
                     x: popover.tipX - popover.attachmentHalfWidth; y: popover.neckY
                 }
             }

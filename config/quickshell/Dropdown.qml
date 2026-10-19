@@ -72,7 +72,6 @@ PanelWindow {
             opened: dropdown.opened
             persistentPage: launcherPage
             persistentSelected: dropdown.displayedSection === "launcher"
-            instant: persistentSelected
             cardClickable: dropdown.displayedSection === "settings" || dropdown.displayedSection === "workspacePreview"
             onCardClicked: {
                 let workspaceId = dropdown.previewWorkspace?.id;

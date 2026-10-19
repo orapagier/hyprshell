@@ -28,12 +28,12 @@ Item {
             fuzzyCompare(audio.x + audio.width / 2, bar.width / 2, 0.01);
             compare(bar.menuRect("audio").x, audio.x);
         }
-        function test_asymmetricPaddingKeepsMenuAnchorOnContent() {
+        function test_asymmetricPaddingKeepsMenuAnchorOnPill() {
             let logo = bar.moduleItems.launcher;
             for (let padding of [{paddingLeft: 30}, {paddingRight: 30}, {paddingLeft: 18, paddingRight: 4}]) {
                 bar.settings = {bar: {height: 32}, items: [Object.assign({id: "launcher"}, padding)]};
-                let contentCenter = logo.x + logo.content.x + logo.content.width / 2;
-                fuzzyCompare(bar.menuRect("launcher").x + logo.width / 2, contentCenter, 0.01);
+                compare(bar.menuRect("launcher").x, logo.x);
+                compare(bar.menuRect("launcher").width, logo.width);
             }
         }
         function test_globalAdaptationAndPerItemOverride() {

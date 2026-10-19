@@ -50,8 +50,8 @@ Item {
                 verify(item.height >= 48);
                 verify(item.y >= 0);
                 verify(item.y + item.height <= bar.height);
-                let contentCenter = item.x + (item.effectiveLeftPadding + item.width - item.effectiveRightPadding) / 2;
-                fuzzyCompare(bar.menuRect(id).x + item.width / 2, contentCenter, 0.01);
+                compare(bar.menuRect(id).x, item.x);
+                compare(bar.menuRect(id).width, item.width);
                 compare(bar.menuRect(id).height,item.height);
             }
             verify(bar.height >= 52);
