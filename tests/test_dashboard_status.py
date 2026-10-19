@@ -52,7 +52,7 @@ class DashboardNativeTests(unittest.TestCase):
             # dashboard logic/content and substitute only its native window base.
             source = (ROOT / 'config/quickshell/Dashboard.qml').read_text().replace('PanelWindow {', 'FloatingWindow {')
             source = '\n'.join(line for line in source.splitlines() if not any(
-                token in line for token in ('anchors { top:', 'anchors { left:', 'exclusionMode:', 'exclusiveZone:', 'WlrLayershell.')))
+                token in line for token in ('anchors { top:', 'anchors { left:', 'margins {', 'exclusionMode:', 'exclusiveZone:', 'WlrLayershell.')))
             (payload / 'Dashboard.qml').write_text(source)
             for name, fill in {'bright': '#ffffff', 'dark': '#000000', 'colorful': '#e70064'}.items():
                 (root / (name + '.svg')).write_text(
@@ -111,7 +111,9 @@ ShellRoot {
                     let details = test.find(content, 'dashboardUptime');
                     let detailsCard = details.parent.parent;
                     test.check(details.y + details.height <= details.parent.height, "Resource details fit their card");
-                    test.check(detailsCard.height >= details.parent.implicitHeight + 44, "Resource card fits its controls");
+                    test.check(detailsCard.height >= details.parent.implicitHeight + 32, "Resource card fits its controls");
+                    let mediaDetails = test.find(content, 'dashboardMediaDetails');
+                    test.check(mediaDetails.parent.parent.height >= mediaDetails.implicitHeight + 32, "Compact media card fits every control");
                     test.check(popover.edge === 'left' && popover.connected, "Left-edge dashboard");
                     test.check(popover.edgeAttached && popover.bodyX === 0, "Dashboard sits flush with screen edge");
                     test.check(popover.footRadius > 0 && popover.footRadius <= 28, "Feet fit screen boundaries");
@@ -123,7 +125,12 @@ ShellRoot {
                     test.check(popover.bodyRight + popover.footRadius <= dashboard.width, "Bottom-right foot fits screen");
                     test.check(popover.containsPointer(Qt.point(popover.bodyRight + popover.footRadius / 2, dashboard.height - 2)), "Bottom-right foot retains hover");
                     test.check(!popover.containsPointer(Qt.point(dashboard.width - 1, 1)), "Opposite screen corner stays outside dashboard");
-                    test.check(dashboard.inputRect.x === 4 && dashboard.inputRect.width === dashboard.width - 4, "Input observes outside-card movement but preserves trigger");
+                    test.check(dashboard.inputRect.x === 0 && dashboard.inputRect.width === dashboard.width, "Input covers dashboard up to screen edges");
+                    test.check(dashboard.mask.regions[0].intersection === Intersection.Subtract, "Corner stays on its dedicated hover surface");
+                    test.check(dashboard.mask.regions[0].width === 24 && dashboard.mask.regions[0].y + dashboard.mask.regions[0].height === dashboard.height,
+                        "Only the physical corner is excluded from dashboard input");
+                    test.check(popover.bodyWidth === 620 && popover.bodyHeight <= 700 && popover.bodyHeight > popover.bodyWidth,
+                        "Dashboard is a compact vertical rectangle");
                     test.check(dashboard.inputRect.height === dashboard.height, "Full-height input while open");
                     input.mouseMove(dashboard.contentItem, 10, dashboard.height - 24);
                     test.check(dashboard.pointerInside, "Pointer enters bridge from trigger");
@@ -209,14 +216,14 @@ ShellRoot {
                     controller.close();
                     Style.Theme.preferences = ({});
                     input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
-                    controller.hover('dashboard');
-                    input.wait(160);
-                    test.check(dashboard.opened, "Edge hover opens dashboard");
+                    dashboard.enterCorner(null);
+                    test.check(dashboard.opened, "Corner entry opens immediately without a dwell");
                     controller.leave('dashboard');
                     input.wait(450);
                     test.check(dashboard.opened, "Dashboard survives slow handoff beyond old close timeout");
-                    test.check(popover.triggerRect.height === 32 && popover.triggerRect.y + popover.triggerRect.height === dashboard.height,
-                        "Reveal target hugs lower-left screen corner");
+                    test.check(popover.triggerRect.x === 0 && popover.triggerRect.width === 24 && popover.triggerRect.height === 24
+                        && popover.triggerRect.y + popover.triggerRect.height === dashboard.height,
+                        "Square reveal target includes extreme left and bottom pixels");
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
                     test.check(dashboard.pointerInside, "Cursor can enter after unfolding");
                     input.wait(1000);
@@ -230,6 +237,14 @@ ShellRoot {
                     dashboard.reveal(null);
                     content.dismissRequested();
                     test.check(!dashboard.opened, "Explicit dismiss bypasses opening grace");
+                    let corner = input.findChild(dashboard, 'dashboardCornerReveal');
+                    test.check(corner !== null, "Production corner reveal surface is available");
+                    // QtTest needs a leave on the same synthetic window before reentry.
+                    input.mouseMove(corner.contentItem, -1, -1);
+                    controller.close();
+                    input.mouseMove(corner.contentItem, 0, corner.height - 1);
+                    test.check(dashboard.opened, "Extreme bottom-left pixel opens without cursor adjustment");
+                    controller.close();
                     console.log('DASHBOARD_NATIVE_OK'); Qt.quit();
                 }
                 test.step++;

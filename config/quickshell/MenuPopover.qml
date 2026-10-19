@@ -27,6 +27,7 @@ Item {
     property string symbol: ""
     property bool showHeader: true
     property real preferredBodyWidth: 300
+    property real maximumBodyHeight: Infinity
     property Component page: null
     property Component persistentPage: null
     property bool persistentSelected: false
@@ -68,7 +69,7 @@ Item {
         : clamp(triggerRect.x - 33 - bodyWidth, safeLeft, safeRight - bodyWidth)
     readonly property real availableHeight: !connected ? Math.max(0, Math.min(panelBounds.height - 64, safeBottom - bodyY)) : vertical ? Math.max(0, safeBottom - safeTop)
         : edge === "bottom" ? triggerRect.y - 33 - safeTop - 4 : safeBottom - triggerRect.y - triggerRect.height - 33 - 4
-    readonly property real bodyHeight: Math.max(0, Math.min(availableHeight, contents.implicitHeight + 36))
+    readonly property real bodyHeight: Math.max(0, Math.min(availableHeight, maximumBodyHeight, contents.implicitHeight + 36))
     readonly property real bodyY: attachedCorner ? safeBottom - bodyHeight : !connected ? Math.max(safeTop + 36, triggerRect.y + triggerRect.height + 12)
         : edge === "top" ? triggerRect.y + triggerRect.height + 33
         : edge === "bottom" ? triggerRect.y - 33 - bodyHeight
