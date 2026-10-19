@@ -315,7 +315,7 @@ Item {
             policy: bar.overflowing ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
             active: bar.overflowing
         }
-    // Borderless cordwork follows the wallpaper beneath each part of the cord.
+    // Angular steel links use a dark keyline to stay legible over any wallpaper.
     Canvas {
         id: connectors
         objectName: "panelConnectors"
@@ -341,7 +341,7 @@ Item {
             // Workspace gaps and module gaps share one spatial sequence.
             slots.sort((a, b) => a.position - b.position);
             let state = seed >>> 0, previous = -1;
-            let weights = [3, 3, 1, 3, 3, 1]; // Butterfly/scissor loops occur less often.
+            let weights = [3, 3, 2, 3, 3, 2]; // Favor links and couplings over chevrons.
             for (let slot of slots) {
                 let options = [0, 1, 2, 3, 4, 5].filter(v => v % 3 !== previous);
                 let total = options.reduce((sum, v) => sum + weights[v], 0);
@@ -362,20 +362,13 @@ Item {
             let region = bar.wallpaperColors.sampleRect(bar.vertical
                 ? Qt.rect(bar.screenOffsetX + cross - 3, bar.screenOffsetY + along - span / 2 - bar.scrollOffset, 6, span)
                 : Qt.rect(bar.screenOffsetX + along - span / 2, bar.screenOffsetY + cross - 3, span, 6), true);
-            // Neutral cord separates the line from the vivid knot palette.
-            if (neutral) {
-                let silver = Qt.rgba(0.82, 0.82, 0.82, 1);
-                let charcoal = Qt.rgba(0.18, 0.18, 0.18, 1);
-                return Colors.contrast(silver, region.average) >= Colors.contrast(charcoal, region.average)
-                    ? silver : charcoal;
-            }
-            // Rotate a vivid palette through the local wallpaper complement.
-            // Position supplies variety even when the wallpaper is a flat color;
-            // the sample still shifts every hue when the wallpaper changes.
-            let base = region.average.hsvSaturation > 0.08
-                ? region.average.hsvHue : (region.average.r + region.average.g + region.average.b) / 3;
-            let hue = (base + 0.5 + along / 110) % 1;
-            return Colors.vibrantForeground(region.average, Qt.hsva(hue, 0.86, 1, 1));
+            // Restrained steel and ice-blue inks; the opaque dark keyline below
+            // preserves their silhouette even on bright or detailed wallpaper.
+            if (neutral) return Qt.rgba(0.72, 0.79, 0.84, 1);
+            let steel = Qt.rgba(0.88, 0.93, 0.96, 1);
+            let ice = Qt.rgba(0.48, 0.78, 0.91, 1);
+            return Colors.contrast(ice, region.average) >= Colors.contrast(steel, region.average)
+                ? ice : steel;
         }
         function segmentFor(start, end, cross, workspace) {
             let length = end - start;
@@ -427,68 +420,44 @@ Item {
         onPaint: {
             let ctx = getContext("2d");
             ctx.reset();
-            // Protect saturated strokes on light or busy wallpaper without
-            // darkening or bleaching their color to meet text contrast targets.
-            ctx.shadowColor = "#c0080a10";
-            ctx.shadowBlur = 2;
             function point(along, cross) {
                 return bar.vertical ? {x:cross, y:along} : {x:along, y:cross};
             }
-            // Small cordwork studies: awaji-like interlacing, ume blossom,
-            // and butterfly loops, each in single and paired-strand forms.
+            // Chamfered chain link, interlocking coupling, and twin chevrons.
+            // Straight cuts retain a recognizable silhouette at panel scale.
             function knotPath(variant, size) {
                 ctx.beginPath();
                 function move(x, y) { ctx.moveTo(x * size, y * size); }
-                function curve(x0, y0, x1, y1, x2, y2, x3, y3) {
-                    // Sample explicitly so closed returning loops survive all
-                    // Canvas backends at this small scale.
-                    for (let i = 1; i <= 20; ++i) {
-                        let t = i / 20, u = 1 - t;
-                        ctx.lineTo((u*u*u*x0 + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*x3) * size,
-                                   (u*u*u*y0 + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*y3) * size);
-                    }
-                }
+                function line(x, y) { ctx.lineTo(x * size, y * size); }
                 let motif = variant % 3;
                 if (motif === 0) {
-                    move(-1.3, 0);
-                    curve(-1.3,0, -0.95,0, -1.1,-1.1, -0.45,-0.95);
-                    curve(-0.45,-0.95, 0.2,-0.8, 0.65,0.55, 0,0.9);
-                    curve(0,0.9, -0.65,0.55, -0.2,-0.8, 0.45,-0.95);
-                    curve(0.45,-0.95, 1.1,-1.1, 0.95,0, 1.3,0);
-                    move(-0.85, 0.15);
-                    curve(-0.85,0.15, -0.4,0.75, 0.4,0.75, 0.85,0.15);
+                    move(-1.25, 0); line(-0.65, -0.72); line(0.65, -0.72);
+                    line(1.25, 0); line(0.65, 0.72); line(-0.65, 0.72);
+                    ctx.closePath();
                 } else if (motif === 1) {
-                    // Five returning loops form an open plum-blossom knot.
-                    for (let i = 0; i <= 160; ++i) {
-                        let angle = i / 160 * Math.PI * 2;
-                        let radius = size * Math.cos(5 * angle);
-                        let x = radius * Math.sin(angle), y = -radius * Math.cos(angle);
-                        if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-                    }
-                    move(-1.3, 0); curve(-1.3,0, -0.75,0, -0.45,0.2, 0,0);
-                    move(0, 0); curve(0,0, 0.45,-0.2, 0.75,0, 1.3,0);
+                    move(-1.25, 0); line(-0.7, -0.7); line(0.2, -0.7); line(0.75, 0);
+                    move(-0.75, 0); line(-0.2, 0.7); line(0.7, 0.7); line(1.25, 0);
+                    move(-0.3, 0.32); line(0.3, -0.32);
                 } else {
-                    move(0, 0);
-                    curve(0,0, -1.5,-1.5, -1.6,0.45, 0,0);
-                    curve(0,0, 1.6,0.45, 1.5,-1.5, 0,0);
-                    move(-0.1, 0);
-                    curve(-0.1,0, -0.2,0.5, -0.55,0.65, -0.85,0.9);
-                    move(0.1, 0);
-                    curve(0.1,0, 0.2,0.5, 0.55,0.65, 0.85,0.9);
+                    move(-1.15, -0.7); line(-0.45, 0); line(-1.15, 0.7);
+                    move(0.15, -0.7); line(0.85, 0); line(0.15, 0.7);
                 }
+            }
+            function strokeMetal(ink, width) {
+                ctx.strokeStyle = "#111820"; ctx.lineWidth = width + 2.2; ctx.stroke();
+                ctx.strokeStyle = ink; ctx.lineWidth = width; ctx.stroke();
             }
             for (let segmentIndex = 0; segmentIndex < segments.length; ++segmentIndex) {
                 let segment = segments[segmentIndex];
                 let a = point(segment.start, segment.cross), b = point(segment.end, segment.cross);
-                ctx.lineCap = "round"; ctx.lineJoin = "round";
+                ctx.lineCap = "square"; ctx.lineJoin = "miter";
                 ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
                 let gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
                 for (let i = 0; i < segment.stops.length; ++i)
                     gradient.addColorStop(i / (segment.stops.length - 1), segment.stops[i]);
-                ctx.strokeStyle = gradient; ctx.lineWidth = 1.71;
-                ctx.stroke();
+                strokeMetal(gradient, 1.8);
                 let length = segment.end - segment.start;
-                // One complete knot per icon gap, and a knot every ~42 px on open cord.
+                // One joint per icon gap, and one every ~42 px on the open rail.
                 let count = segment.knots.length;
                 for (let knotIndex = 0; knotIndex < count; ++knotIndex) {
                     let p = point(segment.start + length * (knotIndex + 0.5) / count, segment.cross);
@@ -497,16 +466,16 @@ Item {
                     let ink = segment.knots[knotIndex];
                     ctx.save(); ctx.translate(p.x, p.y);
                     if (bar.vertical) ctx.rotate(Math.PI / 2);
-                    // Single-color strokes keep the bundled cords light and open.
+                    // The same two-tone outline protects every mechanical joint.
                     knotPath(variant, size);
-                    ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.stroke();
+                    strokeMetal(ink, 1.6);
                     if (variant >= 3) {
                         knotPath(variant, size * 0.72);
-                        ctx.lineWidth = 0.9; ctx.stroke();
+                        strokeMetal(ink, 0.9);
                     }
                     ctx.beginPath();
                     ctx.moveTo(-size * 0.25, size * 0.22); ctx.lineTo(size * 0.25, -size * 0.22);
-                    ctx.lineWidth = 1.2; ctx.stroke();
+                    strokeMetal(ink, 1.2);
                     ctx.restore();
                 }
             }
