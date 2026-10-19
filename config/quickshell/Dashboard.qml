@@ -125,6 +125,10 @@ PanelWindow {
     Component {
         id: dashboardPage
         DashboardContent {
+            wallpaperSource: dashboard.wallpaperSource
+            screenWidth: dashboard.width
+            screenHeight: dashboard.height
+            wallpaperRegion: Qt.rect(popover.bodyX, popover.bodyY, popover.bodyWidth, popover.bodyHeight)
             active: dashboard.opened
             services: dashboard.services
             resourceData: dashboard.resourceData

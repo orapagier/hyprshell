@@ -52,11 +52,21 @@ class DashboardNativeTests(unittest.TestCase):
             source = '\n'.join(line for line in source.splitlines() if not any(
                 token in line for token in ('anchors { top:', 'anchors { left:', 'exclusionMode:', 'exclusiveZone:', 'WlrLayershell.')))
             (payload / 'Dashboard.qml').write_text(source)
+            for name, fill in {'bright': '#ffffff', 'dark': '#000000', 'colorful': '#e70064'}.items():
+                (root / (name + '.svg')).write_text(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="850">'
+                    '<path fill="' + fill + '" d="M0 0h1100v850H0z"/></svg>')
+            (root / 'busy.svg').write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="850">'
+                '<defs><pattern id="p" width="20" height="20" patternUnits="userSpaceOnUse">'
+                '<path fill="white" d="M0 0h20v20H0z"/><path fill="black" d="M0 0h10v10H0zM10 10h10v10H10z"/>'
+                '</pattern></defs><path fill="url(#p)" d="M0 0h1100v850H0z"/></svg>')
             entry = root / 'Check.qml'
             entry.write_text('''import QtQuick
 import QtTest
 import Quickshell
 import "shell"
+import "shell/AdaptiveColors.js" as Colors
 ShellRoot {
     id: test
     property int step: 0
@@ -74,7 +84,8 @@ ShellRoot {
         return null;
     }
     Timer {
-        interval: 400; running: true; repeat: true
+        id: tick
+        interval: 600; running: true; repeat: true
         onTriggered: {
             try {
                 let popover = test.find(dashboard.contentItem, 'dashboardPopover');
@@ -118,6 +129,28 @@ ShellRoot {
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
                 } else if (test.step === 4) {
                     test.check(dashboard.opened, "Reentry cancels close delay");
+                    let content = test.find(dashboard.contentItem, 'dashboardContent');
+                    tick.stop();
+                    let sampler = test.find(content, 'dashboardWallpaperSampler');
+                    let previous = null;
+                    for (let name of ['bright', 'dark', 'colorful', 'busy']) {
+                        content.wallpaperSource = Qt.resolvedUrl(name + '.svg');
+                        input.tryCompare(sampler, 'ready', true, 1500);
+                        test.check(sampler.ready, "Wallpaper pixels sampled: " + name);
+                        test.check(content.cardColor.a === 1, "Opaque reading surface: " + name);
+                        if (previous !== null) test.check(content.cardColor.toString() !== previous, "Card tint follows changed wallpaper");
+                        previous = content.cardColor.toString();
+                        for (let foreground of [content.textColor, content.secondaryColor, content.accentColor])
+                            test.check(Colors.contrast(foreground, content.cardColor) >= 7, "Text/card contrast at least 7:1: " + name);
+                        test.check(Colors.contrast(Qt.color('#a6adc8'), content.cardColor) >= 4.5, "Embedded calendar captions readable: " + name);
+                        for (let state of ['#0bffffff', '#38cba6f7', '#55cba6f7']) {
+                            let fill = Qt.color(state);
+                            let background = Colors.mix(content.cardColor, fill, fill.a);
+                            test.check(Colors.contrast(content.textColor, background) >= 4.5, "Button text readable in each state: " + name);
+                            test.check(Colors.contrast(content.accentColor, background) >= 4.5, "Accent button readable in each state: " + name);
+                        }
+                    }
+                    tick.start();
                     input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
                 } else if (test.step === 5) {
                     test.check(!dashboard.opened, "Repeated exit closes dashboard");
@@ -130,7 +163,7 @@ ShellRoot {
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
                     input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
                 } else if (test.step === 11) {
-                    test.check(!dashboard.opened, "Shortcut-opened dashboard also closes on leave");
+                    test.check(!dashboard.opened, "Shortcut-opened dashboard also closes on leave: " + JSON.stringify({hovered:controller.hoveredMenu, inside:controller.pointerInMenu, pinned:controller.pinned, pointer:dashboard.pointerInside}));
                     dashboard.reveal(null);
                     test.check(dashboard.opened, "Reveal opens dashboard");
                     let content = test.find(dashboard.contentItem, 'dashboardContent');
@@ -147,7 +180,7 @@ ShellRoot {
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
             env = dict(os.environ, XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM='offscreen',
                        QT_QPA_PLATFORMTHEME='', QT_QUICK_BACKEND='software')
-            result = subprocess.run(['quickshell', '--log-rules', 'qml=true', '-p', str(entry)], env=env, capture_output=True, text=True, timeout=12)
+            result = subprocess.run(['quickshell', '--log-rules', 'qml=true', '-p', str(entry)], env=env, capture_output=True, text=True, timeout=20)
             output = result.stdout + result.stderr
             self.assertEqual(result.returncode, 0, output)
             self.assertIn('DASHBOARD_NATIVE_OK', output)
