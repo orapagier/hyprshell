@@ -44,7 +44,9 @@ class DashboardNativeTests(unittest.TestCase):
             payload = root / 'shell'
             payload.mkdir()
             for source in (ROOT / 'config/quickshell').iterdir():
-                if source.name != 'Dashboard.qml':
+                if source.name == 'MenuPopover.qml':
+                    (payload / source.name).write_text(source.read_text())
+                elif source.name != 'Dashboard.qml':
                     (payload / source.name).symlink_to(source, target_is_directory=source.is_dir())
             # The offscreen platform has no layer-shell backend. Keep the actual
             # dashboard logic/content and substitute only its native window base.
@@ -67,10 +69,12 @@ import QtTest
 import Quickshell
 import "shell"
 import "shell/AdaptiveColors.js" as Colors
+import "shell/style" as Style
 ShellRoot {
     id: test
     property int step: 0
     property real stoppedCounter: 0
+    property int motionFrames: 0
     TestCase { id: input; name: "DashboardPointer"; when: false }
     Dashboard {
         id: dashboard
@@ -91,6 +95,9 @@ ShellRoot {
                 let popover = test.find(dashboard.contentItem, 'dashboardPopover');
                 let controller = test.find(dashboard.contentItem, 'dashboardMenuState');
                 if (test.step === 0) {
+                    popover.edgeProgressChanged.connect(() => {
+                        if (popover.edgeProgress > 0 && popover.edgeProgress < 1) test.motionFrames++;
+                    });
                     controller.hover('dashboard');
                 } else if (test.step === 1) {
                     test.check(dashboard.opened, "Hover delay opens dashboard");
@@ -105,7 +112,13 @@ ShellRoot {
                     let detailsCard = details.parent.parent;
                     test.check(details.y + details.height <= details.parent.height, "Resource details fit their card");
                     test.check(detailsCard.height >= details.parent.implicitHeight + 44, "Resource card fits its controls");
-                    test.check(popover.edge === 'left' && popover.connected, "Shared left-edge connector");
+                    test.check(popover.edge === 'left' && popover.connected, "Left-edge dashboard");
+                    test.check(popover.edgeAttached && popover.bodyX === 0, "Dashboard sits flush with screen edge");
+                    test.check(popover.footRadius > 0 && popover.footRadius <= 28, "Feet fit screen boundaries");
+                    test.check(test.find(popover, 'edgeAttachedSurface').visible, "Attached surface replaces funnel");
+                    test.check(!test.find(popover, 'menuFunnel').visible, "Dashboard hides narrow connector");
+                    test.check(popover.containsPointer(Qt.point(5, popover.bodyY - popover.footRadius / 2)), "Curved foot retains hover");
+                    test.check(Math.abs(popover.edgeProgress - 1) < 0.001, "Opening motion settles");
                     test.check(Math.abs(popover.bodyY - (dashboard.height - popover.bodyHeight) / 2) < 1, "Dashboard vertically centered");
                     test.check(dashboard.inputRect.x === 4 && dashboard.inputRect.width === dashboard.width - 4, "Input observes outside-card movement but preserves trigger");
                     test.check(dashboard.inputRect.height === dashboard.height, "Full-height input while open");
@@ -157,18 +170,40 @@ ShellRoot {
                     test.stoppedCounter = dashboard.resourceData.cpuTotal;
                 } else if (test.step === 10) {
                     test.check(dashboard.visible && !popover.rendering, "Window stays mapped but dashboard finishes exit animation");
+                    test.check(popover.edgeProgress === 0, "Closing motion fully retracts to edge");
                     test.check(dashboard.resourceData.cpuTotal === test.stoppedCounter, "Hidden dashboard stops sampling");
                     dashboard.toggle(null);
                     test.check(dashboard.opened, "Shortcut opens dashboard");
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
                     input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
                 } else if (test.step === 11) {
+                    tick.stop();
                     test.check(!dashboard.opened, "Shortcut-opened dashboard also closes on leave: " + JSON.stringify({hovered:controller.hoveredMenu, inside:controller.pointerInMenu, pinned:controller.pinned, pointer:dashboard.pointerInside}));
                     dashboard.reveal(null);
                     test.check(dashboard.opened, "Reveal opens dashboard");
                     let content = test.find(dashboard.contentItem, 'dashboardContent');
                     content.dismissRequested();
                     test.check(!dashboard.opened, "Escape dismissal still works");
+                    input.wait(450);
+                    dashboard.reveal(null);
+                    controller.retain(true);
+                    input.wait(80);
+                    test.check(test.motionFrames > 0, "Drawer animates through intermediate sizes");
+                    controller.close();
+                    input.wait(60);
+                    let partial = popover.edgeProgress;
+                    dashboard.reveal(null);
+                    controller.retain(true);
+                    test.check(Math.abs(popover.edgeProgress - partial) < 0.01, "Reopening continues without a jump");
+                    input.wait(600);
+                    test.check(popover.edgeProgress === 1, "Reversed animation settles open");
+                    Style.Theme.preferences = ({reducedMotion: true});
+                    input.wait(20);
+                    controller.close();
+                    test.check(popover.edgeProgress === 0, "Reduced motion closes instantly");
+                    dashboard.reveal(null);
+                    test.check(popover.edgeProgress === 1, "Reduced motion opens instantly");
+                    controller.close();
                     console.log('DASHBOARD_NATIVE_OK'); Qt.quit();
                 }
                 test.step++;

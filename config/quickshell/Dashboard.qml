@@ -111,6 +111,7 @@ PanelWindow {
             objectName: "dashboardPopover"
             anchors.fill: parent
             edge: "left"
+            edgeAttached: true
             triggerRect: Qt.rect(0, dashboard.height / 2 - 48, 4, 96)
             preferredBodyWidth: 1100
             opened: dashboard.opened

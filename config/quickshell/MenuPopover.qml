@@ -35,19 +35,32 @@ Item {
     property bool opened: false
     property bool cardClickable: false
     property bool connected: true
+    // Opt-in left-edge drawer; ordinary menus retain their funnel and motion.
+    property bool edgeAttached: false
+    readonly property bool attachedLeft: edgeAttached && connected && edge === "left"
+    readonly property real footRadius: Math.min(28, bodyY, height - bodyBottom)
+    property real edgeProgress: opened ? 1 : 0
+    Behavior on edgeProgress {
+        enabled: popover.attachedLeft && !popover.instant && Style.Theme.duration(popover, 1) > 0
+        NumberAnimation {
+            duration: popover.opened ? 520 : 380
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: popover.opened ? [0.22, 1.32, 0.36, 1, 1, 1] : [0.4, 0, 0.2, 1, 1, 1]
+        }
+    }
     property rect panelBounds: Qt.rect(0, 0, width, height)
     readonly property real safeLeft: panelBounds.x + 12
     readonly property real safeRight: panelBounds.x + panelBounds.width - 12
-    readonly property real safeTop: panelBounds.y + 12
-    readonly property real safeBottom: panelBounds.y + panelBounds.height - 12
-    readonly property bool rendering: opened || surface.opacity > 0
+    readonly property real safeTop: panelBounds.y + (attachedLeft ? 28 : 12)
+    readonly property real safeBottom: panelBounds.y + panelBounds.height - (attachedLeft ? 28 : 12)
+    readonly property bool rendering: opened || surface.opacity > 0 || (attachedLeft && edgeProgress > 0)
     signal hoverChanged(bool inside)
     signal cardClicked()
-    readonly property real bodyWidth: Math.max(0, Math.min(preferredBodyWidth, connected && vertical
+    readonly property real bodyWidth: Math.max(0, Math.min(preferredBodyWidth, connected && vertical && !attachedLeft
         ? (edge === "left" ? width - triggerRect.x - triggerRect.width - 45 : triggerRect.x - 45)
         : panelBounds.width - 24, panelBounds.width - 24))
     function clamp(value, low, high) { return Math.max(low, Math.min(Math.max(low, high), value)); }
-    readonly property real bodyX: !connected || !vertical
+    readonly property real bodyX: attachedLeft ? 0 : !connected || !vertical
         ? (alignToTrigger && connected ? clamp(triggerRect.x + triggerRect.width / 2 - bodyWidth / 2, safeLeft, safeRight - bodyWidth) : alignment === "left" ? safeLeft : alignment === "right" ? safeRight - bodyWidth : panelBounds.x + (panelBounds.width - bodyWidth) / 2)
         : edge === "left" ? clamp(triggerRect.x + triggerRect.width + 33, safeLeft, safeRight - bodyWidth)
         : clamp(triggerRect.x - 33 - bodyWidth, safeLeft, safeRight - bodyWidth)
@@ -79,6 +92,8 @@ Item {
     function containsPointer(point) {
         if (point.y >= bodyY && point.y <= bodyBottom && point.x >= bodyX && point.x <= bodyRight)
             return true;
+        if (attachedLeft && point.x >= 0 && point.x <= footRadius
+            && point.y >= bodyY - footRadius && point.y <= bodyBottom + footRadius) return true;
         if (!connected) return false;
         // Keep a forgiving bridge between the trigger and the inward card.
         if (vertical) {
@@ -99,29 +114,37 @@ Item {
         id: surface
         anchors.fill: parent
         opacity: 0
-        transform: Translate {
+        visible: popover.rendering
+        transform: [Scale {
+            origin.x: 0
+            origin.y: popover.bodyY + popover.bodyHeight / 2
+            xScale: popover.attachedLeft ? Math.max(0, popover.edgeProgress) : 1
+            // A small squash/stretch follows the same continuous curve on reversal.
+            yScale: popover.attachedLeft ? 1 + 0.035 * Math.sin(Math.PI * popover.edgeProgress) : 1
+        }, Translate {
             id: arrival
-            x: popover.opened ? 0 : popover.edge === "left" ? -12 : popover.edge === "right" ? 12 : 0
+            x: popover.opened || popover.attachedLeft ? 0 : popover.edge === "left" ? -12 : popover.edge === "right" ? 12 : 0
             y: popover.opened ? 0 : popover.edge === "bottom" ? 12 : popover.vertical ? 0 : -12
             Behavior on x { NumberAnimation { duration: popover.instant ? 0 : Style.Theme.duration(popover, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
             Behavior on y { NumberAnimation { duration: popover.instant ? 0 : Style.Theme.duration(popover, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
-        }
+        }]
         states: State {
             name: "open"; when: popover.opened
             PropertyChanges { surface.opacity: 1 }
         }
         transitions: Transition {
             ParallelAnimation {
-                NumberAnimation { property: "opacity"; duration: popover.instant ? 0 : Style.Theme.duration(popover, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve }
+                NumberAnimation { property: "opacity"; duration: popover.instant ? 0 : Style.Theme.duration(popover, popover.attachedLeft ? (popover.opened ? 160 : 380) : Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve }
             }
         }
         Rectangle {
+            visible: !popover.attachedLeft
             x: popover.bodyX + 3; y: popover.bodyY + 7
             width: popover.bodyWidth; height: popover.bodyHeight
             radius: 20; color: "#28000000"
         }
         Shape {
-            visible: popover.connected
+            visible: popover.connected && !popover.attachedLeft
             objectName: "menuFunnel"
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
@@ -171,6 +194,30 @@ Item {
                     control2X: popover.tipX - popover.neckHalfWidth; control2Y: popover.neckY + 1
                     x: popover.tipX - popover.attachmentHalfWidth; y: popover.neckY
                 }
+            }
+        }
+        Shape {
+            objectName: "edgeAttachedSurface"
+            visible: popover.attachedLeft
+            anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
+            ShapePath {
+                strokeWidth: 0
+                fillGradient: LinearGradient {
+                    x1: 0; y1: popover.bodyY; x2: 0; y2: popover.bodyBottom
+                    GradientStop { position: 0; color: glass.topColor }
+                    GradientStop { position: 1; color: glass.bottomColor }
+                }
+                // Concave feet blend the card into the screen edge at both ends.
+                startX: 0; startY: popover.bodyY - popover.footRadius
+                PathQuad { controlX: 0; controlY: popover.bodyY; x: popover.footRadius; y: popover.bodyY }
+                PathLine { x: popover.bodyRight - 24; y: popover.bodyY }
+                PathQuad { controlX: popover.bodyRight; controlY: popover.bodyY; x: popover.bodyRight; y: popover.bodyY + 24 }
+                PathLine { x: popover.bodyRight; y: popover.bodyBottom - 24 }
+                PathQuad { controlX: popover.bodyRight; controlY: popover.bodyBottom; x: popover.bodyRight - 24; y: popover.bodyBottom }
+                PathLine { x: popover.footRadius; y: popover.bodyBottom }
+                PathQuad { controlX: 0; controlY: popover.bodyBottom; x: 0; y: popover.bodyBottom + popover.footRadius }
+                PathLine { x: 0; y: popover.bodyY - popover.footRadius }
             }
         }
         Rectangle {
