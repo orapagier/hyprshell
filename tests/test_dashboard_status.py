@@ -204,6 +204,28 @@ ShellRoot {
                     dashboard.reveal(null);
                     test.check(popover.edgeProgress === 1, "Reduced motion opens instantly");
                     controller.close();
+                    Style.Theme.preferences = ({});
+                    input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
+                    controller.hover('dashboard');
+                    input.wait(160);
+                    test.check(dashboard.opened, "Edge hover opens dashboard");
+                    controller.leave('dashboard');
+                    input.wait(450);
+                    test.check(dashboard.opened, "Dashboard survives slow handoff beyond old close timeout");
+                    test.check(popover.triggerRect.height === 192, "Taller centered reveal target");
+                    input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
+                    test.check(dashboard.pointerInside, "Cursor can enter after unfolding");
+                    input.wait(1000);
+                    test.check(dashboard.opened, "Entry grace expiry does not close an occupied dashboard");
+                    input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
+                    input.tryCompare(dashboard, 'opened', false, 1000);
+                    test.check(!dashboard.opened, "Normal leave dismissal resumes after entry");
+                    dashboard.reveal(null);
+                    input.tryCompare(dashboard, 'opened', false, 1800);
+                    test.check(!dashboard.opened, "Abandoned reveal eventually closes");
+                    dashboard.reveal(null);
+                    content.dismissRequested();
+                    test.check(!dashboard.opened, "Explicit dismiss bypasses opening grace");
                     console.log('DASHBOARD_NATIVE_OK'); Qt.quit();
                 }
                 test.step++;

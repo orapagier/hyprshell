@@ -12,13 +12,14 @@ PanelWindow {
     readonly property bool opened: menuState.section.length > 0
     readonly property bool pointerInside: popover.pointerInside
     readonly property rect inputRect: Qt.rect(4, 0, Math.max(0, width - 4), opened ? height : 0)
+    readonly property int revealHeight: 192
     property var resourceData: ({})
     property var previousCounters: null
     function reveal(output) {
         if (output) screen = output;
         menuState.section = "dashboard";
         menuState.pinned = false;
-        menuState.retain(popover.pointerInside);
+        menuState.retain(popover.pointerInside || entryGrace.running);
     }
     MenuController {
         id: menuState
@@ -35,7 +36,7 @@ PanelWindow {
             visible: true
             anchors { left: true }
             implicitWidth: 4
-            implicitHeight: 96
+            implicitHeight: Math.min(dashboard.revealHeight, modelData.height)
             color: "transparent"
             exclusionMode: ExclusionMode.Ignore
             exclusiveZone: -1
@@ -59,15 +60,23 @@ PanelWindow {
         if (opened) { menuState.close(); return; }
         if (output) screen = output;
         menuState.activate("dashboard", true);
-        menuState.retain(popover.pointerInside);
+        menuState.retain(popover.pointerInside || entryGrace.running);
         Qt.callLater(() => popover.pageItem?.focusFirst());
     }
     onOpenedChanged: {
         if (opened) {
+            // Keep the trigger-to-drawer handoff alive through the unfolding.
+            entryGrace.restart();
+            menuState.retain(true);
             previousCounters = null;
             resourceData = ({});
             if (!sampler.running) sampler.running = true;
-        }
+        } else entryGrace.stop();
+    }
+    Timer {
+        id: entryGrace
+        interval: 900
+        onTriggered: menuState.retain(popover.pointerInside)
     }
     // Match Dropdown: stay mapped and observe movement outside the card while
     // open, so Wayland reliably delivers exit from the menu and its bridge.
@@ -112,7 +121,7 @@ PanelWindow {
             anchors.fill: parent
             edge: "left"
             edgeAttached: true
-            triggerRect: Qt.rect(0, dashboard.height / 2 - 48, 4, 96)
+            triggerRect: Qt.rect(0, (dashboard.height - Math.min(dashboard.revealHeight, dashboard.height)) / 2, 4, Math.min(dashboard.revealHeight, dashboard.height))
             preferredBodyWidth: 1100
             opened: dashboard.opened
             wallpaperSource: dashboard.wallpaperSource
@@ -120,7 +129,10 @@ PanelWindow {
             showHeader: false
             persistentSelected: true
             persistentPage: dashboardPage
-            onHoverChanged: inside => menuState.retain(inside)
+            onHoverChanged: inside => {
+                if (inside) entryGrace.stop();
+                menuState.retain(inside || entryGrace.running);
+            }
         }
     }
     Component {
