@@ -314,6 +314,65 @@ Item {
             policy: bar.overflowing ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
             active: bar.overflowing
         }
+    // A fine cord joins exposed pill edges; shared pills remain one surface.
+    Canvas {
+        id: connectors
+        objectName: "panelConnectors"
+        anchors.fill: parent
+        z: -2
+        visible: !bar.statusIconsOnly
+        readonly property var segments: {
+            let ids = Object.keys(bar.moduleItems).filter(id => bar.itemShown(id));
+            ids.sort((a, b) => bar.vertical
+                ? bar.moduleItems[a].y - bar.moduleItems[b].y
+                : bar.moduleItems[a].x - bar.moduleItems[b].x);
+            let result = [];
+            for (let i = 1; i < ids.length; ++i) {
+                let first = ids[i - 1], second = ids[i];
+                if (!bar.vertical && bar.side(first) === bar.side(second)
+                    && bar.pillName(first) && bar.pillName(first) === bar.pillName(second)) continue;
+                let a = bar.moduleItems[first], b = bar.moduleItems[second];
+                let start = bar.vertical ? a.y + a.height : a.x + a.width;
+                let end = bar.vertical ? b.y : b.x;
+                if (end - start < 2) continue;
+                result.push({start:start, end:end,
+                    cross:bar.vertical ? bar.width / 2 : bar.height / 2});
+            }
+            return result;
+        }
+        onSegmentsChanged: requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onVisibleChanged: if (visible) requestPaint()
+        onPaint: {
+            let ctx = getContext("2d");
+            ctx.reset();
+            function point(along, cross) {
+                return bar.vertical ? {x:cross, y:along} : {x:along, y:cross};
+            }
+            for (let segment of segments) {
+                let a = point(segment.start, segment.cross), b = point(segment.end, segment.cross);
+                ctx.strokeStyle = "#995f3932";
+                ctx.lineWidth = 0.7;
+                ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+                let length = segment.end - segment.start;
+                let knots = length > 100 ? [0.22, 0.5, 0.78] : [0.5];
+                for (let fraction of knots) {
+                    let p = point(segment.start + length * fraction, segment.cross);
+                    let size = Math.min(2, length / 3);
+                    let glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 3);
+                    glow.addColorStop(0, "#48653328"); glow.addColorStop(1, "transparent");
+                    ctx.fillStyle = glow;
+                    ctx.fillRect(p.x - size * 3, p.y - size * 3, size * 6, size * 6);
+                    ctx.fillStyle = "#d7684d";
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y - size); ctx.lineTo(p.x + size, p.y);
+                    ctx.lineTo(p.x, p.y + size); ctx.lineTo(p.x - size, p.y);
+                    ctx.closePath(); ctx.fill();
+                }
+            }
+        }
+    }
     Repeater {
         model: bar.sharedPills
         delegate: Pill {
