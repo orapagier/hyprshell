@@ -2,7 +2,7 @@
 
 // Follow the drawn silhouette: a slender neck below the pill, a narrow waist,
 // then a broad shallow sweep into the card. The cap stays outside the pill.
-function outline(x, y, width, height, tip, neck, half, pillRadius, shear) {
+function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preserveCornerPosition) {
     let corner = Math.max(0, Math.min(24, width / 2, height / 2));
     // Mirror the card shoulder at the pill, scaled down and bounded by the pill.
     let flare = Math.max(0, Math.min(48, width / 2 - corner));
@@ -13,7 +13,7 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear) {
     let waistY = footY + gap * 0.35;
     let waistX = tip;
     // Keep the stem centered on its pill. At a card corner, merge the shoulder
-    // directly into the side instead of shifting the attachment inward.
+    // into the existing corner arc without moving the corner or the neck.
     let leftFits = tip - flare >= x + corner;
     let rightFits = tip + flare <= x + width - corner;
     let path = [];
@@ -31,9 +31,14 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear) {
             + p(tip + flare * 0.25,y) + ' ' + p(tip + flare,y));
         line(x + width - corner,y);
         quad(x + width,y,x + width,y + corner);
-    } else {
+    } else if (preserveCornerPosition === false) {
         path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
             + body(x + width,y + corner * 0.4) + ' ' + body(x + width,y + corner));
+    } else {
+        path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
+            + body(x + width - corner * 0.5,y) + ' ' + body(x + width - corner * 0.25,y + corner * 0.25));
+        // Retain the lower half of the original quadratic corner (de Casteljau).
+        quad(x + width,y + corner * 0.5,x + width,y + corner);
     }
     line(x + width,y + height - corner);
     quad(x + width,y + height,x + width - corner,y + height);
@@ -45,8 +50,12 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear) {
         line(tip - flare,y);
         path.push('C ' + p(tip - flare * 0.25,y) + ' '
             + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
-    } else {
+    } else if (preserveCornerPosition === false) {
         path.push('C ' + body(x,y + corner * 0.4) + ' '
+            + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
+    } else {
+        quad(x,y + corner * 0.5,x + corner * 0.25,y + corner * 0.25);
+        path.push('C ' + body(x + corner * 0.5,y) + ' '
             + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
     }
     path.push('C ' + p(waistX - waistHalf,waistY - (waistY - footY) * (0.42 / 0.65)) + ' '

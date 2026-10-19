@@ -67,6 +67,7 @@ PanelWindow {
             triggerRect: dropdown.triggerRect
             alignment: dropdown.alignment
             connected: dropdown.connected
+            preserveCornerPosition: dropdown.displayedSection !== "notifications"
             edge: dropdown.barEdge
             accent: dropdown.accent
             opened: dropdown.opened
