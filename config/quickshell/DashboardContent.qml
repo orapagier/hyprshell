@@ -42,7 +42,7 @@ ColumnLayout {
         columnSpacing: 12; rowSpacing: 12
         Card {
             Layout.fillWidth: true; Layout.fillHeight: true
-            implicitHeight: 200
+            implicitHeight: systemDetails.implicitHeight + 32
             WallpaperColors {
                 id: wallpaperSampler
                 objectName: "dashboardWallpaperSampler"
@@ -52,13 +52,19 @@ ColumnLayout {
                 bandHeight: Math.max(1, page.wallpaperRegion.height)
             }
             ColumnLayout {
-                anchors.fill: parent; anchors.margins: 16
-                Label { text: "GOOD " + (page.now.getHours() < 12 ? "MORNING" : page.now.getHours() < 18 ? "AFTERNOON" : "EVENING"); color: page.secondaryColor; font.pixelSize: 12; font.letterSpacing: 2 }
-                Item { Layout.fillHeight: true }
-                Label { text: Qt.formatTime(page.now, "hh:mm"); font.pixelSize: 46; font.weight: Font.Light; color: page.accentColor }
-                Label { text: Qt.formatDate(page.now, "dddd, d MMMM"); font.pixelSize: 15; Layout.fillWidth: true }
-                Item { Layout.fillHeight: true }
-                Label { text: Quickshell.env("USER") || "Welcome home"; font.pixelSize: 18; font.weight: Font.DemiBold }
+                id: systemDetails
+                anchors.fill: parent; anchors.margins: 16; spacing: 6
+                Label { objectName: "dashboardSystemInfo"; text: "SYSTEM INFO"; color: page.secondaryColor; font.pixelSize: 12; font.letterSpacing: 2 }
+                Label { text: page.resourceData.system?.hostname || Quickshell.env("USER") || "System"; font.pixelSize: 18; font.weight: Font.DemiBold; Layout.fillWidth: true; elide: Text.ElideRight }
+                Label { text: page.resourceData.system?.os || "Reading system information…"; Layout.fillWidth: true; elide: Text.ElideRight }
+                Label { text: page.resourceData.system?.cpuModel || ""; color: page.secondaryColor; Layout.fillWidth: true; elide: Text.ElideRight }
+                Label { text: "Kernel · " + (page.resourceData.system?.kernel || "—"); color: page.secondaryColor; Layout.fillWidth: true; elide: Text.ElideRight }
+                Label { objectName: "dashboardUptime"; text: page.resourceData.uptime !== undefined ? "Uptime · " + Math.floor(page.resourceData.uptime / 3600) + "h " + Math.floor(page.resourceData.uptime / 60 % 60) + "m" : "Uptime · —"; color: page.secondaryColor }
+                Meter { Layout.fillWidth: true; title: "CPU"; value: page.resourceData.cpuPercent ?? 0; available: page.resourceData.cpuPercent !== null && page.resourceData.cpuPercent !== undefined }
+                Meter { Layout.fillWidth: true; title: "Memory"; value: page.memoryPercent; available: !!page.resourceData.memoryTotal }
+                Label { objectName: "dashboardMemoryDetails"; text: page.resourceData.memoryTotal ? (page.resourceData.memoryUsed / 1048576).toFixed(1) + " / " + (page.resourceData.memoryTotal / 1048576).toFixed(1) + " GiB RAM" : page.resourceData.error || "Reading resource counters…"; color: page.secondaryColor; Layout.fillWidth: true }
+                Label { text: page.services.statusData.network.tooltip; Layout.fillWidth: true; elide: Text.ElideRight; color: page.secondaryColor }
+                Label { text: page.services.batteryInfo.present ? page.services.batteryInfo.percentage + "% · " + (page.services.batteryInfo.pluggedIn ? "Plugged in" : "On battery") : "Desktop power"; color: "#a6e3a1" }
                 RowLayout {
                     Layout.fillWidth: true
                     Action { text: "Settings"; Layout.fillWidth: true; onClicked: page.settingsRequested() }
@@ -82,25 +88,37 @@ ColumnLayout {
             Layout.fillWidth: true; Layout.fillHeight: true
             Layout.columnSpan: cards.columns
             implicitHeight: desktopDetails.implicitHeight + 32
-            GridLayout {
+            ColumnLayout {
                 id: desktopDetails
-                columns: page.width >= 520 ? 2 : 1
-                anchors.fill: parent; anchors.margins: 16
-                columnSpacing: 16; rowSpacing: 8
-                Label { Layout.columnSpan: desktopDetails.columns; text: "YOUR DESKTOP"; color: page.secondaryColor; font.pixelSize: 12; font.letterSpacing: 2 }
-                Label { text: page.services.statusData.network.tooltip; Layout.fillWidth: true; font.pixelSize: 15 }
-                Label { text: page.services.batteryInfo.present ? page.services.batteryInfo.percentage + "% · " + (page.services.batteryInfo.pluggedIn ? "Plugged in" : "On battery") : "Desktop power"; color: "#a6e3a1" }
-                Meter { Layout.fillWidth: true; title: "CPU"; value: page.resourceData.cpuPercent ?? 0; available: page.resourceData.cpuPercent !== null && page.resourceData.cpuPercent !== undefined }
-                Meter { Layout.fillWidth: true; title: "Memory"; value: page.memoryPercent; available: !!page.resourceData.memoryTotal }
-                Label { objectName: "dashboardMemoryDetails"; text: page.resourceData.memoryTotal ? (page.resourceData.memoryUsed / 1048576).toFixed(1) + " / " + (page.resourceData.memoryTotal / 1048576).toFixed(1) + " GiB RAM" : page.resourceData.error || "Reading resource counters…"; color: page.secondaryColor; Layout.fillWidth: true }
-                Label { objectName: "dashboardUptime"; text: page.resourceData.uptime !== undefined ? "Uptime · " + Math.floor(page.resourceData.uptime / 3600) + "h " + Math.floor(page.resourceData.uptime / 60 % 60) + "m" : ""; color: page.secondaryColor }
+                anchors.fill: parent; anchors.margins: 16; spacing: 6
                 RowLayout {
                     Layout.fillWidth: true
-                    Action { text: "Wi-Fi"; Layout.fillWidth: true; onClicked: page.menuRequested("wifi") }
-                    Action { text: "Audio"; Layout.fillWidth: true; onClicked: page.menuRequested("audio") }
+                    Label { text: "TOP 5 PROCESSES"; color: page.secondaryColor; font.pixelSize: 12; font.letterSpacing: 2; Layout.fillWidth: true }
+                    Label { text: "CPU ↓ · every 5s"; color: page.secondaryColor; font.pixelSize: 11 }
                 }
                 RowLayout {
                     Layout.fillWidth: true
+                    Label { text: "Process"; Layout.fillWidth: true; color: page.secondaryColor }
+                    Label { text: "CPU"; Layout.preferredWidth: 66; horizontalAlignment: Text.AlignRight; color: page.secondaryColor }
+                    Label { text: "RAM"; Layout.preferredWidth: 82; horizontalAlignment: Text.AlignRight; color: page.secondaryColor }
+                }
+                Repeater {
+                    model: page.resourceData.topProcesses || []
+                    delegate: RowLayout {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Label { text: modelData.name + " · " + modelData.pid; Layout.fillWidth: true; elide: Text.ElideRight }
+                        Label { text: modelData.cpuPercent === null ? "—" : modelData.cpuPercent.toFixed(1) + "%"; Layout.preferredWidth: 66; horizontalAlignment: Text.AlignRight; color: page.accentColor }
+                        Label { text: (modelData.memoryKiB / 1024).toFixed(1) + " MiB"; Layout.preferredWidth: 82; horizontalAlignment: Text.AlignRight }
+                    }
+                }
+                Label { visible: !page.resourceData.topProcesses?.length; text: page.resourceData.error || "Reading processes…"; color: page.secondaryColor }
+                Label { text: page.resourceData.cpuPercent === null ? "Measuring CPU… · RAM shown until the next sample" : "CPU: 100% = one core · RAM: resident memory"; color: page.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: page.width >= 520 ? 4 : 2
+                    Action { text: "Wi-Fi"; Layout.fillWidth: true; onClicked: page.menuRequested("wifi") }
+                    Action { text: "Audio"; Layout.fillWidth: true; onClicked: page.menuRequested("audio") }
                     Action { text: "Notifications"; Layout.fillWidth: true; onClicked: page.menuRequested("notifications") }
                     Action { text: "Power"; Layout.fillWidth: true; onClicked: page.menuRequested("power") }
                 }

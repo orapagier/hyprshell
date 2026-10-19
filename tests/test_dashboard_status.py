@@ -35,6 +35,27 @@ class ResourceStatusTests(unittest.TestCase):
             (proc / 'uptime').write_text('10 5\n')
             self.assertEqual(STATUS.read_status(proc)['memoryUsed'], 750)
 
+    def test_process_stat_handles_names_exits_and_resident_memory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            proc = Path(directory)
+            task = proc / '123'
+            task.mkdir()
+            # Fields 3 through 24, including a comm with spaces and parentheses.
+            fields = ['S'] + ['0'] * 21
+            fields[11:13] = ['150', '25']
+            fields[19] = '9876'
+            fields[21] = '42'
+            (task / 'stat').write_text('123 (worker (pool)) ' + ' '.join(fields))
+            (proc / '124').mkdir()  # Exited/inaccessible process is skipped.
+            (proc / '125').mkdir()
+            (proc / '125' / 'stat').write_text('invalid')
+            result = STATUS.read_processes(proc)
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0], {
+                'pid': 123, 'name': 'worker (pool)', 'cpuTicks': 175,
+                'startTime': '9876', 'memoryKiB': 42 * os.sysconf('SC_PAGE_SIZE') // 1024,
+            })
+
 
 @unittest.skipUnless(shutil.which('quickshell'), 'Native Quickshell is needed')
 class DashboardNativeTests(unittest.TestCase):
@@ -106,6 +127,10 @@ ShellRoot {
                     test.check(test.find(content, 'dashboardMedia') === null, "No media tab");
                     test.check(test.find(content, 'dashboardPerformance') === null, "No performance tab");
                     test.check(test.find(content, 'dashboardClose') === null, "No close button");
+                    test.check(test.find(content, 'dashboardSystemInfo').visible, "Upper card shows system information");
+                    test.check(dashboard.resourceData.system.os.length > 0, "System identity populated");
+                    test.check(dashboard.resourceData.topProcesses.length === Math.min(5, dashboard.resourceData.processes.length), "Up to five processes populated");
+                    test.check(dashboard.resourceData.topProcesses.every(p => p.memoryKiB >= 0), "Process resident RAM populated");
                     test.check(test.find(content, 'dashboardMemoryDetails').visible, "Memory details on main page");
                     test.check(test.find(content, 'dashboardUptime').visible, "Uptime on main page");
                     let details = test.find(content, 'dashboardUptime');
@@ -188,9 +213,16 @@ ShellRoot {
                     input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
                 } else if (test.step === 11) {
                     tick.stop();
+                    input.tryCompare(dashboard, 'opened', false, 1500);
                     test.check(!dashboard.opened, "Shortcut-opened dashboard also closes on leave: " + JSON.stringify({hovered:controller.hoveredMenu, inside:controller.pointerInMenu, pinned:controller.pinned, pointer:dashboard.pointerInside}));
                     dashboard.reveal(null);
                     test.check(dashboard.opened, "Reveal opens dashboard");
+                    input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
+                    input.wait(5400);
+                    test.check(dashboard.resourceData.cpuPercent !== null, "Five-second refresh measures CPU");
+                    let processes = dashboard.resourceData.topProcesses;
+                    test.check(processes.length > 0 && processes.some(p => p.cpuPercent !== null), "Process CPU deltas populated");
+                    test.check(processes.every((p, i) => i === 0 || (processes[i - 1].cpuPercent ?? 0) >= (p.cpuPercent ?? 0)), "Processes ranked by CPU");
                     let content = test.find(dashboard.contentItem, 'dashboardContent');
                     content.dismissRequested();
                     test.check(!dashboard.opened, "Escape dismissal still works");
@@ -256,7 +288,7 @@ ShellRoot {
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
             env = dict(os.environ, XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM='offscreen',
                        QT_QPA_PLATFORMTHEME='', QT_QUICK_BACKEND='software')
-            result = subprocess.run(['quickshell', '--log-rules', 'qml=true', '-p', str(entry)], env=env, capture_output=True, text=True, timeout=20)
+            result = subprocess.run(['quickshell', '--log-rules', 'qml=true', '-p', str(entry)], env=env, capture_output=True, text=True, timeout=30)
             output = result.stdout + result.stderr
             self.assertEqual(result.returncode, 0, output)
             self.assertIn('DASHBOARD_NATIVE_OK', output)
