@@ -322,6 +322,18 @@ Item {
         anchors.fill: parent
         z: 0
         visible: !bar.statusIconsOnly
+        function segmentFor(start, end, cross, itemId, workspace) {
+            let region = bar.wallpaperColors.sampleRect(bar.vertical
+                ? Qt.rect(bar.screenOffsetX + cross - 8, bar.screenOffsetY + start - bar.scrollOffset, 16, end - start)
+                : Qt.rect(bar.screenOffsetX + start, bar.screenOffsetY + cross - 8, end - start, 16), true);
+            let style = Settings.appearance(bar.settings, itemId, bar.wallpaperSource.toString());
+            let accent = style.vibrantColor ? Qt.color(style.vibrantColor)
+                : region.average.hsvSaturation > 0.08
+                    ? Qt.hsva(region.average.hsvHue, 0.65, 0.95, 1) : Qt.color("#ed9876");
+            let palette = Colors.palette(region.average, accent, region.minimum, region.maximum, "bare-normal");
+            return {start:start, end:end, cross:cross, workspace:workspace,
+            ink:palette.foreground, edge:Colors.glyphEdge(palette.foreground)};
+        }
         readonly property var segments: {
             let ids = Object.keys(bar.moduleItems).filter(id => bar.itemShown(id));
             ids.sort((a, b) => bar.vertical
@@ -335,16 +347,19 @@ Item {
                 let end = bar.vertical ? b.y : b.x;
                 if (end - start < 2) continue;
                 let cross = bar.vertical ? bar.width / 2 : bar.height / 2;
-                let region = bar.wallpaperColors.sampleRect(bar.vertical
-                    ? Qt.rect(bar.screenOffsetX + cross - 8, bar.screenOffsetY + start - bar.scrollOffset, 16, end - start)
-                    : Qt.rect(bar.screenOffsetX + start, bar.screenOffsetY + cross - 8, end - start, 16), true);
-                let style = Settings.appearance(bar.settings, first, bar.wallpaperSource.toString());
-                let accent = style.vibrantColor ? Qt.color(style.vibrantColor)
-                    : region.average.hsvSaturation > 0.08
-                        ? Qt.hsva(region.average.hsvHue, 0.65, 0.95, 1) : Qt.color("#ed9876");
-                let palette = Colors.palette(region.average, accent, region.minimum, region.maximum, "bare-normal");
-                result.push({start:start, end:end, cross:cross,
-                    ink:palette.foreground, edge:Colors.glyphEdge(palette.foreground)});
+                result.push(segmentFor(start, end, cross, first, false));
+            }
+            if (bar.itemShown("workspaces")) {
+                // Follow the actual filtered delegates, including their polished
+                // positions, so workspace creation/removal never leaves a knot.
+                for (let i = 1; i < workspaceRepeater.count; ++i) {
+                    let a = workspaceRepeater.itemAt(i - 1), b = workspaceRepeater.itemAt(i);
+                    if (!a || !b) continue;
+                    let start = bar.vertical ? workspaceRow.y + a.y + a.height : workspaceRow.x + a.x + a.width;
+                    let end = bar.vertical ? workspaceRow.y + b.y : workspaceRow.x + b.x;
+                    let cross = bar.vertical ? workspaceRow.x + a.x + a.width / 2 : workspaceRow.y + a.y + a.height / 2;
+                    if (end - start >= 2) result.push(segmentFor(start, end, cross, "workspaces", true));
+                }
             }
             return result;
         }
@@ -427,7 +442,7 @@ Item {
                 ctx.stroke();
                 let length = segment.end - segment.start;
                 // One complete knot per icon gap, and a knot every ~38 px on open cord.
-                let count = Math.max(1, Math.floor(length / 38));
+                let count = segment.workspace ? 1 : Math.max(1, Math.floor(length / 38));
                 for (let knotIndex = 0; knotIndex < count; ++knotIndex) {
                     let p = point(segment.start + length * (knotIndex + 0.5) / count, segment.cross);
                     let size = Math.min(4.8, length / 3.6);
@@ -550,7 +565,7 @@ Item {
         horizontalItemAlignment: Grid.AlignHCenter
         verticalItemAlignment: Grid.AlignVCenter
         height: Math.max(28, implicitHeight)
-        spacing: 2
+        spacing: bar.statusIconsOnly ? 2 : Math.max(18, bar.settings.bar?.spacing ?? 18)
         leftPadding: Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
         rightPadding: Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
         Repeater {
