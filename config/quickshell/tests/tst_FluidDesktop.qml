@@ -36,37 +36,65 @@ TestCase {
         compare(button.scale, 1);
         compare(Style.Theme.duration(button, 350), 0);
     }
-    function test_connected_wave_keeps_pill_foot_fixed_data() {
+    function test_connected_spring_surface_data() {
         return ["top", "bottom", "left", "right"].map(edge => ({tag: edge, edge: edge}));
     }
-    function test_connected_wave_keeps_pill_foot_fixed(data) {
+    function test_connected_spring_surface(data) {
         let popover = createTemporaryObject(popoverComponent, test, {
-            connected: true, edge: data.edge, triggerRect: Qt.rect(400, 300, 60, 28)
+            connected: true, edge: data.edge, alignToTrigger: true,
+            triggerRect: Qt.rect(400, 300, 60, 28)
         });
-        let halfWidth = (popover.vertical ? 28 : 60) / 2;
-        compare(popover.attachmentHalfWidth, halfWidth);
-        verify(popover.neckHalfWidth > 0 && popover.neckHalfWidth < halfWidth * 0.4);
-        compare(popover.attachmentRadius, 14);
-        compare(popover.attachmentY, popover.neckY - 14);
+        let half = (popover.vertical ? 28 : 60) / 2;
+        compare(popover.attachmentHalfWidth, half);
         let footX = popover.tipX, footY = popover.neckY;
         popover.opened = true;
-        tryVerify(() => popover.fluidProgress > 0 && popover.fluidProgress < 1);
-        wait(100);
-        verify(Math.abs(popover.fluidWave) > 0.01);
+        let motion = popover.fluidMotion;
+        tryVerify(() => motion.progress > 0 && motion.progress < 1);
+        tryVerify(() => Math.abs(motion.stretchT - 1) > 0.001);
         compare(popover.tipX, footX); compare(popover.neckY, footY);
-        compare(popover.attachmentHalfWidth, halfWidth);
-        // Reverse mid-wave without losing the stable foot or leaving motion running.
+        // The new foot is tangent to the pill, with no filled area inside it.
+        let join = popover.fluidOutline, capRight = footX + half - 14;
+        fuzzyCompare(Math.hypot(join.footRight - capRight, join.footY - (footY - 14)), 14, 0.01);
+        verify(!join.path.includes("NaN") && !join.path.includes("Infinity"));
         popover.opened = false;
         wait(50);
+        let before = motion.progress;
         popover.opened = true;
-        tryCompare(popover, "fluidProgress", 1, 800);
-        fuzzyCompare(popover.fluidOffset, 0, 0.001);
-        fuzzyCompare(popover.waistX, footX, 0.001);
-        Style.Theme.preferences = ({reducedMotion: true});
+        fuzzyCompare(motion.progress, before, 0.001, "Reversal preserves the current frame");
+        tryCompare(motion, "progress", 1, 800);
+        tryCompare(motion, "running", false, 4000);
+        fuzzyCompare(motion.stretchT, 1, 0.002);
+        fuzzyCompare(motion.stretchN, 1, 0.002);
+        // Render the settled waist too: a valid SVG can still tessellate with a
+        // missing connector in Qt's curve renderer at exactly tangent joins.
+        let image = grabImage(popover);
+        let sx = data.edge === "left" ? popover.neckY + 12
+            : data.edge === "right" ? popover.width - popover.neckY - 12 : popover.tipX;
+        let sy = data.edge === "top" ? popover.neckY + 12
+            : data.edge === "bottom" ? popover.height - popover.neckY - 12 : popover.tipX;
+        sx = Math.round(sx); sy = Math.round(sy);
+        verify(image.red(sx,sy) !== image.red(1,1) || image.green(sx,sy) !== image.green(1,1)
+            || image.blue(sx,sy) !== image.blue(1,1), "The settled waist remains painted");
+        compare(image.pixel(430,314), image.pixel(1,1), "The pill interior has no second translucent fill");
+        // A neighbouring menu excites the same springs even while opened stays true.
+        popover.triggerRect = popover.vertical ? Qt.rect(400, 220, 60, 28) : Qt.rect(500, 300, 60, 28);
+        tryVerify(() => motion.running);
+        tryVerify(() => Math.abs(motion.shear) > 0.0001);
+        let scroll = findChild(popover, "menuBodyScroll");
+        let local = Qt.point(scroll.width / 2, scroll.height / 2);
+        let actual = scroll.mapToItem(popover, local.x, local.y);
+        let expected = popover.cardPoint(scroll.x + local.x, scroll.y + local.y);
+        fuzzyCompare(actual.x, expected.x, 0.01);
+        fuzzyCompare(actual.y, expected.y, 0.01);
+        verify(popover.containsPointer(actual), "The moving card keeps its hover region");
+        tryCompare(motion, "running", false, 4000);
         popover.opened = false;
-        compare(popover.fluidProgress, 0);
+        wait(40);
+        Style.Theme.preferences = ({reducedMotion: true});
+        compare(motion.progress, 0);
         popover.opened = true;
-        compare(popover.fluidProgress, 1);
+        compare(motion.progress, 1);
+        compare(motion.running, false);
     }
     function test_popover_keeps_exit_rendering() {
         let popover = createTemporaryObject(popoverComponent, test);

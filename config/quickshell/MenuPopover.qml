@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "PopdownGeometry.js" as FluidGeometry
 import "style" as Style
 import QtQuick.Shapes
 import QtQuick.Window
@@ -51,17 +52,10 @@ Item {
             easing.bezierCurve: popover.opened ? [0.22, 1.32, 0.36, 1, 1, 1] : [0.4, 0, 0.2, 1, 1, 1]
         }
     }
-    // Deform the shared surface instead of translating the foot off its pill.
-    // A damped wave crosses the waist and body, then becomes exactly still.
-    property real fluidProgress: opened ? 1 : 0
-    Behavior on fluidProgress {
-        enabled: popover.connected && !popover.attachedLeft && !popover.instant && Style.Theme.duration(popover, 1) > 0
-        NumberAnimation { duration: popover.opened ? 620 : 280; easing.type: Easing.Linear }
-    }
-    readonly property real fluidWave: connected && !attachedLeft
-        ? Math.sin(fluidProgress * Math.PI * 4) * Math.sin(fluidProgress * Math.PI) * (1 - fluidProgress) : 0
-    readonly property real fluidOffset: connected && !attachedLeft
-        ? 10 * Math.pow(1 - fluidProgress, 3) + 4 * fluidWave : 0
+    readonly property bool fluidSurface: connected && !attachedLeft
+    readonly property bool motionEnabled: !instant && Style.Theme.duration(popover, 1) > 0
+    readonly property real connectorGap: 24
+    readonly property alias fluidMotion: fluid
     property rect panelBounds: Qt.rect(0, 0, width, height)
     readonly property real safeLeft: panelBounds.x + 12
     readonly property real safeRight: panelBounds.x + panelBounds.width - 12
@@ -71,23 +65,23 @@ Item {
     signal hoverChanged(bool inside)
     signal cardClicked()
     readonly property real bodyWidth: Math.max(0, Math.min(preferredBodyWidth, connected && vertical && !attachedLeft
-        ? (edge === "left" ? width - triggerRect.x - triggerRect.width - 45 : triggerRect.x - 45)
+        ? (edge === "left" ? width - triggerRect.x - triggerRect.width - connectorGap - 12 : triggerRect.x - connectorGap - 12)
         : panelBounds.width - (attachedCorner ? 28 : 24), panelBounds.width - (attachedCorner ? 28 : 24)))
     function clamp(value, low, high) { return Math.max(low, Math.min(Math.max(low, high), value)); }
     readonly property real bodyX: attachedLeft ? 0 : !connected || !vertical
         ? (alignToTrigger && connected ? clamp(triggerRect.x + triggerRect.width / 2 - bodyWidth / 2, safeLeft, safeRight - bodyWidth) : alignment === "left" ? safeLeft : alignment === "right" ? safeRight - bodyWidth : panelBounds.x + (panelBounds.width - bodyWidth) / 2)
-        : edge === "left" ? clamp(triggerRect.x + triggerRect.width + 33 + fluidOffset, safeLeft, safeRight - bodyWidth)
-        : clamp(triggerRect.x - 33 - bodyWidth - fluidOffset, safeLeft, safeRight - bodyWidth)
+        : edge === "left" ? clamp(triggerRect.x + triggerRect.width + connectorGap, safeLeft, safeRight - bodyWidth)
+        : clamp(triggerRect.x - connectorGap - bodyWidth, safeLeft, safeRight - bodyWidth)
     readonly property real availableHeight: !connected ? Math.max(0, Math.min(panelBounds.height - 64, safeBottom - bodyY)) : vertical ? Math.max(0, safeBottom - safeTop)
-        : edge === "bottom" ? triggerRect.y - 33 - safeTop - 4 : safeBottom - triggerRect.y - triggerRect.height - 33 - 4
+        : edge === "bottom" ? triggerRect.y - connectorGap - safeTop - 4 : safeBottom - triggerRect.y - triggerRect.height - connectorGap - 4
     readonly property real bodyHeight: Math.max(0, Math.min(availableHeight, maximumBodyHeight, contents.implicitHeight + 36))
     readonly property real bodyY: attachedCorner ? safeBottom - bodyHeight : !connected ? Math.max(safeTop + 36, triggerRect.y + triggerRect.height + 12)
-        : edge === "top" ? clamp(triggerRect.y + triggerRect.height + 33 + fluidOffset, safeTop, safeBottom - bodyHeight)
-        : edge === "bottom" ? clamp(triggerRect.y - 33 - bodyHeight - fluidOffset, safeTop, safeBottom - bodyHeight)
+        : edge === "top" ? clamp(triggerRect.y + triggerRect.height + connectorGap, safeTop, safeBottom - bodyHeight)
+        : edge === "bottom" ? clamp(triggerRect.y - connectorGap - bodyHeight, safeTop, safeBottom - bodyHeight)
         : clamp(triggerRect.y + triggerRect.height / 2 - bodyHeight / 2, safeTop, safeBottom - bodyHeight)
     readonly property real bodyRight: bodyX + bodyWidth
     readonly property real bodyBottom: bodyY + bodyHeight
-    // Draw the existing funnel in coordinates that always point inward, while
+    // Draw the continuous surface in coordinates that always point inward, while
     // the card contents stay upright on every edge.
     readonly property real shapeX: vertical ? bodyY : bodyX
     readonly property real shapeY: edge === "bottom" ? height - bodyBottom : edge === "right" ? width - bodyRight : vertical ? bodyX : bodyY
@@ -96,6 +90,7 @@ Item {
     readonly property real neckY: edge === "bottom" ? height - triggerRect.y
         : edge === "right" ? width - triggerRect.x
         : edge === "left" ? triggerRect.x + triggerRect.width : triggerRect.y + triggerRect.height
+    readonly property real shoulder: clamp(tipX, shapeX + 40, shapeX + shapeWidth - 40)
     readonly property real tipX: vertical ? triggerRect.y + triggerRect.height / 2 : triggerRect.x + triggerRect.width / 2
     readonly property real attachmentHalfWidth: Math.max(0, (vertical ? triggerRect.height : triggerRect.width) / 2)
     // Cut out the pill's inward rounded edge: the foot touches its silhouette
@@ -104,13 +99,48 @@ Item {
     readonly property real attachmentRadius: Math.max(0, Math.min(attachmentHalfWidth,
         (vertical ? triggerRect.width : triggerRect.height) / 2, triggerRadius))
     readonly property real attachmentY: neckY - attachmentRadius
-    readonly property real neckHalfWidth: Math.min(12, attachmentHalfWidth * 0.32)
-    readonly property real waistX: tipX + 3 * fluidWave
-    readonly property real waistY: neckY + (shapeY - neckY) * 0.38
-    readonly property real shoulder: clamp(tipX, shapeX + 52, shapeX + shapeWidth - 52)
+    PopdownMotion {
+        id: fluid
+        animate: popover.motionEnabled && popover.fluidSurface
+        active: popover.rendering && popover.fluidSurface
+        opened: popover.opened
+        targetX: popover.shapeX; targetY: popover.shapeY
+        targetWidth: popover.shapeWidth; targetHeight: popover.shapeHeight
+        minimumX: popover.vertical ? popover.safeTop : popover.safeLeft
+        maximumX: popover.vertical ? popover.safeBottom : popover.safeRight
+        minimumY: popover.edge === "bottom" ? popover.height - popover.safeBottom
+            : popover.edge === "right" ? popover.width - popover.safeRight : popover.vertical ? popover.safeLeft : popover.safeTop
+        maximumY: popover.edge === "bottom" ? popover.height - popover.safeTop
+            : popover.edge === "right" ? popover.width - popover.safeLeft : popover.vertical ? popover.safeRight : popover.safeBottom
+    }
+    readonly property var fluidOutline: FluidGeometry.outline(fluid.displayX, fluid.displayY,
+        fluid.displayWidth, fluid.displayHeight, tipX, neckY, attachmentHalfWidth, attachmentRadius, fluid.shear)
+    // Keep layout and text wrapping at their final size. The background, content,
+    // shadow and hit targets receive exactly the same body deformation.
+    function cardPoint(x, y) {
+        let point = FluidGeometry.toInward(edge, width, height, x, y);
+        let sx = fluid.displayWidth / Math.max(1, shapeWidth);
+        let sy = fluid.displayHeight / Math.max(1, shapeHeight);
+        let normal = (point.y - shapeY) * sy;
+        return FluidGeometry.fromInward(edge, width, height,
+            fluid.displayX + (point.x - shapeX) * sx + fluid.shear * normal,
+            fluid.displayY + normal);
+    }
+    function cardTransform(x, y) {
+        if (!fluidSurface) return Qt.matrix4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+        let a = cardPoint(x, y), b = cardPoint(x + 1, y), c = cardPoint(x, y + 1);
+        return Qt.matrix4x4(b.x-a.x,c.x-a.x,0,a.x-x, b.y-a.y,c.y-a.y,0,a.y-y, 0,0,1,0, 0,0,0,1);
+    }
     readonly property bool pointerInside: opened && tracking.hovered && containsPointer(tracking.point.position)
 
     function containsPointer(point) {
+        if (fluidSurface) {
+            let p = FluidGeometry.toInward(edge, width, height, point.x, point.y);
+            let localY = p.y - fluid.displayY;
+            let localX = p.x - fluid.displayX - fluid.shear * localY;
+            if (localX >= 0 && localX <= fluid.displayWidth && localY >= 0 && localY <= fluid.displayHeight)
+                return true;
+        }
         if (point.y >= bodyY && point.y <= bodyBottom && point.x >= bodyX && point.x <= bodyRight)
             return true;
         if (attachedLeft && point.x >= 0 && point.x <= footRadius
@@ -162,16 +192,18 @@ Item {
             }
         }
         Rectangle {
+            id: cardShadow
             visible: !popover.attachedLeft
             x: popover.bodyX + 3; y: popover.bodyY + 7
             width: popover.bodyWidth; height: popover.bodyHeight
-            radius: 20; color: "#28000000"
+            radius: popover.fluidSurface ? 24 : 20; color: "#28000000"
+            transform: Matrix4x4 { matrix: popover.cardTransform(cardShadow.x, cardShadow.y) }
         }
         Shape {
             visible: popover.connected && !popover.attachedLeft
             objectName: "menuFunnel"
             anchors.fill: parent
-            preferredRendererType: Shape.CurveRenderer
+            preferredRendererType: Shape.GeometryRenderer
             transform: Matrix4x4 {
                 matrix: popover.edge === "bottom" ? Qt.matrix4x4(1,0,0,0, 0,-1,0,popover.height, 0,0,1,0, 0,0,0,1)
                     : popover.edge === "left" ? Qt.matrix4x4(0,1,0,0, 1,0,0,0, 0,0,1,0, 0,0,0,1)
@@ -179,57 +211,14 @@ Item {
                     : Qt.matrix4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
             }
             ShapePath {
-                strokeWidth: 1
-                strokeColor: glass.rimColor
+                strokeWidth: 0.65
+                strokeColor: Qt.alpha(glass.rimColor, 0.55)
                 fillGradient: LinearGradient {
                     x1: 0; y1: popover.neckY; x2: 0; y2: (popover.shapeY + popover.shapeHeight)
-                    GradientStop { position: 0; color: glass.rimColor }
-                    GradientStop { position: 0.23; color: glass.topColor }
+                    GradientStop { position: 0; color: glass.topColor }
                     GradientStop { position: 1; color: glass.bottomColor }
                 }
-                startX: popover.tipX - popover.attachmentHalfWidth; startY: popover.attachmentY
-                // Follow the two quarter-circles and the straight part of the
-                // pill boundary. The filled connector stays outside the pill.
-                PathCubic {
-                    control1X: popover.tipX - popover.attachmentHalfWidth; control1Y: popover.attachmentY + popover.attachmentRadius * 0.55228475
-                    control2X: popover.tipX - popover.attachmentHalfWidth + popover.attachmentRadius * 0.44771525; control2Y: popover.neckY
-                    x: popover.tipX - popover.attachmentHalfWidth + popover.attachmentRadius; y: popover.neckY
-                }
-                PathLine { x: popover.tipX + popover.attachmentHalfWidth - popover.attachmentRadius; y: popover.neckY }
-                PathCubic {
-                    control1X: popover.tipX + popover.attachmentHalfWidth - popover.attachmentRadius * 0.44771525; control1Y: popover.neckY
-                    control2X: popover.tipX + popover.attachmentHalfWidth; control2Y: popover.attachmentY + popover.attachmentRadius * 0.55228475
-                    x: popover.tipX + popover.attachmentHalfWidth; y: popover.attachmentY
-                }
-                PathCubic {
-                    control1X: popover.tipX + popover.attachmentHalfWidth; control1Y: popover.neckY + 2
-                    control2X: popover.waistX + popover.neckHalfWidth; control2Y: popover.waistY - 8
-                    x: popover.waistX + popover.neckHalfWidth; y: popover.waistY
-                }
-                PathCubic {
-                    control1X: popover.waistX + popover.neckHalfWidth; control1Y: popover.waistY + 8
-                    control2X: popover.shoulder + 12; control2Y: popover.shapeY
-                    x: popover.shoulder + 36; y: popover.shapeY
-                }
-                PathLine { x: (popover.shapeX + popover.shapeWidth) - 18; y: popover.shapeY }
-                PathQuad { controlX: (popover.shapeX + popover.shapeWidth); controlY: popover.shapeY; x: (popover.shapeX + popover.shapeWidth); y: popover.shapeY + 18 }
-                PathLine { x: (popover.shapeX + popover.shapeWidth); y: (popover.shapeY + popover.shapeHeight) - 18 }
-                PathQuad { controlX: (popover.shapeX + popover.shapeWidth); controlY: (popover.shapeY + popover.shapeHeight); x: (popover.shapeX + popover.shapeWidth) - 18; y: (popover.shapeY + popover.shapeHeight) }
-                PathLine { x: popover.shapeX + 18; y: (popover.shapeY + popover.shapeHeight) }
-                PathQuad { controlX: popover.shapeX; controlY: (popover.shapeY + popover.shapeHeight); x: popover.shapeX; y: (popover.shapeY + popover.shapeHeight) - 18 }
-                PathLine { x: popover.shapeX; y: popover.shapeY + 18 }
-                PathQuad { controlX: popover.shapeX; controlY: popover.shapeY; x: popover.shapeX + 18; y: popover.shapeY }
-                PathLine { x: popover.shoulder - 36; y: popover.shapeY }
-                PathCubic {
-                    control1X: popover.shoulder - 12; control1Y: popover.shapeY
-                    control2X: popover.waistX - popover.neckHalfWidth; control2Y: popover.waistY + 8
-                    x: popover.waistX - popover.neckHalfWidth; y: popover.waistY
-                }
-                PathCubic {
-                    control1X: popover.waistX - popover.neckHalfWidth; control1Y: popover.waistY - 8
-                    control2X: popover.tipX - popover.attachmentHalfWidth; control2Y: popover.neckY + 2
-                    x: popover.tipX - popover.attachmentHalfWidth; y: popover.attachmentY
-                }
+                PathSvg { path: popover.fluidOutline.path }
             }
         }
         Shape {
@@ -277,6 +266,8 @@ Item {
             }
         }
         MouseArea {
+            id: cardClick
+            transform: Matrix4x4 { matrix: popover.cardTransform(cardClick.x, cardClick.y) }
             x: popover.bodyX; y: popover.bodyY
             width: popover.bodyWidth; height: popover.bodyHeight
             enabled: popover.opened
@@ -286,6 +277,7 @@ Item {
         Flickable {
             id: bodyScroll
             objectName: "menuBodyScroll"
+            transform: Matrix4x4 { matrix: popover.cardTransform(bodyScroll.x, bodyScroll.y) }
             x: popover.bodyX + 18; y: popover.bodyY + 18
             width: Math.max(0, popover.bodyWidth - 36)
             height: Math.max(0, popover.bodyHeight - 36)

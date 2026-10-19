@@ -53,7 +53,7 @@ PanelWindow {
             anchors.fill:parent
             panelBounds:popup.panelBounds
             edge:popup.edge; triggerRect:popup.triggerRect; alignment:'center'
-            opened:popup.opened; instant:true; alignToTrigger:true
+            opened:popup.opened; alignToTrigger:true
             onHoverChanged: inside => menuState.retain(inside)
             wallpaperSource:popup.wallpaperSource
             showHeader: popup.mode !== 'previews'

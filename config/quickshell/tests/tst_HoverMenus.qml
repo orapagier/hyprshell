@@ -76,8 +76,8 @@ Item {
             compare(popover.tipX, trigger.x + trigger.width / 2);
             if (data.menu === "launcher") {
                 verify(findChild(popover, "menuFunnel").visible);
-                tryCompare(popover, "fluidProgress", 1, 800);
-                compare(popover.bodyY, popover.neckY + 33);
+                tryCompare(popover.fluidMotion, "progress", 1, 800);
+                compare(popover.bodyY, popover.neckY + popover.connectorGap);
             }
         }
         function test_pointerCanCrossBridgeAndUseMenu() {
