@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "style" as Style
 import QtQuick.Controls.Basic
 import "DockModel.js" as Model
 import "SettingsModel.js" as Settings
@@ -161,7 +162,9 @@ FocusScope {
                 list.positionViewAtIndex(index, ListView.Contain);
             }
             background: Rectangle {
-                radius: width/2
+                radius: pointer.containsMouse ? width * 0.36 : width / 2
+                Behavior on radius { NumberAnimation { duration: Style.Theme.duration(button, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
+                Behavior on color { ColorAnimation { duration: Style.Theme.duration(button, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
                 color: button.modelData.active ? '#28cba6f7' : pointer.containsMouse || (button.activeFocus && dock.keyboardInteraction) ? '#18cdd6f4' : 'transparent'
                 border.color: button.activeFocus && dock.keyboardInteraction ? '#cba6f7' : button.modelData.urgent ? '#fab387' : 'transparent'
             }

@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Switch the running desktop after validating it; recover Sidera on startup failure.
+set -euo pipefail
+config="${XDG_CONFIG_HOME:-$HOME/.config}"
+state="${XDG_STATE_HOME:-$HOME/.local/state}/hyprshell"
+repo=$(cat "$state/repository")
+helper="$repo/docs/skills/hyprskill/scripts/checkpoint.py"
+shell_bin=$(command -v quickshell || command -v qs)
+if ! hyprctl -j monitors >/dev/null 2>&1 || ! busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus GetId >/dev/null 2>&1; then
+    printf 'Run hyprshell-activate in a terminal inside your Hyprland desktop session. The shell has not been switched.\n' >&2
+    exit 1
+fi
+is_unlocked() {
+    hyprctl -j locked | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("locked") is False else 1)'
+}
+if ! is_unlocked; then
+    printf 'The desktop must report that it is unlocked before switching shells.\n' >&2
+    exit 1
+fi
+verification=$(Hyprland --verify-config --config "$repo/config/hypr/hyprland.lua" 2>&1)
+if [[ "${verification,,}" != *"config ok"* ]]; then
+    printf '%s\n' "$verification" >&2
+    exit 1
+fi
+checkpoint=$(python3 "$helper" create --label 'Activate the fluid Hyprshell desktop' -- "$config/hypr/hyprland.lua")
+printf 'Activation checkpoint: %s\n' "$checkpoint"
+printf 'Task: switch from Sidera to Hyprshell. Previous main configuration is backed up.\nRollback: python3 %q restore %q --apply\nThen: hyprctl reload; quickshell kill --path %q; caelestia-shell --no-duplicate --daemonize\n' "$helper" "$checkpoint" "$config/quickshell" > "$checkpoint/notes.md"
+chmod 600 "$checkpoint/notes.md"
+wallpaper_pid=
+recover() {
+    if [[ -n "$wallpaper_pid" ]]; then kill "$wallpaper_pid" 2>/dev/null || true; fi
+    python3 "$helper" restore "$checkpoint" --apply
+    hyprctl reload >/dev/null
+}
+start_wallpaper() {
+    if awww query >/dev/null 2>&1; then return 0; fi
+    # Keep an existing daemon intact if its socket is temporarily unavailable.
+    if pgrep -x awww-daemon >/dev/null 2>&1; then return 1; fi
+    local image="$HOME/Pictures/Wallpapers/default.jpg"
+    local previous="${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/wallpaper/path.txt"
+    # One-time migration of the current wallpaper; the CLI is never invoked.
+    if [[ -f "$previous" ]]; then
+        local candidate=""
+        IFS= read -r candidate < "$previous" || true
+        if [[ -f "$candidate" ]]; then image="$candidate"; fi
+    fi
+    printf 'Prior wallpaper daemon: absent. Started by this activation; recovery stops only its PID.\n' >> "$checkpoint/notes.md"
+    awww-daemon > "$checkpoint/wallpaper.log" 2>&1 &
+    wallpaper_pid=$!
+    for ((attempt=0; attempt<50; attempt++)); do
+        if awww query >/dev/null 2>&1; then
+            awww img "$image" --transition-type none
+            return $?
+        fi
+        sleep 0.1
+    done
+    return 1
+}
+cp -- "$repo/config/hypr/hyprland.lua" "$config/hypr/hyprland.lua"
+python3 "$helper" record-after "$checkpoint"
+if ! hyprctl reload >/dev/null || [[ -n "$(hyprctl configerrors)" ]]; then
+    recover
+    printf 'Hyprland validation failed; the previous configuration was restored.\n' >&2
+    exit 1
+fi
+if ! start_wallpaper; then
+    recover
+    printf 'The native wallpaper could not start; the previous configuration was restored.\n' >&2
+    exit 1
+fi
+if ! is_unlocked; then
+    recover
+    printf 'The desktop locked during preparation; the previous configuration was restored.\n' >&2
+    exit 1
+fi
+sidera_running=false
+if "$shell_bin" list --path "$config/quickshell/caelestia" --json | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin) else 1)'; then
+    sidera_running=true
+    if ! "$shell_bin" kill --path "$config/quickshell/caelestia"; then
+        recover
+        printf 'Could not stop Sidera; the previous configuration was restored.\n' >&2
+        exit 1
+    fi
+fi
+if ! "$HOME/.local/bin/start-quickshell-bar"; then
+    recover
+    if "$sidera_running"; then caelestia-shell --no-duplicate --daemonize; fi
+    printf 'Hyprshell startup failed; the previous desktop was restored.\n' >&2
+    exit 1
+fi
+printf 'Hyprshell is active. Super+D opens the dashboard; Super+L locks the screen.\n'
+"$HOME/.local/bin/hyprshell-shortcut" dashboard

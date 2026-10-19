@@ -21,6 +21,6 @@ Button {
         color: control.highlighted ? (control.down ? Style.Theme.accentPressed : control.hovered ? Style.Theme.accentHover : Style.Theme.accent) : control.down ? Style.Theme.pressed : control.hovered ? Style.Theme.hover : control.flat ? "transparent" : Style.Theme.button
         border.color: control.activeFocus ? Style.Theme.accentText : control.highlighted ? Style.Theme.accent : Style.Theme.border
         border.width: control.activeFocus ? 2 : control.flat ? 0 : 1
-        Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, 130) } }
+        Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
     }
 }

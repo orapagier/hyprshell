@@ -2,6 +2,7 @@
 // Keep the existing notification history when the configuration directory moves.
 pragma ComponentBehavior: Bound
 import QtQuick
+import "style" as Style
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -34,11 +35,31 @@ ShellRoot {
         }
     }
     SettingsStore { id: preferences }
+    Binding { target: Style.Theme; property: "preferences"; value: preferences.config.accessibility || ({}) }
     ApplicationService {
         id: applications; store: preferences
         geometryTracking: docks.instances.concat(taskbars.instances).some(d => d.shown && d.panel.hideMode === 'dodge')
     }
     DockUtilities { id: dockUtilities; watching: ['hyprdock','hyprbar'].some(name => preferences.config.panels[name].enabled && preferences.config.panels[name].showTrash) }
+    ScreenCorners {}
+    Dashboard {
+        id: dashboardWindow
+        services: desktopServices
+        onSettingsRequested: settingsController.open()
+        onLockRequested: locking.lockNow()
+        onMenuRequested: name => {
+            let focused = Hyprland.focusedMonitor;
+            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
+            for (let other of panels.instances) other.closeMenu();
+            if (panel) panel.toggleMenu(name);
+        }
+    }
+    function toggleDashboard() {
+        for (let panel of panels.instances) panel.closeMenu();
+        let focused = Hyprland.focusedMonitor;
+        let output = Quickshell.screens.find(s => focused && s.name === focused.name) || Quickshell.screens[0];
+        dashboardWindow.toggle(output);
+    }
     ProjectorWindow { id: projectorWindow }
     PresentationView { id: presentationView }
     Hyprview { id: hyprviewWindow }
@@ -310,6 +331,7 @@ ShellRoot {
     }
     IpcHandler {
         target: "bar"
+        function dashboard(): void { shell.toggleDashboard(); }
         function restoreDesktop(): void { applications.desktop.run('restore'); }
         function ready(): bool {
             if (panels.instances.length === 0) return false;

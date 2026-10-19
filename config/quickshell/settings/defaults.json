@@ -366,6 +366,7 @@
   "locking": {
     "enabled": false,
     "command": "hyprlock",
+    "backgroundTransparency": 85,
     "idleMinutes": 5,
     "beforeSleep": true
   },

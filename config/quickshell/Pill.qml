@@ -1,4 +1,5 @@
 import QtQuick
+import "style" as Style
 import "AdaptiveColors.js" as Colors
 
 Item {
@@ -58,7 +59,7 @@ Item {
     readonly property color iconEdge: Colors.glyphEdge(iconColor)
     readonly property bool hovered: pointer.containsMouse
     property bool selected: false
-    property color hoverTint: tint
+    property color hoverTint: Qt.rgba(tint.r, tint.g, tint.b, Math.min(1, tint.a + 0.12))
     property alias content: label
     signal clicked(var mouse)
     signal wheel(var event)
@@ -84,7 +85,7 @@ Item {
         color: pill.styledBackground(pill.adaptivePalette
             ? (pill.selected ? pill.adaptivePalette.selected : pointer.containsMouse || pill.activeFocus ? pill.adaptivePalette.hover : pill.adaptivePalette.tint)
             : pill.selected ? Qt.rgba(pill.foreground.r, pill.foreground.g, pill.foreground.b, 0.32) : pointer.containsMouse || pill.activeFocus ? pill.hoverTint : pill.tint)
-        Behavior on color { ColorAnimation { duration: 200 } }
+        Behavior on color { ColorAnimation { duration: Style.Theme.duration(pill, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
         border.width: 1
         border.color: pill.settings.outlineColor || (pill.adaptivePalette ? (pill.selected ? pill.adaptivePalette.selectedOutline : pill.adaptivePalette.outline)
             : pill.selected ? Qt.rgba(pill.foreground.r, pill.foreground.g, pill.foreground.b, 0.65) : pill.outline)
@@ -115,7 +116,7 @@ Item {
         radius: 1
         color: pill.shownIcon.length ? pill.iconColor : pill.textColor
         opacity: pill.selected ? 0.95 : pill.interactive && (pill.hovered || pill.activeFocus) ? 0.55 : 0
-        Behavior on opacity { NumberAnimation { duration: 140 } }
+        Behavior on opacity { NumberAnimation { duration: Style.Theme.duration(pill, 200); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
     }
     TextMetrics {
         id: compactGlyphMetrics

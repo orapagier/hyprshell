@@ -31,6 +31,8 @@ class LockingTests(unittest.TestCase):
     def test_invalid_settings(self):
         for key, value in [('enabled', 1), ('beforeSleep', 'yes'), ('idleMinutes', True),
                            ('idleMinutes', -1), ('idleMinutes', 241), ('idleMinutes', 1.5),
+                           ('backgroundTransparency', -1), ('backgroundTransparency', 101),
+                           ('backgroundTransparency', True), ('backgroundTransparency', 1.5),
                            ('command', ''), ('command', '"unterminated'),
                            ('command', 'hyprlock\nshutdown'), ('unknown', True)]:
             with self.subTest(key=key, value=value):
@@ -38,6 +40,41 @@ class LockingTests(unittest.TestCase):
                 data['locking'][key] = value
                 with self.assertRaises(ValueError):
                     backend.validate(data)
+
+    def test_lock_theme_transparency_and_custom_configuration(self):
+        template = (ROOT / 'config/hypr/hyprlock.conf').read_text()
+        for transparency, alpha in [(0, 'ff'), (85, '26'), (100, '00')]:
+            with self.subTest(transparency=transparency):
+                rendered = backend.render_lock_theme(template, transparency)
+                self.assertIn('$hyprshell_lock_overlay = rgba(1e1e2e' + alpha + ')', rendered)
+                self.assertIn('placeholder_text = Enter your password', rendered)
+                self.assertIn('fail_text = Authentication failed ($ATTEMPTS)', rendered)
+                self.assertNotIn('text = ', rendered)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'hypr').mkdir()
+            (root / 'hypr/hyprlock.conf').write_text(template)
+            custom = ['hyprlock', '--config', '/some/custom.conf']
+            self.assertEqual(backend.lock_theme_args(custom, {}, root, root), custom)
+            self.assertFalse((root / 'hyprshell/hyprlock.conf').exists())
+            (root / 'hypr/hyprlock.conf').write_text('background {\n color = rgb(000000)\n}\n')
+            self.assertEqual(backend.lock_theme_args(['hyprlock'], {}, root, root), ['hyprlock'])
+            self.assertFalse((root / 'hyprshell/hyprlock.conf').exists())
+
+    def test_default_locker_uses_saved_transparency(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'hypr').mkdir()
+            (root / 'hypr/hyprlock.conf').write_text((ROOT / 'config/hypr/hyprlock.conf').read_text())
+            with patch.dict(os.environ, XDG_CONFIG_HOME=directory, XDG_STATE_HOME=directory), \
+                 patch.object(backend, 'read_locking', return_value={'command': 'hyprlock', 'backgroundTransparency': 100}), \
+                 patch.object(backend.shutil, 'which', return_value='/bin/hyprlock'), \
+                 patch.object(backend, 'supervise_locker', return_value=0) as supervise:
+                self.assertEqual(backend.run_locker(), 0)
+                generated = root / 'hyprshell/hyprlock.conf'
+                self.assertEqual(supervise.call_args.args[0], ['hyprlock', '--config', str(generated)])
+                self.assertIn('$hyprshell_lock_overlay = rgba(1e1e2e00)', generated.read_text())
+                self.assertEqual(generated.stat().st_mode & 0o777, 0o600)
 
     def test_user_command_never_becomes_hyprlang(self):
         settings = dict(backend.DEFAULTS['locking'], command='locker "a b" "; touch /tmp/unwanted"', idleMinutes=7)

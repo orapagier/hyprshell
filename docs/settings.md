@@ -1,5 +1,14 @@
 # Settings implementation
 
+Locking → Your lock screen includes Background transparency (0–100%, default
+85%). It controls the tint over the blurred desktop snapshot and softens the
+password field while retaining its contrast. The bundled theme uses a drawn
+avatar rather than a font glyph. Changes apply on the next lock through the
+existing manual, idle and sleep paths; adjusting appearance does not restart the
+idle timer. The backend renders only the bundled theme's named color tokens to
+`state/hyprshell/hyprlock.conf` when locking. Custom locker commands, explicit
+`hyprlock --config` commands and themes without those tokens stay untouched.
+
 **Hyprpane** means Hyprshell's status/menu panel on any edge. Hyprdock is the
 app dock; Hyprbar is the classic taskbar (see [Hyprbar](hyprbar.md)). This document also uses “bar” and
 "topbar"; IPC methods and configuration keys keep their existing names.

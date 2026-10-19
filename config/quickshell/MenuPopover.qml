@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "style" as Style
 import QtQuick.Shapes
 import QtQuick.Window
 import QtQuick.Layouts
@@ -98,15 +99,20 @@ Item {
         id: surface
         anchors.fill: parent
         opacity: 0
-        transform: Translate { id: arrival; y: -8 }
+        transform: Translate {
+            id: arrival
+            x: popover.opened ? 0 : popover.edge === "left" ? -12 : popover.edge === "right" ? 12 : 0
+            y: popover.opened ? 0 : popover.edge === "bottom" ? 12 : popover.vertical ? 0 : -12
+            Behavior on x { NumberAnimation { duration: popover.instant ? 0 : Style.Theme.duration(popover, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
+            Behavior on y { NumberAnimation { duration: popover.instant ? 0 : Style.Theme.duration(popover, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
+        }
         states: State {
             name: "open"; when: popover.opened
-            PropertyChanges { surface.opacity: 1; arrival.y: 0 }
+            PropertyChanges { surface.opacity: 1 }
         }
         transitions: Transition {
             ParallelAnimation {
-                NumberAnimation { property: "opacity"; duration: popover.instant ? 0 : 140; easing.type: Easing.OutCubic }
-                NumberAnimation { property: "y"; duration: popover.instant ? 0 : 220; easing.type: Easing.OutCubic }
+                NumberAnimation { property: "opacity"; duration: popover.instant ? 0 : Style.Theme.duration(popover, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve }
             }
         }
         Rectangle {

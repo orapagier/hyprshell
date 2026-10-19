@@ -1,8 +1,12 @@
 import QtQuick
+import "style" as Style
 import QtQuick.Controls
 
 Button {
     id: control
+    hoverEnabled: true
+    scale: down ? 0.98 : 1
+    Behavior on scale { NumberAnimation { duration: Style.Theme.duration(control, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
     property color accent: "#cdd6f4"
     implicitHeight: Math.max(36, contentItem.implicitHeight + 16)
     leftPadding: 10; rightPadding: 10; topPadding: 8; bottomPadding: 8
@@ -15,8 +19,10 @@ Button {
         verticalAlignment: Text.AlignVCenter
     }
     background: Rectangle {
-        radius: 8
+        radius: control.down ? 10 : control.hovered ? 14 : 8
         color: control.down ? "#55cba6f7" : control.hovered || control.activeFocus ? "#38cba6f7" : "#0bffffff"
+        Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
+        Behavior on radius { NumberAnimation { duration: Style.Theme.duration(control, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
         border.width: 1; border.color: control.activeFocus ? "#88cba6f7" : "#1fffffff"
     }
 }

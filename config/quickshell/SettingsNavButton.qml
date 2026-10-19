@@ -35,6 +35,6 @@ Button {
         color: control.highlighted ? Style.Theme.selection : control.hovered ? Style.Theme.button : "transparent"
         border.width: control.activeFocus || control.keyboardSelected ? 2 : 0
         border.color: (control.activeFocus || control.keyboardSelected) ? Style.Theme.accentText : Style.Theme.border
-        Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, 140) } }
+        Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
     }
 }

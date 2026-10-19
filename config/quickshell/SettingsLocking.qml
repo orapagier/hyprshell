@@ -16,7 +16,19 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Your lock screen"
-        subtitle: "Hyprlock matches the Hyprshell login theme and keeps your apps open. You can also choose another installed Wayland locker."
+        subtitle: "Hyprlock keeps your apps open behind a blurred desktop snapshot. You can also choose another installed Wayland locker."
+        SettingsSlider {
+            objectName: "lockBackgroundTransparency"
+            Layout.fillWidth: true
+            label: "Background transparency"
+            description: "Higher values show more of the blurred desktop snapshot. Applies the next time you lock. Available with the default hyprlock command."
+            suffix: "%"
+            from: 0; to: 100; stepSize: 1
+            allowReset: false
+            settingValue: page.settings.backgroundTransparency ?? 85
+            enabled: page.settings.command.trim() === "hyprlock"
+            onEdited: value => page.edited("backgroundTransparency", value)
+        }
         SettingField {
             objectName: "lockCommandField"
             Layout.fillWidth: true

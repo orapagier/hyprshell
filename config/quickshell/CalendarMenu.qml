@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "style" as Style
 import QtQuick.Controls
 import QtQuick.Layouts
 import "Calendar.js" as Calendar
@@ -89,6 +90,7 @@ ColumnLayout {
                 accent: holiday ? holiday[1] === "regular" ? "#f38ba8" : "#f9e2af" : "#cdd6f4"
                 contentItem: Text { text: day.text; font: day.font; color: day.accent; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 background: Rectangle {
+                    Behavior on color { ColorAnimation { duration: Style.Theme.duration(day, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
                     radius: 8
                     color: day.selected ? "#38cba6f7" : day.hovered ? "#38cba6f7" : day.holiday ? day.holiday[1] === "regular" ? "#1ff38ba8" : "#1ff9e2af" : "transparent"
                     border.width: page.today.getFullYear() === page.year && page.today.getMonth() === page.month && page.today.getDate() === day.number ? 1 : 0

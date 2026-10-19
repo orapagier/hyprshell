@@ -226,6 +226,7 @@ def validate(data):
         if type(locking[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     number(locking['idleMinutes'], 0, 240, True)
+    number(locking['backgroundTransparency'], 0, 100, True)
     lock_argv(locking['command'])
     notifications = data.get('notifications', {})
     if not isinstance(notifications, dict) or set(notifications) - set(result['notifications']):
@@ -544,6 +545,35 @@ def read_power():
     return read_preferences()['power']
 
 
+def render_lock_theme(template, transparency):
+    """Change only the bundled theme's two named color tokens."""
+    number(transparency, 0, 100, True)
+    tokens = {
+        'hyprshell_lock_overlay': f'rgba(1e1e2e{round(255 * (1 - transparency / 100)):02x})',
+        'hyprshell_lock_field': f'rgba(313244{round(255 * (1 - 0.4 * transparency / 100)):02x})',
+    }
+    for name, value in tokens.items():
+        pattern = r'(?m)^\$' + name + r'\s*=.*$'
+        if not re.search(pattern, template):
+            return None  # A custom theme is never rewritten.
+        template = re.sub(pattern, lambda match: '$' + name + ' = ' + value, template)
+    return template
+
+
+def lock_theme_args(args, settings, config, state):
+    if args != ['hyprlock']:
+        return args
+    template = config / 'hypr/hyprlock.conf'
+    if not template.is_file():
+        return args
+    rendered = render_lock_theme(template.read_text(), settings.get('backgroundTransparency', 85))
+    if rendered is None:
+        return args
+    target = state / 'hyprshell/hyprlock.conf'
+    atomic(target, rendered)
+    return [*args, '--config', str(target)]
+
+
 def run_locker():
     settings = read_locking()
     args = lock_argv(settings['command'])
@@ -564,6 +594,7 @@ def run_locker():
         options = {}
         if args == ['hyprlock']:
             options['cwd'] = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config') / 'hypr'
+            args = lock_theme_args(args, settings, options['cwd'].parent, state)
         if Path(args[0]).name != 'hyprlock':
             return supervise_locker(args, options)
         # Keep Hyprlock diagnostics across sleep and shell restarts.

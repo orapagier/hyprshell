@@ -29,7 +29,9 @@ Item {
     function sync() {
         if (!store.loaded) return;
         let power = effectivePower();
-        let next = JSON.stringify([store.config.locking, power.dimMinutes || 0, power.offMinutes || 0, power.suspendMinutes || 0, power.dimPercent || 20]);
+        let lock = store.config.locking;
+        let next = JSON.stringify([lock.enabled, lock.command, lock.idleMinutes, lock.beforeSleep,
+            power.dimMinutes || 0, power.offMinutes || 0, power.suspendMinutes || 0, power.dimPercent || 20]);
         if (next === fingerprint) return;
         fingerprint = next;
         error = "";
