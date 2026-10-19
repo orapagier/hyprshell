@@ -1,0 +1,3 @@
+-- Confirmed monitor preferences.
+hl.monitor({output = "eDP-1", mode = "1920x1080@60.008", scale = 1, transform = 0, position = "auto", mirror = ""})
+hl.monitor({output = "HDMI-A-1", mode = "1440x900@60.000", scale = 1, transform = 0, position = "auto", mirror = ""})
