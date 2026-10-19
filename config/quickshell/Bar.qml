@@ -350,25 +350,54 @@ Item {
             function point(along, cross) {
                 return bar.vertical ? {x:cross, y:along} : {x:along, y:cross};
             }
-            for (let segment of segments) {
+            for (let segmentIndex = 0; segmentIndex < segments.length; ++segmentIndex) {
+                let segment = segments[segmentIndex];
                 let a = point(segment.start, segment.cross), b = point(segment.end, segment.cross);
-                ctx.strokeStyle = "#995f3932";
-                ctx.lineWidth = 0.7;
+                ctx.strokeStyle = "#ce765044";
+                ctx.lineWidth = 1.2;
                 ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
                 let length = segment.end - segment.start;
                 let knots = length > 100 ? [0.22, 0.5, 0.78] : [0.5];
-                for (let fraction of knots) {
-                    let p = point(segment.start + length * fraction, segment.cross);
-                    let size = Math.min(2, length / 3);
-                    let glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 3);
-                    glow.addColorStop(0, "#48653328"); glow.addColorStop(1, "transparent");
+                for (let knotIndex = 0; knotIndex < knots.length; ++knotIndex) {
+                    let p = point(segment.start + length * knots[knotIndex], segment.cross);
+                    let size = 3.2;
+                    let along = Math.min(size, length / 3);
+                    let glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2.5);
+                    glow.addColorStop(0, "#886f392b"); glow.addColorStop(1, "transparent");
                     ctx.fillStyle = glow;
-                    ctx.fillRect(p.x - size * 3, p.y - size * 3, size * 6, size * 6);
-                    ctx.fillStyle = "#d7684d";
+                    ctx.fillRect(p.x - size * 2.5, p.y - size * 2.5, size * 5, size * 5);
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    if (bar.vertical) ctx.rotate(Math.PI / 2);
+                    ctx.strokeStyle = "#ed9876";
+                    ctx.fillStyle = "#e9825e";
+                    ctx.lineWidth = 1;
+                    // Narrow gaps keep a tall diamond; open cord alternates
+                    // diamond, interlaced loops, open lozenge and four-petal knots.
+                    let variant = length < 12 ? 0 : (segmentIndex + knotIndex) % 4;
                     ctx.beginPath();
-                    ctx.moveTo(p.x, p.y - size); ctx.lineTo(p.x + size, p.y);
-                    ctx.lineTo(p.x, p.y + size); ctx.lineTo(p.x - size, p.y);
-                    ctx.closePath(); ctx.fill();
+                    if (variant === 1) {
+                        ctx.moveTo(0, 0);
+                        ctx.bezierCurveTo(-along * 2, -size * 1.6, -along * 2, size * 1.6, 0, 0);
+                        ctx.bezierCurveTo(along * 2, -size * 1.6, along * 2, size * 1.6, 0, 0);
+                        ctx.stroke();
+                    } else if (variant === 3) {
+                        ctx.moveTo(0, 0);
+                        ctx.bezierCurveTo(-along * 2, -size, -along, -size * 2, 0, 0);
+                        ctx.bezierCurveTo(along, -size * 2, along * 2, -size, 0, 0);
+                        ctx.bezierCurveTo(along * 2, size, along, size * 2, 0, 0);
+                        ctx.bezierCurveTo(-along, size * 2, -along * 2, size, 0, 0);
+                        ctx.stroke();
+                    } else {
+                        ctx.moveTo(0, -size); ctx.lineTo(along, 0);
+                        ctx.lineTo(0, size); ctx.lineTo(-along, 0);
+                        ctx.closePath();
+                        if (variant === 2) ctx.stroke();
+                        else ctx.fill();
+                    }
+                    ctx.fillStyle = "#ffd0a0";
+                    ctx.beginPath(); ctx.arc(0, 0, 0.8, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
                 }
             }
         }
