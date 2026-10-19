@@ -3,9 +3,9 @@
   "systemMonitor": {
     "enabled": false,
     "workspaceOverrides": {
+      "1": false,
       "2": false,
-      "4": false,
-      "1": false
+      "4": false
     },
     "transparency": 0,
     "x": 0.987691066576087,
@@ -410,6 +410,9 @@
   "locking": {
     "enabled": true,
     "command": "hyprlock",
+    "backgroundTransparency": 75,
+    "blurSize": 1,
+    "blurPasses": 0,
     "idleMinutes": 10,
     "beforeSleep": true
   },
