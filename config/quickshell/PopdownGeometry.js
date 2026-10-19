@@ -12,11 +12,10 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear) {
     let waistHalf = Math.min(4.8, footHalf * 0.25);
     let waistY = footY + gap * 0.35;
     let waistX = tip;
-    // Keep the neck under its pill. Trim each shoulder independently instead of
-    // pushing the whole stem sideways to fit a full-width flare near a corner.
-    let shoulder = Math.max(x + corner, Math.min(x + width - corner, tip));
-    let leftFlare = Math.min(flare, shoulder - x - corner);
-    let rightFlare = Math.min(flare, x + width - corner - shoulder);
+    // Keep the stem centered on its pill. At a card corner, merge the shoulder
+    // directly into the side instead of shifting the attachment inward.
+    let leftFits = tip - flare >= x + corner;
+    let rightFits = tip + flare <= x + width - corner;
     let path = [];
     function n(value) { return Number(value.toFixed(3)); }
     function p(px, py) { return n(px) + ' ' + n(py); }
@@ -27,19 +26,29 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear) {
     path.push('L ' + p(tip + footHalf,footY));
     path.push('C ' + p(tip + footHalf * 0.25,footY) + ' '
         + p(waistX + waistHalf,waistY - (waistY - footY) * (0.42 / 0.65)) + ' ' + p(waistX + waistHalf,waistY));
-    path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
-        + p(shoulder + rightFlare * 0.25,y) + ' ' + p(shoulder + rightFlare,y));
-    line(x + width - corner,y);
-    quad(x + width,y,x + width,y + corner);
+    if (rightFits) {
+        path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
+            + p(tip + flare * 0.25,y) + ' ' + p(tip + flare,y));
+        line(x + width - corner,y);
+        quad(x + width,y,x + width,y + corner);
+    } else {
+        path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
+            + body(x + width,y + corner * 0.4) + ' ' + body(x + width,y + corner));
+    }
     line(x + width,y + height - corner);
     quad(x + width,y + height,x + width - corner,y + height);
     line(x + corner,y + height);
     quad(x,y + height,x,y + height - corner);
     line(x,y + corner);
-    quad(x,y,x + corner,y);
-    line(shoulder - leftFlare,y);
-    path.push('C ' + p(shoulder - leftFlare * 0.25,y) + ' '
-        + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
+    if (leftFits) {
+        quad(x,y,x + corner,y);
+        line(tip - flare,y);
+        path.push('C ' + p(tip - flare * 0.25,y) + ' '
+            + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
+    } else {
+        path.push('C ' + body(x,y + corner * 0.4) + ' '
+            + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
+    }
     path.push('C ' + p(waistX - waistHalf,waistY - (waistY - footY) * (0.42 / 0.65)) + ' '
         + p(tip - footHalf * 0.25,footY) + ' ' + p(tip - footHalf,footY));
     path.push('Z');
