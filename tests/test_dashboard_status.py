@@ -119,10 +119,13 @@ ShellRoot {
                     test.check(!test.find(popover, 'menuFunnel').visible, "Dashboard hides narrow connector");
                     test.check(popover.containsPointer(Qt.point(5, popover.bodyY - popover.footRadius / 2)), "Curved foot retains hover");
                     test.check(Math.abs(popover.edgeProgress - 1) < 0.001, "Opening motion settles");
-                    test.check(Math.abs(popover.bodyY - (dashboard.height - popover.bodyHeight) / 2) < 1, "Dashboard vertically centered");
+                    test.check(popover.attachedCorner && popover.bodyBottom === dashboard.height, "Dashboard joins bottom-left screen corner");
+                    test.check(popover.bodyRight + popover.footRadius <= dashboard.width, "Bottom-right foot fits screen");
+                    test.check(popover.containsPointer(Qt.point(popover.bodyRight + popover.footRadius / 2, dashboard.height - 2)), "Bottom-right foot retains hover");
+                    test.check(!popover.containsPointer(Qt.point(dashboard.width - 1, 1)), "Opposite screen corner stays outside dashboard");
                     test.check(dashboard.inputRect.x === 4 && dashboard.inputRect.width === dashboard.width - 4, "Input observes outside-card movement but preserves trigger");
                     test.check(dashboard.inputRect.height === dashboard.height, "Full-height input while open");
-                    input.mouseMove(dashboard.contentItem, 10, dashboard.height / 2);
+                    input.mouseMove(dashboard.contentItem, 10, dashboard.height - 24);
                     test.check(dashboard.pointerInside, "Pointer enters bridge from trigger");
                     controller.leave('dashboard');
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
@@ -136,7 +139,7 @@ ShellRoot {
                     controller.hover('dashboard');
                 } else if (test.step === 3) {
                     test.check(dashboard.opened, "Repeated hover reopens dashboard");
-                    input.mouseMove(dashboard.contentItem, 10, dashboard.height / 2);
+                    input.mouseMove(dashboard.contentItem, 10, dashboard.height - 24);
                     controller.leave('dashboard');
                     input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
@@ -212,7 +215,8 @@ ShellRoot {
                     controller.leave('dashboard');
                     input.wait(450);
                     test.check(dashboard.opened, "Dashboard survives slow handoff beyond old close timeout");
-                    test.check(popover.triggerRect.height === 192, "Taller centered reveal target");
+                    test.check(popover.triggerRect.height === 32 && popover.triggerRect.y + popover.triggerRect.height === dashboard.height,
+                        "Reveal target hugs lower-left screen corner");
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
                     test.check(dashboard.pointerInside, "Cursor can enter after unfolding");
                     input.wait(1000);

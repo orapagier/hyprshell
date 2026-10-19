@@ -12,7 +12,7 @@ PanelWindow {
     readonly property bool opened: menuState.section.length > 0
     readonly property bool pointerInside: popover.pointerInside
     readonly property rect inputRect: Qt.rect(4, 0, Math.max(0, width - 4), opened ? height : 0)
-    readonly property int revealHeight: 192
+    readonly property int revealHeight: 32
     property var resourceData: ({})
     property var previousCounters: null
     function reveal(output) {
@@ -34,7 +34,7 @@ PanelWindow {
             screen: modelData
             // Never unmap the trigger during hover: that can leave a stale enter.
             visible: true
-            anchors { left: true }
+            anchors { left: true; bottom: true }
             implicitWidth: 4
             implicitHeight: Math.min(dashboard.revealHeight, modelData.height)
             color: "transparent"
@@ -121,7 +121,8 @@ PanelWindow {
             anchors.fill: parent
             edge: "left"
             edgeAttached: true
-            triggerRect: Qt.rect(0, (dashboard.height - Math.min(dashboard.revealHeight, dashboard.height)) / 2, 4, Math.min(dashboard.revealHeight, dashboard.height))
+            bottomLeftAttached: true
+            triggerRect: Qt.rect(0, Math.max(0, dashboard.height - dashboard.revealHeight), 4, Math.min(dashboard.revealHeight, dashboard.height))
             preferredBodyWidth: 1100
             opened: dashboard.opened
             wallpaperSource: dashboard.wallpaperSource

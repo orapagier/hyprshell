@@ -38,7 +38,9 @@ Item {
     // Opt-in left-edge drawer; ordinary menus retain their funnel and motion.
     property bool edgeAttached: false
     readonly property bool attachedLeft: edgeAttached && connected && edge === "left"
-    readonly property real footRadius: Math.min(28, bodyY, height - bodyBottom)
+    property bool bottomLeftAttached: false
+    readonly property bool attachedCorner: attachedLeft && bottomLeftAttached
+    readonly property real footRadius: Math.max(0, Math.min(28, bodyY, attachedCorner ? width - bodyRight : height - bodyBottom))
     property real edgeProgress: opened ? 1 : 0
     Behavior on edgeProgress {
         enabled: popover.attachedLeft && !popover.instant && Style.Theme.duration(popover, 1) > 0
@@ -52,13 +54,13 @@ Item {
     readonly property real safeLeft: panelBounds.x + 12
     readonly property real safeRight: panelBounds.x + panelBounds.width - 12
     readonly property real safeTop: panelBounds.y + (attachedLeft ? 28 : 12)
-    readonly property real safeBottom: panelBounds.y + panelBounds.height - (attachedLeft ? 28 : 12)
+    readonly property real safeBottom: panelBounds.y + panelBounds.height - (attachedCorner ? 0 : attachedLeft ? 28 : 12)
     readonly property bool rendering: opened || surface.opacity > 0 || (attachedLeft && edgeProgress > 0)
     signal hoverChanged(bool inside)
     signal cardClicked()
     readonly property real bodyWidth: Math.max(0, Math.min(preferredBodyWidth, connected && vertical && !attachedLeft
         ? (edge === "left" ? width - triggerRect.x - triggerRect.width - 45 : triggerRect.x - 45)
-        : panelBounds.width - 24, panelBounds.width - 24))
+        : panelBounds.width - (attachedCorner ? 28 : 24), panelBounds.width - (attachedCorner ? 28 : 24)))
     function clamp(value, low, high) { return Math.max(low, Math.min(Math.max(low, high), value)); }
     readonly property real bodyX: attachedLeft ? 0 : !connected || !vertical
         ? (alignToTrigger && connected ? clamp(triggerRect.x + triggerRect.width / 2 - bodyWidth / 2, safeLeft, safeRight - bodyWidth) : alignment === "left" ? safeLeft : alignment === "right" ? safeRight - bodyWidth : panelBounds.x + (panelBounds.width - bodyWidth) / 2)
@@ -67,7 +69,7 @@ Item {
     readonly property real availableHeight: !connected ? Math.max(0, Math.min(panelBounds.height - 64, safeBottom - bodyY)) : vertical ? Math.max(0, safeBottom - safeTop)
         : edge === "bottom" ? triggerRect.y - 33 - safeTop - 4 : safeBottom - triggerRect.y - triggerRect.height - 33 - 4
     readonly property real bodyHeight: Math.max(0, Math.min(availableHeight, contents.implicitHeight + 36))
-    readonly property real bodyY: !connected ? Math.max(safeTop + 36, triggerRect.y + triggerRect.height + 12)
+    readonly property real bodyY: attachedCorner ? safeBottom - bodyHeight : !connected ? Math.max(safeTop + 36, triggerRect.y + triggerRect.height + 12)
         : edge === "top" ? triggerRect.y + triggerRect.height + 33
         : edge === "bottom" ? triggerRect.y - 33 - bodyHeight
         : clamp(triggerRect.y + triggerRect.height / 2 - bodyHeight / 2, safeTop, safeBottom - bodyHeight)
@@ -94,6 +96,8 @@ Item {
             return true;
         if (attachedLeft && point.x >= 0 && point.x <= footRadius
             && point.y >= bodyY - footRadius && point.y <= bodyBottom + footRadius) return true;
+        if (attachedCorner && point.x >= bodyRight && point.x <= bodyRight + footRadius
+            && point.y >= bodyBottom - footRadius && point.y <= bodyBottom) return true;
         if (!connected) return false;
         // Keep a forgiving bridge between the trigger and the inward card.
         if (vertical) {
@@ -117,10 +121,11 @@ Item {
         visible: popover.rendering
         transform: [Scale {
             origin.x: 0
-            origin.y: popover.bodyY + popover.bodyHeight / 2
+            origin.y: popover.attachedCorner ? popover.bodyBottom : popover.bodyY + popover.bodyHeight / 2
             xScale: popover.attachedLeft ? Math.max(0, popover.edgeProgress) : 1
             // A small squash/stretch follows the same continuous curve on reversal.
-            yScale: popover.attachedLeft ? 1 + 0.035 * Math.sin(Math.PI * popover.edgeProgress) : 1
+            yScale: popover.attachedCorner ? Math.max(0, popover.edgeProgress) * (1 + 0.06 * Math.sin(Math.PI * popover.edgeProgress))
+                : popover.attachedLeft ? 1 + 0.035 * Math.sin(Math.PI * popover.edgeProgress) : 1
         }, Translate {
             id: arrival
             x: popover.opened || popover.attachedLeft ? 0 : popover.edge === "left" ? -12 : popover.edge === "right" ? 12 : 0
@@ -208,15 +213,18 @@ Item {
                     GradientStop { position: 0; color: glass.topColor }
                     GradientStop { position: 1; color: glass.bottomColor }
                 }
-                // Concave feet blend the card into the screen edge at both ends.
+                // Corner drawers join the left edge above and the bottom edge at right.
                 startX: 0; startY: popover.bodyY - popover.footRadius
                 PathQuad { controlX: 0; controlY: popover.bodyY; x: popover.footRadius; y: popover.bodyY }
                 PathLine { x: popover.bodyRight - 24; y: popover.bodyY }
                 PathQuad { controlX: popover.bodyRight; controlY: popover.bodyY; x: popover.bodyRight; y: popover.bodyY + 24 }
-                PathLine { x: popover.bodyRight; y: popover.bodyBottom - 24 }
-                PathQuad { controlX: popover.bodyRight; controlY: popover.bodyBottom; x: popover.bodyRight - 24; y: popover.bodyBottom }
-                PathLine { x: popover.footRadius; y: popover.bodyBottom }
-                PathQuad { controlX: 0; controlY: popover.bodyBottom; x: 0; y: popover.bodyBottom + popover.footRadius }
+                PathLine { x: popover.bodyRight; y: popover.bodyBottom - (popover.attachedCorner ? popover.footRadius : 24) }
+                PathQuad {
+                    controlX: popover.bodyRight; controlY: popover.bodyBottom
+                    x: popover.bodyRight + (popover.attachedCorner ? popover.footRadius : -24); y: popover.bodyBottom
+                }
+                PathLine { x: popover.attachedCorner ? 0 : popover.footRadius; y: popover.bodyBottom }
+                PathQuad { controlX: 0; controlY: popover.bodyBottom; x: 0; y: popover.bodyBottom + (popover.attachedCorner ? 0 : popover.footRadius) }
                 PathLine { x: 0; y: popover.bodyY - popover.footRadius }
             }
         }
