@@ -342,6 +342,8 @@ Item {
             let result = [];
             for (let i = 1; i < ids.length; ++i) {
                 let first = ids[i - 1], second = ids[i];
+                if (bar.side(first) === bar.side(second) && bar.pillName(first)
+                    && bar.pillName(first) === bar.pillName(second)) continue;
                 let a = bar.moduleItems[first], b = bar.moduleItems[second];
                 let start = bar.vertical ? a.y + a.height : a.x + a.width;
                 let end = bar.vertical ? b.y : b.x;
@@ -374,61 +376,47 @@ Item {
             function point(along, cross) {
                 return bar.vertical ? {x:cross, y:along} : {x:along, y:cross};
             }
-            function diamond(x, y, r) {
-                ctx.moveTo(x, y - r); ctx.lineTo(x + r, y);
-                ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath();
-            }
+            // Small cordwork studies: awaji-like interlacing, ume blossom,
+            // and butterfly loops, each in single and paired-strand forms.
             function knotPath(variant, size) {
                 ctx.beginPath();
-                if (variant === 0 || variant === 1) {
-                    diamond(0, 0, size);
-                    if (variant === 1) diamond(0, 0, size * 0.48);
-                } else if (variant === 2) {
-                    for (let i = 0; i <= 64; ++i) {
-                        let angle = i / 64 * Math.PI * 2;
-                        let x = size * 1.3 * Math.sin(angle), y = size * 0.8 * Math.sin(2 * angle);
+                function move(x, y) { ctx.moveTo(x * size, y * size); }
+                function curve(x0, y0, x1, y1, x2, y2, x3, y3) {
+                    // Sample explicitly so closed returning loops survive all
+                    // Canvas backends at this small scale.
+                    for (let i = 1; i <= 20; ++i) {
+                        let t = i / 20, u = 1 - t;
+                        ctx.lineTo((u*u*u*x0 + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*x3) * size,
+                                   (u*u*u*y0 + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*y3) * size);
+                    }
+                }
+                let motif = variant % 3;
+                if (motif === 0) {
+                    move(-1.3, 0);
+                    curve(-1.3,0, -0.95,0, -1.1,-1.1, -0.45,-0.95);
+                    curve(-0.45,-0.95, 0.2,-0.8, 0.65,0.55, 0,0.9);
+                    curve(0,0.9, -0.65,0.55, -0.2,-0.8, 0.45,-0.95);
+                    curve(0.45,-0.95, 1.1,-1.1, 0.95,0, 1.3,0);
+                    move(-0.85, 0.15);
+                    curve(-0.85,0.15, -0.4,0.75, 0.4,0.75, 0.85,0.15);
+                } else if (motif === 1) {
+                    // Five returning loops form an open plum-blossom knot.
+                    for (let i = 0; i <= 160; ++i) {
+                        let angle = i / 160 * Math.PI * 2;
+                        let radius = size * Math.cos(5 * angle);
+                        let x = radius * Math.sin(angle), y = -radius * Math.cos(angle);
                         if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
                     }
-                } else if (variant === 3 || variant === 4 || variant === 5) {
-                    let petals = variant === 3 ? 3 : variant === 4 ? 4 : 5;
-                    for (let i = 0; i <= 80; ++i) {
-                        let angle = i / 80 * Math.PI * 2;
-                        let radius = size * (0.28 + 0.85 * Math.abs(Math.cos(petals * angle / 2)));
-                        let x = Math.cos(angle - Math.PI / 2) * radius;
-                        let y = Math.sin(angle - Math.PI / 2) * radius;
-                        if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-                    }
-                    ctx.closePath();
-                } else if (variant === 6) {
-                    diamond(0, -size * 0.55, size * 0.65);
-                    diamond(0, size * 0.55, size * 0.65);
-                } else if (variant === 7) {
-                    ctx.arc(0, 0, size, 0, Math.PI * 2);
-                    ctx.moveTo(-size * 0.7, 0); ctx.lineTo(size * 0.7, 0);
-                    ctx.moveTo(0, -size * 0.7); ctx.lineTo(0, size * 0.7);
-                } else if (variant === 8) {
-                    ctx.rect(-size * 0.75, -size * 0.75, size * 1.5, size * 1.5);
-                    diamond(0, 0, size * 1.2);
-                } else if (variant === 9) {
-                    // Four returning loops suggest a woven cord crossing.
-                    for (let i = 0; i <= 80; ++i) {
-                        let angle = i / 80 * Math.PI * 2;
-                        let radius = size * 1.2 * Math.sin(2 * angle);
-                        let x = radius * Math.cos(angle), y = radius * Math.sin(angle);
-                        if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-                    }
-                } else if (variant === 10) {
-                    diamond(-size * 0.55, 0, size * 0.65);
-                    diamond(size * 0.55, 0, size * 0.65);
+                    move(-1.3, 0); curve(-1.3,0, -0.75,0, -0.45,0.2, 0,0);
+                    move(0, 0); curve(0,0, 0.45,-0.2, 0.75,0, 1.3,0);
                 } else {
-                    // A small hexagonal seal with a central crossing.
-                    for (let i = 0; i <= 6; ++i) {
-                        let angle = i * Math.PI / 3;
-                        if (i) ctx.lineTo(Math.cos(angle) * size, Math.sin(angle) * size);
-                        else ctx.moveTo(size, 0);
-                    }
-                    ctx.moveTo(-size * 0.5, -size * 0.5); ctx.lineTo(size * 0.5, size * 0.5);
-                    ctx.moveTo(size * 0.5, -size * 0.5); ctx.lineTo(-size * 0.5, size * 0.5);
+                    move(0, 0);
+                    curve(0,0, -1.5,-1.5, -1.6,0.45, 0,0);
+                    curve(0,0, 1.6,0.45, 1.5,-1.5, 0,0);
+                    move(-0.1, 0);
+                    curve(-0.1,0, -0.2,0.5, -0.55,0.65, -0.85,0.9);
+                    move(0.1, 0);
+                    curve(0.1,0, 0.2,0.5, 0.55,0.65, 0.85,0.9);
                 }
             }
             for (let segmentIndex = 0; segmentIndex < segments.length; ++segmentIndex) {
@@ -436,9 +424,9 @@ Item {
                 let a = point(segment.start, segment.cross), b = point(segment.end, segment.cross);
                 ctx.lineCap = "round"; ctx.lineJoin = "round";
                 ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-                ctx.strokeStyle = Colors.alpha(segment.edge, 0.85); ctx.lineWidth = 4;
+                ctx.strokeStyle = Colors.alpha(segment.edge, 0.85); ctx.lineWidth = 3.6;
                 ctx.stroke();
-                ctx.strokeStyle = segment.ink; ctx.lineWidth = 2;
+                ctx.strokeStyle = segment.ink; ctx.lineWidth = 1.8;
                 ctx.stroke();
                 let length = segment.end - segment.start;
                 // One complete knot per icon gap, and a knot every ~38 px on open cord.
@@ -446,7 +434,7 @@ Item {
                 for (let knotIndex = 0; knotIndex < count; ++knotIndex) {
                     let p = point(segment.start + length * (knotIndex + 0.5) / count, segment.cross);
                     let size = Math.min(4.8, length / 3.6);
-                    let variant = (segmentIndex * 5 + knotIndex) % 12;
+                    let variant = (segmentIndex + knotIndex) % 6;
                     let glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size * 2);
                     glow.addColorStop(0, Colors.alpha(segment.ink, 0.32));
                     glow.addColorStop(1, Colors.alpha(segment.ink, 0));
@@ -454,12 +442,21 @@ Item {
                     ctx.fillRect(p.x - size * 2, p.y - size * 2, size * 4, size * 4);
                     ctx.save(); ctx.translate(p.x, p.y);
                     if (bar.vertical) ctx.rotate(Math.PI / 2);
+                    // A narrow outline separates overlapping strands, while
+                    // paired strands evoke the bundled cords of mizuhiki.
                     knotPath(variant, size);
-                    ctx.strokeStyle = segment.edge; ctx.lineWidth = 3.8; ctx.stroke();
-                    ctx.strokeStyle = segment.ink; ctx.lineWidth = 1.8; ctx.stroke();
-                    if (variant === 0) { ctx.fillStyle = segment.ink; ctx.fill(); }
-                    ctx.beginPath(); ctx.arc(0, 0, 1.2, 0, Math.PI * 2);
-                    ctx.fillStyle = segment.ink; ctx.fill();
+                    ctx.strokeStyle = segment.edge; ctx.lineWidth = 3.4; ctx.stroke();
+                    ctx.strokeStyle = segment.ink; ctx.lineWidth = 1.35; ctx.stroke();
+                    if (variant >= 3) {
+                        knotPath(variant, size * 0.72);
+                        ctx.strokeStyle = segment.edge; ctx.lineWidth = 2.6; ctx.stroke();
+                        ctx.strokeStyle = segment.ink; ctx.lineWidth = 0.85; ctx.stroke();
+                    }
+                    // One strand bridges the center over the returning loops.
+                    ctx.beginPath();
+                    ctx.moveTo(-size * 0.25, size * 0.22); ctx.lineTo(size * 0.25, -size * 0.22);
+                    ctx.strokeStyle = segment.edge; ctx.lineWidth = 3.1; ctx.stroke();
+                    ctx.strokeStyle = segment.ink; ctx.lineWidth = 1.2; ctx.stroke();
                     ctx.restore();
                 }
             }
