@@ -90,6 +90,7 @@ hyprlock
 loupe
 papers
 mpv
+mpv-mpris
 file-roller
 rsync
 htop

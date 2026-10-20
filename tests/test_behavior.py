@@ -117,14 +117,18 @@ assert(#actions == 3)
         result = subprocess.run(['lua', '-'], input=harness, text=True, capture_output=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_floating_windows_fill_monitor_work_area(self):
+    def test_floating_windows_pad_monitor_work_area(self):
         data = self.sample()
         data['workspaces'][0]['floating'] = True
         harness = r'''local callbacks, actions = {}, {}
+local gaps = 10
 hl = {
     config = function() end, workspace_rule = function() end, window_rule = function() end,
     on = function(name, fn) callbacks[name] = fn end,
-    get_config = function(key) assert(key == "general.border_size"); return 2 end,
+    get_config = function(key)
+        if key == "general.border_size" then return 2 end
+        assert(key == "general.gaps_out"); return gaps
+    end,
     dsp = {window = {
         float = function(a) a.kind = "float"; return a end,
         pseudo = function(a) a.kind = "pseudo"; return a end,
@@ -146,9 +150,9 @@ hl.get_windows = function() return {w} end
 callbacks["window.open"](w)
 assert(#actions == 2)
 assert(actions[1].kind == "resize" and actions[1].window == w)
-assert(actions[1].x == 1846 and actions[1].y == 966 and not actions[1].relative)
+assert(actions[1].x == 1826 and actions[1].y == 946 and not actions[1].relative)
 assert(actions[2].kind == "move" and actions[2].window == w)
-assert(actions[2].x == -1878 and actions[2].y == 152 and not actions[2].relative)
+assert(actions[2].x == -1868 and actions[2].y == 162 and not actions[2].relative)
 -- Rotation, fractional scale and a different panel edge on another output.
 actions = {}
 m.width, m.height, m.scale, m.transform, m.x, m.y = 1920, 1080, 1.25, 1, 1920, -100
@@ -156,8 +160,35 @@ m.reserved = {left=0, right=32, top=0, bottom=0}
 w.floating = false
 callbacks["window.move_to_workspace"](w)
 assert(#actions == 3 and actions[1].kind == "float")
-assert(actions[2].x == 828 and actions[2].y == 1532)
-assert(actions[3].x == 1922 and actions[3].y == -98)
+assert(actions[2].x == 808 and actions[2].y == 1512)
+assert(actions[3].x == 1932 and actions[3].y == -88)
+-- Numeric and asymmetric outer gaps are respected beyond reservations.
+actions = {}
+gaps = 20
+callbacks["window.open"](w)
+assert(actions[1].x == 788 and actions[1].y == 1492)
+assert(actions[2].x == 1942 and actions[2].y == -78)
+actions = {}
+gaps = {left=15, right=25, top=30, bottom=0}
+callbacks["window.open"](w)
+assert(actions[1].x == 788 and actions[1].y == 1502)
+assert(actions[2].x == 1937 and actions[2].y == -68)
+-- Settings can reduce gaps below 10 or remove them entirely in every mode.
+for _, gap in ipairs({5, 0}) do
+    actions = {}
+    gaps = gap
+    callbacks["window.open"](w)
+    assert(actions[1].x == 828 - 2 * gap and actions[1].y == 1532 - 2 * gap)
+    assert(actions[2].x == 1922 + gap and actions[2].y == -98 + gap)
+end
+gaps = 10
+-- Do not dispatch invalid sizes on an unusably small work area.
+actions = {}
+local oldWidth = m.width
+m.width = 20
+callbacks["window.open"](w)
+assert(#actions == 0)
+m.width = oldWidth
 -- Reload fits existing windows; fullscreen, closed and other workspaces are untouched.
 actions = {}
 callbacks["config.reloaded"]()

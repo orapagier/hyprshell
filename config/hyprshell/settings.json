@@ -394,10 +394,6 @@
   "hyprland": {
     "touchpadNaturalScroll": true,
     "tapToClick": true,
-    "gapsOutTop": 5,
-    "gapsOutBottom": 5,
-    "gapsOutLeft": 5,
-    "gapsOutRight": 5,
     "activeOpacity": 1,
     "blurSize": 1,
     "blur": true,
@@ -407,7 +403,8 @@
     "blurIgnoreOpacity": true,
     "blurOptimizations": true,
     "blurPopups": true,
-    "blurInputMethods": true
+    "blurInputMethods": true,
+    "gapsOut": 10
   },
   "locking": {
     "enabled": true,

@@ -37,7 +37,11 @@ personal configuration; updates preserve existing preferences. See
 | Maintenance | CPU microcode, Chrony unless another time service is configured, firewalld unless another firewall service is configured, weekly fstrim |
 | Recovery | Config backups, rsync, Déjà Dup, Restic, rclone and yt-dlp; backup destinations/schedules remain user choices |
 
-Audio/video defaults use `mpv.desktop` on both distributions. The rest of the
+Audio/video defaults use `mpv.desktop` on both distributions. Full setup includes
+`mpv-mpris` so mpv exposes track information and playback controls to the desktop.
+Existing installations can add it with `sudo dnf install mpv-mpris` on Fedora
+or during a full `sudo pacman -Syu mpv-mpris` upgrade on Arch; reopen mpv afterward.
+The rest of the
 saved application IDs are resolved against installed desktop entries. Brave uses
 `com.brave.Browser.desktop` on Fedora and Arch; full setup installs it from Flathub.
 Clipboard history tooling is installed, but capture stays disabled until enabled

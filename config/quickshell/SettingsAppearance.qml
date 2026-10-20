@@ -226,7 +226,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Window shape & spacing"
-        subtitle: "Adjust each screen edge separately. Unset edges follow All screen edges (10 px unless overridden). The bar reserves its own space."
+        subtitle: "Edge spacing applies to every workspace: tiled, pseudotiled and auto-floating. Unset edges follow All screen edges (10 px by default). Panels reserve their own space; Between windows controls tiled layouts."
         GridLayout {
             Layout.fillWidth: true
             columns: root.width >= 600 ? 2 : 1
