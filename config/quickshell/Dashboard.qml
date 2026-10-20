@@ -9,11 +9,16 @@ PanelWindow {
     required property var services
     property url wallpaperSource: ""
     property real translucency: 0.06
+    property bool rightCorner: false
+    property Component contentPage: dashboardPage
+    property real preferredBodyWidth: rightCorner ? 390 : 620
+    function close() { menuState.close(); }
     readonly property bool opened: menuState.section.length > 0
     readonly property bool pointerInside: popover.pointerInside
+    readonly property rect bodyRect: Qt.rect(popover.bodyX, popover.bodyY, popover.bodyWidth, popover.bodyHeight)
     readonly property rect inputRect: Qt.rect(0, 0, width, opened ? height : 0)
     readonly property int revealSize: 24
-    readonly property rect revealRect: Qt.rect(0, Math.max(0, height - revealSize), Math.min(revealSize, width), Math.min(revealSize, height))
+    readonly property rect revealRect: Qt.rect(rightCorner ? Math.max(0, width - revealSize) : 0, Math.max(0, height - revealSize), Math.min(revealSize, width), Math.min(revealSize, height))
     property var resourceData: ({})
     function enterCorner(output) {
         if (output) screen = output;
@@ -41,7 +46,7 @@ PanelWindow {
             screen: modelData
             // Never unmap the trigger during hover: that can leave a stale enter.
             visible: true
-            anchors { left: true; bottom: true }
+            anchors { left: !dashboard.rightCorner; right: dashboard.rightCorner; bottom: true }
             implicitWidth: Math.min(dashboard.revealSize, modelData.width)
             implicitHeight: Math.min(dashboard.revealSize, modelData.height)
             margins { left: 0; bottom: 0 }
@@ -50,7 +55,7 @@ PanelWindow {
             exclusionMode: ExclusionMode.Ignore
             exclusiveZone: -1
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.namespace: "hyprshell-dashboard-reveal"
+            WlrLayershell.namespace: dashboard.rightCorner ? "hyprshell-activity-reveal" : "hyprshell-dashboard-reveal"
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
             HoverHandler {
                 onHoveredChanged: {
@@ -91,12 +96,12 @@ PanelWindow {
     exclusiveZone: -1
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "hyprshell-dashboard"
+    WlrLayershell.namespace: dashboard.rightCorner ? "hyprshell-activity" : "hyprshell-dashboard"
     WlrLayershell.keyboardFocus: opened ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     Process {
         id: sampler
         // Static identity is read once per shell load, never on hover or a timer.
-        running: true
+        running: !dashboard.rightCorner
         command: ["python3", decodeURIComponent(Qt.resolvedUrl("helpers/dashboard-status.py").toString().replace(/^file:\/\//, ""))]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -124,11 +129,12 @@ PanelWindow {
             id: popover
             objectName: "dashboardPopover"
             anchors.fill: parent
-            edge: "left"
+            edge: dashboard.rightCorner ? "right" : "left"
             edgeAttached: true
-            bottomLeftAttached: true
+            bottomLeftAttached: !dashboard.rightCorner
+            bottomRightAttached: dashboard.rightCorner
             triggerRect: dashboard.revealRect
-            preferredBodyWidth: 620
+            preferredBodyWidth: dashboard.preferredBodyWidth
             maximumBodyHeight: 700
             opened: dashboard.opened
             wallpaperSource: dashboard.wallpaperSource
@@ -136,7 +142,7 @@ PanelWindow {
             accent: pageItem ? pageItem.accentColor : "#b4befe"
             showHeader: false
             persistentSelected: true
-            persistentPage: dashboardPage
+            persistentPage: dashboard.contentPage
             onHoverChanged: inside => {
                 if (inside) entryGrace.stop();
                 menuState.retain(inside || entryGrace.running);

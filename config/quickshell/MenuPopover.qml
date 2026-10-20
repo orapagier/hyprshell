@@ -38,15 +38,18 @@ Item {
     property bool cardClickable: false
     property bool connected: true
     property bool preserveCornerPosition: true
-    // Opt-in left-edge drawer; ordinary menus retain their funnel and motion.
+    // Opt-in edge drawers; ordinary menus retain their funnel and motion.
     property bool edgeAttached: false
     readonly property bool attachedLeft: edgeAttached && connected && edge === "left"
+    readonly property bool attachedRight: edgeAttached && connected && edge === "right"
+    readonly property bool attachedEdge: attachedLeft || attachedRight
+    property bool bottomRightAttached: false
     property bool bottomLeftAttached: false
-    readonly property bool attachedCorner: attachedLeft && bottomLeftAttached
-    readonly property real footRadius: Math.max(0, Math.min(28, bodyY, attachedCorner ? width - bodyRight : height - bodyBottom))
+    readonly property bool attachedCorner: (attachedLeft && bottomLeftAttached) || (attachedRight && bottomRightAttached)
+    readonly property real footRadius: Math.max(0, Math.min(28, bodyY, attachedCorner ? (attachedRight ? bodyX : width - bodyRight) : height - bodyBottom))
     property real edgeProgress: opened ? 1 : 0
     Behavior on edgeProgress {
-        enabled: popover.attachedLeft && !popover.instant && Style.Theme.duration(popover, 1) > 0
+        enabled: popover.attachedEdge && !popover.instant && Style.Theme.duration(popover, 1) > 0
         SpringAnimation { spring: 5; damping: 0.32; epsilon: 0.001 }
     }
     // Different spring rates create a visible squash and rebound, while both
@@ -56,23 +59,23 @@ Item {
         enabled: popover.attachedCorner && popover.motionEnabled
         SpringAnimation { spring: 4; damping: 0.30; epsilon: 0.001 }
     }
-    readonly property bool fluidSurface: connected && !attachedLeft
+    readonly property bool fluidSurface: connected && !attachedEdge
     readonly property bool motionEnabled: !instant && Style.Theme.duration(popover, 1) > 0
     readonly property real connectorGap: 32
     readonly property alias fluidMotion: fluid
     property rect panelBounds: Qt.rect(0, 0, width, height)
     readonly property real safeLeft: panelBounds.x + 12
     readonly property real safeRight: panelBounds.x + panelBounds.width - 12
-    readonly property real safeTop: panelBounds.y + (attachedLeft ? 28 : 12)
-    readonly property real safeBottom: panelBounds.y + panelBounds.height - (attachedCorner ? 0 : attachedLeft ? 28 : 12)
-    readonly property bool rendering: opened || surface.opacity > 0 || (attachedLeft && (Math.abs(edgeProgress) > 0.001 || (attachedCorner && Math.abs(cornerProgress) > 0.001)))
+    readonly property real safeTop: panelBounds.y + (attachedEdge ? 28 : 12)
+    readonly property real safeBottom: panelBounds.y + panelBounds.height - (attachedCorner ? 0 : attachedEdge ? 28 : 12)
+    readonly property bool rendering: opened || surface.opacity > 0 || (attachedEdge && (Math.abs(edgeProgress) > 0.001 || (attachedCorner && Math.abs(cornerProgress) > 0.001)))
     signal hoverChanged(bool inside)
     signal cardClicked()
-    readonly property real bodyWidth: Math.max(0, Math.min(preferredBodyWidth, connected && vertical && !attachedLeft
+    readonly property real bodyWidth: Math.max(0, Math.min(preferredBodyWidth, connected && vertical && !attachedEdge
         ? (edge === "left" ? width - triggerRect.x - triggerRect.width - connectorGap - 12 : triggerRect.x - connectorGap - 12)
         : panelBounds.width - (attachedCorner ? 28 : 24), panelBounds.width - (attachedCorner ? 28 : 24)))
     function clamp(value, low, high) { return Math.max(low, Math.min(Math.max(low, high), value)); }
-    readonly property real bodyX: attachedLeft ? 0 : !connected || !vertical
+    readonly property real bodyX: attachedLeft ? 0 : attachedRight ? width - bodyWidth : !connected || !vertical
         ? (alignToTrigger && connected ? clamp(triggerRect.x + triggerRect.width / 2 - bodyWidth / 2, safeLeft, safeRight - bodyWidth) : alignment === "left" ? safeLeft : alignment === "right" ? safeRight - bodyWidth : panelBounds.x + (panelBounds.width - bodyWidth) / 2)
         : edge === "left" ? clamp(triggerRect.x + triggerRect.width + connectorGap, safeLeft, safeRight - bodyWidth)
         : clamp(triggerRect.x - connectorGap - bodyWidth, safeLeft, safeRight - bodyWidth)
@@ -147,9 +150,9 @@ Item {
         }
         if (point.y >= bodyY && point.y <= bodyBottom && point.x >= bodyX && point.x <= bodyRight)
             return true;
-        if (attachedLeft && point.x >= 0 && point.x <= footRadius
+        if (attachedEdge && (attachedRight ? point.x >= width - footRadius && point.x <= width : point.x >= 0 && point.x <= footRadius)
             && point.y >= bodyY - footRadius && point.y <= bodyBottom + footRadius) return true;
-        if (attachedCorner && point.x >= bodyRight && point.x <= bodyRight + footRadius
+        if (attachedCorner && (attachedRight ? point.x >= bodyX - footRadius && point.x <= bodyX : point.x >= bodyRight && point.x <= bodyRight + footRadius)
             && point.y >= bodyBottom - footRadius && point.y <= bodyBottom) return true;
         if (!connected) return false;
         // Keep a forgiving bridge between the trigger and the inward card.
@@ -173,16 +176,16 @@ Item {
         opacity: 0
         visible: popover.rendering
         transform: [Scale {
-            origin.x: 0
+            origin.x: popover.attachedRight ? popover.width : 0
             origin.y: popover.attachedCorner ? popover.bodyBottom : popover.bodyY + popover.bodyHeight / 2
-            xScale: popover.attachedLeft ? Math.max(0, popover.edgeProgress) : 1
+            xScale: popover.attachedEdge ? Math.max(0, popover.edgeProgress) : 1
             // Each spring keeps its velocity when the drawer reverses direction.
             yScale: popover.attachedCorner ? Math.max(0, popover.cornerProgress)
-                : popover.attachedLeft ? 1 + 0.035 * Math.sin(Math.PI * popover.edgeProgress) : 1
+                : popover.attachedEdge ? 1 + 0.035 * Math.sin(Math.PI * popover.edgeProgress) : 1
         }, Translate {
             id: arrival
             x: popover.opened || popover.connected ? 0 : popover.edge === "left" ? -12 : popover.edge === "right" ? 12 : 0
-            y: popover.opened || (popover.connected && !popover.attachedLeft) ? 0 : popover.edge === "bottom" ? 12 : popover.vertical ? 0 : -12
+            y: popover.opened || (popover.connected && !popover.attachedEdge) ? 0 : popover.edge === "bottom" ? 12 : popover.vertical ? 0 : -12
             Behavior on x { NumberAnimation { duration: popover.instant ? 0 : Style.Theme.duration(popover, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
             Behavior on y { NumberAnimation { duration: popover.instant ? 0 : Style.Theme.duration(popover, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
         }]
@@ -192,12 +195,12 @@ Item {
         }
         transitions: Transition {
             ParallelAnimation {
-                NumberAnimation { property: "opacity"; duration: popover.instant ? 0 : Style.Theme.duration(popover, popover.attachedLeft ? (popover.opened ? 160 : 380) : Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve }
+                NumberAnimation { property: "opacity"; duration: popover.instant ? 0 : Style.Theme.duration(popover, popover.attachedEdge ? (popover.opened ? 160 : 380) : Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve }
             }
         }
         Rectangle {
             id: cardShadow
-            visible: !popover.attachedLeft
+            visible: !popover.attachedEdge
             x: popover.bodyX + 3; y: popover.bodyY + 7
             width: popover.bodyWidth; height: popover.bodyHeight
             radius: popover.fluidSurface ? 24 : 20; color: "#28000000"
@@ -214,7 +217,7 @@ Item {
             width: popover.edge === "right" ? popover.triggerRect.x : popover.width - x
             height: popover.edge === "bottom" ? popover.triggerRect.y : popover.height - y
             Shape {
-                visible: popover.connected && !popover.attachedLeft
+                visible: popover.connected && !popover.attachedEdge
                 objectName: "menuFunnel"
                 anchors.fill: parent
                 preferredRendererType: Shape.GeometryRenderer
@@ -238,7 +241,10 @@ Item {
         }
         Shape {
             objectName: "edgeAttachedSurface"
-            visible: popover.attachedLeft
+            transform: Scale { origin.x: popover.width / 2; xScale: popover.attachedRight ? -1 : 1 }
+            id: edgeSurface
+            readonly property real outerX: popover.attachedRight ? popover.bodyWidth : popover.bodyRight
+            visible: popover.attachedEdge
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
@@ -248,15 +254,15 @@ Item {
                     GradientStop { position: 0; color: glass.topColor }
                     GradientStop { position: 1; color: glass.bottomColor }
                 }
-                // Corner drawers join the left edge above and the bottom edge at right.
+                // Draw the left surface, then mirror it for the right corner.
                 startX: 0; startY: popover.bodyY - popover.footRadius
                 PathQuad { controlX: 0; controlY: popover.bodyY; x: popover.footRadius; y: popover.bodyY }
-                PathLine { x: popover.bodyRight - 24; y: popover.bodyY }
-                PathQuad { controlX: popover.bodyRight; controlY: popover.bodyY; x: popover.bodyRight; y: popover.bodyY + 24 }
-                PathLine { x: popover.bodyRight; y: popover.bodyBottom - (popover.attachedCorner ? popover.footRadius : 24) }
+                PathLine { x: edgeSurface.outerX - 24; y: popover.bodyY }
+                PathQuad { controlX: edgeSurface.outerX; controlY: popover.bodyY; x: edgeSurface.outerX; y: popover.bodyY + 24 }
+                PathLine { x: edgeSurface.outerX; y: popover.bodyBottom - (popover.attachedCorner ? popover.footRadius : 24) }
                 PathQuad {
-                    controlX: popover.bodyRight; controlY: popover.bodyBottom
-                    x: popover.bodyRight + (popover.attachedCorner ? popover.footRadius : -24); y: popover.bodyBottom
+                    controlX: edgeSurface.outerX; controlY: popover.bodyBottom
+                    x: edgeSurface.outerX + (popover.attachedCorner ? popover.footRadius : -24); y: popover.bodyBottom
                 }
                 PathLine { x: popover.attachedCorner ? 0 : popover.footRadius; y: popover.bodyBottom }
                 PathQuad { controlX: 0; controlY: popover.bodyBottom; x: 0; y: popover.bodyBottom + (popover.attachedCorner ? 0 : popover.footRadius) }

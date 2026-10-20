@@ -47,7 +47,10 @@ ShellRoot {
         services: desktopServices
         wallpaperSource: wallpapers.sources[dashboardWindow.screen?.name] || ""
         translucency: preferences.config.bar.popdownTranslucency ?? 0.06
-        onOpenedChanged: if (opened) for (let panel of panels.instances) panel.closeMenu()
+        onOpenedChanged: if (opened) {
+            activityWindow.close();
+            for (let panel of panels.instances) { panel.closeMenu(); panel.closeDockMenus(); }
+        }
         onSettingsRequested: settingsController.open()
         onLockRequested: locking.lockNow()
         onMenuRequested: name => {
@@ -55,6 +58,29 @@ ShellRoot {
             let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
             for (let other of panels.instances) other.closeMenu();
             if (panel) panel.toggleMenu(name);
+        }
+    }
+    Dashboard {
+        id: activityWindow
+        services: desktopServices
+        rightCorner: true
+        wallpaperSource: wallpapers.sources[activityWindow.screen?.name] || ""
+        translucency: preferences.config.bar.popdownTranslucency ?? 0.06
+        onOpenedChanged: if (opened) {
+            dashboardWindow.close();
+            for (let panel of panels.instances) { panel.closeMenu(); panel.closeDockMenus(); }
+        }
+        contentPage: Component {
+            ActivityContent {
+                inbox: notificationInbox
+                store: preferences
+                active: activityWindow.opened
+                wallpaperSource: activityWindow.wallpaperSource
+                screenWidth: activityWindow.width
+                screenHeight: activityWindow.height
+                wallpaperRegion: activityWindow.bodyRect
+                onDismissRequested: activityWindow.close()
+            }
         }
     }
     function toggleDashboard() {
