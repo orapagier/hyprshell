@@ -11,7 +11,7 @@ PanelWindow {
     property real translucency: 0.06
     property bool rightCorner: false
     property Component contentPage: dashboardPage
-    property real preferredBodyWidth: rightCorner ? 390 : 620
+    property real preferredBodyWidth: rightCorner ? 390 : 760
     function close() { menuState.close(); }
     readonly property bool opened: menuState.section.length > 0
     readonly property bool pointerInside: popover.pointerInside
@@ -137,6 +137,7 @@ PanelWindow {
             triggerRect: dashboard.revealRect
             preferredBodyWidth: dashboard.preferredBodyWidth
             maximumBodyHeight: 700
+            animateContentHeight: !dashboard.rightCorner
             opened: dashboard.opened
             wallpaperSource: dashboard.wallpaperSource
             translucency: dashboard.translucency

@@ -29,6 +29,12 @@ Item {
     property bool showHeader: true
     property real preferredBodyWidth: 300
     property real maximumBodyHeight: Infinity
+    property bool animateContentHeight: false
+    property real requestedBodyHeight: contents.implicitHeight + 36
+    Behavior on requestedBodyHeight {
+        enabled: popover.animateContentHeight && popover.opened && popover.motionEnabled
+        NumberAnimation { duration: Style.Theme.duration(popover, 180); easing.type: Easing.OutCubic }
+    }
     property Component page: null
     property Component persistentPage: null
     property bool persistentSelected: false
@@ -81,7 +87,7 @@ Item {
         : clamp(triggerRect.x - connectorGap - bodyWidth, safeLeft, safeRight - bodyWidth)
     readonly property real availableHeight: !connected ? Math.max(0, Math.min(panelBounds.height - 64, safeBottom - bodyY)) : vertical ? Math.max(0, safeBottom - safeTop)
         : edge === "bottom" ? triggerRect.y - connectorGap - safeTop - 4 : safeBottom - triggerRect.y - triggerRect.height - connectorGap - 4
-    readonly property real bodyHeight: Math.max(0, Math.min(availableHeight, maximumBodyHeight, contents.implicitHeight + 36))
+    readonly property real bodyHeight: Math.max(0, Math.min(availableHeight, maximumBodyHeight, requestedBodyHeight))
     readonly property real bodyY: attachedCorner ? safeBottom - bodyHeight : !connected ? Math.max(safeTop + 36, triggerRect.y + triggerRect.height + 12)
         : edge === "top" ? clamp(triggerRect.y + triggerRect.height + connectorGap, safeTop, safeBottom - bodyHeight)
         : edge === "bottom" ? clamp(triggerRect.y - connectorGap - bodyHeight, safeTop, safeBottom - bodyHeight)

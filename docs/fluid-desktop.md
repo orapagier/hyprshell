@@ -30,9 +30,13 @@ Weather uses a short-lived Rust helper, with system curl for HTTPS, and displays
 cached data immediately. Opening the dashboard refreshes data only when the cache
 is older than 15 minutes. There is no weather timer or background service. City
 search defaults to the Philippines and includes province/region details; manual
-coordinates cover places missing from GeoNames. Weather → City saves the selected
+coordinates cover places missing from GeoNames. Weather → Change city saves the selected
 place in `hyprshell/weather.json`, retained by updates and explicit GitHub sync.
-Cached forecasts stay local. The card shows conditions, temperature/feels-like,
+Cached forecasts stay local. The weather-first layout uses a large temperature,
+static vector condition illustration, grouped readings and aligned device details.
+The city editor replaces the forecast while editing, with keyboard focus on
+search. Content resizes smoothly, respecting Reduce desktop motion; narrow
+layouts stack and scroll. The card shows conditions, temperature/feels-like,
 humidity, wind/gusts, rainfall, today's high/low and rain chance, sunrise/sunset
 and the data timestamp. Offline failures retain the previous weather and mark it
 as cached. The layout wraps and scrolls on smaller displays. See

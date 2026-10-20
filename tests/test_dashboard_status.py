@@ -111,7 +111,7 @@ ShellRoot {
                     test.check(dashboard.mask.regions[0].intersection === Intersection.Subtract, "Corner stays on its dedicated hover surface");
                     test.check(dashboard.mask.regions[0].width === 24 && dashboard.mask.regions[0].y + dashboard.mask.regions[0].height === dashboard.height,
                         "Only the physical corner is excluded from dashboard input");
-                    test.check(popover.bodyWidth === 620 && popover.bodyHeight <= 700 && popover.bodyHeight > 0,
+                    test.check(popover.bodyWidth === 760 && popover.bodyHeight <= 700 && popover.bodyHeight > 0,
                         "Dashboard fits its compact content");
                     test.check(dashboard.inputRect.height === dashboard.height, "Full-height input while open");
                     input.mouseMove(dashboard.contentItem, 10, dashboard.height - 24);
