@@ -35,7 +35,8 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
         path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
             + body(x + width,y + corner * 0.4) + ' ' + body(x + width,y + corner));
     } else {
-        let join = Math.min(x + width, tip + flare);
+        // Reserve a rounded turn even when the foot reaches the card side.
+        let join = Math.min(x + width - corner * 0.5, tip + flare);
         path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
             + body(Math.min(join, tip + flare * 0.25),y) + ' ' + body(join,y));
         quad(x + width,y,x + width,y + corner);
@@ -54,7 +55,7 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
         path.push('C ' + body(x,y + corner * 0.4) + ' '
             + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
     } else {
-        let join = Math.max(x, tip - flare);
+        let join = Math.max(x + corner * 0.5, tip - flare);
         quad(x,y,join,y);
         path.push('C ' + body(Math.max(join, tip - flare * 0.25),y) + ' '
             + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
