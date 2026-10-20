@@ -49,6 +49,8 @@
     "groupSpacing": 18,
     "popdownTranslucency": 0.05,
     "sharedBackground": "inherit",
+    "fullBackground": "off",
+    "hyprknots": true,
     "position": "top",
     "paddingBottom": 0,
     "verticalPresentation": "edge"
