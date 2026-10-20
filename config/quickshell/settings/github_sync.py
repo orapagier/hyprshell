@@ -26,7 +26,7 @@ def git(repo, *args):
 
 
 def excluded(name):
-    return name in ('__pycache__', '.git', 'audio-spectrum', 'hyprmonitor', 'target') or any(
+    return name in ('__pycache__', '.git', 'audio-spectrum', 'hyprmonitor', 'hyprweather', 'target') or any(
         fnmatch.fnmatch(name, pattern) for pattern in ('*.pyc', '*.pyo', '*.bak*', '*.log', '.DS_Store'))
 
 
@@ -119,6 +119,13 @@ def snapshot_managed_files(repo, config, home):
         from applications import validate as validate_applications
         data = validate_applications(json.loads(applications.read_text()))
         destination = repo / 'config/hyprshell/applications.json'
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(data, indent=2) + '\n')
+    weather = config / 'hyprshell/weather.json'
+    if weather.exists():
+        from weather import validate as validate_weather
+        data = validate_weather(json.loads(weather.read_text()))
+        destination = repo / 'config/hyprshell/weather.json'
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(data, indent=2) + '\n')
     theme = config / 'hyprshell/theme.json'

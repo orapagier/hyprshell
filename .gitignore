@@ -8,3 +8,5 @@ config/quickshell/helpers/audio-spectrum
 # Only the bundled default wallpaper belongs in Git.
 assets/wallpapers/*
 !assets/wallpapers/default.jpg
+
+config/quickshell/helpers/hyprweather

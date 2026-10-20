@@ -150,3 +150,6 @@ ffmpeg-free
 libavcodec-freeworld
 
 libva-utils
+
+# Dashboard weather HTTPS transport
+curl

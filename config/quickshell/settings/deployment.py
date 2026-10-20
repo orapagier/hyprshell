@@ -15,7 +15,7 @@ import build_info
 
 PREFERENCES = {'settings.json', 'cleanup.json', 'keybindings.json', 'keybindings.lua',
                'displays.json', 'displays.lua', 'theme.json', 'applications.json',
-               'regional.json', 'behavior.json', 'behavior.lua', 'overrides.lua'}
+               'regional.json', 'weather.json', 'behavior.json', 'behavior.lua', 'overrides.lua'}
 
 
 def roots():
@@ -36,7 +36,7 @@ def protected(key):
 
 
 def ignored(path):
-    return any(p in ('__pycache__', '.git') for p in path.parts) or path.suffix in ('.pyc', '.pyo') or path.name in ('audio-spectrum', 'hyprmonitor') and 'helpers' in path.parts or ('wallpapers' in path.parts and path.name != 'default.jpg')
+    return any(p in ('__pycache__', '.git') for p in path.parts) or path.suffix in ('.pyc', '.pyo') or path.name in ('audio-spectrum', 'hyprmonitor', 'hyprweather') and 'helpers' in path.parts or ('wallpapers' in path.parts and path.name != 'default.jpg')
 
 
 def payload(repo):
@@ -115,7 +115,7 @@ def inspect(repo, locations=None, base_repo=None):
         changes.append(key)
     removed = []
     for key, record in old.items():
-        if (key not in files and not protected(key) and key not in ('config/quickshell/helpers/audio-spectrum', 'home/.local/bin/hyprmonitor')
+        if (key not in files and not protected(key) and key not in ('config/quickshell/helpers/audio-spectrum', 'config/quickshell/helpers/hyprweather', 'home/.local/bin/hyprmonitor')
                 and not (key.startswith('home/Pictures/Wallpapers/') and Path(key).name != 'default.jpg')):
             target = destination(key, locations)
             safe_target(target, locations[key.split('/')[0]])
@@ -165,7 +165,7 @@ p=root/'hyprshell/settings.json'
 value=backend.validate(json.loads(p.read_text()))
 p.write_text(json.dumps(value,indent=2)+'\n')
 (root/'hyprshell/overrides.lua').write_text(backend.render_hypr(value['hyprland'],True,value['accessibility']))
-for name in ('behavior','displays','keybindings','theme','applications','regional','cleanup'):
+for name in ('behavior','displays','keybindings','theme','applications','regional','weather','cleanup'):
     p=root/'hyprshell'/ (name+'.json')
     if not p.exists(): continue
     module=__import__(name)
@@ -244,7 +244,7 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
                 files.setdefault(key, source)
         if resolved:
             plan['removed'] = [key for key in load_manifest(locations)['files'] if key not in files and destination(key, locations).exists()
-                and key not in ('config/quickshell/helpers/audio-spectrum', 'home/.local/bin/hyprmonitor')
+                and key not in ('config/quickshell/helpers/audio-spectrum', 'config/quickshell/helpers/hyprweather', 'home/.local/bin/hyprmonitor')
                 and not (key.startswith('home/Pictures/Wallpapers/') and Path(key).name != 'default.jpg')]
         removed_before = {key: digest(destination(key, locations)) for key in plan['removed']}
         state = locations['state']
@@ -282,11 +282,22 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
                 monitor_binary = stage / 'home/.local/bin/hyprmonitor'
                 monitor_binary.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(target_dir / 'release/hyprmonitor', monitor_binary)
+            weather_manifest = repo / 'apps/hyprweather-rs/Cargo.toml'
+            weather_binary = None
+            if weather_manifest.is_file():
+                weather_target = repo / 'apps/hyprweather-rs/target'
+                subprocess.run(['cargo', 'build', '--release', '--locked', '--manifest-path', str(weather_manifest),
+                                '--target-dir', str(weather_target)], check=True, capture_output=True, text=True, timeout=600)
+                weather_binary = stage / 'config/quickshell/helpers/hyprweather'
+                weather_binary.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(weather_target / 'release/hyprweather', weather_binary)
             validate_staged(stage, native)
             staged = {key: stage / key for key in files}
             staged['config/quickshell/helpers/audio-spectrum'] = helper
             if monitor_binary:
                 staged['home/.local/bin/hyprmonitor'] = monitor_binary
+            if weather_binary:
+                staged['config/quickshell/helpers/hyprweather'] = weather_binary
             for name in PREFERENCES:
                 key = 'config/hyprshell/' + name
                 if (stage / key).is_file():

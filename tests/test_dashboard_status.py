@@ -148,10 +148,10 @@ ShellRoot {
                         previous = content.cardColor.toString();
                         if (previousAccent !== null) test.check(content.accentColor.toString() !== previousAccent, "Accent follows changed wallpaper");
                         previousAccent = content.accentColor.toString();
-                        test.check(test.find(content, 'calendarTime').color.toString() === content.textColor.toString(), "Calendar follows dashboard palette");
+                        test.check(test.find(content, 'dashboardWeather').textColor.toString() === content.textColor.toString(), "Weather follows dashboard palette");
                         for (let foreground of [content.textColor, content.secondaryColor, content.accentColor])
                             test.check(Colors.contrast(foreground, content.cardColor) >= 7, "Text/card contrast at least 7:1: " + name);
-                        test.check(Colors.contrast(Qt.color('#a6adc8'), content.cardColor) >= 4.5, "Embedded calendar captions readable: " + name);
+                        test.check(Colors.contrast(Qt.color('#a6adc8'), content.cardColor) >= 4.5, "Secondary captions readable: " + name);
                         for (let opacity of [0.06, 0.14, 0.20, 0.22]) {
                             let fill = Colors.alpha(content.accentColor, opacity);
                             let background = Colors.mix(content.cardColor, fill, fill.a);
@@ -248,7 +248,7 @@ ShellRoot {
 }
 ''')
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
-            env = dict(os.environ, XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM='offscreen',
+            env = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'), XDG_RUNTIME_DIR=str(runtime), QT_QPA_PLATFORM='offscreen',
                        QT_QPA_PLATFORMTHEME='', QT_QUICK_BACKEND='software')
             result = subprocess.run(['quickshell', '--log-rules', 'qml=true', '-p', str(entry)], env=env, capture_output=True, text=True, timeout=30)
             output = result.stdout + result.stderr

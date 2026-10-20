@@ -74,22 +74,12 @@ ColumnLayout {
                 }
             }
         }
-        Card {
+        WeatherCard {
             Layout.fillWidth: true; Layout.fillHeight: true
-            implicitHeight: calendar.implicitHeight * calendar.scale + 24
-            CalendarMenu {
-                id: calendar
-                adaptivePalette: true
-                textColor: page.textColor
-                secondaryColor: page.secondaryColor
-                accentColor: page.accentColor
-                surfaceColor: page.cardColor
-                x: 12; y: 12
-                width: Math.max(0, parent.width - 24) / scale
-                height: implicitHeight
-                scale: 0.9
-                transformOrigin: Item.TopLeft
-            }
+            active: page.active
+            textColor: page.textColor; secondaryColor: page.secondaryColor
+            accentColor: page.accentColor; cardColor: page.cardColor
+            outlineColor: page.outlineColor
         }
     }
     component Label: MenuLabel { color: page.textColor }

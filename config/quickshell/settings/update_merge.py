@@ -169,6 +169,7 @@ PREFERENCE_GROUPS = {
     'behavior': ('Window behavior', ('behavior.json', 'behavior.lua')),
     'applications': ('Default apps and startup', ('applications.json',)),
     'regional': ('Language and region', ('regional.json',)),
+    'weather': ('Dashboard weather location', ('weather.json',)),
     'cleanup': ('Cleanup schedule', ('cleanup.json',)),
 }
 OPTIONAL_CONFIGS = ('config/kitty/', 'config/mpv/')

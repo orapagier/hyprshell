@@ -138,3 +138,6 @@ intel-media-driver
 libva-utils
 
 ffmpeg
+
+# Dashboard weather HTTPS transport
+curl
