@@ -11,12 +11,14 @@ Item {
     id: popover
     property url wallpaperSource: ""
     property real translucency: 0.06
+    property bool cacheWallpaperPalette: false
     GlassSurface {
         id: glass
         wallpaperSource: popover.wallpaperSource
         screenWidth: popover.width; screenHeight: popover.height
         region: Qt.rect(popover.bodyX, popover.bodyY, popover.bodyWidth, popover.bodyHeight)
         accent: popover.accent; translucency: popover.translucency
+        cacheFullWallpaper: popover.cacheWallpaperPalette
     }
     property rect triggerRect: Qt.rect(12, 4, 32, 20)
     property string alignment: "center"

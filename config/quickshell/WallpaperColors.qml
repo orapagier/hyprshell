@@ -11,6 +11,10 @@ Item {
     property real bandHeight: 32
     property real bandWidth: screenWidth
     property real regionOffsetX: 0
+    // Optional thumbnail for card palettes. Bare panel glyphs retain the
+    // original pixel-resolution sampling and contrast-extrema behavior.
+    property int sampleWidth: 0
+    property int sampleHeight: 0
     property var pixels: []
     // Cache exact pixel rectangles, including contrast extrema. Layout and
     // animation bindings often ask for the same region on successive frames.
@@ -98,8 +102,8 @@ Item {
         id: strip
         // Preserve small bright/dark details instead of averaging them away
         // before bare-glyph contrast is measured.
-        width: Math.min(4096, Math.max(1, Math.ceil(sampler.bandWidth)))
-        height: Math.min(sampler.bandWidth < sampler.screenWidth ? 4096 : 160, Math.max(1, Math.ceil(sampler.bandHeight)))
+        width: sampler.sampleWidth > 0 ? sampler.sampleWidth : Math.min(4096, Math.max(1, Math.ceil(sampler.bandWidth)))
+        height: sampler.sampleHeight > 0 ? sampler.sampleHeight : Math.min(sampler.bandWidth < sampler.screenWidth ? 4096 : 160, Math.max(1, Math.ceil(sampler.bandHeight)))
         onAvailableChanged: if (available) requestPaint()
         onWidthChanged: sampler.invalidate()
         onHeightChanged: sampler.invalidate()

@@ -137,7 +137,8 @@ PanelWindow {
             triggerRect: dashboard.revealRect
             preferredBodyWidth: dashboard.preferredBodyWidth
             maximumBodyHeight: 700
-            animateContentHeight: !dashboard.rightCorner
+            animateContentHeight: !dashboard.rightCorner && edgeProgress === 1 && cornerProgress === 1
+            cacheWallpaperPalette: !dashboard.rightCorner
             opened: dashboard.opened
             wallpaperSource: dashboard.wallpaperSource
             translucency: dashboard.translucency

@@ -60,8 +60,11 @@ ColumnLayout {
                 objectName: "dashboardWallpaperSampler"
                 source: page.wallpaperSource
                 screenWidth: page.screenWidth; screenHeight: page.screenHeight
-                offsetY: page.wallpaperRegion.y
-                bandHeight: Math.max(1, page.wallpaperRegion.height)
+                // Keep one full-wallpaper thumbnail. Moving/resizing the drawer
+                // samples this cache rather than rereading Canvas pixels.
+                offsetY: 0
+                bandHeight: Math.max(1, page.screenHeight)
+                sampleWidth: 96; sampleHeight: 64
             }
             ColumnLayout {
                 id: systemDetails

@@ -9,6 +9,7 @@ Item {
     property rect region: Qt.rect(0, 0, 300, 300)
     property color accent: "#b4befe"
     property real translucency: 0.06
+    property bool cacheFullWallpaper: false
     readonly property color sample: sampler.sampleRect(region)
     // A dark backing keeps menu labels readable on light and busy wallpapers.
     readonly property color base: Colors.mix(Colors.mix(sample, accent, 0.45), Qt.color("#161824"), 0.70)
@@ -19,6 +20,9 @@ Item {
         id: sampler
         source: glass.wallpaperSource
         screenWidth: glass.screenWidth; screenHeight: glass.screenHeight
-        offsetY: glass.region.y; bandHeight: Math.max(1, glass.region.height)
+        offsetY: glass.cacheFullWallpaper ? 0 : glass.region.y
+        bandHeight: glass.cacheFullWallpaper ? Math.max(1, glass.screenHeight) : Math.max(1, glass.region.height)
+        sampleWidth: glass.cacheFullWallpaper ? 96 : 0
+        sampleHeight: glass.cacheFullWallpaper ? 64 : 0
     }
 }
