@@ -78,6 +78,7 @@ PanelWindow {
     }
     onOpenedChanged: {
         if (opened) {
+            if (!dashboard.rightCorner && !sampler.running) sampler.running = true;
             // Keep the trigger-to-drawer handoff alive through the unfolding.
             entryGrace.restart();
             menuState.retain(true);
@@ -100,8 +101,8 @@ PanelWindow {
     WlrLayershell.keyboardFocus: opened ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     Process {
         id: sampler
-        // Static identity is read once per shell load, never on hover or a timer.
-        running: !dashboard.rightCorner
+        // One snapshot per opening; no startup sampling or polling timer.
+        running: false
         command: ["python3", decodeURIComponent(Qt.resolvedUrl("helpers/dashboard-status.py").toString().replace(/^file:\/\//, ""))]
         stdout: StdioCollector {
             onStreamFinished: {

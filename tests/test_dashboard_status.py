@@ -89,6 +89,8 @@ ShellRoot {
                     test.check(test.find(content, 'dashboardClose') === null, "No close button");
                     test.check(test.find(content, 'dashboardSystemInfo').visible, "Upper card shows system information");
                     test.check(dashboard.resourceData.system.os.length > 0, "System identity populated");
+                    test.check(dashboard.resourceData.system.uptimeSeconds > 0, "Uptime snapshot populated");
+                    test.check(test.find(content, 'dashboardUptime').visible && test.find(content, 'dashboardOsAge').visible, "Uptime and OS age are visible");
                     test.check(dashboard.resourceData.cpuTotal === undefined && dashboard.resourceData.processes === undefined, "No live resource counters or processes");
                     test.check(test.find(content, 'dashboardMemoryDetails').visible, "Static RAM capacity shown");
                     test.check(test.find(content, 'dashboardMediaDetails') === null, "Music card removed");
@@ -178,7 +180,10 @@ ShellRoot {
                     test.check(dashboard.opened, "Reveal opens dashboard");
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
                     input.wait(5400);
-                    test.check(dashboard.resourceData === test.stoppedSnapshot, "No polling or reopening refresh after five seconds");
+                    test.check(dashboard.resourceData !== test.stoppedSnapshot, "Reopening refreshes the snapshot");
+                    let openedSnapshot = dashboard.resourceData;
+                    input.wait(1200);
+                    test.check(dashboard.resourceData === openedSnapshot, "No polling while open");
                     let content = test.find(dashboard.contentItem, 'dashboardContent');
                     content.dismissRequested();
                     test.check(!dashboard.opened, "Escape dismissal still works");

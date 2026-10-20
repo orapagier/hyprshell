@@ -29,6 +29,12 @@ ColumnLayout {
     signal settingsRequested()
     signal lockRequested()
     signal menuRequested(string name)
+    function uptimeText(seconds) {
+        if (seconds === undefined || seconds === null) return "—";
+        const minutes = Math.floor(seconds / 60);
+        const days = Math.floor(minutes / 1440);
+        return (days ? days + "d " : "") + Math.floor(minutes % 1440 / 60) + "h " + minutes % 60 + "m";
+    }
     function focusFirst() { page.forceActiveFocus(); }
     spacing: 12
     Keys.onEscapePressed: dismissRequested()
@@ -57,6 +63,8 @@ ColumnLayout {
                 Label { text: page.resourceData.system?.cpuModel || ""; color: page.secondaryColor; Layout.fillWidth: true; elide: Text.ElideRight }
                 Label { text: "Kernel · " + (page.resourceData.system?.kernel || "—"); color: page.secondaryColor; Layout.fillWidth: true; elide: Text.ElideRight }
                 Label { objectName: "dashboardMemoryDetails"; text: page.resourceData.system?.memoryTotal ? (page.resourceData.system.memoryTotal / 1073741824).toFixed(1) + " GiB RAM" : ""; color: page.secondaryColor; Layout.fillWidth: true }
+                Label { objectName: "dashboardUptime"; text: "Uptime · " + page.uptimeText(page.resourceData.system?.uptimeSeconds); color: page.secondaryColor; Layout.fillWidth: true }
+                Label { objectName: "dashboardOsAge"; text: "OS age · " + (page.resourceData.system?.osAgeDays !== null && page.resourceData.system?.osAgeDays !== undefined ? page.resourceData.system.osAgeDays + " days (estimated)" : "Unavailable"); color: page.secondaryColor; Layout.fillWidth: true }
                 Label { text: page.services.statusData.network.tooltip; Layout.fillWidth: true; elide: Text.ElideRight; color: page.secondaryColor }
                 Label { text: page.services.batteryInfo.present ? page.services.batteryInfo.percentage + "% · " + (page.services.batteryInfo.pluggedIn ? "Plugged in" : "On battery") : "Desktop power"; color: page.accentColor }
                 RowLayout {
@@ -81,24 +89,6 @@ ColumnLayout {
                 height: implicitHeight
                 scale: 0.9
                 transformOrigin: Item.TopLeft
-            }
-        }
-        Card {
-            Layout.fillWidth: true; Layout.fillHeight: true
-            Layout.columnSpan: cards.columns
-            implicitHeight: desktopDetails.implicitHeight + 32
-            ColumnLayout {
-                id: desktopDetails
-                anchors.fill: parent; anchors.margins: 16; spacing: 6
-                Label { text: "SHORTCUTS"; color: page.secondaryColor; font.pixelSize: 12; font.letterSpacing: 2 }
-                GridLayout {
-                    Layout.fillWidth: true
-                    columns: page.width >= 520 ? 4 : 2
-                    Action { text: "Wi-Fi"; Layout.fillWidth: true; onClicked: page.menuRequested("wifi") }
-                    Action { text: "Audio"; Layout.fillWidth: true; onClicked: page.menuRequested("audio") }
-                    Action { text: "Notifications"; Layout.fillWidth: true; onClicked: page.menuRequested("notifications") }
-                    Action { text: "Power"; Layout.fillWidth: true; onClicked: page.menuRequested("power") }
-                }
             }
         }
     }
