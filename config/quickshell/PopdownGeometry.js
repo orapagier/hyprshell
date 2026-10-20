@@ -13,7 +13,7 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
     let waistY = footY + gap * 0.35;
     let waistX = tip;
     // Keep the stem centered on its pill. At a card corner, merge the shoulder
-    // into the existing corner arc without moving the corner or the neck.
+    // at the same card-top baseline on both sides, rounding below the foot.
     let leftFits = tip - flare >= x + corner;
     let rightFits = tip + flare <= x + width - corner;
     let path = [];
@@ -35,10 +35,10 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
         path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
             + body(x + width,y + corner * 0.4) + ' ' + body(x + width,y + corner));
     } else {
+        let join = Math.min(x + width, tip + flare);
         path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
-            + body(x + width - corner * 0.5,y) + ' ' + body(x + width - corner * 0.25,y + corner * 0.25));
-        // Retain the lower half of the original quadratic corner (de Casteljau).
-        quad(x + width,y + corner * 0.5,x + width,y + corner);
+            + body(Math.min(join, tip + flare * 0.25),y) + ' ' + body(join,y));
+        quad(x + width,y,x + width,y + corner);
     }
     line(x + width,y + height - corner);
     quad(x + width,y + height,x + width - corner,y + height);
@@ -54,8 +54,9 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
         path.push('C ' + body(x,y + corner * 0.4) + ' '
             + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
     } else {
-        quad(x,y + corner * 0.5,x + corner * 0.25,y + corner * 0.25);
-        path.push('C ' + body(x + corner * 0.5,y) + ' '
+        let join = Math.max(x, tip - flare);
+        quad(x,y,join,y);
+        path.push('C ' + body(Math.max(join, tip - flare * 0.25),y) + ' '
             + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
     }
     path.push('C ' + p(waistX - waistHalf,waistY - (waistY - footY) * (0.42 / 0.65)) + ' '
