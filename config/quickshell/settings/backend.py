@@ -143,6 +143,10 @@ def validate(data):
         raise ValueError('adaptiveColors must be boolean')
     if type(bar['randomVibrantColors']) is not bool:
         raise ValueError('randomVibrantColors must be boolean')
+    if type(bar['hyprknots']) is not bool:
+        raise ValueError('hyprknots must be boolean')
+    if bar['fullBackground'] not in ('inherit', 'on', 'off'):
+        raise ValueError('Invalid full background')
     if bar['iconSize'] != 0 or type(bar['iconSize']) is bool:
         number(bar['iconSize'], 8, 48, True)
     if bar['background'] not in ('inherit', 'on', 'off'):

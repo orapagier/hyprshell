@@ -9,7 +9,50 @@ Item {
     TestCase {
         name: "BarRegressions"
         when: windowShown
-        function cleanup() { bar.mediaData = {playing: false}; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
+        function cleanup() { bar.settings = {}; bar.statusIconsOnly = false; bar.width = scene.width; bar.mediaData = {playing: false}; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
+        function test_hyprknotsToggle() {
+            let links = findChild(bar, "panelConnectors");
+            verify(links.visible);
+            bar.settings = {bar:{hyprknots:false}};
+            verify(!links.visible);
+            bar.settings = {bar:{hyprknots:true}};
+            verify(links.visible);
+            bar.statusIconsOnly = true;
+            verify(!links.visible);
+        }
+        function test_fullPillBoundsAndStyle() {
+            let pill = findChild(bar, "fullPanelPill");
+            verify(!pill.visible);
+            for (let position of ["top", "bottom", "left", "right"]) {
+                bar.width = position === "left" || position === "right" ? 40 : scene.width;
+                bar.settings = {bar:{position:position, fullBackground:"on", background:"off", hyprknots:false},
+                    items:[{id:"launcher", backgroundColor:"#123456", backgroundOpacity:0.4, radius:7, opacity:0.6}]};
+                verify(pill.visible);
+                compare(pill.settings.backgroundColor, "#123456");
+                compare(pill.settings.backgroundOpacity, 0.4);
+                compare(pill.settings.radius, 7);
+                compare(pill.opacity, 0.6);
+                for (let id of pill.memberIds) {
+                    let item = bar.moduleItems[id];
+                    verify(pill.x <= item.x && pill.y <= item.y);
+                    verify(pill.x + pill.width >= item.x + item.width - 0.01);
+                    verify(pill.y + pill.height >= item.y + item.height - 0.01);
+                }
+                bar.settings = {bar:{position:position, fullBackground:"on"}, items:[{id:"launcher",enabled:false}]};
+                verify(!pill.memberIds.includes("launcher"));
+                compare(pill.leader, "settings");
+                compare(bar.vertical ? pill.y : pill.x, bar.vertical ? bar.moduleItems.settings.y : bar.moduleItems.settings.x);
+            }
+            bar.settings = {bar:{fullBackground:"inherit", background:"off"}};
+            verify(!pill.visible);
+            bar.settings = {bar:{fullBackground:"inherit", background:"on"}};
+            verify(pill.visible);
+            bar.statusIconsOnly = true;
+            verify(!pill.visible);
+            bar.statusIconsOnly = false;
+            bar.settings = {bar:{fullBackground:"on"}, items:Object.keys(bar.moduleItems).map(id => ({id:id,enabled:false}))};
+            verify(!pill.visible);
+        }
         function test_workspaceColorFollowsActiveWorkspace() {
             bar.statusData = {workspaces: [{id:1, name:"1", active:true}, {id:2, name:"2", active:false}], audio: {}, network: {}, bluetooth: {}, battery: {}};
             let first = findChild(bar, "workspace1"), second = findChild(bar, "workspace2");

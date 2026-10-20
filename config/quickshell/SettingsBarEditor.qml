@@ -284,6 +284,30 @@ ColumnLayout {
             inheritDescription: "Shared pills follow the background switch above. Modules keep their grouping and spacing when the pill is hidden."
             onEdited: mode => root.edited("sharedBackground", mode)
         }
+        SettingsSwitch {
+            objectName: "hyprknotsControl"
+            Layout.fillWidth: true
+            text: "Enable Hyprknots"
+            checked: root.settings.hyprknots !== false
+            onToggled: root.edited("hyprknots", checked)
+        }
+        Label {
+            Layout.fillWidth: true
+            text: "Connect Hyprpane items with a line and decorative knots."
+            wrapMode: Text.WordWrap
+            color: Style.Theme.muted
+            font.pixelSize: Style.Theme.captionSize
+        }
+        SettingsBackgroundControl {
+            objectName: "fullBackgroundControl"
+            Layout.fillWidth: true
+            switchText: "Show full Hyprpane pill"
+            mode: root.settings.fullBackground || "off"
+            inheritedVisible: root.settings.background !== "off"
+            inheritLabel: "Follow background pills"
+            inheritDescription: "One pill behind all visible items, from the first to the last. Uses the first visible item's style. Individual and shared pills keep their settings."
+            onEdited: mode => root.edited("fullBackground", mode)
+        }
         SettingsIconSize {
             Layout.fillWidth: true
             settingValue: root.settings.iconSize

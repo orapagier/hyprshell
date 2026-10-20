@@ -631,6 +631,16 @@ preserves preferences and history, and records recovery files. See
 
 ## Shared bar pills
 
+Hyprpane & panels → Default appearance includes **Enable Hyprknots**
+(`bar.hyprknots`, default On) for the connector line and decorative knots.
+**Show full Hyprpane pill** (`bar.fullBackground`, default Off) draws one pill
+behind every visible item, spanning the first through last item on any edge.
+It uses the first visible item's colors, opacity and radius with the same
+wallpaper adaptation as shared pills. Use **Follow background pills** to inherit
+the global background switch, or choose On/Off independently. Individual and
+shared backgrounds retain their own controls and can be hidden for a single
+continuous pill. Item placement, grouping, clicks and menus are preserved.
+
 Select a module and open **Shared pill**. Enter a group name to create a pill,
 then select that name on any other modules to join it. Choose **Own pill** or
 clear the name to remove a module. All built-in modules can share a pill;

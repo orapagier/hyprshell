@@ -16,6 +16,24 @@ spec.loader.exec_module(backend)
 
 
 class SettingsTests(unittest.TestCase):
+    def test_hyprknots_and_full_background_preferences(self):
+        bar = backend.validate({'version': 1})['bar']
+        self.assertTrue(bar['hyprknots'])
+        self.assertEqual(bar['fullBackground'], 'off')
+        for mode in ('on', 'off', 'inherit'):
+            data = copy.deepcopy(self.data)
+            data['bar'].update(hyprknots=False, fullBackground=mode)
+            self.assertEqual(backend.validate(data)['bar']['fullBackground'], mode)
+        backend.save(data)
+        saved = json.loads(self.path.read_text())['bar']
+        self.assertFalse(saved['hyprknots'])
+        self.assertEqual(saved['fullBackground'], 'inherit')
+        for key, values in {'hyprknots': [0, 'false', None], 'fullBackground': [True, 'invalid', None]}.items():
+            for value in values:
+                data = copy.deepcopy(self.data)
+                data['bar'][key] = value
+                with self.assertRaises(ValueError): backend.validate(data)
+
     def test_independent_window_edges_render_css_gaps_and_inherit_uniform_value(self):
         data = copy.deepcopy(self.data)
         data['hyprland'] = {'gapsOut': 17, 'gapsOutTop': 0, 'gapsOutBottom': 31}

@@ -321,7 +321,7 @@ Item {
         objectName: "panelConnectors"
         anchors.fill: parent
         z: 0
-        visible: !bar.statusIconsOnly
+        visible: !bar.statusIconsOnly && bar.settings.bar?.hyprknots !== false
         property int patternSeed: Math.floor(Math.random() * 0x7fffffff) || 1
         function reshuffleKnots() {
             let next = Math.floor(Math.random() * 0x7fffffff) || 1;
@@ -478,6 +478,40 @@ Item {
                 }
             }
         }
+    }
+    Pill {
+        id: fullPill
+        objectName: "fullPanelPill"
+        readonly property var memberIds: bar.orderedItems("left").concat(bar.orderedItems("center"), bar.orderedItems("right"))
+        readonly property string leader: fullPill.memberIds[0] || "launcher"
+        readonly property var bounds: {
+            if (!fullPill.memberIds.length) return Qt.rect(0, 0, 0, 0);
+            let items = fullPill.memberIds.map(id => bar.moduleItems[id]);
+            let left = Math.min(...items.map(item => item.x));
+            let top = Math.min(...items.map(item => item.y));
+            let right = Math.max(...items.map(item => item.x + item.width));
+            let bottom = Math.max(...items.map(item => item.y + item.height));
+            return Qt.rect(left, top, right - left, bottom - top);
+        }
+        visible: !bar.statusIconsOnly && fullPill.memberIds.length > 0 && fullPill.backgroundShown
+        x: fullPill.bounds.x; y: fullPill.bounds.y; width: fullPill.bounds.width; height: fullPill.bounds.height
+        z: -2
+        interactive: false
+        vertical: bar.vertical
+        settings: {
+            let style = Settings.appearance(bar.settings, fullPill.leader, bar.wallpaperSource.toString());
+            let mode = bar.settings.bar?.fullBackground || "off";
+            style.background = mode === "inherit" ? (bar.settings.bar?.background === "off" ? "off" : "on") : mode;
+            style.hideText = true;
+            style.hideIcon = true;
+            return style;
+        }
+        foreground: bar.moduleItems[fullPill.leader].foreground ?? "#cdd6f4"
+        tint: bar.moduleItems[fullPill.leader].tint ?? Qt.rgba(30/255, 30/255, 46/255, 0.28)
+        outline: bar.moduleItems[fullPill.leader].outline ?? Qt.rgba(1, 1, 1, 0.16)
+        colorSampler: Settings.adaptive(bar.settings, fullPill.leader) ? bar.wallpaperColors : null
+        colorRoot: bar
+        opacity: Settings.item(bar.settings, fullPill.leader).opacity ?? 1
     }
     Repeater {
         model: bar.sharedPills
