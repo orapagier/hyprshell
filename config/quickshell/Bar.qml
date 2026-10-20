@@ -322,6 +322,14 @@ Item {
         anchors.fill: parent
         z: 0
         visible: !bar.statusIconsOnly && bar.settings.bar?.hyprknots !== false
+        readonly property real lineWidth: bar.settings.bar?.hyprknotsLineWidth ?? 1.8
+        readonly property real knotScale: (bar.settings.bar?.hyprknotsKnotSize ?? 100) / 100
+        onLineWidthChanged: requestPaint()
+        onKnotScaleChanged: requestPaint()
+        function knotSizeFor(length) {
+            // Keep enlarged knots within their gap instead of covering icons.
+            return Math.min(4.8 * knotScale, length / 3.6);
+        }
         property int patternSeed: Math.floor(Math.random() * 0x7fffffff) || 1
         function reshuffleKnots() {
             let next = Math.floor(Math.random() * 0x7fffffff) || 1;
@@ -453,27 +461,27 @@ Item {
                 let gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
                 for (let i = 0; i < segment.stops.length; ++i)
                     gradient.addColorStop(i / (segment.stops.length - 1), segment.stops[i]);
-                strokeMetal(gradient, 1.8);
+                strokeMetal(gradient, connectors.lineWidth);
                 let length = segment.end - segment.start;
                 // One joint per icon gap, and one every ~42 px on the open rail.
                 let count = segment.knots.length;
                 for (let knotIndex = 0; knotIndex < count; ++knotIndex) {
                     let p = point(segment.start + length * (knotIndex + 0.5) / count, segment.cross);
-                    let size = Math.min(4.8, length / 3.6);
+                    let size = connectors.knotSizeFor(length);
                     let variant = knotVariants[segmentIndex][knotIndex];
                     let ink = segment.knots[knotIndex];
                     ctx.save(); ctx.translate(p.x, p.y);
                     if (bar.vertical) ctx.rotate(Math.PI / 2);
                     // Keep the mechanical joints crisp with a single adaptive stroke.
                     knotPath(variant, size);
-                    strokeMetal(ink, 1.6);
+                    strokeMetal(ink, 1.6 * connectors.knotScale);
                     if (variant >= 3) {
                         knotPath(variant, size * 0.72);
-                        strokeMetal(ink, 0.9);
+                        strokeMetal(ink, 0.9 * connectors.knotScale);
                     }
                     ctx.beginPath();
                     ctx.moveTo(-size * 0.25, size * 0.22); ctx.lineTo(size * 0.25, -size * 0.22);
-                    strokeMetal(ink, 1.2);
+                    strokeMetal(ink, 1.2 * connectors.knotScale);
                     ctx.restore();
                 }
             }

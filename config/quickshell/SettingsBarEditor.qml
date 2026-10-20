@@ -298,6 +298,27 @@ ColumnLayout {
             color: Style.Theme.muted
             font.pixelSize: Style.Theme.captionSize
         }
+        SettingsSlider {
+            objectName: "hyprknotsLineWidthControl"
+            Layout.fillWidth: true
+            enabled: root.settings.hyprknots !== false
+            label: "Hyprknots line thickness"
+            settingValue: root.settings.hyprknotsLineWidth ?? 1.8
+            from: 0.5; to: 6; stepSize: 0.1; suffix: " px"
+            resetDescription: "Restore original line thickness"
+            onEdited: value => root.edited("hyprknotsLineWidth", value === "" ? 1.8 : value)
+        }
+        SettingsSlider {
+            objectName: "hyprknotsKnotSizeControl"
+            Layout.fillWidth: true
+            enabled: root.settings.hyprknots !== false
+            label: "Hyprknots knot size"
+            description: "Large knots fit within the available gap between items."
+            settingValue: root.settings.hyprknotsKnotSize ?? 100
+            from: 50; to: 200; stepSize: 5; suffix: "%"
+            resetDescription: "Restore original knot size"
+            onEdited: value => root.edited("hyprknotsKnotSize", value === "" ? 100 : value)
+        }
         SettingsBackgroundControl {
             objectName: "fullBackgroundControl"
             Layout.fillWidth: true

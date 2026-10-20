@@ -16,6 +16,24 @@ spec.loader.exec_module(backend)
 
 
 class SettingsTests(unittest.TestCase):
+    def test_hyprknots_size_validation_and_persistence(self):
+        defaults = backend.validate({'version': 1})['bar']
+        self.assertEqual(defaults['hyprknotsLineWidth'], 1.8)
+        self.assertEqual(defaults['hyprknotsKnotSize'], 100)
+        for width, size in [(0.5, 50), (6, 200), (2.7, 135)]:
+            data = copy.deepcopy(self.data)
+            data['bar'].update(hyprknots=False, hyprknotsLineWidth=width, hyprknotsKnotSize=size)
+            backend.save(data)
+            saved = json.loads(self.path.read_text())['bar']
+            self.assertEqual(saved['hyprknotsLineWidth'], width)
+            self.assertEqual(saved['hyprknotsKnotSize'], size)
+        for key, values in {'hyprknotsLineWidth': [0, 0.4, 6.1, True, '2'],
+                            'hyprknotsKnotSize': [49, 201, 100.5, True, '100']}.items():
+            for value in values:
+                data = copy.deepcopy(self.data)
+                data['bar'][key] = value
+                with self.assertRaises(ValueError): backend.validate(data)
+
     def test_hyprknots_and_full_background_preferences(self):
         bar = backend.validate({'version': 1})['bar']
         self.assertTrue(bar['hyprknots'])

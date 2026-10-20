@@ -633,6 +633,11 @@ preserves preferences and history, and records recovery files. See
 
 Hyprpane & panels → Default appearance includes **Enable Hyprknots**
 (`bar.hyprknots`, default On) for the connector line and decorative knots.
+**Hyprknots line thickness** adjusts the connecting line from 0.5–6 px
+(`bar.hyprknotsLineWidth`, default 1.8). **Hyprknots knot size** scales the knots
+from 50–200% (`bar.hyprknotsKnotSize`, default 100); large knots stay within their
+available gap. Each slider resets independently and retains its value while
+Hyprknots is disabled.
 **Show full Hyprpane pill** (`bar.fullBackground`, default Off) draws one pill
 behind every visible item, spanning the first through last item on any edge.
 It uses the first visible item's colors, opacity and radius with the same

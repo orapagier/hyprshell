@@ -10,6 +10,22 @@ Item {
         name: "BarRegressions"
         when: windowShown
         function cleanup() { bar.settings = {}; bar.statusIconsOnly = false; bar.width = scene.width; bar.mediaData = {playing: false}; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
+        function test_hyprknotsSizing() {
+            let links = findChild(bar, "panelConnectors");
+            compare(links.lineWidth, 1.8);
+            compare(links.knotScale, 1);
+            compare(links.knotSizeFor(100), 4.8);
+            for (let position of ["top", "bottom", "left", "right"]) {
+                bar.settings = {bar:{position:position, hyprknotsLineWidth:6, hyprknotsKnotSize:200}};
+                compare(links.lineWidth, 6);
+                compare(links.knotScale, 2);
+                compare(links.knotSizeFor(100), 9.6);
+                verify(links.knotSizeFor(3) <= 3 / 3.6);
+                bar.settings = {bar:{position:position, hyprknotsLineWidth:0.5, hyprknotsKnotSize:50}};
+                compare(links.lineWidth, 0.5);
+                compare(links.knotSizeFor(100), 2.4);
+            }
+        }
         function test_hyprknotsToggle() {
             let links = findChild(bar, "panelConnectors");
             verify(links.visible);
