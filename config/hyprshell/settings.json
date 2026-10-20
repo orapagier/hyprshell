@@ -23,10 +23,12 @@
       "1": true,
       "2": true,
       "3": true,
-      "4": true,
+      "4": false,
       "5": false,
       "6": false,
-      "9": true,
+      "7": false,
+      "8": false,
+      "9": false,
       "10": true,
       "11": true,
       "12": true
@@ -222,7 +224,7 @@
     },
     {
       "id": "notifications",
-      "enabled": true,
+      "enabled": false,
       "side": "right",
       "order": 6,
       "adaptiveColors": "inherit",
@@ -463,7 +465,8 @@
       ],
       "workspaceOverrides": {
         "1": false,
-        "2": false
+        "2": false,
+        "6": false
       },
       "thickness": 34,
       "backgroundOpacity": 1,
@@ -500,7 +503,8 @@
       ],
       "workspaceOverrides": {
         "1": false,
-        "2": false
+        "2": false,
+        "5": false
       },
       "thickness": 32,
       "marginEdge": 3,
