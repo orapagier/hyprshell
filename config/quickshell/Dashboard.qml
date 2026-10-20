@@ -133,6 +133,7 @@ PanelWindow {
             opened: dashboard.opened
             wallpaperSource: dashboard.wallpaperSource
             translucency: dashboard.translucency
+            accent: pageItem ? pageItem.accentColor : "#b4befe"
             showHeader: false
             persistentSelected: true
             persistentPage: dashboardPage

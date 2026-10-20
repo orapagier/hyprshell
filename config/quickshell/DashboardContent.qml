@@ -16,13 +16,15 @@ ColumnLayout {
     property real screenHeight: 768
     property rect wallpaperRegion: Qt.rect(0, 0, screenWidth, screenHeight)
     readonly property color wallpaperSample: wallpaperSampler.sampleRect(wallpaperRegion)
-    // Keep the wallpaper's hue, with an opaque dark backing under every label.
-    // Even a pure-white sample stays dark enough for the calendar's fixed text.
-    readonly property color cardColor: Style.Theme.highContrast ? "#000000" : Colors.mix(wallpaperSample, Qt.color("#11151f"), 0.88)
-    readonly property color textColor: "#f5f7ff"
-    readonly property color secondaryColor: "#d4d9e8"
-    readonly property color accentColor: Colors.mix(wallpaperSample, Qt.color("#e4e9ff"), 0.88)
-    readonly property color outlineColor: Colors.mix(cardColor, textColor, Style.Theme.highContrast ? 1 : 0.22)
+    // Retain the sampled hue and saturation instead of burying it under gray.
+    readonly property color cardColor: Style.Theme.highContrast ? "#000000"
+        : Qt.hsva(wallpaperSample.hsvHue, wallpaperSample.hsvSaturation * 0.72,
+                  0.12 + wallpaperSample.hsvValue * 0.10, 1)
+    readonly property color textColor: Style.Theme.highContrast ? "#ffffff" : Colors.mix(wallpaperSample, Qt.color("#ffffff"), 0.94)
+    readonly property color secondaryColor: Colors.mix(cardColor, textColor, 0.82)
+    readonly property color accentColor: Style.Theme.highContrast ? "#ffffff"
+        : Colors.mix(Colors.vibrantForeground(wallpaperSample, wallpaperSample), textColor, 0.58)
+    readonly property color outlineColor: Colors.mix(cardColor, accentColor, Style.Theme.highContrast ? 1 : 0.38)
     signal dismissRequested()
     signal settingsRequested()
     signal lockRequested()
@@ -56,7 +58,7 @@ ColumnLayout {
                 Label { text: "Kernel · " + (page.resourceData.system?.kernel || "—"); color: page.secondaryColor; Layout.fillWidth: true; elide: Text.ElideRight }
                 Label { objectName: "dashboardMemoryDetails"; text: page.resourceData.system?.memoryTotal ? (page.resourceData.system.memoryTotal / 1073741824).toFixed(1) + " GiB RAM" : ""; color: page.secondaryColor; Layout.fillWidth: true }
                 Label { text: page.services.statusData.network.tooltip; Layout.fillWidth: true; elide: Text.ElideRight; color: page.secondaryColor }
-                Label { text: page.services.batteryInfo.present ? page.services.batteryInfo.percentage + "% · " + (page.services.batteryInfo.pluggedIn ? "Plugged in" : "On battery") : "Desktop power"; color: "#a6e3a1" }
+                Label { text: page.services.batteryInfo.present ? page.services.batteryInfo.percentage + "% · " + (page.services.batteryInfo.pluggedIn ? "Plugged in" : "On battery") : "Desktop power"; color: page.accentColor }
                 RowLayout {
                     Layout.fillWidth: true
                     Action { text: "Settings"; Layout.fillWidth: true; onClicked: page.settingsRequested() }
@@ -69,6 +71,11 @@ ColumnLayout {
             implicitHeight: calendar.implicitHeight * calendar.scale + 24
             CalendarMenu {
                 id: calendar
+                adaptivePalette: true
+                textColor: page.textColor
+                secondaryColor: page.secondaryColor
+                accentColor: page.accentColor
+                surfaceColor: page.cardColor
                 x: 12; y: 12
                 width: Math.max(0, parent.width - 24) / scale
                 height: implicitHeight
@@ -96,7 +103,13 @@ ColumnLayout {
         }
     }
     component Label: MenuLabel { color: page.textColor }
-    component Action: MenuButton { accent: page.textColor; implicitHeight: 32; topPadding: 6; bottomPadding: 6 }
+    component Action: MenuButton {
+        accent: page.accentColor
+        fillColor: Colors.alpha(page.accentColor, 0.06)
+        hoverColor: Colors.alpha(page.accentColor, 0.14)
+        pressedColor: Colors.alpha(page.accentColor, 0.20)
+        outlineColor: page.outlineColor
+        focusColor: page.accentColor; implicitHeight: 32; topPadding: 6; bottomPadding: 6 }
     component Card: Rectangle {
         radius: 16
         color: page.cardColor

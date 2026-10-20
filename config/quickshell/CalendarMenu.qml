@@ -7,6 +7,11 @@ import "Calendar.js" as Calendar
 
 ColumnLayout {
     id: page
+    property bool adaptivePalette: false
+    property color textColor: "#cdd6f4"
+    property color secondaryColor: "#a6adc8"
+    property color accentColor: "#b4befe"
+    property color surfaceColor: "#1e1e2e"
     property date now: new Date()
     property date today: now
     property int year: today.getFullYear()
@@ -17,6 +22,12 @@ ColumnLayout {
     readonly property int days: new Date(year, month + 1, 0).getDate()
     readonly property var holiday: holidays[(selected.getMonth()+1) + "-" + selected.getDate()]
     spacing: 8
+    component CalendarButton: MenuButton {
+        accent: page.textColor
+        hoverColor: page.adaptivePalette ? Qt.rgba(page.accentColor.r, page.accentColor.g, page.accentColor.b, 0.16) : "#38cba6f7"
+        pressedColor: page.adaptivePalette ? Qt.rgba(page.accentColor.r, page.accentColor.g, page.accentColor.b, 0.22) : "#55cba6f7"
+        focusColor: page.adaptivePalette ? page.accentColor : "#88cba6f7"
+    }
     function shift(amount) { let date = new Date(year, month + amount, 1); year = date.getFullYear(); month = date.getMonth(); selected = date; }
     Timer {
         interval: 1000
@@ -36,21 +47,21 @@ ColumnLayout {
             horizontalAlignment: Text.AlignHCenter
             font.pixelSize: 28
             font.bold: true
-            color: "#cdd6f4"
+            color: page.textColor
         }
         MenuLabel {
             text: Qt.formatDate(page.now, "dddd, MMMM d")
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
             font.pixelSize: 11
-            color: "#a6adc8"
+            color: page.secondaryColor
         }
     }
     RowLayout {
         Layout.fillWidth: true
-        MenuButton { text: "‹"; onClicked: page.shift(-1) }
-        MenuButton { text: Qt.formatDate(new Date(page.year,page.month,1), "MMMM yyyy"); Layout.fillWidth: true; accent: "#b4befe"; onClicked: picker.visible = !picker.visible }
-        MenuButton { text: "›"; onClicked: page.shift(1) }
+        CalendarButton { text: "‹"; onClicked: page.shift(-1) }
+        CalendarButton { text: Qt.formatDate(new Date(page.year,page.month,1), "MMMM yyyy"); Layout.fillWidth: true; accent: page.accentColor; onClicked: picker.visible = !picker.visible }
+        CalendarButton { text: "›"; onClicked: page.shift(1) }
     }
     RowLayout {
         id: picker
@@ -60,23 +71,23 @@ ColumnLayout {
             model: ["January","February","March","April","May","June","July","August","September","October","November","December"]
             currentIndex: page.month; Layout.fillWidth: true
             onActivated: page.month = currentIndex
-            palette.text: "#cdd6f4"; palette.buttonText: "#cdd6f4"; palette.button: "#38384d"; palette.base: "#1e1e2e"; palette.highlight: "#66517e"; palette.highlightedText: "#cdd6f4"
+            palette.text: page.textColor; palette.buttonText: page.textColor; palette.button: (page.adaptivePalette ? Qt.lighter(page.surfaceColor, 1.3) : "#38384d"); palette.base: page.surfaceColor; palette.highlight: page.adaptivePalette ? Qt.rgba(page.accentColor.r, page.accentColor.g, page.accentColor.b, 0.20) : "#66517e"; palette.highlightedText: page.textColor
         }
         SpinBox {
             from: 1900; to: 9999; value: page.year; editable: true
             onValueModified: page.year = value
-            palette.text: "#cdd6f4"; palette.buttonText: "#cdd6f4"; palette.button: "#38384d"; palette.base: "#1e1e2e"
+            palette.text: page.textColor; palette.buttonText: page.textColor; palette.button: (page.adaptivePalette ? Qt.lighter(page.surfaceColor, 1.3) : "#38384d"); palette.base: page.surfaceColor
         }
     }
     GridLayout {
         columns: 7; columnSpacing: 2; rowSpacing: 2; Layout.fillWidth: true
         Repeater {
             model: ["S","M","T","W","T","F","S"]
-            delegate: MenuLabel { objectName: "calendarWeekday"; required property string modelData; text: modelData; horizontalAlignment: Text.AlignHCenter; color: "#a6adc8"; Layout.fillWidth: true }
+            delegate: MenuLabel { objectName: "calendarWeekday"; required property string modelData; text: modelData; horizontalAlignment: Text.AlignHCenter; color: page.secondaryColor; Layout.fillWidth: true }
         }
         Repeater {
             model: 42
-            delegate: MenuButton {
+            delegate: CalendarButton {
                 id: day
                 required property int index
                 readonly property int number: index - page.offset + 1
@@ -87,19 +98,19 @@ ColumnLayout {
                 implicitHeight: 28; implicitWidth: 28
                 leftPadding: 2; rightPadding: 2; topPadding: 3; bottomPadding: 3
                 Layout.fillWidth: true
-                accent: holiday ? holiday[1] === "regular" ? "#f38ba8" : "#f9e2af" : "#cdd6f4"
+                accent: holiday ? holiday[1] === "regular" ? "#f38ba8" : "#f9e2af" : page.textColor
                 contentItem: Text { text: day.text; font: day.font; color: day.accent; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 background: Rectangle {
                     Behavior on color { ColorAnimation { duration: Style.Theme.duration(day, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
                     radius: 8
-                    color: day.selected ? "#38cba6f7" : day.hovered ? "#38cba6f7" : day.holiday ? day.holiday[1] === "regular" ? "#1ff38ba8" : "#1ff9e2af" : "transparent"
+                    color: day.selected || day.hovered ? (page.adaptivePalette ? Qt.rgba(page.accentColor.r, page.accentColor.g, page.accentColor.b, 0.16) : "#38cba6f7") : day.holiday ? day.holiday[1] === "regular" ? "#1ff38ba8" : "#1ff9e2af" : "transparent"
                     border.width: page.today.getFullYear() === page.year && page.today.getMonth() === page.month && page.today.getDate() === day.number ? 1 : 0
-                    border.color: "#b4befe"
+                    border.color: page.accentColor
                 }
                 onClicked: page.selected = new Date(page.year,page.month,number)
             }
         }
     }
     MenuLabel { text: page.holiday ? page.holiday[0] + "\n" + ({regular: "Regular Holiday", special: "Special Non-Working Day", working: "Special Working Day"})[page.holiday[1]] : ""; visible: text.length > 0; Layout.fillWidth: true; color: "#f9e2af" }
-    MenuButton { text: "Today"; Layout.fillWidth: true; onClicked: { page.year = page.today.getFullYear(); page.month = page.today.getMonth(); page.selected = page.today; } }
+    CalendarButton { text: "Today"; Layout.fillWidth: true; onClicked: { page.year = page.today.getFullYear(); page.month = page.today.getMonth(); page.selected = page.today; } }
 }

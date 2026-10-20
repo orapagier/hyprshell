@@ -25,7 +25,7 @@ class DashboardNativeTests(unittest.TestCase):
             source = '\n'.join(line for line in source.splitlines() if not any(
                 token in line for token in ('anchors { top:', 'anchors { left:', 'margins {', 'exclusionMode:', 'exclusiveZone:', 'WlrLayershell.')))
             (payload / 'Dashboard.qml').write_text(source)
-            for name, fill in {'bright': '#ffffff', 'dark': '#000000', 'colorful': '#e70064'}.items():
+            for name, fill in {'bright': '#ffffff', 'dark': '#000000', 'colorful': '#e70064', 'blue': '#0066ee', 'green': '#00aa44'}.items():
                 (root / (name + '.svg')).write_text(
                     '<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="850">'
                     '<path fill="' + fill + '" d="M0 0h1100v850H0z"/></svg>')
@@ -46,6 +46,16 @@ ShellRoot {
     property int step: 0
     property var stoppedSnapshot: null
     property int motionFrames: 0
+    property bool reboundSeen: false
+    property bool stretchSeen: false
+    Timer {
+        interval: 16; running: dashboard.opened; repeat: true
+        onTriggered: {
+            let popover = test.find(dashboard.contentItem, 'dashboardPopover');
+            test.reboundSeen = test.reboundSeen || popover.edgeProgress > 1.02;
+            test.stretchSeen = test.stretchSeen || Math.abs(popover.edgeProgress - popover.cornerProgress) > 0.03;
+        }
+    }
     TestCase { id: input; name: "DashboardPointer"; when: false }
     Dashboard {
         id: dashboard
@@ -89,6 +99,8 @@ ShellRoot {
                     test.check(!test.find(popover, 'menuFunnel').visible, "Dashboard hides narrow connector");
                     test.check(popover.containsPointer(Qt.point(5, popover.bodyY - popover.footRadius / 2)), "Curved foot retains hover");
                     test.check(Math.abs(popover.edgeProgress - 1) < 0.001, "Opening motion settles");
+                    test.check(test.reboundSeen, "Spring overshoots visibly before settling");
+                    test.check(test.stretchSeen, "Independent axes squash and stretch");
                     test.check(popover.attachedCorner && popover.bodyBottom === dashboard.height, "Dashboard joins bottom-left screen corner");
                     test.check(popover.bodyRight + popover.footRadius <= dashboard.width, "Bottom-right foot fits screen");
                     test.check(popover.containsPointer(Qt.point(popover.bodyRight + popover.footRadius / 2, dashboard.height - 2)), "Bottom-right foot retains hover");
@@ -124,18 +136,22 @@ ShellRoot {
                     tick.stop();
                     let sampler = test.find(content, 'dashboardWallpaperSampler');
                     let previous = null;
-                    for (let name of ['bright', 'dark', 'colorful', 'busy']) {
+                    let previousAccent = null;
+                    for (let name of ['bright', 'dark', 'colorful', 'blue', 'green', 'busy']) {
                         content.wallpaperSource = Qt.resolvedUrl(name + '.svg');
                         input.tryCompare(sampler, 'ready', true, 1500);
                         test.check(sampler.ready, "Wallpaper pixels sampled: " + name);
                         test.check(content.cardColor.a === 1, "Opaque reading surface: " + name);
                         if (previous !== null) test.check(content.cardColor.toString() !== previous, "Card tint follows changed wallpaper");
                         previous = content.cardColor.toString();
+                        if (previousAccent !== null) test.check(content.accentColor.toString() !== previousAccent, "Accent follows changed wallpaper");
+                        previousAccent = content.accentColor.toString();
+                        test.check(test.find(content, 'calendarTime').color.toString() === content.textColor.toString(), "Calendar follows dashboard palette");
                         for (let foreground of [content.textColor, content.secondaryColor, content.accentColor])
                             test.check(Colors.contrast(foreground, content.cardColor) >= 7, "Text/card contrast at least 7:1: " + name);
                         test.check(Colors.contrast(Qt.color('#a6adc8'), content.cardColor) >= 4.5, "Embedded calendar captions readable: " + name);
-                        for (let state of ['#0bffffff', '#38cba6f7', '#55cba6f7']) {
-                            let fill = Qt.color(state);
+                        for (let opacity of [0.06, 0.14, 0.20, 0.22]) {
+                            let fill = Colors.alpha(content.accentColor, opacity);
                             let background = Colors.mix(content.cardColor, fill, fill.a);
                             test.check(Colors.contrast(content.textColor, background) >= 4.5, "Button text readable in each state: " + name);
                             test.check(Colors.contrast(content.accentColor, background) >= 4.5, "Accent button readable in each state: " + name);
@@ -177,14 +193,15 @@ ShellRoot {
                     dashboard.reveal(null);
                     controller.retain(true);
                     test.check(Math.abs(popover.edgeProgress - partial) < 0.01, "Reopening continues without a jump");
-                    input.wait(600);
+                    input.tryCompare(popover, "edgeProgress", 1, 1500);
                     test.check(popover.edgeProgress === 1, "Reversed animation settles open");
+                    input.tryCompare(popover, "cornerProgress", 1, 1500);
                     Style.Theme.preferences = ({reducedMotion: true});
                     input.wait(20);
                     controller.close();
-                    test.check(popover.edgeProgress === 0, "Reduced motion closes instantly");
+                    test.check(popover.edgeProgress === 0 && popover.cornerProgress === 0, "Reduced motion closes instantly");
                     dashboard.reveal(null);
-                    test.check(popover.edgeProgress === 1, "Reduced motion opens instantly");
+                    test.check(popover.edgeProgress === 1 && popover.cornerProgress === 1, "Reduced motion opens instantly");
                     controller.close();
                     Style.Theme.preferences = ({});
                     input.mouseMove(dashboard.contentItem, dashboard.width - 1, 1);

@@ -47,11 +47,14 @@ Item {
     property real edgeProgress: opened ? 1 : 0
     Behavior on edgeProgress {
         enabled: popover.attachedLeft && !popover.instant && Style.Theme.duration(popover, 1) > 0
-        NumberAnimation {
-            duration: popover.opened ? 520 : 380
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: popover.opened ? [0.22, 1.32, 0.36, 1, 1, 1] : [0.4, 0, 0.2, 1, 1, 1]
-        }
+        SpringAnimation { spring: 5; damping: 0.32; epsilon: 0.001 }
+    }
+    // Different spring rates create a visible squash and rebound, while both
+    // axes stay attached to the same screen corner through rapid reversals.
+    property real cornerProgress: opened ? 1 : 0
+    Behavior on cornerProgress {
+        enabled: popover.attachedCorner && popover.motionEnabled
+        SpringAnimation { spring: 4; damping: 0.30; epsilon: 0.001 }
     }
     readonly property bool fluidSurface: connected && !attachedLeft
     readonly property bool motionEnabled: !instant && Style.Theme.duration(popover, 1) > 0
@@ -62,7 +65,7 @@ Item {
     readonly property real safeRight: panelBounds.x + panelBounds.width - 12
     readonly property real safeTop: panelBounds.y + (attachedLeft ? 28 : 12)
     readonly property real safeBottom: panelBounds.y + panelBounds.height - (attachedCorner ? 0 : attachedLeft ? 28 : 12)
-    readonly property bool rendering: opened || surface.opacity > 0 || (attachedLeft && edgeProgress > 0)
+    readonly property bool rendering: opened || surface.opacity > 0 || (attachedLeft && (Math.abs(edgeProgress) > 0.001 || (attachedCorner && Math.abs(cornerProgress) > 0.001)))
     signal hoverChanged(bool inside)
     signal cardClicked()
     readonly property real bodyWidth: Math.max(0, Math.min(preferredBodyWidth, connected && vertical && !attachedLeft
@@ -173,8 +176,8 @@ Item {
             origin.x: 0
             origin.y: popover.attachedCorner ? popover.bodyBottom : popover.bodyY + popover.bodyHeight / 2
             xScale: popover.attachedLeft ? Math.max(0, popover.edgeProgress) : 1
-            // A small squash/stretch follows the same continuous curve on reversal.
-            yScale: popover.attachedCorner ? Math.max(0, popover.edgeProgress) * (1 + 0.06 * Math.sin(Math.PI * popover.edgeProgress))
+            // Each spring keeps its velocity when the drawer reverses direction.
+            yScale: popover.attachedCorner ? Math.max(0, popover.cornerProgress)
                 : popover.attachedLeft ? 1 + 0.035 * Math.sin(Math.PI * popover.edgeProgress) : 1
         }, Translate {
             id: arrival
