@@ -64,19 +64,24 @@ class AppReleaseTests(unittest.TestCase):
     def stage_apps(self):
         return app_releases.stage_apps(self.repo, self.stage, self.locations)
 
+    def installed_path(self, app):
+        root, relative = app_releases.TARGETS[app].split('/', 1)
+        return self.locations[root] / relative
+
     def test_downloads_pinned_assets_and_marks_them_executable(self):
         with patch.object(app_releases.urllib.request, 'urlopen', side_effect=self.download) as fetch:
             staged = self.stage_apps()
-        self.assertEqual(fetch.call_count, 2)
+        self.assertEqual(fetch.call_count, 3)
         for app, data in self.binaries.items():
-            target = staged['home/.local/bin/' + app]
+            target = staged[app_releases.TARGETS[app]]
             self.assertEqual(target.read_bytes(), data)
             self.assertEqual(target.stat().st_mode & 0o777, 0o755)
         self.assertFalse(self.locations['home'].exists())
+        self.assertFalse(self.locations['config'].exists())
 
     def test_reuses_only_installed_binaries_with_matching_checksums(self):
         for app, data in self.binaries.items():
-            installed = self.locations['home'] / '.local/bin' / app
+            installed = self.installed_path(app)
             installed.parent.mkdir(parents=True, exist_ok=True)
             installed.write_bytes(data)
         with patch.object(app_releases.urllib.request, 'urlopen') as fetch:
@@ -163,11 +168,11 @@ class AppReleaseTests(unittest.TestCase):
         with patch.object(app_releases.urllib.request, 'urlopen', side_effect=self.download):
             result = self.install()
         for app, data in self.binaries.items():
-            self.assertIn('home/.local/bin/' + app, result['changed'])
-            self.assertEqual((self.locations['home'] / '.local/bin' / app).read_bytes(), data)
+            self.assertIn(app_releases.TARGETS[app], result['changed'])
+            self.assertEqual(self.installed_path(app).read_bytes(), data)
         deployment.rollback(Path(result['backup']), self.locations)
         for app in app_releases.APPS:
-            self.assertFalse((self.locations['home'] / '.local/bin' / app).exists())
+            self.assertFalse(self.installed_path(app).exists())
 
     def test_download_failure_preserves_all_live_files_and_deployment_manifest(self):
         self.prepare_deployment()
@@ -176,15 +181,15 @@ class AppReleaseTests(unittest.TestCase):
         old_manifest = (self.locations['state'] / 'deployed.json').read_bytes()
         old_shell = (self.locations['config'] / 'quickshell/shell.qml').read_bytes()
         (self.repo / 'config/quickshell/shell.qml').write_text('// new shell\n')
-        self.manifest['architectures']['x86_64']['hyprmatrix']['sha256'] = '0' * 64
+        self.manifest['architectures']['x86_64']['hyprweather']['sha256'] = '0' * 64
         self.save_manifest()
         with patch.object(app_releases.urllib.request, 'urlopen', side_effect=OSError('offline')):
-            with self.assertRaisesRegex(RuntimeError, 'Could not download hyprmatrix'):
+            with self.assertRaisesRegex(RuntimeError, 'Could not download hyprweather'):
                 self.install()
         self.assertEqual((self.locations['state'] / 'deployed.json').read_bytes(), old_manifest)
         self.assertEqual((self.locations['config'] / 'quickshell/shell.qml').read_bytes(), old_shell)
         for app, data in self.binaries.items():
-            self.assertEqual((self.locations['home'] / '.local/bin' / app).read_bytes(), data)
+            self.assertEqual(self.installed_path(app).read_bytes(), data)
 
     def test_concurrent_binary_edit_is_preserved(self):
         self.prepare_deployment()

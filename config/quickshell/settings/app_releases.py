@@ -6,7 +6,10 @@ import re
 import urllib.error
 import urllib.request
 
-APPS = ('hyprmonitor', 'hyprmatrix')
+APPS = ('hyprmonitor', 'hyprmatrix', 'hyprweather')
+TARGETS = {'hyprmonitor': 'home/.local/bin/hyprmonitor',
+           'hyprmatrix': 'home/.local/bin/hyprmatrix',
+           'hyprweather': 'config/quickshell/helpers/hyprweather'}
 MAX_BYTES = 64 * 1024 * 1024
 
 
@@ -47,7 +50,7 @@ def stage_apps(repo, stage, locations):
     if libc != 'glibc':
         raise RuntimeError('Desktop app releases require Linux with glibc')
     rows = manifest['architectures'][architecture]
-    # Check both apps before downloading anything or touching the live desktop.
+    # Check all apps before downloading anything or touching the live desktop.
     for app in APPS:
         row = rows[app]
         if version(libc_version) < version(row['minimum_glibc']):
@@ -60,9 +63,10 @@ def stage_apps(repo, stage, locations):
     staged = {}
     for app in APPS:
         row = rows[app]
-        key = 'home/.local/bin/' + app
+        key = TARGETS[app]
         target = stage / key
-        installed = locations['home'] / '.local/bin' / app
+        root, relative = key.split('/', 1)
+        installed = locations[root] / relative
         if installed.is_file() and not installed.is_symlink():
             data = installed.read_bytes()
             if hashlib.sha256(data).hexdigest() != row['sha256']:

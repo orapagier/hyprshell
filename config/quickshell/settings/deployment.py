@@ -252,9 +252,9 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
         state = locations['state']
         live_before = {key: digest(destination(key, locations)) for key in files}
         for app in app_releases.APPS:
-            key = 'home/.local/bin/' + app
+            key = app_releases.TARGETS[app]
             target = destination(key, locations)
-            safe_target(target, locations['home'])
+            safe_target(target, locations[key.split('/')[0]])
             live_before[key] = digest(target)
         for name in PREFERENCES:
             key = 'config/hyprshell/' + name
@@ -281,21 +281,10 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
                             '-lpulse-simple', '-lpulse', '-lfftw3', '-lm'], check=True,
                            capture_output=True, text=True, timeout=60)
             desktop_apps = app_releases.stage_apps(repo, stage, locations)
-            weather_manifest = repo / 'apps/hyprweather-rs/Cargo.toml'
-            weather_binary = None
-            if weather_manifest.is_file():
-                weather_target = repo / 'apps/hyprweather-rs/target'
-                subprocess.run(['cargo', 'build', '--release', '--locked', '--manifest-path', str(weather_manifest),
-                                '--target-dir', str(weather_target)], check=True, capture_output=True, text=True, timeout=600)
-                weather_binary = stage / 'config/quickshell/helpers/hyprweather'
-                weather_binary.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(weather_target / 'release/hyprweather', weather_binary)
             validate_staged(stage, native)
             staged = {key: stage / key for key in files}
             staged['config/quickshell/helpers/audio-spectrum'] = helper
             staged.update(desktop_apps)
-            if weather_binary:
-                staged['config/quickshell/helpers/hyprweather'] = weather_binary
             for name in PREFERENCES:
                 key = 'config/hyprshell/' + name
                 if (stage / key).is_file():

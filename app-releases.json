@@ -13,6 +13,11 @@
         "asset": "hyprmatrix-linux-x86_64",
         "sha256": "60aefbddbd603063d1ff0b36a63627d78ea8d695279a2543b25ac9a23faed234",
         "minimum_glibc": "2.43"
+      },
+      "hyprweather": {
+        "asset": "hyprweather-linux-x86_64",
+        "sha256": "787144c33ec1787a56438eb74d86f4db5da46a9ad3e34d35a06d0a9de15dbdea",
+        "minimum_glibc": "2.39"
       }
     }
   }

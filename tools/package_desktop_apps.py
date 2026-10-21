@@ -53,7 +53,7 @@ def package(repo, output, tag, repository, binaries):
         + ''.join(f"- {app}: glibc {rows[app]['minimum_glibc']} or newer.\n" for app in APPS)
         + '\nBuilt on Fedora 44. Fresh Arch runtime acceptance is pending. '
         'Wayland desktop runtime libraries remain supplied by Hyprshell setup.\n\n'
-        'Upload both executables and SHA256SUMS as release assets, preserving their names. '
+        'Upload all three executables and SHA256SUMS as release assets, preserving their names. '
         'The installer verifies checksums pinned in app-releases.json.\n')
     (repo / 'app-releases.json').write_text(json.dumps(manifest, indent=2) + '\n')
     return manifest
