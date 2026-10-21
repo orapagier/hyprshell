@@ -87,9 +87,7 @@ hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }), { descr
 hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }), { description = "Previous workspace" })
 
 -- Move/resize windows with mainMod + LMB/RMB and dragging
--- Run the handshake asynchronously: Hyprmatrix queries Hyprland during hit testing.
-hl.bind(mainMod .. " + mouse:272", hl.dsp.exec_cmd([["$HOME/.local/bin/hyprmatrix" --drag-begin 2>/dev/null || hyprctl eval 'hl.dispatch(hl.dsp.window.drag())']]), { description = "Drag rain region or window" })
-hl.bind(mainMod .. " + mouse:272", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmatrix" --drag-end 2>/dev/null'), { release = true, description = "Finish rain region drag" })
+hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { description = "Drag window" })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.exec_cmd([["$HOME/.local/bin/hyprmatrix" --settings-at-cursor 2>/dev/null || hyprctl eval 'hl.dispatch(hl.dsp.window.resize())']]), { description = "Rain right-edge settings or resize window" })
 
 -- Laptop multimedia keys for volume and LCD brightness

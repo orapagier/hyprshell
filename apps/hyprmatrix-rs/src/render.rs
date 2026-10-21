@@ -8,9 +8,9 @@ pub const MENU_WIDTH: u32 = 400;
 pub const MENU_HEADER: u32 = 82;
 pub const MENU_HEIGHT: u32 = MENU_HEADER + ROW * 13 + 28;
 const APPEARANCE: &[usize] = &[18, 1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16];
-const PLACEMENT: &[usize] = &[0, 8, 9, 10, 11, 17, 12, 13, 14, 15, 16];
+const BEHAVIOR: &[usize] = &[17, 12, 13, 14, 15, 16];
 fn page_rows(page: usize) -> &'static [usize] {
-    if page == 1 { PLACEMENT } else { APPEARANCE }
+    if page == 1 { BEHAVIOR } else { APPEARANCE }
 }
 /// Movement in surface coordinates before a panel press becomes a drag.
 pub const DRAG_THRESHOLD: f64 = 4.0;
@@ -423,7 +423,7 @@ impl Renderer {
         self.text(pixels, (w,h), "Drag to reposition", (x as i32+mw as i32-126, y as i32+28), 12, [184;3]);
         draw(pixels, (x+12, y+42, mw-24, 30), 8, 0xff282828);
         let tab_width = (mw-24)/2;
-        for (i, name) in ["Appearance", "Placement"].iter().enumerate() {
+        for (i, name) in ["Appearance", "Behavior"].iter().enumerate() {
             let tx = x+12+i as u32*tab_width;
             if i == page { draw(pixels, (tx+2, y+44, tab_width-4, 26), 6, 0xff33455b); }
             self.text(pixels, (w,h), name, (tx as i32+14, y as i32+62), 13,
@@ -503,15 +503,8 @@ pub fn menu_increase(rect: (u32, u32, u32, u32), x: f64) -> bool {
 }
 pub fn labels(c: &Config) -> Vec<(String, String)> {
     vec![
-        (
-            "Placement".into(),
-            if c.fullscreen {
-                "Full screen"
-            } else {
-                "Region"
-            }
-            .into(),
-        ),
+        // Retired row IDs stay reserved so existing control IDs remain stable.
+        (String::new(), String::new()),
         (
             "Rain opacity".into(),
             format!("{}%", (c.opacity * 100.0).round()),
@@ -528,10 +521,10 @@ pub fn labels(c: &Config) -> Vec<(String, String)> {
         ("Speed".into(), format!("{:.0}", c.speed)),
         (if c.effect == Effect::Matrix { "Character size" } else { "Particle size" }.into(), c.font_size.to_string()),
         ("Frame limit".into(), format!("{} FPS", c.fps)),
-        ("Region width".into(), c.width.to_string()),
-        ("Region height".into(), c.height.to_string()),
-        ("Horizontal".into(), format!("{}%", (c.x * 100.0).round())),
-        ("Vertical".into(), format!("{}%", (c.y * 100.0).round())),
+        (String::new(), String::new()),
+        (String::new(), String::new()),
+        (String::new(), String::new()),
+        (String::new(), String::new()),
         ("Refresh wallpaper color".into(), String::new()),
         ("Reset appearance".into(), String::new()),
         ("Hide rain".into(), String::new()),
@@ -545,10 +538,6 @@ pub fn labels(c: &Config) -> Vec<(String, String)> {
 pub fn adjust(c: &mut Config, row: usize, increase: bool) -> &'static str {
     let d = if increase { 1.0 } else { -1.0 };
     match row {
-        0 => {
-            c.fullscreen = !c.fullscreen;
-            return "resize";
-        }
         1 => c.opacity = (c.opacity + d * 0.05).clamp(0.0, 1.0),
         2 => c.background = (c.background + d * 0.05).clamp(0.0, 1.0),
         3 => {
@@ -566,22 +555,6 @@ pub fn adjust(c: &mut Config, row: usize, increase: bool) -> &'static str {
             } else {
                 rates.into_iter().rev().find(|r| *r < c.fps).unwrap_or(5)
             };
-        }
-        8 => {
-            c.width = (c.width as i32 + d as i32 * 80).clamp(360, 7680) as u32;
-            return "resize";
-        }
-        9 => {
-            c.height = (c.height as i32 + d as i32 * 60).clamp(460, 4320) as u32;
-            return "resize";
-        }
-        10 => {
-            c.x = (c.x + d * 0.05).clamp(0.0, 1.0);
-            return "resize";
-        }
-        11 => {
-            c.y = (c.y + d * 0.05).clamp(0.0, 1.0);
-            return "resize";
         }
         12 => return "refresh",
         13 => {
@@ -792,7 +765,7 @@ mod tests {
     }
 
     #[test]
-    fn all_controls_fit_the_smallest_supported_region() {
+    fn fullscreen_settings_keep_all_remaining_controls_reachable() {
         let rect = menu_rect(360, 460);
         let mut reachable = std::collections::BTreeSet::new();
         for page in 0..2 {
@@ -803,7 +776,13 @@ mod tests {
                 reachable.insert(*row);
             }
         }
-        assert_eq!(reachable, (0..MENU_ROWS).collect());
+        assert_eq!(reachable, (0..MENU_ROWS).filter(|row| ![0,8,9,10,11].contains(row)).collect());
+        let mut c = Config::default();
+        for row in [0,8,9,10,11] {
+            let before = c.clone();
+            adjust(&mut c, row, true);
+            assert_eq!(c, before);
+        }
     }
     #[test]
     fn clamp_menu_pos_keeps_panel_inside_surface() {

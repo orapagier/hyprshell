@@ -2,17 +2,16 @@ fullscreen = true
 in_front = false
 width = 640
 height = 520
-x = 0.5999999046325684
-y = 0.39999985694885254
+x = 1.0
+y = 0.5
 opacity = 1.0
-background = 0.000000007450580596923828
-density = 0.24999983608722687
-speed = 6.0
-font_size = 14
+background = 0.0
+density = 0.24999995529651642
+speed = 8.0
+font_size = 16
 fps = 15
 theme = "wallpaper"
 effect = "matrix"
 
 [workspace_overrides]
-1 = true
-3 = false
+3 = true

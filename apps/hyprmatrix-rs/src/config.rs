@@ -22,9 +22,16 @@ impl Effect {
     }
 }
 
+fn fullscreen_only<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<bool, D::Error> {
+    let _legacy = bool::deserialize(deserializer)?;
+    Ok(true)
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
+    /// Legacy placement keys are accepted for existing configs; runtime is fullscreen only.
+    #[serde(deserialize_with = "fullscreen_only")]
     pub fullscreen: bool,
     /// Draw above application windows when true; pointer input still passes through.
     pub in_front: bool,
@@ -79,7 +86,7 @@ impl Config {
             .join("hyprmatrix/config.toml")
     }
     pub fn load() -> Result<Self, String> {
-        let config = match fs::read_to_string(Self::path()) {
+        let config: Self = match fs::read_to_string(Self::path()) {
             Ok(text) => toml::from_str(&text).map_err(|e| format!("Invalid config: {e}"))?,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Self::default(),
             Err(e) => return Err(e.to_string()),
@@ -201,9 +208,11 @@ mod tests {
         assert!(c.validate().is_err());
     }
     #[test]
-    fn legacy_configs_without_overrides_parse() {
-        let c: Config = toml::from_str("fullscreen = false\nfps = 15\n").unwrap();
-        assert!(!c.fullscreen);
+    fn legacy_region_configs_migrate_to_fullscreen_without_losing_preferences() {
+        let c: Config = toml::from_str("fullscreen = false\nfps = 15\nopacity = 0.4\nwidth = 800\n").unwrap();
+        assert!(c.fullscreen);
+        assert_eq!(c.opacity, 0.4);
+        assert_eq!(c.width, 800);
         assert_eq!(c.fps, 15);
         assert!(c.workspace_overrides.is_empty());
         assert!(c.validate().is_ok());

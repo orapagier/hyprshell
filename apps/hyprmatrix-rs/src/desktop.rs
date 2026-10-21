@@ -76,12 +76,6 @@ impl MenuHover {
 fn settings_corner(width: u32, (x,y): (f64,f64)) -> bool {
     x >= width.saturating_sub(44) as f64 && x < width as f64 && (0.0..44.0).contains(&y)
 }
-fn drag_position(start: (f32, f32), delta: (f64, f64), screen: (u32, u32), size: (u32, u32)) -> (f32, f32) {
-    let axis = |start: f32, delta: f64, screen: u32, size: u32| {
-        (start as f64 + delta / screen.saturating_sub(size).max(1) as f64).clamp(0.0, 1.0) as f32
-    };
-    (axis(start.0, delta.0, screen.0, size.0), axis(start.1, delta.1, screen.1, size.1))
-}
 enum Event {
     Command(String, Option<std_mpsc::Sender<Result<(), String>>>),
     Palette([u8; 3]),
@@ -322,7 +316,6 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
         menu_pos: None,
         menu_page: 0,
         menu_drag: None,
-        region_drag: None,
         status: String::new(),
         exit: false,
         error: None,
@@ -387,10 +380,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
                 "settings-at-cursor",
                 "refresh",
                 "fullscreen",
-                "region",
                 "toggle-workspace",
-                "drag-begin",
-                "drag-end",
             ]
             .contains(&command.as_str())
             {
@@ -478,7 +468,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
                             // Refusals from interactive commands stay recoverable.
                             let fatal = !matches!(
                                 command.as_str(),
-                                "drag-begin" | "drag-end" | "toggle-workspace" | "settings" | "settings-at-cursor"
+                                "toggle-workspace" | "settings" | "settings-at-cursor"
                             );
                             if fatal {
                                 state.error = Some(error);
@@ -496,7 +486,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     if state.menu { state.menu_hover.opened(Instant::now()); }
     while !state.exit {
-        let timeout = if state.region_drag.is_some() || state.menu_drag.is_some() {
+        let timeout = if state.menu_drag.is_some() {
             Some(Duration::from_millis(16))
         } else if state.visible && state.configured && state.ready {
             Some(
@@ -507,7 +497,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
             None
         };
         let timeout = match (timeout, state.menu_hover.close_at.filter(|_| state.menu
-            && state.menu_drag.is_none() && state.region_drag.is_none())) {
+            && state.menu_drag.is_none())) {
             (Some(timeout), Some(deadline)) => Some(timeout.min(deadline.saturating_duration_since(Instant::now()))),
             (None, Some(deadline)) => Some(deadline.saturating_duration_since(Instant::now())),
             (timeout, None) => timeout,
@@ -515,9 +505,8 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
         event_loop
             .dispatch(timeout, &mut state)
             .map_err(|e| e.to_string())?;
-        state.poll_region_drag();
         state.poll_menu_drag();
-        if state.menu && state.menu_drag.is_none() && state.region_drag.is_none()
+        if state.menu && state.menu_drag.is_none()
             && state.menu_hover.expired(Instant::now()) {
             state.close_menu()?;
         }
@@ -535,13 +524,8 @@ struct MenuDrag {
     grab: (f64, f64),
     surface_origin: (i32, i32),
     origin: (u32, u32),
-    start: (f32, f32),
     moved: bool,
     global_grab: Option<(i32, i32)>,
-}
-struct RegionDrag {
-    offset: (i32, i32),
-    started: Instant,
 }
 struct Desktop {
     registry: RegistryState,
@@ -573,7 +557,6 @@ struct Desktop {
     menu_pos: Option<(u32, u32)>,
     menu_page: usize,
     menu_drag: Option<MenuDrag>,
-    region_drag: Option<RegionDrag>,
     status: String,
     exit: bool,
     error: Option<String>,
@@ -604,21 +587,11 @@ impl Desktop {
         }
     }
     fn place(&mut self) -> Result<(), String> {
-        let width = if self.config.fullscreen {
-            self.screen.0
-        } else {
-            self.config.width.min(self.screen.0)
-        };
-        let height = if self.config.fullscreen {
-            self.screen.1
-        } else {
-            self.config.height.min(self.screen.1)
-        };
+        let (width, height) = self.screen;
         let resized = width != self.width || height != self.height;
         self.width = width;
         self.height = height;
-        let x = ((self.screen.0 - self.width) as f32 * self.config.x) as i32;
-        let y = ((self.screen.1 - self.height) as f32 * self.config.y) as i32;
+        let (x, y) = (0, 0);
         self.layer().set_anchor(Anchor::TOP | Anchor::LEFT);
         self.layer().set_size(self.width, self.height);
         self.layer().set_margin(y, 0, 0, x);
@@ -628,13 +601,6 @@ impl Desktop {
         self.input_region()?;
         self.layer().commit();
         Ok(())
-    }
-    /// Move the surface without reallocating buffers.
-    fn reposition(&mut self) {
-        let x = ((self.screen.0 - self.width) as f32 * self.config.x) as i32;
-        let y = ((self.screen.1 - self.height) as f32 * self.config.y) as i32;
-        self.layer().set_margin(y, 0, 0, x);
-        self.layer().commit();
     }
     fn menu_rect_at(&self) -> (u32, u32, u32, u32) {
         let (dx, dy) = render::clamp_menu_pos(
@@ -682,7 +648,6 @@ impl Desktop {
             self.ready = true;
             self.place()?;
         } else {
-            self.region_drag = None;
             self.layer().wl_surface().attach(None, 0, 0);
             self.layer().commit();
             self.configured = false;
@@ -723,9 +688,7 @@ impl Desktop {
     }
     fn region_rect(&self) -> (i32, i32, u32, u32) {
         let out = self.output_position();
-        let lx = ((self.screen.0.saturating_sub(self.width)) as f32 * self.config.x) as i32;
-        let ly = ((self.screen.1.saturating_sub(self.height)) as f32 * self.config.y) as i32;
-        (out.0 + lx, out.1 + ly, self.width, self.height)
+        (out.0, out.1, self.width, self.height)
     }
     fn cursor_over_foreign_surface(&self, cursor: (i32, i32)) -> Result<bool, String> {
         let text = hypr_query("j/clients", 2 * 1024 * 1024)?;
@@ -769,72 +732,6 @@ impl Desktop {
         }
         Ok(false)
     }
-    fn drag_begin(&mut self) -> Result<(), String> {
-        if self.config.fullscreen {
-            return Err("Switch Placement to Region before dragging".into());
-        }
-        if !self.visible {
-            return Err("Hyprmatrix is hidden on this workspace".into());
-        }
-        let cursor = cursor_position()?;
-        let (rx, ry, rw, rh) = self.region_rect();
-        if cursor.0 < rx
-            || cursor.0 >= rx + rw as i32
-            || cursor.1 < ry
-            || cursor.1 >= ry + rh as i32
-        {
-            return Err("Cursor is not over the rain region".into());
-        }
-        if self.cursor_over_foreign_surface(cursor)? {
-            return Err("Another surface is under the cursor".into());
-        }
-        self.region_drag = Some(RegionDrag {
-            offset: (cursor.0 - rx, cursor.1 - ry),
-            started: Instant::now(),
-        });
-        Ok(())
-    }
-    fn end_region_drag(&mut self, save: bool) -> Result<(), String> {
-        if self.region_drag.take().is_none() || !save {
-            return Ok(());
-        }
-        self.config.save()?;
-        self.wake_draw();
-        Ok(())
-    }
-    fn poll_region_drag(&mut self) {
-        // The surface release normally ends the drag; expire defensively if it is lost.
-        if self
-            .region_drag
-            .as_ref()
-            .is_some_and(|d| d.started.elapsed() > Duration::from_secs(20))
-        {
-            if let Err(error) = self.end_region_drag(true) {
-                eprintln!("hyprmatrix: {error}");
-            }
-            return;
-        }
-        if self.region_drag.is_none() {
-            return;
-        }
-        let cursor = match cursor_position() {
-            Ok(cursor) => cursor,
-            Err(error) => {
-                self.region_drag = None;
-                eprintln!("hyprmatrix: drag stopped: {error}");
-                return;
-            }
-        };
-        let out = self.output_position();
-        let avail_w = self.screen.0.saturating_sub(self.width) as f64;
-        let avail_h = self.screen.1.saturating_sub(self.height) as f64;
-        let local_x = (cursor.0 - out.0 - self.region_drag.as_ref().unwrap().offset.0) as f64;
-        let local_y = (cursor.1 - out.1 - self.region_drag.as_ref().unwrap().offset.1) as f64;
-        self.config.x = (local_x / avail_w.max(1.0)).clamp(0.0, 1.0) as f32;
-        self.config.y = (local_y / avail_h.max(1.0)).clamp(0.0, 1.0) as f32;
-        self.reposition();
-        self.wake_draw();
-    }
     fn poll_menu_drag(&mut self) {
         if let Some(start) = self.menu_drag.as_ref().and_then(|d| d.global_grab) {
             if let Ok(now) = cursor_position() {
@@ -848,22 +745,14 @@ impl Desktop {
         let Some(drag) = &mut self.menu_drag else { return Ok(()); };
         if !drag.moved && dx.abs().max(dy.abs()) < render::DRAG_THRESHOLD { return Ok(()); }
         drag.moved = true;
-        if self.config.fullscreen {
-            let pos = render::clamp_menu_pos((
-                (drag.origin.0 as f64 + dx).max(0.0) as u32,
-                (drag.origin.1 as f64 + dy).max(0.0) as u32,
-            ), (self.width, self.height));
-            if self.menu_pos != Some(pos) {
-                self.menu_pos = Some(pos);
-                self.input_region()?;
-                self.layer().commit();
-            }
-        } else {
-            let pos = drag_position(drag.start, (dx, dy), self.screen, (self.width, self.height));
-            if (self.config.x, self.config.y) != pos {
-                (self.config.x, self.config.y) = pos;
-                self.reposition();
-            }
+        let pos = render::clamp_menu_pos((
+            (drag.origin.0 as f64 + dx).max(0.0) as u32,
+            (drag.origin.1 as f64 + dy).max(0.0) as u32,
+        ), (self.width, self.height));
+        if self.menu_pos != Some(pos) {
+            self.menu_pos = Some(pos);
+            self.input_region()?;
+            self.layer().commit();
         }
         self.wake_draw();
         Ok(())
@@ -902,8 +791,8 @@ impl Desktop {
                 self.wake_draw();
             }
             "refresh" => self.refresh.store(true, Ordering::Relaxed),
-            "fullscreen" | "region" => {
-                self.config.fullscreen = command == "fullscreen";
+            "fullscreen" => {
+                self.config.fullscreen = true;
                 self.config.save()?;
                 self.user_visible = true;
                 self.update_visibility()?;
@@ -928,8 +817,6 @@ impl Desktop {
                 self.update_visibility()?;
                 self.wake_draw();
             }
-            "drag-begin" => self.drag_begin()?,
-            "drag-end" => self.end_region_drag(true)?,
             _ => {}
         }
         Ok(())
@@ -1248,13 +1135,13 @@ impl PointerHandler for Desktop {
                 }
                 if self.menu {
                     self.menu_hover.update(over_menu(self) || settings_corner(self.width, (x,y)),
-                        self.menu_drag.is_some() || self.region_drag.is_some(), Instant::now());
+                        self.menu_drag.is_some(), Instant::now());
                 }
             }
             let result = match &event.kind {
                 PointerEventKind::Leave { .. } => {
                     if self.menu {
-                        self.menu_hover.update(false, self.menu_drag.is_some() || self.region_drag.is_some(), Instant::now());
+                        self.menu_hover.update(false, self.menu_drag.is_some(), Instant::now());
                     }
                     Ok(())
                 }
@@ -1287,7 +1174,6 @@ impl PointerHandler for Desktop {
                             grab: (x, y),
                             surface_origin: (self.region_rect().0, self.region_rect().1),
                             origin: (mx, my),
-                            start: (self.config.x, self.config.y),
                             moved: false,
                             global_grab: cursor_position().ok(),
                         });
@@ -1314,17 +1200,9 @@ impl PointerHandler for Desktop {
                         out = if !drag.moved {
                             self.click_row(drag.grab.0, drag.grab.1)
                         } else {
-                            if !self.config.fullscreen {
-                                if let Err(error) = self.config.save() {
-                                    self.status = format!("Save failed: {error}");
-                                }
-                            }
                             self.wake_draw();
                             Ok(())
                         };
-                    }
-                    if out.is_ok() && self.region_drag.is_some() {
-                        out = self.end_region_drag(true);
                     }
                     if self.menu {
                         self.menu_hover.update(self.menu_hover.inside, false, Instant::now());
@@ -1389,15 +1267,6 @@ mod tests {
         assert_eq!(rain_layer(true, false), Layer::Top);
         assert_eq!(rain_layer(true, true), Layer::Top);
         assert_eq!(rain_layer(false, true), Layer::Top);
-    }
-    #[test]
-    fn drag_uses_total_displacement_and_clamps_edges() {
-        let screen = (1920, 1080);
-        let size = (640, 520);
-        let start = (0.5, 0.5);
-        assert_eq!(drag_position(start, (128.0, -56.0), screen, size), (0.6, 0.4));
-        assert_eq!(drag_position(start, (-9000.0, 9000.0), screen, size), (0.0, 1.0));
-        assert_eq!(drag_position(start, (0.0, 0.0), size, size), start);
     }
     #[test]
     fn settings_strip_covers_the_entire_right_edge_only() {

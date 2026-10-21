@@ -18,28 +18,26 @@ or closes the panel, and the Close settings row remains available. Other clicks 
 through to the desktop. Ordinary
 application windows and panels remain above the effect and can cover the hotspot.
 `hyprmatrix --settings` opens the menu without finding the corner.
-Super+right-click anywhere along the rain region's right edge also opens settings.
+Super+right-click along the screen's right edge also opens settings.
 The invisible target extends 48 logical pixels inside and 16 pixels outside the
 edge for its full height. Misses are quiet and retain window resizing; application
 windows under the pointer keep priority when Window layer is Behind. Open settings temporarily
 raise the rain surface above application windows; closing restores the selected Window layer.
 
 The rounded charcoal settings panel matches Hyprshell’s neutral surfaces and blue
-controls, with a proportional UI font and Appearance / Placement tabs. Every
-existing adjustment and action remains available.
+controls, with a proportional UI font and Appearance / Behavior tabs. Appearance,
+window layer, visibility and settings-panel movement remain available.
 
-Use the left and right arrows in each value control to decrease or increase it. Placement toggles full-monitor coverage and a smaller desktop region. Region
-width, height and horizontal/vertical position are adjustable without creating a
-floating window. Rain opacity and black background opacity are independent;
-background zero leaves the wallpaper fully visible. Changes save immediately to
+Use the left and right arrows in each value control to decrease or increase it.
+Hyprmatrix always covers the full monitor; the smaller region mode has been removed.
+Existing region configurations open fullscreen while retaining appearance and workspace preferences.
+Rain opacity and black background opacity are independent; background zero leaves
+the wallpaper fully visible. Changes save immediately to
 `${XDG_CONFIG_HOME:-~/.config}/hyprmatrix/config.toml`. A failed save keeps the old
-settings and reports the error inside the menu.
+settings and reports the error inside the menu. Dragging the settings panel moves
+only the panel. Super+left-drag moves application windows normally.
 
-Super with the left mouse button drags the region when the press starts over it;
-the same combination still drags windows when it starts anywhere else. Dragging
-the settings panel moves the region as well (in full screen it moves the panel).
-Dragging tracks global logical pointer coordinates, so moving the layer itself
-does not interrupt the drag or introduce cumulative jumps on scaled outputs. Rain visibility is remembered per
+Rain visibility is remembered per
 workspace: Alt+M toggles the active workspace, `hyprmatrix --toggle-workspace`
 does the same from a shell, and the app keeps running while a workspace hides the
 effect. Toggles are stored under `[workspace_overrides]` in the config;
@@ -52,13 +50,10 @@ Commands:
 hyprmatrix --settings
 hyprmatrix --settings-at-cursor # Right-edge hit test used by Super+right-click
 hyprmatrix --fullscreen
-hyprmatrix --region
 hyprmatrix --hide        # Unmaps the surface and stops animation and wallpaper queries
 hyprmatrix --show
 hyprmatrix --toggle
 hyprmatrix --toggle-workspace  # Toggle rain on the active workspace
-hyprmatrix --drag-begin   # Region drag handshake used by the Super+left bind
-hyprmatrix --drag-end
 hyprmatrix --refresh     # Retry palette extraction at the next wallpaper check
 hyprmatrix --quit
 hyprmatrix --check-config
@@ -67,7 +62,6 @@ hyprmatrix --preview /tmp/hyprmatrix.png
 hyprmatrix --preview-settings /tmp/hyprmatrix-menu.png
 hyprmatrix --benchmark 3
 hyprmatrix --benchmark-settings 3
-hyprmatrix --benchmark-region 3
 hyprmatrix --font-license
 ```
 
@@ -121,7 +115,7 @@ Color, rain opacity, background, density, speed and frame limit apply to every
 effect. Character size becomes Particle size for space effects. Lower Density
 widens Matrix column spacing or reduces the number of sky events; zero hides
 all particles. The Window layer control remains
-under Placement. Reset appearance restores Matrix and the usual defaults.
+under Behavior. Reset appearance restores Matrix and the usual defaults.
 The saved `effect` values are `matrix`, `shooting_stars`, `meteors`, and `asteroids`.
 
 ## Resource design
@@ -151,7 +145,7 @@ compositor add memory. Sharp full-screen rain at that size cannot fit within a
 5 MB total process budget with this SHM design. Resource usage depends on
 resolution, density, font size and FPS. `--benchmark` measures the rain renderer
 at 1920 × 1080 without sleeping; `--benchmark-settings` includes the settings
-panel; `--benchmark-region` uses the saved widget width/height. These report
+panel. These report
 process RSS and estimate rendering CPU, excluding live Wayland/compositor work and wallpaper helpers. The benchmark uses one pixel
 buffer, like the desktop path; it is not a live desktop resource measurement.
 

@@ -13,11 +13,10 @@ const HELP: &str = "Hyprmatrix — wallpaper-aware desktop digital rain\n\n\
   hyprmatrix                    Start (or show the running instance)\n\
   --settings                    Open hidden settings (starts app if needed)\n\
   --settings-at-cursor          Open settings near the rain's right edge\n\
-  --fullscreen / --region        Start using this placement\n\
+  --fullscreen                  Show fullscreen rain\n\
   --show / --hide / --toggle     Control running app; hide pauses animation\n\
   --toggle-workspace             Toggle rain on the active workspace only\n\
                                  (starts the app when it is not running)\n\
-  --drag-begin / --drag-end      Region drag handshake for Super+left click\n\
   --quit                        Stop the running app\n\
   --refresh                     Refresh wallpaper color\n\
   --check-config                Validate ~/.config/hyprmatrix/config.toml\n\
@@ -27,10 +26,9 @@ const HELP: &str = "Hyprmatrix — wallpaper-aware desktop digital rain\n\n\
   --preview-settings FILE.png   Save a preview with settings visible\n\
   --benchmark SECONDS           Measure 1920x1080 rain rendering\n\n\
   --benchmark-settings SECONDS  Measure with settings open\n\n\
-  --benchmark-region SECONDS    Measure the saved widget dimensions\n\n\
 Hover the invisible 44px upper-right corner to open settings; leave to close.\n\
 Right-click the corner or panel also closes settings.\n\
-Drag the settings panel to move the rain region; Super+left click also drags it.\n\
+Drag the settings panel to reposition it.\n\
 Rain is opt-in per workspace; use the keybinding or --toggle-workspace.\n\
 Choose behind or in front of application windows in settings; clicks pass through.\n\
 Configuration: $XDG_CONFIG_HOME/hyprmatrix/config.toml\n";
@@ -55,13 +53,13 @@ fn run() -> Result<(), String> {
         print!("{}", toml::to_string_pretty(&Config::default()).unwrap());
         return Ok(());
     }
-    let mut c = Config::load()?;
+    let c = Config::load()?;
     match command {
         "--check-config" => {
             println!("Configuration valid: {}", Config::path().display());
             Ok(())
         }
-        "--preview" | "--preview-settings" | "--benchmark" | "--benchmark-settings" | "--benchmark-region" => {
+        "--preview" | "--preview-settings" | "--benchmark" | "--benchmark-settings" => {
             if args.len() != 2 {
                 return Err("Provide a filename or benchmark duration".into());
             }
@@ -116,7 +114,7 @@ fn run() -> Result<(), String> {
                 if !seconds.is_finite() || !(0.1..=60.0).contains(&seconds) {
                     return Err("Duration must be 0.1..60 seconds".into());
                 }
-                let (w,h) = if command == "--benchmark-region" { (c.width,c.height) } else { (1920,1080) };
+                let (w,h) = (1920,1080);
                 if w as u64*h as u64>16_000_000 { return Err("Benchmark exceeds 16 megapixels".into()); }
                 let mut pixels = vec![0u32; (w*h) as usize];
                 let start = Instant::now();
@@ -147,25 +145,18 @@ fn run() -> Result<(), String> {
             }
             Ok(())
         }
-        "" | "--settings" | "--fullscreen" | "--region" => {
+        "" | "--settings" | "--fullscreen" => {
             let control = match command {
                 "--settings" => "settings",
                 "--fullscreen" => "fullscreen",
-                "--region" => "region",
                 _ => "show",
             };
             if desktop::control(control).is_ok() {
                 return Ok(());
             }
-            if command == "--fullscreen" {
-                c.fullscreen = true;
-            } else if command == "--region" {
-                c.fullscreen = false;
-            }
             desktop::run(c, command == "--settings")
         }
-        "--show" | "--hide" | "--toggle" | "--quit" | "--refresh" | "--drag-begin"
-        | "--drag-end" | "--settings-at-cursor" => desktop::control(&command[2..]),
+        "--show" | "--hide" | "--toggle" | "--quit" | "--refresh" | "--settings-at-cursor" => desktop::control(&command[2..]),
         "--toggle-workspace" => {
             if desktop::control("toggle-workspace").is_err() {
                 // Not running: fresh start enables rain on this workspace.
