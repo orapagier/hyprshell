@@ -185,7 +185,8 @@ def snapshot(repo, config, home):
 
 
 def copy_exclusions(directory, names):
-    return [name for name in names if excluded(name) or
+    return [name for name in names if
+            (excluded(name) and not (name == 'hyprmatrix' and (Path(directory) / name).is_dir())) or
             (Path(directory).name == 'wallpapers' and name != 'default.jpg')]
 
 

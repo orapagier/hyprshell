@@ -15,6 +15,23 @@ spec.loader.exec_module(syncer)
 
 
 class SyncTests(unittest.TestCase):
+    def test_candidate_keeps_matrix_config_but_excludes_executable(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, candidate, live = root / 'source', root / 'candidate', root / 'live'
+            (source / 'config/hyprmatrix').mkdir(parents=True)
+            (source / 'config/hyprmatrix/config.toml').write_text('speed = 9.0\n')
+            (source / 'bin').mkdir()
+            (source / 'bin/hyprmatrix').write_bytes(b'executable')
+            (live / 'hyprmatrix').mkdir(parents=True)
+            (live / 'hyprmatrix/config.toml').write_text('speed = 6.0\n')
+            shutil.copytree(source, candidate, ignore=syncer.copy_exclusions)
+            self.assertFalse((candidate / 'bin/hyprmatrix').exists())
+            self.assertTrue((candidate / 'config/hyprmatrix/config.toml').is_file())
+            syncer.snapshot_managed_files(candidate, live, root / 'home')
+            self.assertEqual((candidate / 'config/hyprmatrix/config.toml').read_text(), 'speed = 6.0\n')
+
     def test_snapshot_description_identifies_shortcuts_and_file_actions(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
