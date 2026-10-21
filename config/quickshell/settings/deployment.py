@@ -32,6 +32,7 @@ def digest(path):
 def protected(key):
     return (key.startswith('config/hyprshell/hyprland/') or key == 'config/hypr/hyprland-gui.lua'
             or key.startswith('config/hyprshell/') and Path(key).name in PREFERENCES
+            or key == 'config/hyprmatrix/config.toml'
             or key == 'config/xdg-terminals.list')
 
 
@@ -42,7 +43,7 @@ def ignored(path):
 def payload(repo):
     files = {}
     groups = [('config/kitty', 'config/kitty'), ('config/mpv', 'config/mpv'), ('config/systemd/user', 'config/systemd/user'), ('config/hypr', 'config/hypr'), ('config/quickshell', 'config/quickshell'),
-              ('config/hyprshell', 'config/hyprshell'), ('config/xdg-desktop-portal', 'config/xdg-desktop-portal'),
+              ('config/hyprshell', 'config/hyprshell'), ('config/hyprmatrix', 'config/hyprmatrix'), ('config/xdg-desktop-portal', 'config/xdg-desktop-portal'),
               ('config/autostart', 'config/autostart'), ('bin', 'home/.local/bin'),
               ('assets/applications', 'data/applications'), ('assets/fonts', 'data/fonts/hyprshell'),
               ('assets/wallpapers', 'home/Pictures/Wallpapers')]
@@ -115,7 +116,7 @@ def inspect(repo, locations=None, base_repo=None):
         changes.append(key)
     removed = []
     for key, record in old.items():
-        if (key not in files and not protected(key) and key not in ('config/quickshell/helpers/audio-spectrum', 'config/quickshell/helpers/hyprweather', 'home/.local/bin/hyprmonitor')
+        if (key not in files and not protected(key) and key not in ('config/quickshell/helpers/audio-spectrum', 'config/quickshell/helpers/hyprweather', 'home/.local/bin/hyprmonitor', 'home/.local/bin/hyprmatrix')
                 and not (key.startswith('home/Pictures/Wallpapers/') and Path(key).name != 'default.jpg')):
             target = destination(key, locations)
             safe_target(target, locations[key.split('/')[0]])
@@ -244,7 +245,7 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
                 files.setdefault(key, source)
         if resolved:
             plan['removed'] = [key for key in load_manifest(locations)['files'] if key not in files and destination(key, locations).exists()
-                and key not in ('config/quickshell/helpers/audio-spectrum', 'config/quickshell/helpers/hyprweather', 'home/.local/bin/hyprmonitor')
+                and key not in ('config/quickshell/helpers/audio-spectrum', 'config/quickshell/helpers/hyprweather', 'home/.local/bin/hyprmonitor', 'home/.local/bin/hyprmatrix')
                 and not (key.startswith('home/Pictures/Wallpapers/') and Path(key).name != 'default.jpg')]
         removed_before = {key: digest(destination(key, locations)) for key in plan['removed']}
         state = locations['state']
@@ -282,6 +283,15 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
                 monitor_binary = stage / 'home/.local/bin/hyprmonitor'
                 monitor_binary.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(target_dir / 'release/hyprmonitor', monitor_binary)
+            matrix_manifest = repo / 'apps/hyprmatrix-rs/Cargo.toml'
+            matrix_binary = None
+            if matrix_manifest.is_file():
+                matrix_target = repo / 'apps/hyprmatrix-rs/target'
+                subprocess.run(['cargo', 'build', '--release', '--locked', '--manifest-path', str(matrix_manifest),
+                                '--target-dir', str(matrix_target)], check=True, capture_output=True, text=True, timeout=600)
+                matrix_binary = stage / 'home/.local/bin/hyprmatrix'
+                matrix_binary.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(matrix_target / 'release/hyprmatrix', matrix_binary)
             weather_manifest = repo / 'apps/hyprweather-rs/Cargo.toml'
             weather_binary = None
             if weather_manifest.is_file():
@@ -296,6 +306,8 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
             staged['config/quickshell/helpers/audio-spectrum'] = helper
             if monitor_binary:
                 staged['home/.local/bin/hyprmonitor'] = monitor_binary
+            if matrix_binary:
+                staged['home/.local/bin/hyprmatrix'] = matrix_binary
             if weather_binary:
                 staged['config/quickshell/helpers/hyprweather'] = weather_binary
             for name in PREFERENCES:

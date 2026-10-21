@@ -63,6 +63,8 @@ hypridle
 # Fedora's tuned power profile compatibility API; Settings uses D-Bus directly.
 tuned-ppd
 grim
+grimblast
+hyprpicker
 slurp
 swappy
 gcc

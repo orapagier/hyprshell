@@ -61,6 +61,8 @@ brightnessctl
 hypridle
 power-profiles-daemon
 grim
+hyprland-contrib
+hyprpicker
 slurp
 swappy
 # Helper build, config installer, notification-history import, session utilities

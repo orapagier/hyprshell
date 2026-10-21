@@ -18,7 +18,7 @@
       "layout": "inherit",
       "persistent": false,
       "floating": false,
-      "pseudotiled": true
+      "pseudotiled": false
     },
     {
       "id": 5,

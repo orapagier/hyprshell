@@ -26,7 +26,7 @@ def git(repo, *args):
 
 
 def excluded(name):
-    return name in ('__pycache__', '.git', 'audio-spectrum', 'hyprmonitor', 'hyprweather', 'target') or any(
+    return name in ('__pycache__', '.git', 'audio-spectrum', 'hyprmonitor', 'hyprweather', 'hyprmatrix', 'target') or any(
         fnmatch.fnmatch(name, pattern) for pattern in ('*.pyc', '*.pyo', '*.bak*', '*.log', '.DS_Store'))
 
 
@@ -73,6 +73,7 @@ def snapshot_managed_files(repo, config, home):
     groups.extend([
         (repo / 'config/kitty', config / 'kitty'),
         (repo / 'config/mpv', config / 'mpv'),
+        (repo / 'config/hyprmatrix', config / 'hyprmatrix'),
         (repo / 'config/autostart', config / 'autostart'),
         (repo / 'bin', home / '.local/bin'),
         (repo / 'assets/applications', home / '.local/share/applications'),

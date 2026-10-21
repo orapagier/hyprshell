@@ -51,6 +51,8 @@
     "sharedBackground": "inherit",
     "fullBackground": "off",
     "hyprknots": true,
+    "hyprknotsLineWidth": 1,
+    "hyprknotsKnotSize": 100,
     "position": "top",
     "paddingBottom": 0,
     "verticalPresentation": "edge"

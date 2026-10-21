@@ -48,6 +48,40 @@ use wayland_client::{
     Connection, QueueHandle,
 };
 
+fn rain_layer(menu: bool, in_front: bool) -> Layer {
+    if menu || in_front { Layer::Top } else { Layer::Bottom }
+}
+#[derive(Default)]
+struct MenuHover {
+    inside: bool,
+    close_at: Option<Instant>,
+}
+impl MenuHover {
+    fn opened(&mut self, now: Instant) {
+        // Allow entry when settings were opened from the launcher or a shortcut.
+        self.close_at = (!self.inside).then_some(now + Duration::from_millis(900));
+    }
+    fn update(&mut self, inside: bool, dragging: bool, now: Instant) {
+        self.inside = inside;
+        if inside || dragging {
+            self.close_at = None;
+        } else if self.close_at.is_none() {
+            self.close_at = Some(now + Duration::from_millis(180));
+        }
+    }
+    fn expired(&self, now: Instant) -> bool {
+        self.close_at.is_some_and(|deadline| now >= deadline)
+    }
+}
+fn settings_corner(width: u32, (x,y): (f64,f64)) -> bool {
+    x >= width.saturating_sub(44) as f64 && x < width as f64 && (0.0..44.0).contains(&y)
+}
+fn drag_position(start: (f32, f32), delta: (f64, f64), screen: (u32, u32), size: (u32, u32)) -> (f32, f32) {
+    let axis = |start: f32, delta: f64, screen: u32, size: u32| {
+        (start as f64 + delta / screen.saturating_sub(size).max(1) as f64).clamp(0.0, 1.0) as f32
+    };
+    (axis(start.0, delta.0, screen.0, size.0), axis(start.1, delta.1, screen.1, size.1))
+}
 enum Event {
     Command(String, Option<std_mpsc::Sender<Result<(), String>>>),
     Palette([u8; 3]),
@@ -175,6 +209,16 @@ fn layer_contains(obj: &serde_json::Value, x: i32, y: i32) -> bool {
     );
     x >= ax && x < ax + w && y >= ay && y < ay + h
 }
+const SETTINGS_EDGE_MISS: &str = "Cursor is not over the rain's right edge";
+/// Generous invisible target around the right edge; windows still win hit testing.
+fn settings_edge(rect: (i32, i32, u32, u32), cursor: (i32, i32)) -> bool {
+    let (x, y, w, h) = rect;
+    w > 0 && h > 0
+        && cursor.0 >= x + w.saturating_sub(48) as i32
+        && cursor.0 < x + w as i32 + 16
+        && cursor.1 >= y
+        && cursor.1 < y + h as i32
+}
 fn start_workspaces(output: String, sender: channel::Sender<Event>) {
     thread::spawn(move || {
         let result = (|| -> Result<(), String> {
@@ -247,6 +291,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
     let renderer = Renderer::new(&config)?;
     let active = Arc::new(AtomicBool::new(true));
     let refresh = Arc::new(AtomicBool::new(false));
+    let palette_enabled = Arc::new(AtomicBool::new(config.theme == "wallpaper"));
     let mut state = Desktop {
         registry: RegistryState::new(&globals),
         seats: SeatState::new(&globals, &qh),
@@ -256,6 +301,8 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
         shm,
         pool,
         buffers: Vec::new(),
+        last_buffer: None,
+        buffer_wait: None,
         layer: None,
         target: None,
         renderer,
@@ -271,7 +318,9 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
         current_workspace: None,
         seeding: true,
         menu,
+        menu_hover: MenuHover::default(),
         menu_pos: None,
+        menu_page: 0,
         menu_drag: None,
         region_drag: None,
         status: String::new(),
@@ -282,6 +331,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
         palette: wallpaper::FALLBACK,
         active: active.clone(),
         refresh: refresh.clone(),
+        palette_enabled: palette_enabled.clone(),
     };
     queue.roundtrip(&mut state).map_err(|e| e.to_string())?;
     let target = state.outputs.outputs().find(|o| {
@@ -306,7 +356,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
     let layer = shell.create_layer_surface(
         &qh,
         surface,
-        Layer::Bottom,
+        rain_layer(menu, state.config.in_front),
         Some("hyprmatrix"),
         state.target.as_ref(),
     );
@@ -334,6 +384,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
                 "toggle",
                 "quit",
                 "settings",
+                "settings-at-cursor",
                 "refresh",
                 "fullscreen",
                 "region",
@@ -368,7 +419,8 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
         let mut last = String::new();
         let mut fingerprint = None;
         loop {
-            if active.load(Ordering::Relaxed) {
+            if active.load(Ordering::Relaxed)
+                && (palette_enabled.load(Ordering::Relaxed) || refresh.load(Ordering::Relaxed)) {
                 if let Ok(path) = wallpaper::current_path(&output) {
                     let modified = std::fs::metadata(&path).and_then(|m| m.modified()).ok();
                     if path != last
@@ -426,12 +478,12 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
                             // Refusals from interactive commands stay recoverable.
                             let fatal = !matches!(
                                 command.as_str(),
-                                "drag-begin" | "drag-end" | "toggle-workspace" | "settings"
+                                "drag-begin" | "drag-end" | "toggle-workspace" | "settings" | "settings-at-cursor"
                             );
                             if fatal {
                                 state.error = Some(error);
                                 state.exit = true;
-                            } else {
+                            } else if command != "settings-at-cursor" || error != SETTINGS_EDGE_MISS {
                                 eprintln!("hyprmatrix: {error}");
                                 state.status = error;
                                 state.wake_draw();
@@ -442,8 +494,9 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
             }
         })
         .map_err(|e| e.to_string())?;
+    if state.menu { state.menu_hover.opened(Instant::now()); }
     while !state.exit {
-        let timeout = if state.region_drag.is_some() {
+        let timeout = if state.region_drag.is_some() || state.menu_drag.is_some() {
             Some(Duration::from_millis(16))
         } else if state.visible && state.configured && state.ready {
             Some(
@@ -453,10 +506,21 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
         } else {
             None
         };
+        let timeout = match (timeout, state.menu_hover.close_at.filter(|_| state.menu
+            && state.menu_drag.is_none() && state.region_drag.is_none())) {
+            (Some(timeout), Some(deadline)) => Some(timeout.min(deadline.saturating_duration_since(Instant::now()))),
+            (None, Some(deadline)) => Some(deadline.saturating_duration_since(Instant::now())),
+            (timeout, None) => timeout,
+        };
         event_loop
             .dispatch(timeout, &mut state)
             .map_err(|e| e.to_string())?;
         state.poll_region_drag();
+        state.poll_menu_drag();
+        if state.menu && state.menu_drag.is_none() && state.region_drag.is_none()
+            && state.menu_hover.expired(Instant::now()) {
+            state.close_menu()?;
+        }
         if !state.exit {
             state.draw(&qh)?;
         }
@@ -469,9 +533,11 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
 }
 struct MenuDrag {
     grab: (f64, f64),
+    surface_origin: (i32, i32),
     origin: (u32, u32),
     start: (f32, f32),
     moved: bool,
+    global_grab: Option<(i32, i32)>,
 }
 struct RegionDrag {
     offset: (i32, i32),
@@ -486,6 +552,8 @@ struct Desktop {
     shm: Shm,
     pool: SlotPool,
     buffers: Vec<Buffer>,
+    last_buffer: Option<usize>,
+    buffer_wait: Option<Instant>,
     layer: Option<LayerSurface>,
     target: Option<wl_output::WlOutput>,
     renderer: Renderer,
@@ -501,7 +569,9 @@ struct Desktop {
     current_workspace: Option<String>,
     seeding: bool,
     menu: bool,
+    menu_hover: MenuHover,
     menu_pos: Option<(u32, u32)>,
+    menu_page: usize,
     menu_drag: Option<MenuDrag>,
     region_drag: Option<RegionDrag>,
     status: String,
@@ -512,6 +582,7 @@ struct Desktop {
     palette: [u8; 3],
     active: Arc<AtomicBool>,
     refresh: Arc<AtomicBool>,
+    palette_enabled: Arc<AtomicBool>,
 }
 impl Desktop {
     fn layer(&self) -> &LayerSurface {
@@ -607,6 +678,7 @@ impl Desktop {
         self.active.store(show, Ordering::Relaxed);
         self.last = Instant::now();
         if show {
+            self.renderer.invalidate(); // Remapping needs a buffer even if the character grid is unchanged.
             self.ready = true;
             self.place()?;
         } else {
@@ -615,11 +687,13 @@ impl Desktop {
             self.layer().commit();
             self.configured = false;
             self.menu = false;
+            self.menu_hover = MenuHover::default();
+            self.layer().set_layer(rain_layer(false, self.config.in_front));
         }
         Ok(())
     }
     fn update_visibility(&mut self) -> Result<(), String> {
-        self.visibility(self.user_visible && self.workspace_allowed)
+        self.visibility(self.user_visible && (self.workspace_allowed || self.menu))
     }
     fn on_workspace(&mut self, workspace: String) {
         dbg_event(&format!("workspace {workspace} seeding={}", self.seeding));
@@ -644,7 +718,7 @@ impl Desktop {
         self.target
             .as_ref()
             .and_then(|o| self.outputs.info(o))
-            .map(|i| i.location)
+            .map(|i| i.logical_position.unwrap_or(i.location))
             .unwrap_or((0, 0))
     }
     fn region_rect(&self) -> (i32, i32, u32, u32) {
@@ -657,8 +731,13 @@ impl Desktop {
         let text = hypr_query("j/clients", 2 * 1024 * 1024)?;
         let clients: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
         for client in clients.as_array().into_iter().flatten() {
+            if self.menu || self.config.in_front {
+                break; // The rain/settings surface is above ordinary windows.
+            }
             if client["mapped"].as_bool() != Some(true)
                 || client["hidden"].as_bool() == Some(true)
+                || (client["pinned"].as_bool() != Some(true)
+                    && client["workspace"]["name"].as_str() != self.current_workspace.as_deref())
             {
                 continue;
             }
@@ -671,7 +750,11 @@ impl Desktop {
         if let Some(monitors) = layers.as_object() {
             for data in monitors.values() {
                 if let Some(levels) = data["levels"].as_object() {
-                    for items in levels.values() {
+                    // Background surfaces (including the wallpaper) are below rain.
+                    for (level, items) in levels {
+                        if level == "0" || ((self.menu || self.config.in_front) && level == "1") {
+                            continue;
+                        }
                         for item in items.as_array().into_iter().flatten() {
                             if item["namespace"].as_str() == Some("hyprmatrix") {
                                 continue;
@@ -752,6 +835,39 @@ impl Desktop {
         self.reposition();
         self.wake_draw();
     }
+    fn poll_menu_drag(&mut self) {
+        if let Some(start) = self.menu_drag.as_ref().and_then(|d| d.global_grab) {
+            if let Ok(now) = cursor_position() {
+                if let Err(error) = self.move_menu_drag(((now.0 - start.0) as f64, (now.1 - start.1) as f64)) {
+                    self.status = error;
+                }
+            }
+        }
+    }
+    fn move_menu_drag(&mut self, (dx, dy): (f64, f64)) -> Result<(), String> {
+        let Some(drag) = &mut self.menu_drag else { return Ok(()); };
+        if !drag.moved && dx.abs().max(dy.abs()) < render::DRAG_THRESHOLD { return Ok(()); }
+        drag.moved = true;
+        if self.config.fullscreen {
+            let pos = render::clamp_menu_pos((
+                (drag.origin.0 as f64 + dx).max(0.0) as u32,
+                (drag.origin.1 as f64 + dy).max(0.0) as u32,
+            ), (self.width, self.height));
+            if self.menu_pos != Some(pos) {
+                self.menu_pos = Some(pos);
+                self.input_region()?;
+                self.layer().commit();
+            }
+        } else {
+            let pos = drag_position(drag.start, (dx, dy), self.screen, (self.width, self.height));
+            if (self.config.x, self.config.y) != pos {
+                (self.config.x, self.config.y) = pos;
+                self.reposition();
+            }
+        }
+        self.wake_draw();
+        Ok(())
+    }
     fn command(&mut self, command: &str) -> Result<(), String> {
         match command {
             "quit" => self.exit = true,
@@ -767,11 +883,20 @@ impl Desktop {
                 self.user_visible = !self.user_visible;
                 self.update_visibility()?;
             }
-            "settings" => {
+            "settings" | "settings-at-cursor" => {
+                if command == "settings-at-cursor" {
+                    let cursor = cursor_position()?;
+                    if !self.visible || !settings_edge(self.region_rect(), cursor)
+                        || self.cursor_over_foreign_surface(cursor)?
+                    {
+                        return Err(SETTINGS_EDGE_MISS.into());
+                    }
+                }
                 self.user_visible = true;
-                self.workspace_allowed = true;
                 self.visibility(true)?;
                 self.menu = true;
+                self.menu_hover.opened(Instant::now());
+                self.layer().set_layer(Layer::Top);
                 self.input_region()?;
                 self.layer().commit();
                 self.wake_draw();
@@ -826,25 +951,41 @@ impl Desktop {
             return Err("Surface exceeds the 16 megapixel resource limit".into());
         }
         if self.buffers.is_empty() {
+            self.renderer.invalidate();
             // Replace the pool on resize so its high-water mark does not grow indefinitely.
             self.pool =
-                SlotPool::new(w as usize * h as usize * 8, &self.shm).map_err(|e| e.to_string())?;
-            for _ in 0..2 {
-                let (buffer, _) = self
-                    .pool
-                    .create_buffer(w as i32, h as i32, w as i32 * 4, wl_shm::Format::Argb8888)
-                    .map_err(|e| e.to_string())?;
-                self.buffers.push(buffer);
-            }
+                SlotPool::new(w as usize * h as usize * 4, &self.shm).map_err(|e| e.to_string())?;
+            let (buffer, _) = self.pool.create_buffer(
+                w as i32,h as i32,w as i32*4,wl_shm::Format::Argb8888,
+            ).map_err(|e| e.to_string())?;
+            self.buffers.push(buffer);
+            self.last_buffer = None;
+            self.buffer_wait = None;
         }
-        let Some(index) = self
-            .buffers
-            .iter()
-            .position(|b| self.pool.canvas(b).is_some())
-        else {
-            self.last = Instant::now(); // Wait one frame interval if both buffers are still held.
-            return Ok(());
+        let index = match self.buffers.iter().position(|b| self.pool.canvas(b).is_some()) {
+            Some(index) => { self.buffer_wait = None; index }
+            None if self.buffers.len() == 1
+                && self.buffer_wait.is_some_and(|start| start.elapsed() >= Duration::from_millis(200)) => {
+                // Some compositors retain the displayed buffer until its replacement arrives.
+                // Allocate a second only in that case; never write an unreleased buffer.
+                let (buffer, _) = self.pool.create_buffer(
+                    w as i32,h as i32,w as i32*4,wl_shm::Format::Argb8888,
+                ).map_err(|e| e.to_string())?;
+                self.buffers.push(buffer);
+                self.buffer_wait = None;
+                1
+            }
+            None => {
+                self.buffer_wait.get_or_insert_with(Instant::now);
+                self.last = Instant::now();
+                return Ok(());
+            }
         };
+        if self.last_buffer != Some(index) {
+            // A fallback buffer has its own pixel contents, so fully seed it before using deltas.
+            self.renderer.invalidate();
+            self.last_buffer = Some(index);
+        }
         let dt = self.last.elapsed().as_secs_f32().min(0.25);
         self.time += dt;
         let menu_rect = self.menu.then(|| self.menu_rect_at());
@@ -863,7 +1004,12 @@ impl Desktop {
             self.config.color(self.palette),
             menu_rect,
             &self.status,
+            self.menu_page,
         );
+        if self.renderer.damage().is_empty() {
+            self.last = Instant::now();
+            return Ok(());
+        }
         if let Ok(path) = std::env::var("HYPRIX_DUMP") {
             static DUMPED: AtomicBool = AtomicBool::new(false);
             if !DUMPED.swap(true, Ordering::Relaxed) {
@@ -876,9 +1022,9 @@ impl Desktop {
         self.buffers[index]
             .attach_to(self.layer().wl_surface())
             .map_err(|e| e.to_string())?;
-        self.layer()
-            .wl_surface()
-            .damage_buffer(0, 0, w as i32, h as i32);
+        for &(x,y,dw,dh) in self.renderer.damage() {
+            self.layer().wl_surface().damage_buffer(x as i32,y as i32,dw as i32,dh as i32);
+        }
         self.layer()
             .wl_surface()
             .frame(qh, self.layer().wl_surface().clone());
@@ -889,6 +1035,8 @@ impl Desktop {
     }
     fn close_menu(&mut self) -> Result<(), String> {
         self.menu = false;
+        self.menu_hover = MenuHover::default();
+        self.layer().set_layer(rain_layer(false, self.config.in_front));
         self.menu_drag = None;
         self.workspace_allowed = self.config.visible_on(self.current_workspace.as_deref());
         self.input_region()?;
@@ -902,11 +1050,16 @@ impl Desktop {
             return Ok(());
         }
         let rect = self.menu_rect_at();
-        let Some(row) = render::menu_row(rect, x, y) else {
+        let Some(row) = render::menu_row(rect, self.menu_page, x, y) else {
             return Ok(());
         };
+        if row >= render::MENU_ROWS {
+            self.menu_page = row - render::MENU_ROWS;
+            self.wake_draw();
+            return Ok(());
+        }
         let old = self.config.clone();
-        let action = render::adjust(&mut self.config, row, x >= (rect.0 + rect.2 / 2) as f64);
+        let action = render::adjust(&mut self.config, row, render::menu_increase(rect, x));
         if !["hide", "close", "quit", "refresh"].contains(&action) {
             if let Err(error) = self.config.save() {
                 self.config = old;
@@ -916,9 +1069,14 @@ impl Desktop {
             }
             self.status.clear();
             self.renderer.prepare(&self.config);
+            self.palette_enabled.store(self.config.theme == "wallpaper", Ordering::Relaxed);
         }
         match action {
             "resize" => self.place()?,
+            "layer" => {
+                self.layer().set_layer(rain_layer(self.menu, self.config.in_front));
+                self.layer().commit();
+            }
             "refresh" => self.refresh.store(true, Ordering::Relaxed),
             "hide" => self.visibility(false)?,
             "close" => self.close_menu()?,
@@ -1078,13 +1236,36 @@ impl PointerHandler for Desktop {
                     && y >= my as f64
                     && y < (my + mh) as f64
             };
+            if matches!(&event.kind, PointerEventKind::Enter { .. } | PointerEventKind::Motion { .. }) {
+                if !self.menu && self.visible && settings_corner(self.width, (x,y)) {
+                    // Hover always reveals beside the corner, even after an earlier panel drag.
+                    self.menu_pos = None;
+                    if let Err(error) = self.command("settings") {
+                        self.error = Some(error);
+                        self.exit = true;
+                        continue;
+                    }
+                }
+                if self.menu {
+                    self.menu_hover.update(over_menu(self) || settings_corner(self.width, (x,y)),
+                        self.menu_drag.is_some() || self.region_drag.is_some(), Instant::now());
+                }
+            }
             let result = match &event.kind {
+                PointerEventKind::Leave { .. } => {
+                    if self.menu {
+                        self.menu_hover.update(false, self.menu_drag.is_some() || self.region_drag.is_some(), Instant::now());
+                    }
+                    Ok(())
+                }
                 PointerEventKind::Press { button: 0x111, .. } => {
-                    if x >= self.width.saturating_sub(44) as f64 && y < 44.0 {
+                    if settings_corner(self.width, (x,y)) {
                         if self.menu {
                             self.close_menu()
                         } else {
                             self.menu = true;
+                            self.menu_hover.opened(Instant::now());
+                            self.layer().set_layer(Layer::Top);
                             self.menu_drag = None;
                             let out = self.input_region();
                             if out.is_ok() {
@@ -1104,50 +1285,26 @@ impl PointerHandler for Desktop {
                         let (mx, my, _, _) = self.menu_rect_at();
                         self.menu_drag = Some(MenuDrag {
                             grab: (x, y),
+                            surface_origin: (self.region_rect().0, self.region_rect().1),
                             origin: (mx, my),
                             start: (self.config.x, self.config.y),
                             moved: false,
+                            global_grab: cursor_position().ok(),
                         });
+                        self.menu_hover.update(true, true, Instant::now());
                     }
                     Ok(())
                 }
                 PointerEventKind::Motion { .. } => {
                     let mut out: Result<(), String> = Ok(());
-                    if let Some(drag) = &mut self.menu_drag {
-                        let (dx, dy) = (x - drag.grab.0, y - drag.grab.1);
-                        if !drag.moved
-                            && (dx.abs() >= render::DRAG_THRESHOLD
-                                || dy.abs() >= render::DRAG_THRESHOLD)
-                        {
-                            drag.moved = true;
-                        }
-                        if drag.moved {
-                            if self.config.fullscreen {
-                                let (nx, ny) = render::clamp_menu_pos(
-                                    (
-                                        (drag.origin.0 as f64 + dx).max(0.0) as u32,
-                                        (drag.origin.1 as f64 + dy).max(0.0) as u32,
-                                    ),
-                                    (self.width, self.height),
-                                );
-                                self.menu_pos = Some((nx, ny));
-                                out = self.input_region();
-                                if out.is_ok() {
-                                    self.layer().commit();
-                                }
-                            } else {
-                                let avail_w =
-                                    self.screen.0.saturating_sub(self.width).max(1) as f64;
-                                let avail_h =
-                                    self.screen.1.saturating_sub(self.height).max(1) as f64;
-                                self.config.x =
-                                    (drag.start.0 as f64 + dx / avail_w).clamp(0.0, 1.0) as f32;
-                                self.config.y =
-                                    (drag.start.1 as f64 + dy / avail_h).clamp(0.0, 1.0) as f32;
-                                self.reposition();
-                            }
-                            self.wake_draw();
-                        }
+                    if let Some(drag) = &self.menu_drag {
+                        let region = self.region_rect();
+                        let delta = match (drag.global_grab, cursor_position().ok()) {
+                            (Some(start), Some(now)) => ((now.0 - start.0) as f64, (now.1 - start.1) as f64),
+                            _ => (x - drag.grab.0 + (region.0 - drag.surface_origin.0) as f64,
+                                  y - drag.grab.1 + (region.1 - drag.surface_origin.1) as f64),
+                        };
+                        out = self.move_menu_drag(delta);
                     }
                     out
                 }
@@ -1169,6 +1326,9 @@ impl PointerHandler for Desktop {
                     if out.is_ok() && self.region_drag.is_some() {
                         out = self.end_region_drag(true);
                     }
+                    if self.menu {
+                        self.menu_hover.update(self.menu_hover.inside, false, Instant::now());
+                    }
                     out
                 }
                 _ => Ok(()),
@@ -1187,3 +1347,77 @@ delegate_registry!(Desktop);
 delegate_shm!(Desktop);
 delegate_seat!(Desktop);
 delegate_pointer!(Desktop);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn hover_settings_cancel_dismissal_on_reentry_and_wait_for_drag_release() {
+        let now=Instant::now();
+        let mut hover=MenuHover::default();
+        hover.opened(now);
+        assert!(!hover.expired(now+Duration::from_millis(899)));
+        assert!(hover.expired(now+Duration::from_millis(900)));
+        hover.update(true,false,now);
+        assert!(!hover.expired(now+Duration::from_secs(5)));
+        hover.update(false,false,now);
+        assert!(!hover.expired(now+Duration::from_millis(179)));
+        assert!(hover.expired(now+Duration::from_millis(180)));
+        hover.update(true,false,now+Duration::from_millis(100));
+        assert!(!hover.expired(now+Duration::from_secs(5)));
+        hover.update(false,true,now);
+        assert!(!hover.expired(now+Duration::from_secs(5)));
+        hover.update(false,false,now+Duration::from_secs(5));
+        assert!(hover.expired(now+Duration::from_millis(5180)));
+    }
+    #[test]
+    fn hover_corner_is_bounded_and_overlaps_the_default_settings_panel() {
+        for (w,h) in [(640,520),(1920,1080),(360,460)] {
+            assert!(settings_corner(w,((w-1) as f64,0.0)));
+            assert!(settings_corner(w,((w-44) as f64,43.0)));
+            assert!(!settings_corner(w,(w as f64,0.0)));
+            assert!(!settings_corner(w,((w-1) as f64,-1.0)));
+            assert!(!settings_corner(w,((w-1) as f64,44.0)));
+            let (x,y,mw,mh)=render::menu_rect(w,h);
+            assert!(x<w && x+mw>w-44 && y<44 && y+mh>0);
+        }
+    }
+
+    #[test]
+    fn layer_choice_survives_settings_close() {
+        assert_eq!(rain_layer(false, false), Layer::Bottom);
+        assert_eq!(rain_layer(true, false), Layer::Top);
+        assert_eq!(rain_layer(true, true), Layer::Top);
+        assert_eq!(rain_layer(false, true), Layer::Top);
+    }
+    #[test]
+    fn drag_uses_total_displacement_and_clamps_edges() {
+        let screen = (1920, 1080);
+        let size = (640, 520);
+        let start = (0.5, 0.5);
+        assert_eq!(drag_position(start, (128.0, -56.0), screen, size), (0.6, 0.4));
+        assert_eq!(drag_position(start, (-9000.0, 9000.0), screen, size), (0.0, 1.0));
+        assert_eq!(drag_position(start, (0.0, 0.0), size, size), start);
+    }
+    #[test]
+    fn settings_strip_covers_the_entire_right_edge_only() {
+        let rect = (-640, 100, 640, 520);
+        for y in [100, 360, 619] {
+            assert!(settings_edge(rect, (-48, y)));
+            assert!(settings_edge(rect, (-1, y)));
+            assert!(settings_edge(rect, (0, y)));
+            assert!(settings_edge(rect, (15, y)));
+            assert!(!settings_edge(rect, (-49, y)));
+            assert!(!settings_edge(rect, (16, y)));
+        }
+        assert!(!settings_edge(rect, (-1, 99)));
+        assert!(!settings_edge(rect, (-1, 620)));
+    }
+
+    #[test]
+    fn settings_strip_handles_small_and_empty_regions() {
+        assert!(settings_edge((10, 20, 3, 40), (10, 20)));
+        assert!(!settings_edge((10, 20, 0, 40), (10, 20)));
+        assert!(!settings_edge((10, 20, 40, 0), (49, 20)));
+    }
+}

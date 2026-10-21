@@ -1,1 +1,8 @@
-{"version": 1, "location": null}
+{
+  "version": 1,
+  "location": {
+    "name": "Butuan",
+    "latitude": 9.0079,
+    "longitude": 125.605
+  }
+}

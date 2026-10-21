@@ -87,17 +87,10 @@ hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }), { descr
 hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }), { description = "Previous workspace" })
 
 -- Move/resize windows with mainMod + LMB/RMB and dragging
-hl.bind(mainMod .. " + mouse:272", function()
-    local handle = io.popen('"' .. os.getenv("HOME") .. '/.local/bin/hyprmatrix" --drag-begin 2>/dev/null; echo $?')
-    if handle == nil then
-        hl.dispatch(hl.dsp.window.drag())
-        return
-    end
-    local status = tonumber(handle:read("*l")) or 1
-    handle:close()
-    if status ~= 0 then hl.dispatch(hl.dsp.window.drag()) end
-end, { mouse = true, description = "Drag rain region or window" })
-hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { description = "Resize window", mouse = true })
+-- Run the handshake asynchronously: Hyprmatrix queries Hyprland during hit testing.
+hl.bind(mainMod .. " + mouse:272", hl.dsp.exec_cmd([["$HOME/.local/bin/hyprmatrix" --drag-begin 2>/dev/null || hyprctl eval 'hl.dispatch(hl.dsp.window.drag())']]), { description = "Drag rain region or window" })
+hl.bind(mainMod .. " + mouse:272", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmatrix" --drag-end 2>/dev/null'), { release = true, description = "Finish rain region drag" })
+hl.bind(mainMod .. " + mouse:273", hl.dsp.exec_cmd([["$HOME/.local/bin/hyprmatrix" --settings-at-cursor 2>/dev/null || hyprctl eval 'hl.dispatch(hl.dsp.window.resize())']]), { description = "Rain right-edge settings or resize window" })
 
 -- Laptop multimedia keys for volume and LCD brightness
 -- Volume / brightness keys without needing Fn (with Fn they send XF86* symbols, already bound below)
@@ -115,10 +108,13 @@ hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_S
 hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),                  { locked = true, repeating = true, description = "Increase brightness" })
 hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true, description = "Decrease brightness" })
 
--- Screenshot region snipping tool: Print opens the region selector, then edit in swappy
-hl.bind("Print", hl.dsp.exec_cmd('grim -g "$(slurp)" - | swappy -f -'), { description = "Capture screenshot region" })
+-- Freeze the screen before region selection, then edit the capture in Swappy.
+hl.bind("Print", hl.dsp.exec_cmd('grimblast --freeze save area - | swappy -f -'), { description = "Capture screenshot region" })
 -- This keyboard's Print key emits KEY_INSERT, so bind it as well
-hl.bind("Insert", hl.dsp.exec_cmd('grim -g "$(slurp)" - | swappy -f -'), { description = "Capture screenshot region" })
+hl.bind("Insert", hl.dsp.exec_cmd('grimblast --freeze save area - | swappy -f -'), { description = "Capture screenshot region" })
+-- Capture before opening the editor so menus and popups stay in the image.
+hl.bind("SHIFT + Print", hl.dsp.exec_cmd("grim - | swappy -f -"), { description = "Capture full-screen screenshot" })
+hl.bind("SHIFT + Insert", hl.dsp.exec_cmd("grim - | swappy -f -"), { description = "Capture full-screen screenshot" })
 
 -- Requires playerctl
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true, description = "Next track" })

@@ -1,10 +1,33 @@
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, path::PathBuf};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Effect {
+    #[default]
+    Matrix,
+    ShootingStars,
+    Meteors,
+    Asteroids,
+}
+impl Effect {
+    pub const ALL: [Self; 4] = [Self::Matrix, Self::ShootingStars, Self::Meteors, Self::Asteroids];
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Matrix => "Matrix",
+            Self::ShootingStars => "Shooting stars",
+            Self::Meteors => "Meteors",
+            Self::Asteroids => "Asteroids",
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub fullscreen: bool,
+    /// Draw above application windows when true; pointer input still passes through.
+    pub in_front: bool,
     pub width: u32,
     pub height: u32,
     /// Position within the available desktop space, 0..1.
@@ -18,6 +41,7 @@ pub struct Config {
     pub font_size: u32,
     pub fps: u32,
     pub theme: String,
+    pub effect: Effect,
     pub font: Option<PathBuf>,
     /// Per-workspace visibility; absent workspaces stay hidden.
     pub workspace_overrides: BTreeMap<String, bool>,
@@ -26,6 +50,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             fullscreen: true,
+            in_front: false,
             width: 640,
             height: 520,
             x: 1.0,
@@ -38,6 +63,7 @@ impl Default for Config {
             font_size: 16,
             fps: 20,
             theme: "wallpaper".into(),
+            effect: Effect::Matrix,
             font: None,
             workspace_overrides: BTreeMap::new(),
         }
@@ -120,6 +146,27 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn effects_roundtrip_and_legacy_configs_keep_matrix() {
+        let legacy: Config = toml::from_str("fps = 15").unwrap();
+        assert_eq!(legacy.effect, Effect::Matrix);
+        for effect in Effect::ALL {
+            let c = Config { effect, ..Config::default() };
+            let parsed: Config = toml::from_str(&toml::to_string(&c).unwrap()).unwrap();
+            assert_eq!(parsed.effect, effect);
+            assert!(parsed.validate().is_ok());
+        }
+        assert!(toml::from_str::<Config>("effect = 'unknown'").is_err());
+    }
+    #[test]
+    fn stacking_defaults_behind_and_roundtrips() {
+        let mut c: Config = toml::from_str("opacity = 0.5").unwrap();
+        assert!(!c.in_front);
+        c.in_front = true;
+        let parsed: Config = toml::from_str(&toml::to_string(&c).unwrap()).unwrap();
+        assert!(parsed.in_front);
+        assert!(parsed.validate().is_ok());
+    }
     #[test]
     fn reject_bad_config_before_allocating() {
         let mut c = Config {
