@@ -1,0 +1,15 @@
+# Native desktop rain, beneath application windows.
+# Right-click the invisible upper-right 44px corner for settings.
+fullscreen = true
+width = 640
+height = 520
+x = 1.0
+y = 0.5
+opacity = 0.70
+background = 0.0
+density = 0.55
+speed = 9.0
+font_size = 16
+fps = 20
+theme = "wallpaper"
+# output = "eDP-1"

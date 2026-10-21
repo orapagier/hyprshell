@@ -1,0 +1,26 @@
+[package]
+name = "hyprmatrix"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.86"
+description = "Lean wallpaper-aware Wayland desktop digital rain"
+license = "MIT"
+
+[dependencies]
+calloop = "0.13"
+calloop-wayland-source = "0.3"
+fontdue = "0.9"
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+smithay-client-toolkit = { version = "0.19.2", default-features = false, features = ["calloop"] }
+toml = "0.8"
+wayland-client = "0.31"
+bytemuck = "1"
+png = "0.17"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+panic = "abort"

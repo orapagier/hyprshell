@@ -31,6 +31,7 @@ hl.bind("SUPER + K", hl.dsp.exec_cmd('"$HOME/.local/bin/keybindings-launcher"'),
 -- Hyprshell keyboard access, including when Hyprpane is hidden.
 hl.bind("SUPER + D", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" dashboard'), { description = "Toggle dashboard" })
 hl.bind("ALT + I", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmonitor" --toggle-workspace'), { description = "Toggle Hyprmonitor on active workspace" })
+hl.bind("ALT + M", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmatrix" --toggle-workspace'), { description = "Toggle Hyprmatrix on active workspace" })
 hl.bind("ALT + T", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" topbar'), { description = "Toggle Hyprpane on current workspace" })
 hl.bind("ALT + Z", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" hyprbar'), { description = "Toggle Hyprbar on current workspace" })
 hl.bind("ALT + D", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" hyprdock'), { description = "Toggle Hyprdock on current workspace" })
@@ -86,7 +87,16 @@ hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }), { descr
 hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }), { description = "Previous workspace" })
 
 -- Move/resize windows with mainMod + LMB/RMB and dragging
-hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true, description = "Drag window" })
+hl.bind(mainMod .. " + mouse:272", function()
+    local handle = io.popen('"' .. os.getenv("HOME") .. '/.local/bin/hyprmatrix" --drag-begin 2>/dev/null; echo $?')
+    if handle == nil then
+        hl.dispatch(hl.dsp.window.drag())
+        return
+    end
+    local status = tonumber(handle:read("*l")) or 1
+    handle:close()
+    if status ~= 0 then hl.dispatch(hl.dsp.window.drag()) end
+end, { mouse = true, description = "Drag rain region or window" })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { description = "Resize window", mouse = true })
 
 -- Laptop multimedia keys for volume and LCD brightness

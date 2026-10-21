@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Hyprmatrix
+Comment=Wallpaper-aware desktop digital rain; open settings
+Exec=hyprmatrix --settings
+Icon=utilities-terminal
+Terminal=false
+Categories=Utility;
+Keywords=matrix;rain;wallpaper;desktop;hacker;
