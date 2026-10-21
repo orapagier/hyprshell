@@ -58,7 +58,7 @@ def stage_apps(repo, stage, locations):
                                f'this machine has {libc_version}. Use a compatible release.')
         if not re.fullmatch(r'[a-f0-9]{64}', row['sha256']):
             raise RuntimeError('Invalid desktop app release checksum')
-        if row['asset'] != f'{app}-linux-{architecture}':
+        if row['asset'] not in (app, f'{app}-linux-{architecture}'):
             raise RuntimeError('Invalid desktop app release asset name')
     staged = {}
     for app in APPS:

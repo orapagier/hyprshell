@@ -1,21 +1,21 @@
 {
   "format": 1,
   "repository": "orapagier/hyprshell",
-  "tag": "desktop-apps-v0.1.0",
+  "tag": "v1.0.0",
   "architectures": {
     "x86_64": {
       "hyprmonitor": {
-        "asset": "hyprmonitor-linux-x86_64",
+        "asset": "hyprmonitor",
         "sha256": "b36992e045cf36e161f6b97c0ecc7d7eb139851f800643774a07d6b696bdb049",
         "minimum_glibc": "2.43"
       },
       "hyprmatrix": {
-        "asset": "hyprmatrix-linux-x86_64",
-        "sha256": "60aefbddbd603063d1ff0b36a63627d78ea8d695279a2543b25ac9a23faed234",
-        "minimum_glibc": "2.43"
+        "asset": "hyprmatrix",
+        "sha256": "b3906d13e5a131924a09cc7bddb8cd2700515f26acd7fc2f03588cb4ff5b175d",
+        "minimum_glibc": "2.39"
       },
       "hyprweather": {
-        "asset": "hyprweather-linux-x86_64",
+        "asset": "hyprweather",
         "sha256": "787144c33ec1787a56438eb74d86f4db5da46a9ad3e34d35a06d0a9de15dbdea",
         "minimum_glibc": "2.39"
       }

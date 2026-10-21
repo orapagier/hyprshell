@@ -15,7 +15,7 @@ from app_releases import APPS, verify_binary
 
 def package(repo, output, tag, repository, binaries):
     if not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]*', tag):
-        raise ValueError('Use a simple release tag, for example desktop-apps-v0.1.0')
+        raise ValueError('Use a simple release tag, for example v1.0.0')
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
         raise ValueError('Repository must be OWNER/REPO')
     rows, assets = {}, {}
@@ -34,7 +34,7 @@ def package(repo, output, tag, repository, binaries):
         if not versions:
             raise RuntimeError('Cannot determine minimum glibc for ' + app)
         minimum = max(versions, key=lambda value: tuple(map(int, value.split('.'))))
-        asset = app + '-linux-x86_64'
+        asset = app
         rows[app] = {'asset': asset, 'sha256': checksum, 'minimum_glibc': minimum}
         assets[asset] = data
     manifest = {'format': 1, 'repository': repository, 'tag': tag,

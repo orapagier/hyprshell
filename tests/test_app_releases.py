@@ -58,7 +58,8 @@ class AppReleaseTests(unittest.TestCase):
         url = request.full_url
         app = url.rsplit('/', 1)[1].removesuffix('-linux-x86_64')
         self.assertEqual(url, 'https://github.com/example/hyprshell/releases/download/'
-                         'desktop-apps-v1/' + app + '-linux-x86_64')
+                         + self.manifest['tag'] + '/'
+                         + self.manifest['architectures']['x86_64'][app]['asset'])
         return Response(self.binaries[app])
 
     def stage_apps(self):
@@ -67,6 +68,17 @@ class AppReleaseTests(unittest.TestCase):
     def installed_path(self, app):
         root, relative = app_releases.TARGETS[app].split('/', 1)
         return self.locations[root] / relative
+
+    def test_published_v1_release_uses_plain_executable_asset_names(self):
+        self.manifest['tag'] = 'v1.0.0'
+        for app in app_releases.APPS:
+            self.manifest['architectures']['x86_64'][app]['asset'] = app
+        self.save_manifest()
+        with patch.object(app_releases.urllib.request, 'urlopen', side_effect=self.download) as fetch:
+            staged = self.stage_apps()
+        self.assertEqual(fetch.call_count, 3)
+        for app, data in self.binaries.items():
+            self.assertEqual(staged[app_releases.TARGETS[app]].read_bytes(), data)
 
     def test_downloads_pinned_assets_and_marks_them_executable(self):
         with patch.object(app_releases.urllib.request, 'urlopen', side_effect=self.download) as fetch:

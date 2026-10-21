@@ -218,8 +218,8 @@ The installer:
 Hyprmonitor, Hyprmatrix and Hyprweather install automatically without local Cargo builds.
 Their release repository, tag, asset names, checksums and minimum glibc versions
 are pinned in [app-releases.json](app-releases.json). These initial binaries target
-Linux x86-64. Hyprmonitor and Hyprmatrix require glibc 2.43 or newer; Hyprweather
-requires glibc 2.39 or newer. The installer checks the host glibc before downloading
+Linux x86-64. Hyprmonitor requires glibc 2.43 or newer; Hyprmatrix and Hyprweather
+require glibc 2.39 or newer. The installer checks the host glibc before downloading
 any app. The binaries were built on Fedora 44; fresh Arch runtime acceptance
 remains pending.
 An unchanged installed binary is reused after checksum verification. Missing
@@ -234,12 +234,13 @@ To publish desktop app updates, build all three apps with `cargo build --release
 using their respective `--manifest-path apps/<app>-rs/Cargo.toml`, then run:
 
 ```bash
-python3 tools/package_desktop_apps.py --tag desktop-apps-v0.1.0 \
-  --output "$HOME/Downloads/hyprshell-desktop-apps-v0.1.0"
+python3 tools/package_desktop_apps.py --tag v1.0.0 \
+  --output "$HOME/Downloads/hyprshell-v1.0.0"
 ```
 
-The packager copies the executables under architecture-specific asset names,
-generates `SHA256SUMS` and release notes, and updates `app-releases.json`. Upload
+The packager copies the executables as `hyprmonitor`, `hyprmatrix` and `hyprweather`,
+generates `SHA256SUMS` and release notes, and updates `app-releases.json`. Their
+architecture is pinned in the manifest and verified against the executable format. Upload
 the three executables and `SHA256SUMS` to a GitHub Release in the manifest's repository
 with exactly the specified tag. Use the generated notes as its description. Publish
 the assets before distributing the installer changes that reference them. Use a
