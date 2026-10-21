@@ -199,8 +199,9 @@ The installer:
    only when no manager is installed.
 2. Upgrades the system and installs desktop, daily-driver and firmware packages.
    Fedora first resolves/downloads the full transaction from compatible repositories.
-3. Stages and validates desktop files, builds the audio helper, retains current
-   preferences, and backs up changed managed files before deployment.
+3. Stages and validates desktop files, downloads pinned Hyprmonitor and Hyprmatrix
+   release binaries and verifies their SHA-256 checksums, builds the other helpers,
+   retains current preferences, and backs up changed managed files before deployment.
 4. Enables networking, Bluetooth, user audio and graphical login; starts UPower.
 5. Prepares printing/discovery, keyring login, time sync, firewall and SSD trim,
    preserving configured time-service/firewall alternatives.
@@ -211,6 +212,37 @@ The installer:
    actual initramfs rebuild failures stop setup.
 8. Saves a redacted readiness report and provides the command for hardware checks
    after reboot/login.
+
+### Prebuilt desktop apps
+
+Hyprmonitor and Hyprmatrix install automatically without local Cargo builds.
+Their release repository, tag, asset names, checksums and minimum glibc versions
+are pinned in [app-releases.json](app-releases.json). These initial binaries target
+Linux x86-64 with glibc 2.43 or newer.
+The installer checks the host glibc before downloading either app. Fresh Arch
+runtime acceptance remains pending; the binaries were built on Fedora 44.
+An unchanged installed binary is reused after checksum verification. Missing
+release assets, failed downloads or checksum errors stop deployment before live
+files are replaced; installation never silently falls back to compiling these apps.
+The audio helper and Hyprweather still build locally, so build dependencies remain
+part of setup. Application settings, launchers and shortcuts are installed as before.
+
+To publish desktop app updates, build both apps with `cargo build --release --locked`
+using their respective `--manifest-path apps/<app>-rs/Cargo.toml`, then run:
+
+```bash
+python3 tools/package_desktop_apps.py --tag desktop-apps-v0.1.0 \
+  --output "$HOME/Downloads/hyprshell-desktop-apps-v0.1.0"
+```
+
+The packager copies the executables under architecture-specific asset names,
+generates `SHA256SUMS` and release notes, and updates `app-releases.json`. Upload
+the two executables and `SHA256SUMS` to a GitHub Release in the manifest's repository
+with exactly the specified tag. Use the generated notes as its description. Publish
+the assets before distributing the installer changes that reference them. Use a
+new tag for every binary update; commit the updated manifest alongside matching
+source/config changes. Keep binaries out of Git. For other architectures or older
+glibc hosts, build compatible assets and extend the manifest before enabling them.
 
 ### Whole-system planning
 

@@ -12,6 +12,7 @@ import tempfile
 import uuid
 
 import build_info
+import app_releases
 
 PREFERENCES = {'settings.json', 'cleanup.json', 'keybindings.json', 'keybindings.lua',
                'displays.json', 'displays.lua', 'theme.json', 'applications.json',
@@ -250,6 +251,11 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
         removed_before = {key: digest(destination(key, locations)) for key in plan['removed']}
         state = locations['state']
         live_before = {key: digest(destination(key, locations)) for key in files}
+        for app in app_releases.APPS:
+            key = 'home/.local/bin/' + app
+            target = destination(key, locations)
+            safe_target(target, locations['home'])
+            live_before[key] = digest(target)
         for name in PREFERENCES:
             key = 'config/hyprshell/' + name
             live_before[key] = digest(destination(key, locations))
@@ -274,24 +280,7 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
             subprocess.run(['cc', '-O2', str(helper.with_suffix('.c')), '-o', str(helper),
                             '-lpulse-simple', '-lpulse', '-lfftw3', '-lm'], check=True,
                            capture_output=True, text=True, timeout=60)
-            monitor_manifest = repo / 'apps/hyprmonitor-rs/Cargo.toml'
-            monitor_binary = None
-            if monitor_manifest.is_file():
-                target_dir = repo / 'apps/hyprmonitor-rs/target'
-                subprocess.run(['cargo', 'build', '--release', '--locked', '--manifest-path', str(monitor_manifest),
-                                '--target-dir', str(target_dir)], check=True, capture_output=True, text=True, timeout=600)
-                monitor_binary = stage / 'home/.local/bin/hyprmonitor'
-                monitor_binary.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(target_dir / 'release/hyprmonitor', monitor_binary)
-            matrix_manifest = repo / 'apps/hyprmatrix-rs/Cargo.toml'
-            matrix_binary = None
-            if matrix_manifest.is_file():
-                matrix_target = repo / 'apps/hyprmatrix-rs/target'
-                subprocess.run(['cargo', 'build', '--release', '--locked', '--manifest-path', str(matrix_manifest),
-                                '--target-dir', str(matrix_target)], check=True, capture_output=True, text=True, timeout=600)
-                matrix_binary = stage / 'home/.local/bin/hyprmatrix'
-                matrix_binary.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(matrix_target / 'release/hyprmatrix', matrix_binary)
+            desktop_apps = app_releases.stage_apps(repo, stage, locations)
             weather_manifest = repo / 'apps/hyprweather-rs/Cargo.toml'
             weather_binary = None
             if weather_manifest.is_file():
@@ -304,10 +293,7 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
             validate_staged(stage, native)
             staged = {key: stage / key for key in files}
             staged['config/quickshell/helpers/audio-spectrum'] = helper
-            if monitor_binary:
-                staged['home/.local/bin/hyprmonitor'] = monitor_binary
-            if matrix_binary:
-                staged['home/.local/bin/hyprmatrix'] = matrix_binary
+            staged.update(desktop_apps)
             if weather_binary:
                 staged['config/quickshell/helpers/hyprweather'] = weather_binary
             for name in PREFERENCES:

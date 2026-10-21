@@ -47,9 +47,16 @@ class InstallerTests(unittest.TestCase):
                 'with patch.object(compatibility, "machine", return_value=info):\n'
                 '    raise SystemExit(compatibility.main())\n')
             script = self.root / 'setup-fixture.sh'
+            # Use a config payload fixture without app sources or release pins.
+            # App download/verification/transactions have dedicated tests.
+            config_repo = self.root / 'config fixture'
+            config_repo.mkdir(exist_ok=True)
+            for name in ('config', 'tools', 'bin', 'assets', 'packages.txt', 'compatibility.json'):
+                if not (config_repo / name).exists():
+                    (config_repo / name).symlink_to(ROOT / name)
             text = (ROOT / 'setup.sh').read_text()
             text = text.replace('REPO_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)',
-                                'REPO_DIR=' + shlex.quote(str(ROOT)))
+                                'REPO_DIR=' + shlex.quote(str(config_repo)))
             text = text.replace('"$REPO_DIR/config/quickshell/settings/compatibility.py"',
                                 shlex.quote(str(driver)))
             script.write_text(text)
@@ -326,7 +333,7 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('Wallpapers/default.jpg',
                       (self.config / 'hypr/wallpaper-start.sh').read_text())
         self.assertEqual(len(self.installer_backups()), 1)
-        self.assertEqual((self.state / "hyprshell/repository").read_text().strip(), str(ROOT))
+        self.assertEqual((self.state / "hyprshell/repository").read_text().strip(), str(self.root / 'config fixture'))
 
     def test_rerun_keeps_identical_configs_without_unnecessary_backups(self):
         self.install()
@@ -334,7 +341,7 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('Unchanged:', result.stdout)
         self.assertNotIn('Installed:', result.stdout)
         self.assertEqual(len(self.installer_backups()), 1)
-        self.assertEqual((self.state / "hyprshell/repository").read_text().strip(), str(ROOT))
+        self.assertEqual((self.state / "hyprshell/repository").read_text().strip(), str(self.root / 'config fixture'))
 
     def test_local_code_conflict_stops_without_overwriting_unrelated_files(self):
         self.install()

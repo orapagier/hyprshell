@@ -156,7 +156,7 @@ def snapshot_managed_files(repo, config, home):
 PROJECT_PATHS = ('config', 'bin', 'assets', 'apps', 'tools', 'tests', 'docs', '.github',
                  '.gitignore', 'README.md', 'setup.sh', 'packages.txt',
                  'packages-apps.txt', 'packages-fallback.txt', 'packages-fedora.txt',
-                 'packages-apps-fedora.txt', 'compatibility.json', 'CHANGELOG.md')
+                 'packages-apps-fedora.txt', 'compatibility.json', 'app-releases.json', 'CHANGELOG.md')
 
 
 def snapshot(repo, config, home):

@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "repository": "orapagier/hyprshell",
+  "tag": "desktop-apps-v0.1.0",
+  "architectures": {
+    "x86_64": {
+      "hyprmonitor": {
+        "asset": "hyprmonitor-linux-x86_64",
+        "sha256": "b36992e045cf36e161f6b97c0ecc7d7eb139851f800643774a07d6b696bdb049",
+        "minimum_glibc": "2.43"
+      },
+      "hyprmatrix": {
+        "asset": "hyprmatrix-linux-x86_64",
+        "sha256": "60aefbddbd603063d1ff0b36a63627d78ea8d695279a2543b25ac9a23faed234",
+        "minimum_glibc": "2.43"
+      }
+    }
+  }
+}
