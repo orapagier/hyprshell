@@ -156,6 +156,7 @@ Item {
     function appearance(id) {
         let style = Settings.appearance(settings, id, wallpaperSource.toString());
         style.lightForeground = true;
+        style.outlineFree = true;
         if (compactItemPadding) style.compactPadding = true;
         let group = sharedPills.find(group => group.ids.includes(id));
         if (group) {
@@ -400,7 +401,9 @@ Item {
                 ? Qt.rect(bar.screenOffsetX + cross - 3, bar.screenOffsetY + along - span / 2 - bar.scrollOffset, 6, span)
                 : Qt.rect(bar.screenOffsetX + along - span / 2, bar.screenOffsetY + cross - 3, span, 6), true);
             let vivid = Colors.lightForeground(region.average, region.average);
-            return neutral ? Colors.mix(vivid, Qt.color("#ffffff"), 0.55) : vivid;
+            return Colors.readableForeground(region.average,
+                neutral ? Colors.mix(vivid, Qt.color("#ffffff"), 0.55) : vivid,
+                region.minimum, region.maximum, 3.2);
         }
         function segmentFor(start, end, cross, workspace, knotted) {
             let length = end - start;
@@ -480,8 +483,6 @@ Item {
                 }
             }
             function strokeMetal(ink, width) {
-                // A thin dark edge keeps the light ink visible on pale pixels.
-                ctx.strokeStyle = "#a6040508"; ctx.lineWidth = width + 1.2; ctx.stroke();
                 ctx.strokeStyle = ink; ctx.lineWidth = width; ctx.stroke();
             }
             for (let segmentIndex = 0; segmentIndex < segments.length; ++segmentIndex) {
@@ -540,6 +541,7 @@ Item {
         settings: {
             let style = Settings.appearance(bar.settings, fullPill.leader, bar.wallpaperSource.toString());
             style.lightForeground = true;
+            style.outlineFree = true;
             let mode = bar.settings.bar?.fullBackground || "off";
             style.background = mode === "inherit" ? (bar.settings.bar?.background === "off" ? "off" : "on") : mode;
             style.hideText = true;
@@ -870,7 +872,7 @@ Item {
                 return bar.vertical ? Array.from(count).join("\n") : count;
             }
             color: bell.effectiveForeground
-            style: bell.glyphHalo ? Text.Outline : bell.bare ? Text.Raised : Text.Normal
+            style: bell.settings.outlineFree ? Text.Normal : bell.glyphHalo ? Text.Outline : bell.bare ? Text.Raised : Text.Normal
             styleColor: bell.glyphHalo ? bell.textEdge : bell.glyphShadow
             renderType: Text.QtRendering
             font.family: "DejaVu Sans"

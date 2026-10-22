@@ -196,12 +196,12 @@ Item {
                     }
                 }
                 let bare = Colors.palette(sample, accent, sample, sample, "light-bare");
-                verify(bare.foreground.hslLightness >= 0.69, "Bare glyphs must stay light on pale wallpaper");
+                verify(Colors.contrast(bare.foreground, sample) >= 4.5, "Bare glyph contrast must come from its fill");
                 fuzzyCompare(bare.foreground.hslHue, accent.hslHue, 0.01);
-                if (Colors.contrast(bare.foreground, sample) < 4.5) {
-                    verify(bare.glyphHalo);
-                    verify(Colors.contrast(bare.foreground, bare.glyphOutline) >= 4.5);
-                }
+                compare(bare.glyphHalo, false);
+                let textured = Colors.palette(sample, accent, Qt.color("#000000"), Qt.color("#ffffff"), "light-bare");
+                compare(textured.glyphHalo, false);
+                verify(Colors.contrast(textured.foreground, sample) >= 4.5);
             }
         }
         function test_popdownPaletteFollowsWallpaperAndReachesControls() {
@@ -224,11 +224,23 @@ Item {
             fuzzyCompare(button.accent, menu.menuColors.text, 0.001);
             fuzzyCompare(button.hoverColor, menu.menuColors.hover, 0.001);
         }
-        function test_paneGlyphsStayLightWithCustomOverridesPreserved() {
+        function test_paneGlyphsUseColorContrastWithoutOutlines() {
             let launcher = findChild(bar, "launcherTrigger");
             try {
                 bar.settings = {bar:{background:"off", adaptiveColors:true}};
-                verify(launcher.effectiveForeground.hslLightness >= 0.69);
+                compare(launcher.glyphHalo, false);
+                compare(launcher.content.style, Text.Normal);
+                compare(findChild(bar, "distroGlassLogo").contrastEdge, false);
+                compare(findChild(bar, "settingsGlassCog").contrastEdge, false);
+                for (let sample of [Qt.color("#000000"), Qt.color("#ffffff"), Qt.color("#808080")]) {
+                    let ink = Colors.readableForeground(sample, Qt.color("#86a6ff"), sample, sample, 3.2);
+                    verify(Colors.contrast(ink, sample) >= 3.1);
+                }
+                bar.mediaData = {playing:true,title:"Track",levels:[0.5]};
+                let media = findChild(bar, "mediaSlot");
+                tryCompare(media, "active", true);
+                compare(findChild(media.item, "mediaSpectrum").contrastEdge, false);
+                compare(findChild(bar, "notificationBadge").style, Text.Normal);
                 bar.settings = {bar:{background:"off", adaptiveColors:true}, items:[{id:"launcher",iconColor:"#ff8800",textColor:"#00ddff"}]};
                 compare(launcher.iconColor, Qt.color("#ff8800"));
                 compare(launcher.textColor, Qt.color("#00ddff"));

@@ -30,6 +30,29 @@ function lightForeground(sample, accent) {
                    Math.max(0.70, accent.hslLightness), 1);
 }
 
+// Bare glyphs have no backing: adjust their shade instead of drawing an edge.
+function readableForeground(sample, accent, minimum, maximum, goal) {
+    goal = goal || 4.6;
+    let preferred = lightForeground(sample, accent);
+    let black = Qt.color("#000000"), white = Qt.color("#ffffff");
+    let useBounds = Math.max(regionContrast(black, minimum, maximum), regionContrast(white, minimum, maximum)) >= goal;
+    // A mixed light/dark texture may have no single readable shade everywhere.
+    // Use its local average in that case, retaining the source hue/saturation.
+    let target = useBounds ? goal : Math.min(goal, Math.max(contrast(black, sample), contrast(white, sample)) * 0.99);
+    function score(color) { return useBounds ? regionContrast(color, minimum, maximum) : contrast(color, sample); }
+    if (score(preferred) >= target) return preferred;
+    let foreground = preferred, distance = Infinity;
+    for (let i = 0; i <= 128; ++i) {
+        let candidate = Qt.hsla(preferred.hslHue, preferred.hslSaturation, i / 128, 1);
+        let delta = Math.abs(candidate.hslLightness - preferred.hslLightness);
+        if (delta < distance && score(candidate) >= target) {
+            foreground = candidate;
+            distance = delta;
+        }
+    }
+    return foreground;
+}
+
 function vibrantPalette(sample, accent, minimum, maximum, keepLight, appearanceStyle) {
     let foreground = keepLight ? lightForeground(sample, accent) : vibrantForeground(sample, accent);
     let base = Qt.rgba(0.035, 0.04, 0.06, 1);
@@ -92,7 +115,7 @@ function barePalette(sample, accent, minimum, maximum, style) {
         target = contrast(dark, sample) > contrast(light, sample) ? dark : light;
     let achievable = regionContrast(target, minimum, maximum);
     let textured = achievable < 4.5;
-    let foreground = original;
+    let foreground = style === "light" ? readableForeground(sample, accent, minimum, maximum) : original;
     if (!textured && style !== "light") {
         // Change lightness while retaining hue and saturation. Mixing toward
         // white bleached colorful items, even when a richer shade was readable.
@@ -115,7 +138,7 @@ function barePalette(sample, accent, minimum, maximum, style) {
                : style === "vibrant" ? vibrantPalette(sample, accent, minimum, maximum)
                                      : palette(sample, accent, minimum, maximum, style);
     result.foreground = foreground;
-    result.glyphHalo = regionContrast(foreground, minimum, maximum) < 4.5;
+    result.glyphHalo = style !== "light" && regionContrast(foreground, minimum, maximum) < 4.5;
     result.glyphOutline = glyphEdge(foreground);
     return result;
 }
