@@ -6,11 +6,15 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
     let corner = Math.max(0, Math.min(24, width / 2, height / 2));
     // Mirror the card shoulder at the pill, scaled down and bounded by the pill.
     let flare = Math.max(0, Math.min(48, width / 2 - corner));
-    let footHalf = Math.max(0, Math.min(flare * 0.7, half * 0.7));
+    let footHalf = pointed ? 0 : Math.max(0, Math.min(flare * 0.7, half * 0.7));
     let footY = neck; // the viewport clips the outline at the pill boundary
     let gap = Math.max(1, y - footY);
-    let waistHalf = Math.min(4.8, footHalf * 0.25);
+    let waistHalf = pointed ? Math.min(4.8, gap * 0.15) : Math.min(4.8, footHalf * 0.25);
     let waistY = footY + gap * 0.35;
+    // Keep the curved neck, but give its two sides distinct, acute tangents
+    // where they meet the icon instead of forming a rounded cap.
+    let capX = pointed ? waistHalf * 0.125 : footHalf * 0.25;
+    let capY = pointed ? footY + (waistY - footY) * 0.35 : footY;
     let waistX = tip;
     // Keep the stem centered on its pill. At a card corner, merge the shoulder
     // at the same card-top baseline on both sides, rounding below the foot.
@@ -22,32 +26,9 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
     function body(px, py) { return p(px + shear * (py - y), py); }
     function line(px, py) { path.push('L ' + body(px, py)); }
     function quad(a,b,c,d) { path.push('Q ' + body(a,b) + ' ' + body(c,d)); }
-    if (pointed) {
-        // Two straight edges meet at the icon, without a curved neck or cap.
-        // Keep the triangle's base between the card's rounded corners even
-        // when its trigger sits near or beyond a card edge.
-        let pointerHalf = Math.min(14, Math.max(0, width / 2 - corner));
-        let join = Math.max(x + corner + pointerHalf,
-            Math.min(x + width - corner - pointerHalf, tip));
-        path.push('M ' + p(tip, neck));
-        line(join + pointerHalf, y);
-        line(x + width - corner, y);
-        quad(x + width, y, x + width, y + corner);
-        line(x + width, y + height - corner);
-        quad(x + width, y + height, x + width - corner, y + height);
-        line(x + corner, y + height);
-        quad(x, y + height, x, y + height - corner);
-        line(x, y + corner);
-        quad(x, y, x + corner, y);
-        line(join - pointerHalf, y);
-        path.push('L ' + p(tip, neck));
-        path.push('Z');
-        return {path:path.join(' '), footLeft:tip, footRight:tip,
-            footY:neck, waistHalf:pointerHalf};
-    }
     path.push('M ' + p(tip - footHalf,footY));
     path.push('L ' + p(tip + footHalf,footY));
-    path.push('C ' + p(tip + footHalf * 0.25,footY) + ' '
+    path.push('C ' + p(tip + capX,capY) + ' '
         + p(waistX + waistHalf,waistY - (waistY - footY) * (0.42 / 0.65)) + ' ' + p(waistX + waistHalf,waistY));
     if (rightFits) {
         path.push('C ' + p(waistX + waistHalf,waistY + gap * 0.42) + ' '
@@ -84,7 +65,7 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
             + p(waistX - waistHalf,waistY + gap * 0.42) + ' ' + p(waistX - waistHalf,waistY));
     }
     path.push('C ' + p(waistX - waistHalf,waistY - (waistY - footY) * (0.42 / 0.65)) + ' '
-        + p(tip - footHalf * 0.25,footY) + ' ' + p(tip - footHalf,footY));
+        + p(tip - capX,capY) + ' ' + p(tip - footHalf,footY));
     path.push('Z');
     return { path: path.join(' '), footLeft: tip - footHalf, footRight: tip + footHalf,
         footY: footY, waistHalf: waistHalf };
