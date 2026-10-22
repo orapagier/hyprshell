@@ -106,9 +106,10 @@ the default Speed. These are stylized sky effects, with procedural trails.
 
 Fine tapered trails grow behind small neutral-white heads, then shorten as the
 event fades. Color tints the trail and halo. Density controls both the starfield
-and event frequency, rising more strongly toward 100%. At 1080p/default Speed,
-100% produces roughly ten moving events per second, including clusters, and
-about 520 stationary stars (four times the previous maximum). Smaller screens
+and event frequency, with moving activity rising more strongly toward 100%.
+At 1080p/default Speed, 100% produces roughly thirty moving events per second,
+including clusters, and about 52 stationary stars. This triples moving-event
+frequency and reduces the maximum-density background starfield by 90%. Smaller screens
 scale the event count with a minimum activity floor. Low density retains quiet
 gaps. Speed scales motion and timing; Particle size scales heads, trails and
 speed. Matrix's density, motion and drawing remain unchanged.

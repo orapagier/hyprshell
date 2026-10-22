@@ -104,7 +104,7 @@ fn streaks(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
     let chance = (activity*area.max(0.35)/lanes as f32).min(1.0);
     let size = c.font_size as f32/16.0;
     for period in (window-1).max(0)..=window {
-        for slot in 0..lanes*72 {
+        for slot in 0..lanes*216 {
             let group = slot/3;
             let group_seed = hash((period as u32).wrapping_mul(104729).wrapping_add(group*7919+971));
             // Accept a left/center/right triplet together, but randomize each
@@ -152,7 +152,8 @@ fn streaks(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
 }
 
 fn starfield(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
-    let richness = if c.effect==Effect::Asteroids { 1.0 } else { 1.0+3.0*c.density*c.density };
+    // Keep the background sparse so moving streaks remain the main attraction.
+    let richness = if c.effect==Effect::Asteroids { 1.0 } else { 0.4 };
     let count = ((w as f32*h as f32/16000.0*c.density*richness).ceil() as u32)
         .clamp(1,if c.effect==Effect::Asteroids { 220 } else { 880 });
     let columns = ((count as f32*w as f32/h as f32).sqrt().ceil() as u32).max(1);
@@ -391,6 +392,8 @@ mod tests {
                     }
                 }
                 let count=births.len() as f32;
+                assert!(births.len()>if dimensions.0==1920 { 1200 } else { 400 },
+                    "{dimensions:?}: {} births",births.len());
                 assert!(regions.iter().all(|n| *n as f32>count*0.25 && (*n as f32)<count*0.42),
                     "{dimensions:?}: {regions:?}");
                 assert!(((regions[0] as i32-regions[2] as i32).unsigned_abs() as f32)<count*0.08,
@@ -404,9 +407,13 @@ mod tests {
             assert!(totals[1]>totals[0]*3,"{dimensions:?}: {totals:?}");
         }
         let mut stars=Vec::new();
-        let c=Config { effect:Effect::ShootingStars,density:1.0,..Config::default() };
-        starfield(&mut stars,(1920,1080),&c,12.0);
-        assert!(stars.len()>500);
+        for effect in [Effect::ShootingStars,Effect::Meteors,Effect::Asteroids] {
+            stars.clear();
+            let c=Config { effect,density:1.0,..Config::default() };
+            starfield(&mut stars,(1920,1080),&c,12.0);
+            let range=if effect==Effect::Asteroids { 120..=140 } else { 40..=60 };
+            assert!(range.contains(&stars.len()),"{effect:?}: {} stars",stars.len());
+        }
     }
     #[test]
     fn stationary_stars_hold_then_renew_in_every_space_mode_independent_of_speed() {
@@ -417,7 +424,7 @@ mod tests {
             let mut next=Vec::new();
             starfield(&mut first,(1280,720),&c,12.0);
             starfield(&mut next,(1280,720),&c,12.1);
-            assert!(first.len()>20);
+            assert!(first.len()>5);
             for (a,b) in first.iter().zip(&next) {
                 assert!(a.stationary && b.stationary);
                 if a.seed==b.seed { assert_eq!((a.x,a.y,a.radius),(b.x,b.y,b.radius)); }
@@ -433,7 +440,7 @@ mod tests {
             next.clear();
             starfield(&mut next,(1280,720),&c,65.0);
             assert!(first.iter().zip(&next).all(|(a,b)| a.seed!=b.seed));
-            assert!(first.iter().zip(&next).filter(|(a,b)| (a.x,a.y)!=(b.x,b.y)).count()>20);
+            assert!(first.iter().zip(&next).filter(|(a,b)| (a.x,a.y)!=(b.x,b.y)).count()>first.len()/2);
             assert!(first.iter().zip(&next).any(|(a,b)| a.radius!=b.radius));
             assert!(first.iter().zip(&next).any(|(a,b)| a.opacity!=b.opacity));
         }
