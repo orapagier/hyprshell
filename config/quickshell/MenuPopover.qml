@@ -45,7 +45,7 @@ Item {
     property bool opened: false
     property bool cardClickable: false
     property bool connected: true
-    // Bare triggers keep the curved stem, with a sharp tip at the glyph.
+    // Bare stems curve from a broad card attachment to a point at the glyph.
     property bool pointed: false
     property bool preserveCornerPosition: true
     // Opt-in edge drawers; ordinary menus retain their funnel and motion.

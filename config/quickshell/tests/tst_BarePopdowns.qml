@@ -81,11 +81,26 @@ Item {
                 : data.edge === "right" ? scene.width - anchor.x
                 : data.edge === "left" ? anchor.x + anchor.width : anchor.y + anchor.height;
             compare(popover.fluidOutline.footY,neck);
-            // The curved neck must leave the tip at an acute angle.
-            let curve = popover.fluidOutline.path.match(/ C (-?[\d.]+) (-?[\d.]+)/);
-            verify(curve !== null);
-            let dx = Number(curve[1]) - tip, dy = Number(curve[2]) - neck;
-            verify(dx > 0 && dy > 0 && dx / dy < 0.3);
+            // Follow both curved sides from the icon toward the card: the
+            // width must increase throughout, without a neck or bulge.
+            let curves = popover.fluidOutline.path.match(/C(?: -?[\d.]+){6}/g);
+            compare(curves.length,2);
+            let right = curves[0].slice(2).split(" ").map(Number);
+            let left = curves[1].slice(2).split(" ").map(Number);
+            let leftBase = popover.fluidOutline.path.match(/ L (-?[\d.]+) (-?[\d.]+) C [^C]*Z$/);
+            verify(leftBase !== null);
+            function bezier(a,b,c,d,t) {
+                let u = 1 - t;
+                return u*u*u*a + 3*u*u*t*b + 3*u*t*t*c + t*t*t*d;
+            }
+            let previous = 0;
+            for (let step = 1; step <= 50; ++step) {
+                let t = step / 50;
+                let width = bezier(tip,right[0],right[2],right[4],t)
+                    - bezier(tip,left[2],left[0],Number(leftBase[1]),t);
+                verify(width > previous,"Stem must widen continuously toward the card");
+                previous = width;
+            }
             let bridge = data.edge === "bottom" ? Qt.point(tip,anchor.y - 2)
                 : data.edge === "right" ? Qt.point(anchor.x - 2,tip)
                 : data.edge === "left" ? Qt.point(anchor.x + anchor.width + 2,tip)
