@@ -1,11 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "AdaptiveColors.js" as Colors
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Networking
 
 ColumnLayout {
     id: page
+    readonly property var menuColors: Colors.menuColorsFor(page)
     required property var services
     property var selected: null
     property string statusText: ""
@@ -17,12 +19,12 @@ ColumnLayout {
         function onConnectionFailed(reason) { page.statusText = ConnectionFailReason.toString(reason); }
         function onConnectedChanged() { if (page.selected && page.selected.connected) { page.statusText = "Connected to " + page.selected.name; page.selected = null; } }
     }
-    MenuLabel { text: page.services.wifiEnabled ? "Available networks" : "Wi-Fi is turned off"; color: "#a6adc8" }
+    MenuLabel { text: page.services.wifiEnabled ? "Available networks" : "Wi-Fi is turned off"; color: page.menuColors.secondary }
     MenuLabel {
         objectName: "wifiInternetStatus"
         text: page.services.statusData.network.internetStatus || ""
         visible: text.length > 0
-        color: page.services.statusData.network.internetWarning ? "#f9e2af" : "#94e2d5"
+        color: page.services.statusData.network.internetWarning ? "#f9e2af" : page.menuColors.accent
         Layout.fillWidth: true
     }
     ScrollView {
@@ -49,7 +51,7 @@ ColumnLayout {
                     Layout.maximumHeight: 36
                     font.family: "GoMono Nerd Font"
                     text: page.services.wifiIcon(modelData.signalStrength) + "  " + modelData.name + (modelData.connected ? "  ✓" : modelData.security !== WifiSecurityType.Open ? "  󰌾" : "")
-                    accent: modelData.connected ? "#94e2d5" : "#cdd6f4"
+                    accent: modelData.connected ? page.menuColors.accent : page.menuColors.text
                     enabled: !modelData.stateChanging
                     onClicked: {
                         page.selected = modelData;
@@ -66,13 +68,13 @@ ColumnLayout {
     ColumnLayout {
         visible: !!page.selected && !page.selected.connected && !page.selected.known && page.selected.security !== WifiSecurityType.Open && page.selected.security !== WifiSecurityType.Owe
         Layout.fillWidth: true
-        MenuLabel { text: page.selected ? page.selected.name : ""; color: "#94e2d5"; Layout.fillWidth: true }
+        MenuLabel { text: page.selected ? page.selected.name : ""; color: page.menuColors.accent; Layout.fillWidth: true }
         TextField {
             id: password
             Layout.fillWidth: true
             echoMode: TextInput.Password
             placeholderText: "Password"
-            color: "#cdd6f4"; placeholderTextColor: "#a6adc8"; font.pixelSize: 13
+            color: page.menuColors.text; placeholderTextColor: page.menuColors.secondary; font.pixelSize: 13
             background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#44cdd6f4" }
             onAccepted: connect.clicked()
         }

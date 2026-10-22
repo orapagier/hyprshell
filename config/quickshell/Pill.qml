@@ -34,7 +34,7 @@ Item {
     property var colorSampler: null
     property Item colorRoot: null
     property string colorStyle: "normal"
-    readonly property var adaptivePalette: colorSampler ? colorSampler.paletteFor(pill, colorRoot, settings.vibrantColor ? Qt.color(settings.vibrantColor) : foreground, settings.vibrantColor ? (bare ? "vibrant-bare" : "vibrant") : (bare ? "bare-" + colorStyle : colorStyle)) : null
+    readonly property var adaptivePalette: colorSampler ? colorSampler.paletteFor(pill, colorRoot, settings.vibrantColor ? Qt.color(settings.vibrantColor) : foreground, settings.lightForeground ? (bare ? "light-bare" : settings.vibrantColor ? "light" : "light-" + colorStyle) : settings.vibrantColor ? (bare ? "vibrant-bare" : "vibrant") : (bare ? "bare-" + colorStyle : colorStyle)) : null
     readonly property color effectiveForeground: adaptivePalette ? adaptivePalette.foreground : settings.vibrantColor || foreground
     property color tint: Qt.rgba(30/255, 30/255, 46/255, 0.28)
     property color outline: Qt.rgba(1, 1, 1, 0.16)

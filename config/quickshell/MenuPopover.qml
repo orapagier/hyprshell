@@ -27,15 +27,16 @@ Item {
     property string edge: "top"
     readonly property bool vertical: edge === "left" || edge === "right"
     property color accent: "#b4befe"
+    readonly property var menuColors: glass.menuColors
     // Bar accents can be dark on a bright wallpaper. Measure against the
     // card's own gradient, and include the extra tint behind its header icon.
     readonly property color headerColor: headerForeground(0)
     readonly property color headerIconColor: headerForeground(0.14)
     function headerForeground(tint) {
-        let top = Colors.mix(Colors.mix(glass.sample, glass.topColor, glass.topColor.a), accent, tint);
-        let bottom = Colors.mix(Colors.mix(glass.sample, glass.bottomColor, glass.bottomColor.a), accent, tint);
+        let top = Colors.mix(Colors.mix(glass.sample, glass.topColor, glass.topColor.a), menuColors.accent, tint);
+        let bottom = Colors.mix(Colors.mix(glass.sample, glass.bottomColor, glass.bottomColor.a), menuColors.accent, tint);
         function contrast(color) { return Math.min(Colors.contrast(color, top), Colors.contrast(color, bottom)); }
-        let foreground = Qt.rgba(accent.r, accent.g, accent.b, 1);
+        let foreground = menuColors.accent;
         let light = Qt.color("#ffffff"), dark = Qt.color("#000000");
         let target = contrast(light) >= contrast(dark) ? light : dark;
         for (let i = 0; i < 40 && contrast(foreground) < 4.6; ++i)
@@ -310,7 +311,7 @@ Item {
             }
             Rectangle {
                 x: 20; y: 1; width: parent.width - 40; height: 1
-                color: Qt.rgba(popover.accent.r, popover.accent.g, popover.accent.b, 0.28)
+                color: Qt.rgba(popover.menuColors.accent.r, popover.menuColors.accent.g, popover.menuColors.accent.b, 0.28)
             }
         }
         MouseArea {
@@ -362,14 +363,14 @@ Item {
                 spacing: 10
                 Rectangle {
                     width: 30; height: 30; radius: 10
-                    color: Qt.rgba(popover.accent.r, popover.accent.g, popover.accent.b, 0.14)
-                    border.color: Qt.rgba(popover.accent.r, popover.accent.g, popover.accent.b, 0.25)
+                    color: Qt.rgba(popover.menuColors.accent.r, popover.menuColors.accent.g, popover.menuColors.accent.b, 0.14)
+                    border.color: Qt.rgba(popover.menuColors.accent.r, popover.menuColors.accent.g, popover.menuColors.accent.b, 0.25)
                     Text { anchors.centerIn: parent; text: popover.symbol; color: popover.headerIconColor; font.family: "GoMono Nerd Font"; font.pixelSize: 17 }
                 }
                 MenuLabel { text: popover.title; color: popover.headerColor; font.bold: true; font.pixelSize: 15; Layout.fillWidth: true }
-                Rectangle { width: 5; height: 5; radius: 3; color: popover.accent; opacity: 0.7 }
+                Rectangle { width: 5; height: 5; radius: 3; color: popover.menuColors.accent; opacity: 0.9 }
             }
-            Rectangle { visible: popover.showHeader; Layout.fillWidth: true; implicitHeight: 1; color: Qt.rgba(popover.accent.r, popover.accent.g, popover.accent.b, 0.15) }
+            Rectangle { visible: popover.showHeader; Layout.fillWidth: true; implicitHeight: 1; color: Qt.rgba(popover.menuColors.accent.r, popover.menuColors.accent.g, popover.menuColors.accent.b, 0.15) }
             Loader {
                 id: persistentLoader
                 Layout.fillWidth: true

@@ -1,11 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "AdaptiveColors.js" as Colors
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Io
 
 ColumnLayout {
     id: page
+    readonly property var menuColors: Colors.menuColorsFor(page)
     required property var services
     property string statusText: ""
     property string prompt: ""
@@ -49,7 +51,7 @@ ColumnLayout {
         }
         function onConnectedChanged() { if (page.pairingDevice && page.pairingDevice.connected) { page.statusText = "Connected"; page.prompt = ""; } }
     }
-    MenuLabel { text: !page.services.adapter ? "Bluetooth is unavailable" : page.services.adapter.enabled ? page.services.adapter.discovering ? "Scanning…" : "Devices" : "Bluetooth is turned off"; color: "#a6adc8" }
+    MenuLabel { text: !page.services.adapter ? "Bluetooth is unavailable" : page.services.adapter.enabled ? page.services.adapter.discovering ? "Scanning…" : "Devices" : "Bluetooth is turned off"; color: page.menuColors.secondary }
     ScrollView {
         id: deviceScroll
         Layout.fillWidth: true; Layout.preferredHeight: Math.min(240, devices.implicitHeight)
@@ -71,7 +73,7 @@ ColumnLayout {
                     Layout.preferredHeight: 36
                     Layout.maximumHeight: 36
                     text: modelData.name + (modelData.connected ? "  ✓" : modelData.pairing ? "  Pairing…" : modelData.paired ? "  Paired" : "")
-                    accent: modelData.connected ? "#89b4fa" : "#cdd6f4"
+                    accent: modelData.connected ? page.menuColors.accent : page.menuColors.text
                     onClicked: {
                         page.pairingDevice = modelData;
                         page.statusText = ""; page.prompt = "";
@@ -89,7 +91,7 @@ ColumnLayout {
         TextField {
             id: pin
             visible: !page.confirmation; Layout.fillWidth: true
-            placeholderText: "PIN or passkey"; color: "#cdd6f4"; placeholderTextColor: "#a6adc8"
+            placeholderText: "PIN or passkey"; color: page.menuColors.text; placeholderTextColor: page.menuColors.secondary
             background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#44cdd6f4" }
             onAccepted: { page.handledPrompt = page.prompt; agent.write(text + "\n"); text = ""; page.prompt = ""; }
         }

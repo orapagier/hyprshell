@@ -1,10 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "AdaptiveColors.js" as Colors
 import QtQuick.Controls
 import QtQuick.Layouts
 
 ColumnLayout {
     id: page
+    readonly property var menuColors: Colors.menuColorsFor(page)
     required property var inbox
     property string expanded: ""
     readonly property var rows: inbox.rows.filter(r => (r.app + " " + r.summary + " " + r.body).toLowerCase().includes(search.text.toLowerCase()))
@@ -19,11 +21,11 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.leftMargin: notificationScroll.leftPadding
         Layout.rightMargin: notificationScroll.rightPadding
-        placeholderText: "Search notifications"; color: "#cdd6f4"; placeholderTextColor: "#a6adc8"
+        placeholderText: "Search notifications"; color: page.menuColors.text; placeholderTextColor: page.menuColors.secondary
         font.family: "DejaVu Sans"; font.pixelSize: 13
         background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#1fffffff" }
     }
-    MenuLabel { text: "No notifications"; visible: page.rows.length === 0; color: "#a6adc8" }
+    MenuLabel { text: "No notifications"; visible: page.rows.length === 0; color: page.menuColors.secondary }
     ScrollView {
         id: notificationScroll
         objectName: "notificationScroll"

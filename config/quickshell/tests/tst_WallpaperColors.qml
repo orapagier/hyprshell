@@ -24,6 +24,19 @@ Item {
         wallpaperSource: sampler.source
         screenWidth: 800; screenHeight: 400
     }
+    MenuPopover {
+        id: menu
+        width: 800; height: 400
+        wallpaperSource: sampler.source
+        instant: true; opened: true
+        page: Component {
+            Item {
+                implicitHeight: 40
+                MenuLabel { objectName: "adaptiveMenuLabel"; text: "Readable label" }
+                MenuButton { objectName: "adaptiveMenuButton"; y: 20; text: "Action" }
+            }
+        }
+    }
     TestCase {
         name: "WallpaperColors"
         when: windowShown
@@ -169,6 +182,59 @@ Item {
             tryCompare(media, "active", true);
             verify(media.item.adaptivePalette !== null);
             grabImage(bar).save("/tmp/quickshell-wallpaper-regions.png");
+        }
+        function test_lightGlyphsKeepTheirHueAndContrast() {
+            let samples = [Qt.color("#000000"), Qt.color("#ffffff"), Qt.color("#808080"), Qt.color("#ff0000"), Qt.color("#0000ff")];
+            let accents = [Qt.color("#ff6575"), Qt.color("#54e3da"), Qt.color("#86a6ff"), Qt.color("#343650")];
+            for (let sample of samples) for (let accent of accents) {
+                for (let style of ["light", "light-normal", "light-emphasized", "light-muted"]) {
+                    let palette = Colors.palette(sample, accent, Qt.color("#000000"), Qt.color("#ffffff"), style);
+                    verify(palette.foreground.hslLightness >= 0.69);
+                    for (let fill of [palette.tint, palette.hover, palette.selected]) for (let under of samples) {
+                        let composite = Colors.mix(under, fill, fill.a);
+                        verify(Colors.contrast(palette.foreground, Colors.mix(composite, Qt.color("#ffffff"), 0.08)) >= 4.5);
+                    }
+                }
+                let bare = Colors.palette(sample, accent, sample, sample, "light-bare");
+                verify(bare.foreground.hslLightness >= 0.69, "Bare glyphs must stay light on pale wallpaper");
+                fuzzyCompare(bare.foreground.hslHue, accent.hslHue, 0.01);
+                if (Colors.contrast(bare.foreground, sample) < 4.5) {
+                    verify(bare.glyphHalo);
+                    verify(Colors.contrast(bare.foreground, bare.glyphOutline) >= 4.5);
+                }
+            }
+        }
+        function test_popdownPaletteFollowsWallpaperAndReachesControls() {
+            let red = Colors.wallpaperPalette(Qt.color("#ee2233"), false);
+            let blue = Colors.wallpaperPalette(Qt.color("#2244ee"), false);
+            verify(red.background.r > red.background.b);
+            verify(blue.background.b > blue.background.r);
+            verify(red.accent.r > red.accent.b);
+            verify(blue.accent.b > blue.accent.r);
+            for (let palette of [red, blue, Colors.wallpaperPalette(Qt.color("#ffffff"), false)])
+                for (let foreground of [palette.text, palette.secondary, palette.accent])
+                    verify(Colors.contrast(foreground, palette.background) >= 4.5);
+            let accessible = Colors.wallpaperPalette(Qt.color("#ff3344"), true);
+            compare(accessible.background, Qt.color("#000000"));
+            compare(accessible.text, Qt.color("#ffffff"));
+            compare(accessible.accent, Qt.color("#ffffff"));
+            let label = findChild(menu, "adaptiveMenuLabel"), button = findChild(menu, "adaptiveMenuButton");
+            verify(label !== null && button !== null);
+            fuzzyCompare(label.color, menu.menuColors.text, 0.001);
+            fuzzyCompare(button.accent, menu.menuColors.text, 0.001);
+            fuzzyCompare(button.hoverColor, menu.menuColors.hover, 0.001);
+        }
+        function test_paneGlyphsStayLightWithCustomOverridesPreserved() {
+            let launcher = findChild(bar, "launcherTrigger");
+            try {
+                bar.settings = {bar:{background:"off", adaptiveColors:true}};
+                verify(launcher.effectiveForeground.hslLightness >= 0.69);
+                bar.settings = {bar:{background:"off", adaptiveColors:true}, items:[{id:"launcher",iconColor:"#ff8800",textColor:"#00ddff"}]};
+                compare(launcher.iconColor, Qt.color("#ff8800"));
+                compare(launcher.textColor, Qt.color("#00ddff"));
+                bar.settings = {bar:{adaptiveColors:false}};
+                compare(launcher.adaptivePalette, null);
+            } finally { bar.settings = {}; }
         }
     }
 }

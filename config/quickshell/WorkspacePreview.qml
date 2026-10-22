@@ -1,9 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "AdaptiveColors.js" as Colors
 import Quickshell.Hyprland
 
 Item {
     id: preview
+    readonly property var menuColors: Colors.menuColorsFor(preview)
     property int workspaceId: 0
     property var output: null
     property url wallpaperSource: ""
@@ -47,7 +49,7 @@ Item {
                 visible: !capture.hasContent
                 elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
-                color: "#cdd6f4"
+                color: preview.menuColors.text
                 font.pixelSize: 10
             }
         }
@@ -56,7 +58,7 @@ Item {
         anchors.centerIn: parent
         visible: preview.workspaceWindows.length === 0
         text: "Empty workspace"
-        color: "#cdd6f4"
+        color: preview.menuColors.text
         font.pixelSize: 12
         style: Text.Outline
         styleColor: "#181825"

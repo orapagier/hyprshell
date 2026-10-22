@@ -17,6 +17,7 @@ PanelWindow {
         region: Qt.rect(card.x, card.y, card.width, card.height)
         translucency: popup.translucency
     }
+    readonly property var menuColors: glass.menuColors
     property bool opened: false
     property bool pointerReady: false
     onOpenedChanged: {
@@ -51,11 +52,11 @@ PanelWindow {
     WlrLayershell.keyboardFocus: opened ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     QtObject {
         id: theme
-        readonly property color windowText: "#e2e6f3"
+        readonly property color windowText: popup.menuColors.text
         readonly property color text: windowText
-        readonly property color highlight: "#b4befe"
-        readonly property color highlightedText: "#161824"
-        readonly property color base: "#161824"
+        readonly property color highlight: popup.menuColors.accent
+        readonly property color highlightedText: popup.menuColors.background
+        readonly property color base: popup.menuColors.background
     }
     function containsPoint(x, y) {
         return x >= card.x && x <= card.x + card.width && y >= card.y && y <= card.y + card.height;
@@ -76,6 +77,7 @@ PanelWindow {
     }
     Rectangle {
         id: card
+        readonly property var menuColors: popup.menuColors
         anchors.centerIn: parent
         width: Math.min(520, popup.width - 40)
         height: Math.min(600, popup.height - 40)
@@ -114,7 +116,7 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 3
                     Label { text: "Keyboard shortcuts"; color: theme.windowText; font.family: "Noto Sans"; font.pixelSize: 21; font.weight: Font.DemiBold }
-                    Label { text: "Find your next move"; color: theme.windowText; opacity: 0.60; font.family: "Noto Sans"; font.pixelSize: 12 }
+                    Label { text: "Find your next move"; color: theme.windowText; opacity: 0.82; font.family: "Noto Sans"; font.pixelSize: 12 }
                 }
                 Rectangle {
                     id: escapeBadge
@@ -122,7 +124,7 @@ PanelWindow {
                     anchors.top: headerIcon.top
                     width: 36; height: 25; radius: 7
                     color: Qt.rgba(theme.windowText.r, theme.windowText.g, theme.windowText.b, 0.06)
-                    Text { anchors.centerIn: parent; text: "esc"; color: theme.windowText; opacity: 0.65; font.family: "Noto Sans"; font.pixelSize: 11 }
+                    Text { anchors.centerIn: parent; text: "esc"; color: theme.windowText; opacity: 0.82; font.family: "Noto Sans"; font.pixelSize: 11 }
                 }
             }
             Loader {

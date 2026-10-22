@@ -1,5 +1,6 @@
 import QtQuick
 import "AdaptiveColors.js" as Colors
+import "style" as Style
 
 Item {
     id: glass
@@ -11,11 +12,12 @@ Item {
     property real translucency: 0.06
     property bool cacheFullWallpaper: false
     readonly property color sample: sampler.sampleRect(region)
+    readonly property var menuColors: Colors.wallpaperPalette(sample, Style.Theme.highContrast)
     // A dark backing keeps menu labels readable on light and busy wallpapers.
-    readonly property color base: Colors.mix(Colors.mix(sample, accent, 0.45), Qt.color("#161824"), 0.70)
+    readonly property color base: menuColors.background
     readonly property color topColor: Colors.alpha(Colors.mix(base, Qt.color("#ffffff"), 0.07), 1 - translucency)
     readonly property color bottomColor: Colors.alpha(base, 1 - translucency)
-    readonly property color rimColor: Colors.alpha(Colors.mix(sample, accent, 0.65), 0.55)
+    readonly property color rimColor: Colors.alpha(menuColors.accent, 0.55)
     WallpaperColors {
         id: sampler
         source: glass.wallpaperSource

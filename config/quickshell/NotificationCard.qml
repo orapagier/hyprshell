@@ -1,9 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "AdaptiveColors.js" as Colors
 import QtQuick.Layouts
 
 ColumnLayout {
     id: card
+    readonly property var menuColors: Colors.menuColorsFor(card)
     required property var notification
     property bool expanded: false
     signal toggleRequested()
@@ -31,7 +33,7 @@ ColumnLayout {
                     Layout.minimumWidth: 0
                     text: (card.notification.critical ? "Critical · " : "") + card.notification.app
                     font.pixelSize: 11
-                    color: "#a6adc8"
+                    color: card.menuColors.secondary
                     wrapMode: Text.Wrap
                     // Only the collapsed preview has a line limit.
                     maximumLineCount: card.expanded ? 2147483647 : 1
@@ -93,7 +95,7 @@ ColumnLayout {
         }
         MenuLabel {
             text: Qt.formatDateTime(new Date(card.notification.received), "MMM d, h:mm AP")
-            color: "#a6adc8"
+            color: card.menuColors.secondary
             font.pixelSize: 10
             Layout.fillWidth: true
             TapHandler { onTapped: card.toggleRequested() }

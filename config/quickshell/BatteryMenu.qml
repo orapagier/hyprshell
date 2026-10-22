@@ -1,9 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "AdaptiveColors.js" as Colors
 import QtQuick.Layouts
 
 ColumnLayout {
     id: page
+    readonly property var menuColors: Colors.menuColorsFor(page)
     required property var services
     readonly property var info: services.batteryInfo || ({present: false})
     readonly property int percentage: Number.isFinite(info.percentage) ? Math.max(0, Math.min(100, Math.round(info.percentage))) : 0
@@ -38,7 +40,7 @@ ColumnLayout {
             ? Math.round(value).toLocaleString(Qt.locale("en_US"), "f", 0) + " mAh" : "Not reported";
     }
 
-    MenuLabel { visible: !page.info.present; text: "Battery information is unavailable"; Layout.fillWidth: true; color: "#a6adc8" }
+    MenuLabel { visible: !page.info.present; text: "Battery information is unavailable"; Layout.fillWidth: true; color: page.menuColors.secondary }
     Rectangle {
         visible: !!page.info.present
         Layout.fillWidth: true
@@ -54,7 +56,7 @@ ColumnLayout {
                 spacing: 2
                 Layout.fillWidth: true
                 MenuLabel { objectName: "batteryCharge"; text: page.percentage + "%"; color: page.accent; font.pixelSize: 28; font.bold: true }
-                MenuLabel { objectName: "batteryStatus"; text: page.info.status || "Unknown"; color: "#a6adc8"; font.pixelSize: 12 }
+                MenuLabel { objectName: "batteryStatus"; text: page.info.status || "Unknown"; color: page.menuColors.secondary; font.pixelSize: 12 }
             }
         }
         Rectangle {
@@ -67,7 +69,7 @@ ColumnLayout {
         visible: !!(page.info.present && page.info.model)
         text: page.info.model || ""
         Layout.fillWidth: true; Layout.minimumWidth: 0
-        color: "#a6adc8"; font.pixelSize: 11
+        color: page.menuColors.secondary; font.pixelSize: 11
     }
     Repeater {
         model: page.info.present ? [
@@ -85,7 +87,7 @@ ColumnLayout {
             visible: modelData.show
             Layout.fillWidth: true
             spacing: 8
-            MenuLabel { text: detail.modelData.label; color: "#a6adc8"; Layout.fillWidth: true; font.pixelSize: 12 }
+            MenuLabel { text: detail.modelData.label; color: page.menuColors.secondary; Layout.fillWidth: true; font.pixelSize: 12 }
             MenuLabel { objectName: "batteryDetail-" + detail.modelData.key; text: detail.modelData.value; font.pixelSize: 12; horizontalAlignment: Text.AlignRight }
         }
     }
@@ -114,7 +116,7 @@ ColumnLayout {
             }
             MenuLabel {
                 text: "20–80% is a flexible target. A full charge is fine when you need more runtime."
-                color: "#a6adc8"; font.pixelSize: 10
+                color: page.menuColors.secondary; font.pixelSize: 10
                 Layout.fillWidth: true; Layout.minimumWidth: 0
             }
         }

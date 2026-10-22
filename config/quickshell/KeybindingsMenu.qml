@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "AdaptiveColors.js" as Colors
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Io
@@ -8,13 +9,14 @@ import "KeybindingsGuide.js" as Guide
 
 ColumnLayout {
     id: page
+    readonly property var menuColors: Colors.menuColorsFor(page)
     QtObject {
         id: theme
-        readonly property color windowText: "#e2e6f3"
+        readonly property color windowText: page.menuColors.text
         readonly property color text: windowText
-        readonly property color highlight: "#b4befe"
-        readonly property color highlightedText: "#161824"
-        readonly property color base: "#161824"
+        readonly property color highlight: page.menuColors.accent
+        readonly property color highlightedText: page.menuColors.background
+        readonly property color base: page.menuColors.background
     }
     property var bindings: []
     property string error: ""
@@ -100,7 +102,7 @@ ColumnLayout {
                 Text {
                     width: parent.width
                     text: row.modelData.context + (row.modelData.details ? " · " + row.modelData.details : "")
-                    color: theme.windowText; opacity: 0.6
+                    color: theme.windowText; opacity: 0.82
                     font.family: "Noto Sans"; font.pixelSize: 11; wrapMode: Text.Wrap
                 }
                 Flow {
@@ -113,7 +115,7 @@ ColumnLayout {
                             implicitHeight: 24; radius: 6
                             color: Qt.rgba(theme.windowText.r, theme.windowText.g, theme.windowText.b, 0.065)
                             border.color: Qt.rgba(theme.windowText.r, theme.windowText.g, theme.windowText.b, 0.10)
-                            Text { id: keyLabel; anchors.centerIn: parent; text: modelData; color: theme.windowText; opacity: 0.78; font.family: "Noto Sans"; font.pixelSize: 11; font.weight: Font.Medium }
+                            Text { id: keyLabel; anchors.centerIn: parent; text: modelData; color: theme.windowText; opacity: 0.88; font.family: "Noto Sans"; font.pixelSize: 11; font.weight: Font.Medium }
                         }
                     }
                 }
@@ -123,13 +125,13 @@ ColumnLayout {
             anchors.centerIn: parent; width: parent.width; spacing: 8
             visible: !page.entries.length
             Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: page.error || "No shortcuts found"; color: theme.windowText; font.family: "Noto Sans"; font.pixelSize: 14; font.weight: Font.Medium }
-            Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: page.error ? "Try opening the panel again" : "Try a different action or key"; color: theme.windowText; opacity: 0.55; font.family: "Noto Sans"; font.pixelSize: 12 }
+            Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: page.error ? "Try opening the panel again" : "Try a different action or key"; color: theme.windowText; opacity: 0.82; font.family: "Noto Sans"; font.pixelSize: 12 }
         }
     }
     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Qt.rgba(theme.windowText.r, theme.windowText.g, theme.windowText.b, 0.08) }
     RowLayout {
         Layout.fillWidth: true
-        Text { text: page.entries.length + " of " + (page.bindings.length + Guide.localBindings.length) + " shortcuts"; color: theme.windowText; opacity: 0.55; font.family: "Noto Sans"; font.pixelSize: 11; Layout.fillWidth: true }
-        Text { text: "↑ ↓  Browse   ·   Esc  Close"; color: theme.windowText; opacity: 0.55; font.family: "Noto Sans"; font.pixelSize: 11 }
+        Text { text: page.entries.length + " of " + (page.bindings.length + Guide.localBindings.length) + " shortcuts"; color: theme.windowText; opacity: 0.82; font.family: "Noto Sans"; font.pixelSize: 11; Layout.fillWidth: true }
+        Text { text: "↑ ↓  Browse   ·   Esc  Close"; color: theme.windowText; opacity: 0.82; font.family: "Noto Sans"; font.pixelSize: 11 }
     }
 }

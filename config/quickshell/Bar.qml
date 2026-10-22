@@ -155,6 +155,7 @@ Item {
     }
     function appearance(id) {
         let style = Settings.appearance(settings, id, wallpaperSource.toString());
+        style.lightForeground = true;
         if (compactItemPadding) style.compactPadding = true;
         let group = sharedPills.find(group => group.ids.includes(id));
         if (group) {
@@ -398,12 +399,8 @@ Item {
             let region = bar.wallpaperColors.sampleRect(bar.vertical
                 ? Qt.rect(bar.screenOffsetX + cross - 3, bar.screenOffsetY + along - span / 2 - bar.scrollOffset, 6, span)
                 : Qt.rect(bar.screenOffsetX + along - span / 2, bar.screenOffsetY + cross - 3, span, 6), true);
-            // Single strokes switch between light steel and deep slate/blue
-            // for local contrast without adding an outline around the links.
-            let light = neutral ? Qt.rgba(0.78, 0.84, 0.88, 1) : Qt.rgba(0.66, 0.86, 0.95, 1);
-            let dark = neutral ? Qt.rgba(0.20, 0.26, 0.31, 1) : Qt.rgba(0.14, 0.30, 0.40, 1);
-            return Colors.contrast(light, region.average) >= Colors.contrast(dark, region.average)
-                ? light : dark;
+            let vivid = Colors.lightForeground(region.average, region.average);
+            return neutral ? Colors.mix(vivid, Qt.color("#ffffff"), 0.55) : vivid;
         }
         function segmentFor(start, end, cross, workspace, knotted) {
             let length = end - start;
@@ -483,6 +480,8 @@ Item {
                 }
             }
             function strokeMetal(ink, width) {
+                // A thin dark edge keeps the light ink visible on pale pixels.
+                ctx.strokeStyle = "#a6040508"; ctx.lineWidth = width + 1.2; ctx.stroke();
                 ctx.strokeStyle = ink; ctx.lineWidth = width; ctx.stroke();
             }
             for (let segmentIndex = 0; segmentIndex < segments.length; ++segmentIndex) {
@@ -504,7 +503,7 @@ Item {
                     let ink = segment.knots[knotIndex];
                     ctx.save(); ctx.translate(p.x, p.y);
                     if (bar.vertical) ctx.rotate(Math.PI / 2);
-                    // Keep the mechanical joints crisp with a single adaptive stroke.
+                    // Keep the existing joint path and adapt only its ink.
                     knotPath(variant, size);
                     strokeMetal(ink, 1.6 * connectors.knotScale);
                     if (variant >= 3) {
@@ -540,6 +539,7 @@ Item {
         vertical: bar.vertical
         settings: {
             let style = Settings.appearance(bar.settings, fullPill.leader, bar.wallpaperSource.toString());
+            style.lightForeground = true;
             let mode = bar.settings.bar?.fullBackground || "off";
             style.background = mode === "inherit" ? (bar.settings.bar?.background === "off" ? "off" : "on") : mode;
             style.hideText = true;

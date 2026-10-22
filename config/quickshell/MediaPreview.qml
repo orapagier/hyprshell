@@ -1,11 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "AdaptiveColors.js" as Colors
 import QtQuick.Layouts
 import Quickshell.Hyprland
 import "PreviewModel.js" as PreviewModel
 
 ColumnLayout {
     id: preview
+    readonly property var menuColors: Colors.menuColorsFor(preview)
     property var mediaData: ({})
     property bool active: false
     property var windows: Hyprland.toplevels.values
@@ -15,7 +17,7 @@ ColumnLayout {
     Rectangle {
         Layout.fillWidth: true
         implicitHeight: width * 9 / 16
-        color: "#181825"
+        color: preview.menuColors.background
         radius: 8
         clip: true
         Image {
@@ -32,7 +34,7 @@ ColumnLayout {
             width: parent.width * 0.65; height: parent.height * 0.45
             levels: preview.mediaData.levels || []
             visible: !capture.hasContent && artwork.status !== Image.Ready
-            color: "#cba6f7"
+            color: preview.menuColors.accent
         }
         PreviewCapture {
             id: capture
@@ -52,6 +54,6 @@ ColumnLayout {
         text: [preview.mediaData.artist, preview.mediaData.appName].filter(Boolean).join(" · ")
         visible: text.length > 0
         font.pixelSize: 11
-        color: "#a6adc8"
+        color: preview.menuColors.secondary
     }
 }

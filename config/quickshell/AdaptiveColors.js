@@ -25,11 +25,17 @@ function vibrantForeground(sample, accent) {
     return foreground;
 }
 
-function vibrantPalette(sample, accent, minimum, maximum) {
-    let foreground = vibrantForeground(sample, accent);
+function lightForeground(sample, accent) {
+    return Qt.hsla(accent.hslHue, accent.hslSaturation,
+                   Math.max(0.70, accent.hslLightness), 1);
+}
+
+function vibrantPalette(sample, accent, minimum, maximum, keepLight, appearanceStyle) {
+    let foreground = keepLight ? lightForeground(sample, accent) : vibrantForeground(sample, accent);
     let base = Qt.rgba(0.035, 0.04, 0.06, 1);
     let background = mix(base, accent, 0.04);
-    let opacity = 0.22;
+    let opacity = keepLight && appearanceStyle === "emphasized" ? 0.38
+                : keepLight && appearanceStyle === "muted" ? 0.10 : 0.22;
     // Protect the bright foreground against the lightest sampled pixels,
     // including hover/selection fills and the pill's white glass highlight.
     function minimumContrast() {
@@ -53,8 +59,8 @@ function vibrantPalette(sample, accent, minimum, maximum) {
         tint: alpha(background, opacity),
         hover: alpha(mix(background, foreground, 0.03), Math.min(0.96, opacity + 0.06)),
         selected: alpha(mix(background, foreground, 0.06), Math.min(0.96, opacity + 0.12)),
-        outline: alpha(foreground, 0.24),
-        selectedOutline: alpha(foreground, 0.55),
+        outline: alpha(foreground, keepLight && appearanceStyle === "muted" ? 0.10 : 0.24),
+        selectedOutline: alpha(foreground, keepLight && appearanceStyle === "emphasized" ? 0.70 : 0.55),
         glyphOutline: base
     };
 }
@@ -74,6 +80,7 @@ function glyphEdge(foreground) {
 
 function barePalette(sample, accent, minimum, maximum, style) {
     let original = style === "muted" ? Qt.rgba(0.62, 0.62, 0.62, 1)
+                 : style === "light" ? lightForeground(sample, accent)
                  : style === "vibrant" ? vibrantForeground(sample, accent) : accent;
     let dark = Qt.rgba(0.015, 0.02, 0.03, 1), light = Qt.rgba(1, 1, 1, 1);
     if (style === "muted") dark = Qt.rgba(0.02, 0.02, 0.02, 1);
@@ -86,7 +93,7 @@ function barePalette(sample, accent, minimum, maximum, style) {
     let achievable = regionContrast(target, minimum, maximum);
     let textured = achievable < 4.5;
     let foreground = original;
-    if (!textured) {
+    if (!textured && style !== "light") {
         // Change lightness while retaining hue and saturation. Mixing toward
         // white bleached colorful items, even when a richer shade was readable.
         let goal = Math.min(4.6, achievable * 0.99);
@@ -104,7 +111,8 @@ function barePalette(sample, accent, minimum, maximum, style) {
     // Preserve the accent and use a contrasting silhouette instead.
     // Keep the regular palette fields for consumers, but never solve bare
     // contrast by increasing a background that will not be drawn.
-    let result = style === "vibrant" ? vibrantPalette(sample, accent, minimum, maximum)
+    let result = style === "light" ? vibrantPalette(sample, accent, minimum, maximum, true)
+               : style === "vibrant" ? vibrantPalette(sample, accent, minimum, maximum)
                                      : palette(sample, accent, minimum, maximum, style);
     result.foreground = foreground;
     result.glyphHalo = regionContrast(foreground, minimum, maximum) < 4.5;
@@ -112,9 +120,38 @@ function barePalette(sample, accent, minimum, maximum, style) {
     return result;
 }
 
+// Use the dashboard's wallpaper hue, dark surface and light foregrounds.
+function wallpaperPalette(sample, highContrast) {
+    let background = highContrast ? Qt.color("#000000")
+        : Qt.hsva(sample.hsvHue, sample.hsvSaturation * 0.72,
+                  0.12 + sample.hsvValue * 0.10, 1);
+    let text = highContrast ? Qt.color("#ffffff") : mix(sample, Qt.color("#ffffff"), 0.94);
+    let accent = highContrast ? text : mix(lightForeground(sample, sample), text, 0.38);
+    return {background: background, text: text, secondary: mix(background, text, 0.82), accent: accent,
+            hover: alpha(accent, 0.22), pressed: alpha(accent, 0.33), focus: alpha(accent, 0.53),
+            disabled: mix(background, text, 0.60)};
+}
+
+// Only popdown descendants inherit this palette; standalone controls keep
+// their existing defaults and explicit semantic warning/success colors.
+function menuColorsFor(item) {
+    for (let parent = item.parent; parent; parent = parent.parent)
+        if (parent.menuColors !== undefined) return parent.menuColors;
+    return {background: Qt.color("#1e1e2e"), text: Qt.color("#cdd6f4"),
+            secondary: Qt.color("#a6adc8"), accent: Qt.color("#b4befe"),
+            hover: Qt.color("#38cba6f7"), pressed: Qt.color("#55cba6f7"),
+            focus: Qt.color("#88cba6f7"), disabled: Qt.color("#585b70")};
+}
+
 function palette(sample, accent, minimum, maximum, style) {
     minimum = minimum || sample;
     maximum = maximum || sample;
+    if (style === "light-bare")
+        return barePalette(sample, accent, minimum, maximum, "light");
+    if (style === "light")
+        return vibrantPalette(sample, accent, minimum, maximum, true);
+    if (style && style.indexOf("light-") === 0)
+        return vibrantPalette(sample, accent, minimum, maximum, true, style.slice(6));
     if (style === "vibrant-bare")
         return barePalette(sample, accent, minimum, maximum, "vibrant");
     if (style === "vibrant")

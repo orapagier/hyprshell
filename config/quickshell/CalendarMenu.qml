@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "AdaptiveColors.js" as Colors
 import "style" as Style
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -7,11 +8,12 @@ import "Calendar.js" as Calendar
 
 ColumnLayout {
     id: page
-    property bool adaptivePalette: false
-    property color textColor: "#cdd6f4"
-    property color secondaryColor: "#a6adc8"
-    property color accentColor: "#b4befe"
-    property color surfaceColor: "#1e1e2e"
+    readonly property var menuColors: Colors.menuColorsFor(page)
+    property bool adaptivePalette: true
+    property color textColor: menuColors.text
+    property color secondaryColor: menuColors.secondary
+    property color accentColor: menuColors.accent
+    property color surfaceColor: menuColors.background
     property date now: new Date()
     property date today: now
     property int year: today.getFullYear()

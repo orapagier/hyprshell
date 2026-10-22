@@ -1,25 +1,27 @@
 import QtQuick
 import "style" as Style
+import "AdaptiveColors.js" as Colors
 import QtQuick.Controls
 
 Button {
     id: control
+    readonly property var menuColors: Colors.menuColorsFor(control)
     hoverEnabled: true
     scale: down ? 0.98 : 1
     Behavior on scale { NumberAnimation { duration: Style.Theme.duration(control, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
-    property color accent: "#cdd6f4"
+    property color accent: menuColors.text
     property color fillColor: "#0bffffff"
-    property color hoverColor: "#38cba6f7"
-    property color pressedColor: "#55cba6f7"
+    property color hoverColor: menuColors.hover
+    property color pressedColor: menuColors.pressed
     property color outlineColor: "#1fffffff"
-    property color focusColor: "#88cba6f7"
+    property color focusColor: menuColors.focus
     implicitHeight: Math.max(36, contentItem.implicitHeight + 16)
     leftPadding: 10; rightPadding: 10; topPadding: 8; bottomPadding: 8
     font.family: "DejaVu Sans"; font.pixelSize: 13
     contentItem: Text {
         text: control.text
         font: control.font
-        color: control.enabled ? control.accent : "#585b70"
+        color: control.enabled ? control.accent : control.menuColors.disabled
         elide: Text.ElideRight
         verticalAlignment: Text.AlignVCenter
     }

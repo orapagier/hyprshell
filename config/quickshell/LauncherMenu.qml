@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "AdaptiveColors.js" as Colors
 import QtQuick.Controls
 import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
@@ -9,6 +10,7 @@ import "ApplicationModel.js" as Apps
 
 ColumnLayout {
     id: page
+    readonly property var menuColors: Colors.menuColorsFor(page)
     signal launched()
     property url wallpaperSource: ""
     property real translucency: 0.06
@@ -52,9 +54,9 @@ ColumnLayout {
     Basic.Menu {
         id: pinMenu
         objectName: "launcherPinMenu"
-        palette.text: '#cdd6f4'; palette.windowText: '#cdd6f4'; palette.buttonText: '#cdd6f4'
+        palette.text: page.menuColors.text; palette.windowText: page.menuColors.text; palette.buttonText: page.menuColors.text
         palette.window: 'transparent'; palette.base: 'transparent'; palette.button: 'transparent'
-        palette.highlight: '#66517e'; palette.highlightedText: '#cdd6f4'
+        palette.highlight: Colors.alpha(page.menuColors.accent, 0.24); palette.highlightedText: page.menuColors.text
         property var entry: null
         padding: 8
         implicitWidth: 228
@@ -76,14 +78,14 @@ ColumnLayout {
                 screenHeight: page.Window.window ? page.Window.window.height : page.height
                 region: { let point = pinMenu.parent ? pinMenu.parent.mapToItem(null, pinMenu.x, pinMenu.y) : Qt.point(0, 0); return Qt.rect(point.x, point.y, width, height); }
             }
-            Rectangle { x:16; y:1; width:parent.width-32; height:1; color:'#48b4befe' }
+            Rectangle { x:16; y:1; width:parent.width-32; height:1; color:Colors.alpha(page.menuColors.accent, 0.28) }
         }
         component PinAction: Basic.MenuItem {
             id: pinAction
             implicitHeight: 38
             leftPadding: 12; rightPadding: 12
             contentItem: Text {
-                text: pinAction.text; color:'#cdd6f4'
+                text: pinAction.text; color:page.menuColors.text
                 font.family:'DejaVu Sans'; font.pixelSize:13
                 verticalAlignment:Text.AlignVCenter
                 elide:Text.ElideRight
@@ -91,8 +93,8 @@ ColumnLayout {
             }
             background: Rectangle {
                 radius: 10
-                color: pinAction.highlighted ? '#30b4befe' : 'transparent'
-                border.color: pinAction.activeFocus ? '#66b4befe' : 'transparent'
+                color: pinAction.highlighted ? Colors.alpha(page.menuColors.accent, 0.19) : 'transparent'
+                border.color: pinAction.activeFocus ? Colors.alpha(page.menuColors.accent, 0.40) : 'transparent'
             }
         }
         PinAction {
@@ -117,7 +119,7 @@ ColumnLayout {
         id: search
         objectName: "launcherSearch"
         Layout.fillWidth: true
-        placeholderText: "Search applications"; color: "#cdd6f4"; placeholderTextColor: "#a6adc8"
+        placeholderText: "Search applications"; color: page.menuColors.text; placeholderTextColor: page.menuColors.secondary
         font.family: "DejaVu Sans"; font.pixelSize: 13
         background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#1fffffff" }
         Component.onCompleted: if (page.active) page.prepare()
@@ -139,7 +141,7 @@ ColumnLayout {
             width: applications.width
             text: modelData.name
             iconSource: page.applicationService ? page.applicationService.iconSource(modelData.icon) : fallbackIcons.item ? (fallbackIcons.item.source(modelData.icon) || fallbackIcons.item.source("application-x-executable")) : ""
-            accent: (applications.activeFocus || search.activeFocus) && applications.currentIndex === index ? "#cba6f7" : "#cdd6f4"
+            accent: (applications.activeFocus || search.activeFocus) && applications.currentIndex === index ? page.menuColors.accent : page.menuColors.text
             onClicked: { page.launch(modelData); }
             TapHandler {
                 acceptedButtons: Qt.RightButton

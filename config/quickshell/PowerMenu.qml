@@ -28,14 +28,14 @@ ColumnLayout {
                 Text {
                     text: powerButton.text
                     font: powerButton.font
-                    color: powerButton.enabled ? powerButton.accent : "#585b70"
+                    color: powerButton.enabled ? powerButton.accent : powerButton.menuColors.disabled
                     elide: Text.ElideRight
                     Layout.fillWidth: true
                 }
                 Text {
                     text: powerButton.modelData.shortcut
                     font: powerButton.font
-                    color: powerButton.enabled ? powerButton.accent : "#585b70"
+                    color: powerButton.enabled ? powerButton.accent : powerButton.menuColors.disabled
                     horizontalAlignment: Text.AlignRight
                 }
             }

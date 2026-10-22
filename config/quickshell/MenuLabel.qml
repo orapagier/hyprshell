@@ -1,7 +1,9 @@
 import QtQuick
+import "AdaptiveColors.js" as Colors
 
 Text {
-    color: "#cdd6f4"
+    id: label
+    color: Colors.menuColorsFor(label).text
     font.family: "DejaVu Sans"
     font.pixelSize: 13
     wrapMode: Text.Wrap
