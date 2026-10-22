@@ -907,7 +907,7 @@ Item {
         bar: bar
         menu: "wifi"
         text: bar.statusData.network.text || "󰤮"
-        foreground: bar.statusData.network.connected ? "#94e2d5" : "#585b70"
+        foreground: bar.statusData.network.internetWarning ? "#f9e2af" : bar.statusData.network.connected ? "#94e2d5" : "#585b70"
         tint: bar.rgba("#94e2d5", 0.18)
         outline: bar.rgba("#94e2d5", 0.26)
         family: "GoMono Nerd Font"

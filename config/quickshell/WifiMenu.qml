@@ -18,6 +18,13 @@ ColumnLayout {
         function onConnectedChanged() { if (page.selected && page.selected.connected) { page.statusText = "Connected to " + page.selected.name; page.selected = null; } }
     }
     MenuLabel { text: page.services.wifiEnabled ? "Available networks" : "Wi-Fi is turned off"; color: "#a6adc8" }
+    MenuLabel {
+        objectName: "wifiInternetStatus"
+        text: page.services.statusData.network.internetStatus || ""
+        visible: text.length > 0
+        color: page.services.statusData.network.internetWarning ? "#f9e2af" : "#94e2d5"
+        Layout.fillWidth: true
+    }
     ScrollView {
         id: networkScroll
         Layout.fillWidth: true

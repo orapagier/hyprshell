@@ -28,6 +28,11 @@ Item {
     readonly property var connectedWifi: wifiNetworks.find(n => n.connected) || null
     readonly property var wired: Networking.devices.values.find(d => d.type === DeviceType.Wired && d.connected) || null
     readonly property bool wifiEnabled: Networking.wifiEnabled
+    WifiInternet {
+        id: wifiInternet
+        interfaceName: services.connectedWifi && services.connectedWifi.device ? services.connectedWifi.device.name : ""
+        connectionName: services.connectedWifi ? services.connectedWifi.name : ""
+    }
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property var bluetoothDevices: Bluetooth.devices.values.slice().sort((a,b) => Number(b.connected) - Number(a.connected) || Number(b.paired) - Number(a.paired) || a.name.localeCompare(b.name))
     readonly property var connectedBluetooth: bluetoothDevices.filter(d => d.connected)
@@ -78,11 +83,11 @@ Item {
     readonly property var statusData: ({
         workspaces: workspaceData,
         audio: {icon: audioIcon, text: sink && sink.audio ? sink.audio.muted ? "muted" : Math.round(sink.audio.volume * 100) + "%" : "--", tooltip: sink ? sink.description : "Audio unavailable"},
-        network: {text: connectedWifi ? wifiIcon(connectedWifi.signalStrength) : wired ? "󰈀" : wifiEnabled ? "󰤮" : "󰤭", connected: !!(connectedWifi || wired), tooltip: connectedWifi ? connectedWifi.name + " · " + Math.round(connectedWifi.signalStrength * 100) + "%" : wired ? "Ethernet · " + wired.name : wifiEnabled ? "Offline" : "Wi-Fi turned off"},
+        network: {text: connectedWifi ? wifiIcon(connectedWifi.signalStrength, wifiInternet.warning) : wired ? "󰈀" : wifiEnabled ? "󰤮" : "󰤭", connected: !!(connectedWifi || wired), internetWarning: !!connectedWifi && wifiInternet.warning, internetStatus: connectedWifi ? wifiInternet.label : "", tooltip: connectedWifi ? connectedWifi.name + " · " + Math.round(connectedWifi.signalStrength * 100) + "% · " + wifiInternet.label : wired ? "Ethernet · " + wired.name : wifiEnabled ? "Offline" : "Wi-Fi turned off"},
         bluetooth: {text: connectedBluetooth.length ? "󰂱" : adapter && adapter.enabled ? "󰂯" : "󰂲", powered: !!(adapter && adapter.enabled), connected: connectedBluetooth.length > 0, tooltip: connectedBluetooth.length ? "Bluetooth · " + connectedBluetooth.length + " connected\n" + connectedBluetooth.map(d => d.name).join("\n") : adapter ? "Bluetooth · " + (adapter.enabled ? "on" : "off") : "Bluetooth is unavailable"},
         battery: {present: !!(battery && battery.isPresent && battery.isLaptopBattery), text: (battery && battery.state === UPowerDeviceState.FullyCharged ? "󰂅" : (charging ? chargingIcons : batteryIcons)[Math.max(0, Math.min(9, Math.floor(capacity * 10 / 101)))]) + " " + capacity + "%", charging: charging, low: batteryAlert.low, warning: capacity <= 30, tooltip: capacity + "% · " + (battery ? UPowerDeviceState.toString(battery.state) : "Unavailable")}
     })
-    function wifiIcon(strength) { return ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"][Math.min(4, Math.floor(Math.max(0, strength) * 5))]; }
+    function wifiIcon(strength, warning) { return (warning ? ["󰤫", "󰤠", "󰤣", "󰤦", "󰤩"] : ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"])[Math.min(4, Math.floor(Math.max(0, strength) * 5))]; }
     function workspace(id) { let w = spaces.find(w => w.id === Number(id)); if (w) w.activate(); }
     function scrollWorkspace(direction) {
         let step = Number(direction) < 0 ? "-1" : "+1";
