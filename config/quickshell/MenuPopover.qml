@@ -27,17 +27,20 @@ Item {
     property string edge: "top"
     readonly property bool vertical: edge === "left" || edge === "right"
     property color accent: "#b4befe"
-    // Panel glyphs may be dark on a light wallpaper; the card has its own backing.
-    readonly property color headerColor: {
-        let top = Colors.mix(glass.sample, glass.topColor, glass.topColor.a);
-        let bottom = Colors.mix(glass.sample, glass.bottomColor, glass.bottomColor.a);
+    // Bar accents can be dark on a bright wallpaper. Measure against the
+    // card's own gradient, and include the extra tint behind its header icon.
+    readonly property color headerColor: headerForeground(0)
+    readonly property color headerIconColor: headerForeground(0.14)
+    function headerForeground(tint) {
+        let top = Colors.mix(Colors.mix(glass.sample, glass.topColor, glass.topColor.a), accent, tint);
+        let bottom = Colors.mix(Colors.mix(glass.sample, glass.bottomColor, glass.bottomColor.a), accent, tint);
         function contrast(color) { return Math.min(Colors.contrast(color, top), Colors.contrast(color, bottom)); }
         let foreground = Qt.rgba(accent.r, accent.g, accent.b, 1);
-        let light = Qt.color("#ffffff"), dark = Qt.color("#161824");
+        let light = Qt.color("#ffffff"), dark = Qt.color("#000000");
         let target = contrast(light) >= contrast(dark) ? light : dark;
-        for (let i = 0; i < 40 && contrast(foreground) < 4.5; ++i)
+        for (let i = 0; i < 40 && contrast(foreground) < 4.6; ++i)
             foreground = Colors.mix(foreground, target, 0.12);
-        return foreground;
+        return contrast(foreground) >= 4.5 ? foreground : target;
     }
     property string title: ""
     property string symbol: ""
@@ -360,7 +363,7 @@ Item {
                     width: 30; height: 30; radius: 10
                     color: Qt.rgba(popover.accent.r, popover.accent.g, popover.accent.b, 0.14)
                     border.color: Qt.rgba(popover.accent.r, popover.accent.g, popover.accent.b, 0.25)
-                    Text { anchors.centerIn: parent; text: popover.symbol; color: popover.headerColor; font.family: "GoMono Nerd Font"; font.pixelSize: 17 }
+                    Text { anchors.centerIn: parent; text: popover.symbol; color: popover.headerIconColor; font.family: "GoMono Nerd Font"; font.pixelSize: 17 }
                 }
                 MenuLabel { text: popover.title; color: popover.headerColor; font.bold: true; font.pixelSize: 15; Layout.fillWidth: true }
                 Rectangle { width: 5; height: 5; radius: 3; color: popover.accent; opacity: 0.7 }
