@@ -83,21 +83,40 @@ Item {
             compare(popover.fluidOutline.footY,neck);
             // Follow both curved sides from the icon toward the card: the
             // width must increase throughout, without a neck or bulge.
-            let curves = popover.fluidOutline.path.match(/C(?: -?[\d.]+){6}/g);
-            compare(curves.length,2);
-            let right = curves[0].slice(2).split(" ").map(Number);
-            let left = curves[1].slice(2).split(" ").map(Number);
-            let leftBase = popover.fluidOutline.path.match(/ L (-?[\d.]+) (-?[\d.]+) C [^C]*Z$/);
+            let outline = popover.fluidOutline.path;
+            let leftBase = outline.match(/ L (-?[\d.]+) (-?[\d.]+) (C [^Z]*)Z$/);
             verify(leftBase !== null);
+            function segments(text, start) {
+                let result = [];
+                for (let curve of text.match(/C(?: -?[\d.]+){6}/g)) {
+                    let points = curve.slice(2).split(" ").map(Number);
+                    result.push(start.concat(points));
+                    start = points.slice(4);
+                }
+                return result;
+            }
+            let right = segments(outline.split(" L ")[0], [tip, neck]);
+            let left = segments(leftBase[3], [Number(leftBase[1]), Number(leftBase[2])]);
+            left.reverse();
+            left = left.map(p => [p[6],p[7],p[4],p[5],p[2],p[3],p[0],p[1]]);
             function bezier(a,b,c,d,t) {
                 let u = 1 - t;
                 return u*u*u*a + 3*u*u*t*b + 3*u*t*t*c + t*t*t*d;
             }
+            function xAtY(curves, y) {
+                let curve = curves.find(p => p[7] >= y) || curves[curves.length - 1];
+                let low = 0, high = 1;
+                for (let i = 0; i < 30; ++i) {
+                    let t = (low + high) / 2;
+                    if (bezier(curve[1],curve[3],curve[5],curve[7],t) < y) low = t;
+                    else high = t;
+                }
+                return bezier(curve[0],curve[2],curve[4],curve[6],(low + high) / 2);
+            }
             let previous = 0;
             for (let step = 1; step <= 50; ++step) {
-                let t = step / 50;
-                let width = bezier(tip,right[0],right[2],right[4],t)
-                    - bezier(tip,left[2],left[0],Number(leftBase[1]),t);
+                let y = neck + (right[right.length - 1][7] - neck) * step / 50;
+                let width = xAtY(right,y) - xAtY(left,y);
                 verify(width > previous,"Stem must widen continuously toward the card");
                 previous = width;
             }

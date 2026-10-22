@@ -27,26 +27,38 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
         // at the icon to the broad card attachment, with no waist or bulb.
         let center = Math.max(x + corner + flare,
             Math.min(x + width - corner - flare, tip));
-        // Leave room for an outward foot on each side of a corner tip.
-        // Only shorten the adjacent rounded turn; keep the card bounds fixed.
-        let leftCorner = Math.min(corner, Math.max(0, tip - x) / 2);
-        let rightCorner = Math.min(corner, Math.max(0, x + width - tip) / 2);
-        let left = center - flare - corner + leftCorner;
-        let right = center + flare + corner - rightCorner;
+        let left = center - flare, right = center + flare;
+        function footCurve(foot, side, reverse) {
+            let a = [tip, neck], b = [tip + (foot - tip) * 0.07, neck + gap * 0.5];
+            let c = [tip + (foot - tip) * 0.25, y], d = [foot, y];
+            let curves = [[a, b, c, d]];
+            if (tip >= x && tip <= x + width && (foot - tip) * side < 0) {
+                // Keep the first 80% exactly; turn only the foot's final tip.
+                function split(p, q) { return [p[0] * 0.2 + q[0] * 0.8, p[1] * 0.2 + q[1] * 0.8]; }
+                let ab = split(a, b), bc = split(b, c), cd = split(c, d);
+                let abc = split(ab, bc), bcd = split(bc, cd), join = split(abc, bcd);
+                cd[0] = 2 * foot - cd[0];
+                curves = [[a, ab, abc, join], [join, bcd, cd, d]];
+            }
+            if (reverse) curves.reverse();
+            for (let curve of curves) {
+                if (reverse) curve = curve.slice().reverse();
+                path.push('C ' + p(curve[1][0], curve[1][1]) + ' '
+                    + p(curve[2][0], curve[2][1]) + ' ' + p(curve[3][0], curve[3][1]));
+            }
+        }
         path.push('M ' + p(tip, neck));
-        path.push('C ' + p(tip + (right - tip) * 0.07, neck + gap * 0.5) + ' '
-            + p(tip + (right - tip) * 0.25, y) + ' ' + p(right, y));
-        line(x + width - rightCorner, y);
+        footCurve(right, 1, false);
+        line(x + width - corner, y);
         quad(x + width, y, x + width, y + corner);
         line(x + width, y + height - corner);
         quad(x + width, y + height, x + width - corner, y + height);
         line(x + corner, y + height);
         quad(x, y + height, x, y + height - corner);
         line(x, y + corner);
-        quad(x, y, x + leftCorner, y);
+        quad(x, y, x + corner, y);
         line(left, y);
-        path.push('C ' + p(tip + (left - tip) * 0.25, y) + ' '
-            + p(tip + (left - tip) * 0.07, neck + gap * 0.5) + ' ' + p(tip, neck));
+        footCurve(left, -1, true);
         path.push('Z');
         return {path:path.join(' '), footLeft:tip, footRight:tip,
             footY:neck, waistHalf:flare};
