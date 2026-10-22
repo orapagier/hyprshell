@@ -147,7 +147,8 @@ Item {
             : popover.edge === "right" ? popover.width - popover.safeLeft : popover.vertical ? popover.safeRight : popover.safeBottom
     }
     readonly property var fluidOutline: FluidGeometry.outline(fluid.displayX, fluid.displayY,
-        fluid.displayWidth, fluid.displayHeight, tipX, neckY, attachmentHalfWidth, attachmentRadius, fluid.shear, preserveCornerPosition, pointed)
+        fluid.displayWidth, fluid.displayHeight, tipX, neckY, attachmentHalfWidth, attachmentRadius, fluid.shear, preserveCornerPosition, pointed,
+        FluidGeometry.pointedCornerSide(shapeX, shapeWidth, shapeHeight, tipX))
     // Keep layout and text wrapping at their final size. The background, content,
     // shadow and hit targets receive exactly the same body deformation.
     function cardPoint(x, y) {

@@ -2,7 +2,13 @@
 
 // Follow the drawn silhouette: a slender neck below the pill, a narrow waist,
 // then a broad shallow sweep into the card. The cap stays outside the pill.
-function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preserveCornerPosition, pointed) {
+function pointedCornerSide(x, width, height, tip) {
+    if (tip < x || tip > x + width) return 0;
+    let corner = Math.max(0, Math.min(24, width / 2, height / 2));
+    return tip < x + corner ? -1 : tip > x + width - corner ? 1 : 0;
+}
+
+function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preserveCornerPosition, pointed, cornerSide) {
     let corner = Math.max(0, Math.min(24, width / 2, height / 2));
     // Mirror the card shoulder at the pill, scaled down and bounded by the pill.
     let flare = Math.max(0, Math.min(48, width / 2 - corner));
@@ -28,10 +34,12 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
         let center = Math.max(x + corner + flare,
             Math.min(x + width - corner - flare, tip));
         let left = center - flare, right = center + flare;
+        // Use the destination corner throughout travel, squash and rebound.
+        let stemSide = cornerSide === undefined ? pointedCornerSide(x, width, height, tip) : cornerSide;
         function footCurve(foot, side, reverse) {
             let a = [tip, neck], b = [tip + (foot - tip) * 0.07, neck + gap * 0.5];
             let c = [tip + (foot - tip) * 0.25, y], d = [foot, y];
-            if (tip >= x && tip <= x + width && (foot - tip) * side < 0) {
+            if (side === stemSide) {
                 // Bow the outside like a speech-bubble tail, then sweep back
                 // into its original foot, opposite the concave inside edge.
                 b = [tip + (foot - tip) * 0.04, neck + gap * 0.5];
