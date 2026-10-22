@@ -117,18 +117,6 @@ Item {
             color: Qt.rgba(1, 1, 1, 0.10)
         }
     }
-    Rectangle {
-        objectName: "bareIndicator"
-        visible: pill.bare
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: parent.height - height - 1
-        width: Math.min(14, Math.max(6, parent.width - 8))
-        height: 2
-        radius: 1
-        color: pill.shownIcon.length ? pill.iconColor : pill.textColor
-        opacity: pill.selected ? 0.95 : pill.interactive && (pill.hovered || pill.activeFocus) ? 0.55 : 0
-        Behavior on opacity { NumberAnimation { duration: Style.Theme.duration(pill, 200); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
-    }
     TextMetrics {
         id: compactGlyphMetrics
         font: iconLabel.font

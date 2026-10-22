@@ -81,6 +81,10 @@ Item {
                 : data.edge === "right" ? scene.width - anchor.x
                 : data.edge === "left" ? anchor.x + anchor.width : anchor.y + anchor.height;
             compare(popover.fluidOutline.footY,neck);
+            // At the tip, both adjoining segments must be straight lines.
+            let outline = popover.fluidOutline.path;
+            verify(/^M [\d. -]+ L /.test(outline));
+            verify(/ L [\d. -]+ Z$/.test(outline));
             let bridge = data.edge === "bottom" ? Qt.point(tip,anchor.y - 2)
                 : data.edge === "right" ? Qt.point(anchor.x - 2,tip)
                 : data.edge === "left" ? Qt.point(anchor.x + anchor.width + 2,tip)
