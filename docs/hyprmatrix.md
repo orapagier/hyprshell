@@ -89,20 +89,29 @@ Appearance → Effect switches immediately between **Matrix**, **Shooting stars*
 **Meteors**, and **Asteroids** and saves the choice. Existing configurations keep
 Matrix. Matrix retains evenly spaced character columns.
 
-Shooting stars and meteors appear sporadically across the upper and middle sky,
-including the left, center and right. Each follows its own straight downward
-heading, with edge births usually directed inward. Short, quick streaks ignite,
-brighten and burn out inside the view rather than crossing the entire screen.
-Events last at most 1.35 seconds at the default Speed; random gaps, overlaps and
-occasional two- or three-event clusters avoid a repeating stream. Shooting stars
-occasionally include a brighter meteor (about 12% of events). Meteors mode uses
-brighter, thicker streaks throughout, with occasional brief late flares.
+Shooting stars and meteors use balanced left, center and right birth regions.
+Each group offers all three regions an event, with independent random positions,
+headings and birth times; there is no visible left/center/right rotation. Side
+headings mirror each other. About 65% of central events start near the top and
+fall exactly straight down; other events ignite across the upper and middle sky.
+Short, quick streaks brighten and burn out inside the view, with irregular gaps,
+overlaps and occasional two- or three-event clusters.
+
+Shooting stars mixes fine streaks with brighter meteors (about 20% of non-comet
+events) and occasional comet-like streaks (about 8%). Meteors mode keeps its
+brighter streaks and includes these longer, slower comet-like passes too. The
+latter have a faint spreading tail around a narrow luminous core. Ordinary
+streaks last at most 1.35 seconds and comet-like passes at most 3.8 seconds at
+the default Speed. These are stylized sky effects, with procedural trails.
 
 Fine tapered trails grow behind small neutral-white heads, then shorten as the
-event fades. Color adds a subtle tint to the trail and halo. Density controls the
-frequency of events; Speed scales their motion and timing, and Particle size
-scales their heads, trails and speed. At default density/speed, a 1080p sky has
-roughly one event every few seconds, with longer quiet gaps at low density.
+event fades. Color tints the trail and halo. Density controls both the starfield
+and event frequency, rising more strongly toward 100%. At 1080p/default Speed,
+100% produces roughly ten moving events per second, including clusters, and
+about 520 stationary stars (four times the previous maximum). Smaller screens
+scale the event count with a minimum activity floor. Low density retains quiet
+gaps. Speed scales motion and timing; Particle size scales heads, trails and
+speed. Matrix's density, motion and drawing remain unchanged.
 
 Asteroids retain predominantly upper-left to lower-right paths, occasional other
 downward headings, and steady size/speed during each tumbling pass. They cross the

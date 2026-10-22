@@ -12,11 +12,12 @@ pub struct Particle {
     angle: u32,
     seed: u32,
     effect: Effect,
+    comet: bool,
     pub stationary: bool,
 }
 impl Particle {
     pub fn bounds(&self) -> (i32,i32,u32,u32) {
-        let margin = self.radius + 4;
+        let margin = if self.comet { self.radius*4+4 } else { self.radius+4 };
         let tx = self.x-(self.tail as f32*self.direction.0 as f32/10000.0).round() as i32;
         let ty = self.y-(self.tail as f32*self.direction.1 as f32/10000.0).round() as i32;
         (self.x.min(tx)-margin, self.y.min(ty)-margin,
@@ -66,18 +67,26 @@ fn sky_path((x,y): (f32,f32), (dx,dy): (f32,f32), (w,h): (u32,u32), margin: f32)
 }
 
 /// Sporadic meteors ignite anywhere in the upper/middle sky and burn out in view.
-fn streak_path(seed: u32, (w,h): (u32,u32))
+fn streak_path(seed: u32, region: u32, (w,h): (u32,u32))
     -> ((f32,f32),f32,(i16,i16)) {
-    let x = w as f32*(0.05+unit(seed.wrapping_add(701))*0.90);
-    let y = h as f32*(0.04+unit(seed.wrapping_add(709)).powf(1.4)*0.51);
-    // Aim edge births inward; central births can cross either way.
-    let rightward = unit(seed.wrapping_add(711)) > x/w as f32;
-    let degrees = 22.0+unit(seed.wrapping_add(713))*53.0;
-    let degrees = if rightward { degrees } else { 180.0-degrees };
+    // Equal-width birth regions get the same opportunities, with fresh jitter.
+    let x = w as f32*(region as f32+0.03+unit(seed.wrapping_add(701))*0.94)/3.0;
+    let vertical = region==1 && unit(seed.wrapping_add(711))<0.65;
+    let y = h as f32*if vertical {
+        0.02+unit(seed.wrapping_add(709))*0.12
+    } else { 0.04+unit(seed.wrapping_add(709)).powf(1.4)*0.51 };
+    // Mirrored side distributions remove a preferred diagonal; central events
+    // mostly fall straight down, while the rest have symmetric angle variation.
+    let tilt = unit(seed.wrapping_add(713));
+    let degrees = if vertical { 90.0 } else { match region {
+        0 => 28.0+tilt*70.0,
+        2 => 152.0-tilt*70.0,
+        _ => 35.0+tilt*110.0,
+    }};
     let (dy,dx) = degrees.to_radians().sin_cos();
     let direction = ((dx*10000.0).round() as i16,(dy*10000.0).round() as i16);
     let (dx,dy)=(direction.0 as f32/10000.0,direction.1 as f32/10000.0);
-    let available_x = if dx>0.0 { w as f32-x } else { x }/dx.abs();
+    let available_x = if dx>0.0 { w as f32-x } else { x }/dx.abs().max(0.0001);
     let available_y = (h as f32-y)/dy;
     let length = (w as f32).hypot(h as f32)*(0.12+unit(seed.wrapping_add(719))*0.24);
     ((x,y),length.min(available_x.min(available_y)*0.88),direction)
@@ -90,30 +99,39 @@ fn streaks(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
     let window = (clock/8.0).floor() as i32;
     let area = w as f32*h as f32/(1920.0*1080.0);
     let lanes = area.ceil().clamp(1.0,16.0) as u32;
-    let chance = (c.density*area/lanes as f32).min(1.0);
+    // Keep sparse settings quiet, with a much busier sky toward 100%.
+    let activity = c.density*(0.12+0.88*c.density*c.density);
+    let chance = (activity*area.max(0.35)/lanes as f32).min(1.0);
     let size = c.font_size as f32/16.0;
     for period in (window-1).max(0)..=window {
-        for slot in 0..lanes*4 {
-            let seed = hash((period as u32).wrapping_mul(104729).wrapping_add(slot*7919+971));
-            if unit(seed)>chance { continue; }
+        for slot in 0..lanes*72 {
+            let group = slot/3;
+            let group_seed = hash((period as u32).wrapping_mul(104729).wrapping_add(group*7919+971));
+            // Accept a left/center/right triplet together, but randomize each
+            // birth time independently across the window (no visible rotation).
+            if unit(group_seed)>chance { continue; }
+            let seed = hash(group_seed.wrapping_add((slot%3)*65537+179));
+            let region = slot%3;
             let birth = period as f32*8.0+unit(seed.wrapping_add(1))*8.0;
             let cluster = if unit(seed.wrapping_add(2))<0.09 { 2+seed%2 } else { 1 };
             for member in 0..cluster {
                 let event = if member==0 { seed } else { hash(seed.wrapping_add(member*65537)) };
                 let age = clock-birth-member as f32*(0.12+unit(event)*0.36);
-                let ((x,y),distance,direction) = streak_path(event,(w,h));
-                let speed = (650.0+unit(event.wrapping_add(31))*650.0)*size;
-                let distance = distance.min(speed*1.35);
+                let ((x,y),distance,direction) = streak_path(event,region,(w,h));
+                let comet = unit(event.wrapping_add(43))<0.08;
+                let speed = (650.0+unit(event.wrapping_add(31))*650.0)*size
+                    *if comet { 0.38 } else { 1.0 };
+                let distance = distance.min(speed*if comet { 3.8 } else { 1.35 });
                 let duration = distance/speed;
                 if age<0.0 || age>=duration { continue; }
                 let phase = age/duration;
                 let fade = (phase/0.12).min((1.0-phase)/0.32).clamp(0.0,1.0);
                 let envelope = fade*fade*(3.0-2.0*fade);
-                let bright = c.effect==Effect::Meteors || unit(event.wrapping_add(37))<0.12;
-                let effect = if bright { Effect::Meteors } else { Effect::ShootingStars };
+                let bright = c.effect==Effect::Meteors || unit(event.wrapping_add(37))<0.20;
+                let effect = if bright || comet { Effect::Meteors } else { Effect::ShootingStars };
                 let scale = size*size_variation(event);
-                let tail = (if bright { 125.0 } else { 65.0 })*scale;
-                let tail = tail.min(age*speed).min(distance*0.60)
+                let tail = (if comet { 280.0 } else if bright { 125.0 } else { 65.0 })*scale;
+                let tail = tail.min(age*speed).min(distance*if comet { 0.85 } else { 0.60 })
                     *(1.0-((phase-0.65)/0.35).clamp(0.0,1.0)*0.65);
                 let (dx,dy)=(direction.0 as f32/10000.0,direction.1 as f32/10000.0);
                 // A brief late brightening on some fireballs, never frame noise.
@@ -123,10 +141,10 @@ fn streaks(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
                 out.push(Particle {
                     x: (x+dx*speed*age).round() as i32,
                     y: (y+dy*speed*age).round() as i32,
-                    radius: ((if bright { 1.8 } else { 0.8 })*scale).round().max(1.0) as i32,
+                    radius: ((if comet { 1.4 } else if bright { 1.8 } else { 0.8 })*scale).round().max(1.0) as i32,
                     tail: tail.round() as i32, direction,
                     opacity: (envelope*flare*(0.65+unit(event.wrapping_add(41))*0.35)*255.0).round() as u8,
-                    angle: 0, seed: event, effect, stationary: false,
+                    angle: 0, seed: event, effect, comet, stationary: false,
                 });
             }
         }
@@ -134,7 +152,9 @@ fn streaks(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
 }
 
 fn starfield(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
-    let count = ((w as f32*h as f32/16000.0*c.density).ceil() as u32).clamp(1,220);
+    let richness = if c.effect==Effect::Asteroids { 1.0 } else { 1.0+3.0*c.density*c.density };
+    let count = ((w as f32*h as f32/16000.0*c.density*richness).ceil() as u32)
+        .clamp(1,if c.effect==Effect::Asteroids { 220 } else { 880 });
     let columns = ((count as f32*w as f32/h as f32).sqrt().ceil() as u32).max(1);
     let rows = count.div_ceil(columns);
     for slot in 0..count {
@@ -153,7 +173,7 @@ fn starfield(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
             radius: ((0.65+unit(seed.wrapping_add(4))*1.2)*(c.font_size as f32/16.0).max(0.9))
                 .round().clamp(1.0,3.0) as i32,
             opacity: (fade*(40.0+unit(seed.wrapping_add(5))*110.0)).round() as u8,
-            tail: 0, direction: (0,0), angle: 0, seed, effect: c.effect, stationary: true,
+            tail: 0, direction: (0,0), angle: 0, seed, effect: c.effect, comet: false, stationary: true,
         });
     }
 }
@@ -198,7 +218,7 @@ pub fn generate(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32
         out.push(Particle {
             x: (x+dx*speed*age).round() as i32,
             y: (y+dy*speed*age).round() as i32,
-            radius, tail, direction, seed, effect: c.effect, stationary: false,
+            radius, tail, direction, seed, effect: c.effect, comet: false, stationary: false,
             opacity: (envelope*(0.9+unit(seed.wrapping_add(8))*0.1)*255.0).round() as u8,
             angle: (unit(seed.wrapping_add(9))*360.0+age*spin).rem_euclid(360.0).round() as u32,
         });
@@ -241,9 +261,13 @@ pub fn rasterize(p: &Particle, mut output: impl FnMut(i32,i32,u8,usize)) {
     for step in (1..=p.tail).rev() {
         let fade = 1.0-step as f32/p.tail as f32;
         let radius = (p.radius as f32*fade*0.65).max(0.45);
-        disc(p.x-(step as f32*p.direction.0 as f32/10000.0).round() as i32,
-            p.y-(step as f32*p.direction.1 as f32/10000.0).round() as i32,
-            radius, (fade.powf(1.8)*210.0) as u8, 16, &mut plot);
+        let x = p.x-(step as f32*p.direction.0 as f32/10000.0).round() as i32;
+        let y = p.y-(step as f32*p.direction.1 as f32/10000.0).round() as i32;
+        if p.comet {
+            disc(x,y,p.radius as f32*(0.7+(1.0-fade)*2.5),
+                (fade.powf(2.2)*65.0) as u8,15,&mut plot);
+        }
+        disc(x,y,radius,(fade.powf(1.8)*210.0) as u8,16,&mut plot);
     }
     disc(p.x,p.y,p.radius as f32+1.5,55,15,&mut plot);
     disc(p.x,p.y,p.radius as f32,255,17,&mut plot);
@@ -288,10 +312,10 @@ mod tests {
             let mut directions=[0;2];
             let mut middle=0;
             for seed in 0..1000 {
-                let ((x,y),distance,dir)=streak_path(seed,(w,h));
+                let ((x,y),distance,dir)=streak_path(seed,seed%3,(w,h));
                 let (dx,dy)=(dir.0 as f32/10000.0,dir.1 as f32/10000.0);
                 let (end_x,end_y)=(x+dx*distance,y+dy*distance);
-                assert!((0.039..=0.551).contains(&(y/h as f32)));
+                assert!((0.019..=0.551).contains(&(y/h as f32)));
                 assert!(distance>0.0 && dy>0.0);
                 assert!(x>=0.0 && x<w as f32 && end_x>=0.0 && end_x<w as f32);
                 assert!(end_y<h as f32);
@@ -306,7 +330,7 @@ mod tests {
     }
     #[test]
     fn shooting_stars_have_quiet_gaps_bursts_and_occasional_bright_meteors() {
-        let c=Config { effect:Effect::ShootingStars,density:0.55,..Config::default() };
+        let c=Config { effect:Effect::ShootingStars,density:0.20,..Config::default() };
         let mut particles=Vec::new();
         let mut seen=std::collections::HashMap::new();
         let (mut quiet,mut overlapping,mut longest_gap,mut gap)=(0,0,0,0);
@@ -316,16 +340,16 @@ mod tests {
             let mut count=0;
             for p in particles.iter().filter(|p| !p.stationary) {
                 count+=1;
-                let event=seen.entry(p.seed).or_insert((time,time,p.effect));
+                let event=seen.entry(p.seed).or_insert((time,time,p.effect,p.comet));
                 event.1=time;
-                assert!(event.1-event.0<1.4);
+                assert!(event.1-event.0<if p.comet { 3.9 } else { 1.4 });
             }
             if count==0 { quiet+=1; gap+=1; longest_gap=longest_gap.max(gap); }
             else { gap=0; }
             if count>1 { overlapping+=1; }
         }
         assert!(seen.len()>80);
-        let bright=seen.values().filter(|event| event.2==Effect::Meteors).count();
+        let bright=seen.values().filter(|event| event.2==Effect::Meteors && !event.3).count();
         assert!(bright>3 && bright<seen.len()/3);
         assert!(quiet>6000 && overlapping>20 && longest_gap>80);
         // Seeking is deterministic and does not depend on previous frames.
@@ -334,6 +358,55 @@ mod tests {
         generate(&mut sought,(1920,1080),&c,3.0);
         generate(&mut sought,(1920,1080),&c,160.05);
         assert_eq!(particles,sought);
+    }
+    #[test]
+    fn maximum_density_balances_visible_births_and_includes_vertical_center_and_comets() {
+        for dimensions in [(640,520),(1920,1080)] {
+            let mut particles=Vec::new();
+            let mut totals=[0usize;2];
+            for (index,density) in [0.55,1.0].into_iter().enumerate() {
+                let c=Config { effect:Effect::ShootingStars,density,..Config::default() };
+                let mut births=std::collections::HashMap::new();
+                let mut active=0;
+                for frame in 0..1800 {
+                    generate(&mut particles,dimensions,&c,frame as f32/30.0);
+                    for p in particles.iter().filter(|p| !p.stationary && p.opacity>0) {
+                        active+=1;
+                        births.entry(p.seed).or_insert_with(|| p.clone());
+                    }
+                }
+                totals[index]=births.len();
+                if density<1.0 { continue; }
+                let mut regions=[0usize;3];
+                let mut kinds=[0usize;3];
+                let mut vertical=0;
+                for p in births.values() {
+                    regions[((p.x as f32/dimensions.0 as f32*3.0) as usize).min(2)]+=1;
+                    kinds[if p.comet { 2 } else if p.effect==Effect::Meteors { 1 } else { 0 }]+=1;
+                    if p.direction.0==0 {
+                        assert!(p.x as f32>dimensions.0 as f32/3.0
+                            && (p.x as f32)<dimensions.0 as f32*2.0/3.0);
+                        assert!((p.y as f32)<dimensions.1 as f32*0.25);
+                        vertical+=1;
+                    }
+                }
+                let count=births.len() as f32;
+                assert!(regions.iter().all(|n| *n as f32>count*0.25 && (*n as f32)<count*0.42),
+                    "{dimensions:?}: {regions:?}");
+                assert!(((regions[0] as i32-regions[2] as i32).unsigned_abs() as f32)<count*0.08,
+                    "{dimensions:?}: {regions:?}");
+                assert!(vertical as f32>count*0.15);
+                assert!(kinds[0] as f32>count*0.5 && kinds[1] as f32>count*0.10
+                    && kinds[2] as f32>count*0.03,"{kinds:?}");
+                assert!(active>if dimensions.0==1920 { 4000 } else { 1000 },
+                    "{dimensions:?}: {active}");
+            }
+            assert!(totals[1]>totals[0]*3,"{dimensions:?}: {totals:?}");
+        }
+        let mut stars=Vec::new();
+        let c=Config { effect:Effect::ShootingStars,density:1.0,..Config::default() };
+        starfield(&mut stars,(1920,1080),&c,12.0);
+        assert!(stars.len()>500);
     }
     #[test]
     fn stationary_stars_hold_then_renew_in_every_space_mode_independent_of_speed() {
@@ -355,7 +428,8 @@ mod tests {
             starfield(&mut next,(1280,720),&c,12.0);
             assert_eq!(first,next);
             let signature: Vec<_>=first.iter().map(|p| (p.x,p.y,p.radius,p.opacity)).collect();
-            if reference.is_empty() { reference=signature; } else { assert_eq!(reference,signature); }
+            if reference.is_empty() { reference=signature; }
+            else if effect!=Effect::Asteroids { assert_eq!(reference,signature); }
             next.clear();
             starfield(&mut next,(1280,720),&c,65.0);
             assert!(first.iter().zip(&next).all(|(a,b)| a.seed!=b.seed));
@@ -400,6 +474,7 @@ mod tests {
                             47.0*c.font_size as f32/16.0*speed_variation(p.seed)
                         } else {
                             (650.0+unit(p.seed.wrapping_add(31))*650.0)*c.font_size as f32/16.0
+                                *if p.comet { 0.38 } else { 1.0 }
                         };
                         let distance=((p.x-old.x) as f32).hypot((p.y-old.y) as f32);
                         assert!((distance-expected_speed/10.0).abs()<1.5);
