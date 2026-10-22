@@ -45,6 +45,7 @@ Item {
     property bool opened: false
     property bool cardClickable: false
     property bool connected: true
+    property bool pointed: false
     property bool preserveCornerPosition: true
     // Opt-in edge drawers; ordinary menus retain their funnel and motion.
     property bool edgeAttached: false
@@ -129,7 +130,7 @@ Item {
             : popover.edge === "right" ? popover.width - popover.safeLeft : popover.vertical ? popover.safeRight : popover.safeBottom
     }
     readonly property var fluidOutline: FluidGeometry.outline(fluid.displayX, fluid.displayY,
-        fluid.displayWidth, fluid.displayHeight, tipX, neckY, attachmentHalfWidth, attachmentRadius, fluid.shear, preserveCornerPosition)
+        fluid.displayWidth, fluid.displayHeight, tipX, neckY, attachmentHalfWidth, attachmentRadius, fluid.shear, preserveCornerPosition, pointed)
     // Keep layout and text wrapping at their final size. The background, content,
     // shadow and hit targets receive exactly the same body deformation.
     function cardPoint(x, y) {

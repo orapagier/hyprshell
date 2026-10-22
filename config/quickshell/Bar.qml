@@ -280,6 +280,20 @@ Item {
         // itemRect also tracks scroll movement on a vertical rail.
         return itemRect(name);
     }
+    function menuHasTrigger(name) {
+        let item = menuTargets[name];
+        return itemEnabled(menuItemId(name)) && !!item && item.opacity > 0
+            && item.glyphRect.width > 0 && item.glyphRect.height > 0;
+    }
+    function menuPointed(name) {
+        let item = menuTargets[name];
+        return !!item && item.bare && !fullPill.visible;
+    }
+    function menuAnchorRect(name) {
+        if (!menuPointed(name)) return menuRect(name);
+        let bounds = menuRect(name), rect = menuTargets[name].glyphRect;
+        return Qt.rect(bounds.x + rect.x, bounds.y + rect.y, rect.width, rect.height);
+    }
     function menuAccent(name) {
         let item = menuTargets[name];
         if (!item)
@@ -564,7 +578,11 @@ Item {
         rightPadding: 2
         backgroundVisible: false
         content.opacity: distroLogo.settings.text || distroLogo.settings.icon ? 1 : 0
+        glyphRect: launcherGlyph.visible ? Qt.rect(launcherGlyph.x + (launcherGlyph.width - launcherGlyph.iconSize) / 2,
+            (height - launcherGlyph.iconSize) / 2, launcherGlyph.iconSize, launcherGlyph.iconSize)
+            : !settings.text && !settings.icon ? Qt.rect(0, 0, 0, 0) : shownIcon.length ? iconGlyphRect : textGlyphRect
         GlassLogo {
+            id: launcherGlyph
             objectName: "distroGlassLogo"
             iconSize: distroLogo.settings.iconSize || distroLogo.settings.fontSize || 22
             visible: !distroLogo.settings.text && !distroLogo.settings.icon && (bar.vertical || !distroLogo.settings.hideText) && !distroLogo.settings.hideIcon
@@ -593,7 +611,17 @@ Item {
         minimumTextWidth: Math.max(16, settings.iconSize || settings.fontSize || 22)
         implicitHeight: Math.max(28, (settings.iconSize || settings.fontSize || 22) + 6, content.implicitHeight + 8)
         content.opacity: settingsCog.settings.text || settingsCog.settings.icon ? 1 : 0
+        glyphRect: {
+            if (!settingsGlyph.visible)
+                return !settings.text && !settings.icon ? Qt.rect(0, 0, 0, 0) : shownIcon.length ? iconGlyphRect : textGlyphRect;
+            // The cog occupies 2..22 of its 24-unit view box; include its rim
+            // and offset glass layer, then follow the hover scale around center.
+            let half = settingsGlyph.iconSize * (10 / 24 + 0.009), scale = settingsGlyph.scale;
+            return Qt.rect(settingsGlyph.x + settingsGlyph.width / 2 - half * scale,
+                height / 2 - half * scale, (2 * half + 0.6) * scale, (2 * half + 1.2) * scale);
+        }
         GlassCog {
+            id: settingsGlyph
             objectName: "settingsGlassCog"
             iconSize: settingsCog.settings.iconSize || settingsCog.settings.fontSize || 22
             visible: !settingsCog.settings.text && !settingsCog.settings.icon && (bar.vertical || !settingsCog.settings.hideText) && !settingsCog.settings.hideIcon

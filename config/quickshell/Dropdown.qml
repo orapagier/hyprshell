@@ -19,6 +19,7 @@ PanelWindow {
     property string alignment: "center"
     property color accent: "#b4befe"
     property bool connected: true
+    property bool pointed: false
     property bool movePointerOnOpen: !connected
     property bool pinned: false
     property string barEdge: "top"
@@ -67,6 +68,7 @@ PanelWindow {
             triggerRect: dropdown.triggerRect
             alignment: dropdown.alignment
             connected: dropdown.connected
+            pointed: dropdown.pointed
             preserveCornerPosition: dropdown.displayedSection !== "notifications"
             edge: dropdown.barEdge
             accent: dropdown.accent

@@ -61,6 +61,17 @@ Item {
     property bool selected: false
     property color hoverTint: Qt.rgba(tint.r, tint.g, tint.b, Math.min(1, tint.a + 0.12))
     property alias content: label
+    // Ink bounds exclude the pill padding and font line box. Bare popdowns
+    // attach to the visible icon (or text when there is no separate icon).
+    readonly property rect textGlyphRect: Qt.rect(
+        label.x + (label.horizontalAlignment === Text.AlignLeft ? 0 : label.horizontalAlignment === Text.AlignRight ? label.width - label.implicitWidth : (label.width - label.implicitWidth) / 2) + labelMetrics.tightBoundingRect.x,
+        label.y + label.baselineOffset + labelMetrics.tightBoundingRect.y,
+        labelMetrics.tightBoundingRect.width, labelMetrics.tightBoundingRect.height)
+    readonly property rect iconGlyphRect: Qt.rect(
+        iconLabel.x + (vertical ? 0 : (iconLabel.width - iconLabel.implicitWidth) / 2) + compactGlyphMetrics.tightBoundingRect.x,
+        iconLabel.y + iconLabel.baselineOffset + compactGlyphMetrics.tightBoundingRect.y,
+        compactGlyphMetrics.tightBoundingRect.width, compactGlyphMetrics.tightBoundingRect.height)
+    property rect glyphRect: shownIcon.length ? iconGlyphRect : textGlyphRect
     signal clicked(var mouse)
     signal wheel(var event)
     signal entered()
@@ -122,6 +133,11 @@ Item {
         id: compactGlyphMetrics
         font: iconLabel.font
         text: iconLabel.text
+    }
+    TextMetrics {
+        id: labelMetrics
+        font: label.font
+        text: label.text
     }
     Text {
         id: iconLabel

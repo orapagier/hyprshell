@@ -215,9 +215,10 @@ Item {
                 panelBounds:window.menuBounds
                 mediaData:window.mediaData; previewWorkspace:status.previewWorkspace
                 accent:status.menuAccent(statusState.displayedSection)
+                pointed:status.menuPointed(statusState.displayedSection)
                 translucency:Settings.popdownTranslucency(window.config,status.menuItemId(statusState.displayedSection))
                 triggerRect: {
-                    let rect=status.menuRect(statusState.displayedSection);
+                    let rect=status.menuAnchorRect(statusState.displayedSection);
                     return Qt.rect(rect.x+statusViewport.x-statusViewport.contentX+rail.originX,
                         rect.y+statusViewport.y-statusViewport.contentY+rail.originY,rect.width,rect.height);
                 }

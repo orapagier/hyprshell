@@ -2,14 +2,14 @@
 
 // Follow the drawn silhouette: a slender neck below the pill, a narrow waist,
 // then a broad shallow sweep into the card. The cap stays outside the pill.
-function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preserveCornerPosition) {
+function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preserveCornerPosition, pointed) {
     let corner = Math.max(0, Math.min(24, width / 2, height / 2));
     // Mirror the card shoulder at the pill, scaled down and bounded by the pill.
     let flare = Math.max(0, Math.min(48, width / 2 - corner));
-    let footHalf = Math.max(0, Math.min(flare * 0.7, half * 0.7));
+    let footHalf = pointed ? 0 : Math.max(0, Math.min(flare * 0.7, half * 0.7));
     let footY = neck; // the viewport clips the outline at the pill boundary
     let gap = Math.max(1, y - footY);
-    let waistHalf = Math.min(4.8, footHalf * 0.25);
+    let waistHalf = pointed ? Math.min(4.8, gap * 0.15) : Math.min(4.8, footHalf * 0.25);
     let waistY = footY + gap * 0.35;
     let waistX = tip;
     // Keep the stem centered on its pill. At a card corner, merge the shoulder

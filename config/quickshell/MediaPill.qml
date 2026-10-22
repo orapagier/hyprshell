@@ -6,6 +6,7 @@ Pill {
     property var levels: []
     readonly property real spectrumScale: (settings.iconSize || 16) / 16
     readonly property int spectrumWidth: settings.hideIcon ? 0 : Math.ceil(58 * spectrumScale)
+    glyphRect: settings.hideIcon ? textGlyphRect : Qt.rect(spectrum.x, spectrum.y, spectrum.width, spectrum.height)
     implicitHeight: vertical ? width : Math.max(28, settings.hideIcon ? 0 : (settings.iconSize || 16) + 8, shownText.length ? content.implicitHeight + 8 : 0)
     foreground: "#cba6f7"
     tint: "#2ef5c2e7"
@@ -21,6 +22,7 @@ Pill {
     content.y: vertical ? (settings.hideIcon ? 4 : 16 * spectrumScale + 8) : (height - content.height) / 2
     content.horizontalAlignment: vertical ? Text.AlignHCenter : Text.AlignLeft
     AudioSpectrumBars {
+        id: spectrum
         objectName: "mediaSpectrum"
         visible: !media.settings.hideIcon
         x: media.vertical ? (parent.width - width) / 2 : Math.max(0, 9 + (media.settings.paddingLeft || 0))

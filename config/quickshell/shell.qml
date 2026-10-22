@@ -229,17 +229,18 @@ ShellRoot {
                 wallpaperSource: bar.wallpaperSource
                 translucency: Settings.popdownTranslucency(preferences.config, bar.menuItemId(menuState.displayedSection))
                 screen: panel.screen
-                barEdge: panel.visible ? panel.edge : "top"
-                barRect: panel.visible ? Qt.rect(panel.originX, panel.originY, panel.width, panel.height) : Qt.rect(0,0,0,0)
-                connected: panel.visible
-                movePointerOnOpen: !panel.visible || menuState.openedByShortcut
+                barEdge: connected ? panel.edge : "top"
+                barRect: connected ? Qt.rect(panel.originX, panel.originY, panel.width, panel.height) : Qt.rect(0,0,0,0)
+                connected: panel.visible && (menuState.displayedSection !== "launcher" || bar.menuHasTrigger("launcher"))
+                pointed: bar.menuPointed(menuState.displayedSection)
+                movePointerOnOpen: !connected || menuState.openedByShortcut
                 section: menuState.section
                 displayedSection: menuState.displayedSection
-                alignment: panel.visible ? bar.side(menuState.displayedSection) : "center"
+                alignment: connected ? bar.side(menuState.displayedSection) : "center"
                 pinned: menuState.pinned
                 triggerRect: {
-                    if (!panel.visible) return Qt.rect(panel.screen.width / 2, 0, 0, 0);
-                    let rect = bar.menuRect(menuState.displayedSection);
+                    if (!connected) return Qt.rect(panel.screen.width / 2, 0, 0, 0);
+                    let rect = bar.menuAnchorRect(menuState.displayedSection);
                     return Qt.rect(rect.x + panel.originX, rect.y + panel.originY, rect.width, rect.height);
                 }
                 accent: bar.menuAccent(menuState.displayedSection)
