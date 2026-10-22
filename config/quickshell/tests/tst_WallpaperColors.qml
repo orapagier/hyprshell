@@ -196,12 +196,17 @@ Item {
                     }
                 }
                 let bare = Colors.palette(sample, accent, sample, sample, "light-bare");
-                verify(Colors.contrast(bare.foreground, sample) >= 4.5, "Bare glyph contrast must come from its fill");
+                verify(bare.foreground.hslLightness >= 0.639, "Hyprpane items must stay light on every wallpaper");
+                let darkest = Qt.hsla(accent.hslHue, accent.hslSaturation, 0.64, 1);
+                let achievable = Math.min(4.5, Math.max(Colors.contrast(darkest, sample), Colors.contrast(Qt.color("#ffffff"), sample)) * 0.98);
+                verify(Colors.contrast(bare.foreground, sample) >= achievable, "Use the strongest available contrast without darkening the item");
                 fuzzyCompare(bare.foreground.hslHue, accent.hslHue, 0.01);
+                fuzzyCompare(bare.foreground.hslSaturation, accent.hslSaturation, 0.01);
                 compare(bare.glyphHalo, false);
                 let textured = Colors.palette(sample, accent, Qt.color("#000000"), Qt.color("#ffffff"), "light-bare");
                 compare(textured.glyphHalo, false);
-                verify(Colors.contrast(textured.foreground, sample) >= 4.5);
+                verify(textured.foreground.hslLightness >= 0.639);
+                verify(Colors.contrast(textured.foreground, sample) >= achievable);
             }
         }
         function test_popdownPaletteFollowsWallpaperAndReachesControls() {

@@ -31,19 +31,22 @@ function lightForeground(sample, accent) {
 }
 
 // Bare glyphs have no backing: adjust their shade instead of drawing an edge.
-function readableForeground(sample, accent, minimum, maximum, goal) {
+function readableForeground(sample, accent, minimum, maximum, goal, minimumLightness) {
     goal = goal || 4.6;
+    minimumLightness = minimumLightness || 0;
     let preferred = lightForeground(sample, accent);
-    let black = Qt.color("#000000"), white = Qt.color("#ffffff");
-    let useBounds = Math.max(regionContrast(black, minimum, maximum), regionContrast(white, minimum, maximum)) >= goal;
+    let darkest = Qt.hsla(preferred.hslHue, preferred.hslSaturation, minimumLightness, 1);
+    let white = Qt.color("#ffffff");
+    let useBounds = Math.max(regionContrast(darkest, minimum, maximum), regionContrast(white, minimum, maximum)) >= goal;
     // A mixed light/dark texture may have no single readable shade everywhere.
     // Use its local average in that case, retaining the source hue/saturation.
-    let target = useBounds ? goal : Math.min(goal, Math.max(contrast(black, sample), contrast(white, sample)) * 0.99);
+    let target = useBounds ? goal : Math.min(goal, Math.max(contrast(darkest, sample), contrast(white, sample)) * 0.99);
     function score(color) { return useBounds ? regionContrast(color, minimum, maximum) : contrast(color, sample); }
     if (score(preferred) >= target) return preferred;
     let foreground = preferred, distance = Infinity;
     for (let i = 0; i <= 128; ++i) {
-        let candidate = Qt.hsla(preferred.hslHue, preferred.hslSaturation, i / 128, 1);
+        let candidate = Qt.hsla(preferred.hslHue, preferred.hslSaturation,
+                                minimumLightness + (1 - minimumLightness) * i / 128, 1);
         let delta = Math.abs(candidate.hslLightness - preferred.hslLightness);
         if (delta < distance && score(candidate) >= target) {
             foreground = candidate;
@@ -115,7 +118,9 @@ function barePalette(sample, accent, minimum, maximum, style) {
         target = contrast(dark, sample) > contrast(light, sample) ? dark : light;
     let achievable = regionContrast(target, minimum, maximum);
     let textured = achievable < 4.5;
-    let foreground = style === "light" ? readableForeground(sample, accent, minimum, maximum) : original;
+    // Bare Hyprpane items keep their light, colorful fill even over pale pixels.
+    // Choose the best readable shade within that range instead of going dark.
+    let foreground = style === "light" ? readableForeground(sample, accent, minimum, maximum, 4.6, 0.64) : original;
     if (!textured && style !== "light") {
         // Change lightness while retaining hue and saturation. Mixing toward
         // white bleached colorful items, even when a richer shade was readable.
