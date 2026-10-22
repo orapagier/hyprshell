@@ -39,9 +39,9 @@
     },
     "adaptiveColors": true,
     "randomVibrantColors": true,
-    "height": 32,
+    "height": 30,
     "marginTop": 5,
-    "marginSide": 10,
+    "marginSide": 5,
     "spacing": 18,
     "clockFormat": "MMMM  dd   hh:mm AP   dddd",
     "background": "on",
@@ -188,13 +188,13 @@
       "opacity": 1,
       "fontSize": 13,
       "radius": -1,
-      "background": "inherit",
+      "background": "off",
       "spacingLeft": 0,
       "spacingRight": 0,
       "iconSize": 16,
       "pillGroup": "",
       "paddingLeft": -5,
-      "paddingRight": -2,
+      "paddingRight": -5,
       "popdownTranslucency": -1,
       "sharedBackground": "on"
     },
@@ -278,7 +278,7 @@
       "iconSize": 17,
       "pillGroup": "",
       "paddingLeft": -5,
-      "paddingRight": -1,
+      "paddingRight": -4,
       "popdownTranslucency": -1,
       "sharedBackground": "inherit"
     },
@@ -333,8 +333,8 @@
       "spacingRight": 0,
       "iconSize": 18,
       "pillGroup": "",
-      "paddingLeft": -2,
-      "paddingRight": -2,
+      "paddingLeft": -6,
+      "paddingRight": -8,
       "popdownTranslucency": -1,
       "sharedBackground": "inherit"
     },
@@ -361,8 +361,8 @@
       "spacingRight": 0,
       "iconSize": 14,
       "pillGroup": "",
-      "paddingLeft": -2,
-      "paddingRight": -1,
+      "paddingLeft": -8,
+      "paddingRight": -6,
       "popdownTranslucency": -1,
       "sharedBackground": "inherit"
     },
@@ -409,7 +409,7 @@
     "blurPopups": true,
     "blurInputMethods": true,
     "gapsOut": 10,
-    "gapsOutTop": 1
+    "gapsOutTop": 0
   },
   "locking": {
     "enabled": true,
