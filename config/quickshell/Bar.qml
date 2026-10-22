@@ -272,8 +272,9 @@ Item {
         if (!item)
             return Qt.rect(12, 2, 24, 20);
         if (name === "workspacePreview") {
-            let point = item.mapToItem(bar, 0, 0);
-            return Qt.rect(point.x, point.y, item.width, item.height);
+            // Track the row's placement and scroll offset when regrouping it.
+            let bounds = itemRect("workspaces");
+            return Qt.rect(bounds.x + item.x, bounds.y + item.y, item.width, item.height);
         }
         if (name === "media") return itemRect("media");
         // The connector foot spans the visible pill, including asymmetric padding.
@@ -286,14 +287,13 @@ Item {
             && item.glyphRect.width > 0 && item.glyphRect.height > 0;
     }
     function menuPointed(name) {
-        let item = menuTargets[name];
-        return !!item && !fullPill.visible && !item.settings.sharedBackgroundShown
-            && (item.bare || item.circularBackground);
+        // Every item uses the same stem, including wide and shared pills.
+        return !!menuTargets[name];
     }
     function menuAnchorRect(name) {
-        // Circles use the same pointed stem, meeting the outside of the pill;
+        // Pill stems meet the outside of the item;
         // only bare items move the attachment inward to the visible glyph.
-        if (!menuPointed(name) || !menuTargets[name].bare) return menuRect(name);
+        if (!menuPointed(name) || !menuTargets[name].bare || fullPill.visible) return menuRect(name);
         let bounds = menuRect(name), rect = menuTargets[name].glyphRect;
         return Qt.rect(bounds.x + rect.x, bounds.y + rect.y, rect.width, rect.height);
     }

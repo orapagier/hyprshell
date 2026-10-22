@@ -53,7 +53,6 @@ Item {
     property bool backgroundVisible: true
     readonly property bool backgroundShown: settings.background === "on" || (settings.background !== "off" && backgroundVisible)
     readonly property bool bare: !backgroundShown && !settings.sharedBackgroundShown
-    readonly property bool circularBackground: backgroundShown && Math.abs(width - height) < 0.01 && background.radius >= width / 2
     readonly property color glyphShadow: (0.2126 * effectiveForeground.r + 0.7152 * effectiveForeground.g + 0.0722 * effectiveForeground.b) > 0.5 ? Qt.rgba(0.025, 0.03, 0.05, 0.45) : Qt.rgba(1, 1, 1, 0.35)
     readonly property bool glyphHalo: bare && !!adaptivePalette && adaptivePalette.glyphHalo === true
     readonly property color textEdge: Colors.glyphEdge(textColor)
@@ -90,7 +89,6 @@ Item {
     Keys.onReturnPressed: if (interactive) clicked(null)
     Keys.onSpacePressed: if (interactive) clicked(null)
     Rectangle {
-        id: background
         objectName: "pillBackground"
         visible: pill.backgroundShown
         anchors.fill: parent

@@ -26,6 +26,7 @@ Item {
             return Qt.rect(rect.x + bar.x,rect.y + bar.y,rect.width,rect.height);
         }
         edge: connected ? bar.position : "top"
+        alignment: bar.side(scene.menu)
         pointed: bar.menuPointed(scene.menu)
         connected: bar.menuHasTrigger(scene.menu)
         requestedBodyHeight: 200
@@ -116,42 +117,45 @@ Item {
                 ]) {
                     style.bar.position = edge;
                     bar.settings = style;
-                    let circular = bar.menuTargets.wifi.circularBackground && !bar.menuTargets.wifi.settings.sharedBackgroundShown
-                        && style.bar.fullBackground !== "on";
-                    compare(popover.pointed,circular);
+                    verify(popover.pointed);
                     let rect = bar.menuRect("wifi");
                     compare(popover.triggerRect,Qt.rect(rect.x + bar.x,rect.y + bar.y,rect.width,rect.height));
-                    if (circular) compare(popover.fluidOutline.footRight,popover.fluidOutline.footLeft);
-                    else verify(popover.fluidOutline.footRight > popover.fluidOutline.footLeft);
+                    compare(popover.fluidOutline.footRight,popover.fluidOutline.footLeft);
                 }
                 bar.settings = {bar:{position:edge,background:"on"},items:[{id:"wifi",pillGroup:"test",sharedBackground:"off"}]};
                 verify(popover.pointed);
             }
         }
-        function test_circularPillsUsePointedStems_data() {
+        function test_allPillItemsUsePointedStems_data() {
             let rows = [];
-            for (let edge of ["left","right"])
-                for (let size of [12,48])
+            for (let edge of ["top","bottom","left","right"])
+                for (let side of ["left","center","right"])
                     for (let menu of ["launcher","settings","audio","wifi","bluetooth","notifications","battery","power","calendar","workspacePreview","media"])
-                        for (let shared of [false,true])
-                            rows.push({tag:edge + "-" + size + "-" + menu + "-" + shared,edge:edge,size:size,menu:menu,shared:shared});
+                        rows.push({tag:edge + "-" + side + "-" + menu,edge:edge,side:side,menu:menu});
             return rows;
         }
-        function test_circularPillsUsePointedStems(data) {
+        function test_allPillItemsUsePointedStems(data) {
             scene.menu = data.menu;
-            bar.settings = {bar:{position:data.edge,iconSize:data.size,background:"on"},
-                items:[{id:bar.menuItemId(data.menu),background:"on",pillGroup:data.shared ? "test" : "",sharedBackground:"on"}]};
-            verify(popover.connected);
-            verify(popover.pointed);
-            verify(bar.menuTargets[data.menu].circularBackground);
-            let rect = bar.menuRect(data.menu);
-            compare(popover.triggerRect,Qt.rect(rect.x + bar.x,rect.y + bar.y,rect.width,rect.height));
-            compare(popover.fluidOutline.footLeft,popover.tipX);
-            compare(popover.fluidOutline.footRight,popover.tipX);
-            compare(popover.fluidOutline.footY,popover.neckY);
-            verify(popover.containsPointer(Qt.point(data.edge === "left" ? rect.x + rect.width + 2 : rect.x + bar.x - 2,popover.tipX)));
+            for (let shared of [false,true]) {
+                let id = bar.menuItemId(data.menu);
+                bar.settings = {bar:{position:data.edge,background:"on"},
+                    items:[{id:id,side:data.side,background:"on",pillGroup:shared ? "test" : "",sharedBackground:"on"},
+                        {id:id === "launcher" ? "settings" : "launcher",side:data.side,pillGroup:shared ? "test" : "",sharedBackground:"on"}]};
+                verify(popover.connected);
+                verify(popover.pointed);
+                let rect = bar.menuRect(data.menu);
+                compare(popover.triggerRect,Qt.rect(rect.x + bar.x,rect.y + bar.y,rect.width,rect.height));
+                compare(popover.fluidOutline.footLeft,popover.tipX);
+                compare(popover.fluidOutline.footRight,popover.tipX);
+                compare(popover.fluidOutline.footY,popover.neckY);
+                let bridge = data.edge === "top" ? Qt.point(popover.tipX,rect.y + bar.y + rect.height + 2)
+                    : data.edge === "bottom" ? Qt.point(popover.tipX,rect.y + bar.y - 2)
+                    : data.edge === "left" ? Qt.point(rect.x + rect.width + 2,popover.tipX)
+                    : Qt.point(rect.x + bar.x - 2,popover.tipX);
+                verify(popover.containsPointer(bridge));
+            }
         }
-        function test_horizontalCircleRespectsRadius() {
+        function test_horizontalPillsKeepPointedStemsAcrossRadii() {
             // Make a horizontal pill square without changing its rendered icon.
             let item = bar.menuTargets.wifi;
             for (let edge of ["top","bottom"]) {
@@ -160,11 +164,10 @@ Item {
                     let padding = item.height - item.width;
                     bar.settings = {bar:{position:edge,background:"on"},items:[{id:"wifi",radius:radius,paddingRight:padding}]};
                     compare(item.width,item.height);
-                    compare(popover.pointed,radius !== 0);
+                    verify(popover.pointed);
                     let rect = bar.menuRect("wifi");
                     compare(popover.triggerRect,Qt.rect(rect.x + bar.x,rect.y + bar.y,rect.width,rect.height));
-                    if (radius !== 0) compare(popover.fluidOutline.footLeft,popover.fluidOutline.footRight);
-                    else verify(popover.fluidOutline.footRight > popover.fluidOutline.footLeft);
+                    compare(popover.fluidOutline.footLeft,popover.fluidOutline.footRight);
                 }
             }
         }
