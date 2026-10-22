@@ -87,28 +87,37 @@ per wallpaper region. The refresh action retries even an unchanged image.
 
 Appearance → Effect switches immediately between **Matrix**, **Shooting stars**,
 **Meteors**, and **Asteroids** and saves the choice. Existing configurations keep
-Matrix. Matrix retains evenly spaced character columns. Space particles mostly
-travel diagonally from upper-left toward lower-right with small angle variation.
-Occasional passes use another downward heading and a different top/side entry;
-none rise from the bottom. Stars and meteors appear within the upper 8–28% of
-the screen and remain visible through 65–85% of its height before fading. On
-narrow regions, their paths become steeper so they pass the middle before exiting;
-asteroids cross the view and exit without wrapping. Each particle keeps its
-size, heading and speed throughout a pass.
+Matrix. Matrix retains evenly spaced character columns.
 
-About 90% of sizes stay within 6% of the selected Particle size, with occasional
-20% smaller or larger particles. About 90% of speeds stay within 4% of the
-selected Speed, with occasional 25% slower or faster passes. Size and speed
-variations are independent. Density controls how many events occur, with about
-70% more moving-event slots than the previous spacing at the same setting.
+Shooting stars and meteors appear sporadically across the upper and middle sky,
+including the left, center and right. Each follows its own straight downward
+heading, with edge births usually directed inward. Short, quick streaks ignite,
+brighten and burn out inside the view rather than crossing the entire screen.
+Events last at most 1.35 seconds at the default Speed; random gaps, overlaps and
+occasional two- or three-event clusters avoid a repeating stream. Shooting stars
+occasionally include a brighter meteor (about 12% of events). Meteors mode uses
+brighter, thicker streaks throughout, with occasional brief late flares.
+
+Fine tapered trails grow behind small neutral-white heads, then shorten as the
+event fades. Color adds a subtle tint to the trail and halo. Density controls the
+frequency of events; Speed scales their motion and timing, and Particle size
+scales their heads, trails and speed. At default density/speed, a 1080p sky has
+roughly one event every few seconds, with longer quiet gaps at low density.
+
+Asteroids retain predominantly upper-left to lower-right paths, occasional other
+downward headings, and steady size/speed during each tumbling pass. They cross the
+view and exit without wrapping. About 90% of sizes stay within 6% of Particle
+size, with occasional 20% smaller/larger rocks; about 90% of speeds stay within
+4% of Speed, with occasional 25% slower/faster passes. These variations are
+independent.
 
 All three space modes include a subtle stationary starfield. Each star stays in
 place with a fixed size and brightness for most of an 18–40 second lifetime,
 then fades away and returns at a new position, size and brightness. These stars
 use a cool neutral light, including in Asteroids mode, and renew independently
 of the moving-particle Speed setting. Density and opacity apply to them too.
-Shooting stars have fine tapered streaks and small sparkling heads; meteors have
-longer, thicker trails and bright heads; asteroids are shaded, tumbling rocks
+Shooting stars have fine tapered streaks and small luminous heads; meteors have
+longer, thicker trails and brighter heads; asteroids are shaded, tumbling rocks
 with craters. They are drawn procedurally without image assets or a GPU context.
 
 Color, rain opacity, background, density, speed and frame limit apply to every
