@@ -287,10 +287,13 @@ Item {
     }
     function menuPointed(name) {
         let item = menuTargets[name];
-        return !!item && item.bare && !fullPill.visible;
+        return !!item && !fullPill.visible && !item.settings.sharedBackgroundShown
+            && (item.bare || item.circularBackground);
     }
     function menuAnchorRect(name) {
-        if (!menuPointed(name)) return menuRect(name);
+        // Circles use the same pointed stem, meeting the outside of the pill;
+        // only bare items move the attachment inward to the visible glyph.
+        if (!menuPointed(name) || !menuTargets[name].bare) return menuRect(name);
         let bounds = menuRect(name), rect = menuTargets[name].glyphRect;
         return Qt.rect(bounds.x + rect.x, bounds.y + rect.y, rect.width, rect.height);
     }
