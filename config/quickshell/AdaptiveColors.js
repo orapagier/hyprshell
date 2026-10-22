@@ -57,7 +57,7 @@ function readableForeground(sample, accent, minimum, maximum, goal, minimumLight
 }
 
 var brightCandidates = null;
-function contrastingBrightForeground(sample, accent, minimum, maximum) {
+function contrastingBrightForeground(sample, accent, minimum, maximum, distribution) {
     // A bounded, cached gamut: vivid light colors plus white. Never fall back
     // to a dark fill, and never use random choices during wallpaper sampling.
     if (!brightCandidates) {
@@ -69,25 +69,57 @@ function contrastingBrightForeground(sample, accent, minimum, maximum) {
             }
         brightCandidates.push({color: Qt.color("#ffffff"), luminance: 1});
     }
-    let low = luminance(minimum), high = luminance(maximum), average = luminance(sample);
     function ratio(a, b) { return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); }
-    let best = lightForeground(sample, accent), bestRegion = -1, bestAverage = -1;
-    function consider(color, value) {
-        // Rank the weakest contrast across the local luminance range first.
-        // On a texture spanning every bright candidate, use average contrast
-        // to break the tie; an average alone would hide bright wallpaper detail.
-        let region = value >= low && value <= high ? 1 : Math.min(ratio(value, low), ratio(value, high));
-        let center = ratio(value, average);
-        if (region > bestRegion + 0.000001 ||
-                (Math.abs(region - bestRegion) <= 0.000001 && center > bestAverage + 0.000001)) {
-            best = color;
-            bestRegion = region;
-            bestAverage = center;
+    let tones = distribution && distribution.length ? distribution : [
+        {minimum:luminance(minimum), maximum:luminance(minimum), count:1},
+        {minimum:luminance(sample), maximum:luminance(sample), count:8},
+        {minimum:luminance(maximum), maximum:luminance(maximum), count:1}
+    ];
+    function readability(value) {
+        let score = 0, clear = 0, count = 0;
+        for (let tone of tones) {
+            let contrast = value >= tone.minimum && value <= tone.maximum ? 1
+                : Math.min(ratio(value, tone.minimum), ratio(value, tone.maximum));
+            // Extra contrast above the legibility target must not bleach all
+            // the accents to white. Weight real pixel coverage, not outliers.
+            score += Math.min(4.5, contrast) * tone.count;
+            if (contrast >= 4.5) clear += tone.count;
+            count += tone.count;
         }
+        return {score:score / count, coverage:clear / count};
     }
-    // Keep the item's existing accent when contrast scores are tied.
-    consider(best, luminance(best));
-    for (let candidate of brightCandidates) consider(candidate.color, candidate.luminance);
+    let preferred = lightForeground(sample, accent);
+    let neutral = accent.hslSaturation < 0.10;
+    let allowWhite = neutral && readability(1).coverage >= 0.80;
+    let candidates = [], strongest = 0;
+    function add(color, value) {
+        if (color.hslSaturation < 0.10 && !allowWhite) return;
+        let score = readability(value).score;
+        candidates.push({color:color, score:score});
+        strongest = Math.max(strongest, score);
+    }
+    add(preferred, luminance(preferred));
+    for (let candidate of brightCandidates) add(candidate.color, candidate.luminance);
+    let preferredHue = neutral ? (sample.hslHue < 0 ? 0.78 : (sample.hslHue + 0.5) % 1) : preferred.hslHue;
+    let best = preferred, distance = Infinity;
+    for (let candidate of candidates) {
+        // Among similarly legible colors, preserve item identity and variety.
+        // The bounded tolerance avoids both unreadable accents and one-color UI.
+        if (candidate.score < strongest * 0.92) continue;
+        let color = candidate.color;
+        let hue = Math.abs(color.hslHue - preferredHue);
+        hue = Math.min(hue, 1 - hue);
+        let separation = Math.sqrt(Math.pow(color.r - sample.r, 2) + Math.pow(color.g - sample.g, 2) + Math.pow(color.b - sample.b, 2));
+        let delta = (color.hslSaturation < 0.10 ? (allowWhite ? -1 : 1) : hue)
+            + Math.abs(color.hslLightness - preferred.hslLightness) * 0.3 - separation * 0.08;
+        // Prefer at least 45 degrees of hue separation when similarly legible
+        // alternatives exist; never sacrifice the readability floor for hue.
+        if (sample.hsvSaturation > 0.25 && color.hslSaturation >= 0.10) {
+            let gap = Math.abs(color.hslHue - sample.hslHue);
+            if (Math.min(gap, 1 - gap) < 0.125) delta += 0.5;
+        }
+        if (delta < distance) { best = color; distance = delta; }
+    }
     return best;
 }
 
@@ -139,7 +171,7 @@ function glyphEdge(foreground) {
     return contrast(foreground, dark) >= contrast(foreground, light) ? dark : light;
 }
 
-function barePalette(sample, accent, minimum, maximum, style) {
+function barePalette(sample, accent, minimum, maximum, style, distribution) {
     let original = style === "muted" ? Qt.rgba(0.62, 0.62, 0.62, 1)
                  : style === "light" ? lightForeground(sample, accent)
                  : style === "vibrant" ? vibrantForeground(sample, accent) : accent;
@@ -155,7 +187,7 @@ function barePalette(sample, accent, minimum, maximum, style) {
     let textured = achievable < 4.5;
     // Bare Hyprpane items can change hue when white or their original accent
     // blends into the wallpaper; no background or outline changes are needed.
-    let foreground = style === "light" ? contrastingBrightForeground(sample, accent, minimum, maximum) : original;
+    let foreground = style === "light" ? contrastingBrightForeground(sample, accent, minimum, maximum, distribution) : original;
     if (!textured && style !== "light") {
         // Change lightness while retaining hue and saturation. Mixing toward
         // white bleached colorful items, even when a richer shade was readable.
@@ -206,11 +238,11 @@ function menuColorsFor(item) {
             focus: Qt.color("#88cba6f7"), disabled: Qt.color("#585b70")};
 }
 
-function palette(sample, accent, minimum, maximum, style) {
+function palette(sample, accent, minimum, maximum, style, distribution) {
     minimum = minimum || sample;
     maximum = maximum || sample;
     if (style === "light-bare")
-        return barePalette(sample, accent, minimum, maximum, "light");
+        return barePalette(sample, accent, minimum, maximum, "light", distribution);
     if (style === "light")
         return vibrantPalette(sample, accent, minimum, maximum, true);
     if (style && style.indexOf("light-") === 0)

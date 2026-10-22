@@ -2,7 +2,7 @@
 
 // Wallpaper-seeded shuffles keep the preview and live bars in agreement.
 var vibrantPalette = ['#ff6b9d', '#ff895c', '#ffd45c', '#b5ef63', '#5ee8a5', '#54e3da',
-    '#5dccff', '#86a6ff', '#b88aff', '#e27fff', '#ff79d1', '#ff6575'];
+    '#5dccff', '#86a6ff', '#b88aff', '#ffffff', '#ff79d1', '#ff6575'];
 var vibrantSessionSeed = Math.floor(Math.random() * 0x7fffffff) || 1;
 function wallpaperPalette(source) {
     let seed = vibrantSessionSeed;

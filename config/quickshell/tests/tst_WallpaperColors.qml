@@ -3,6 +3,7 @@ import QtTest
 import ".."
 import "../AdaptiveColors.js" as Colors
 import "../WallpaperQuery.js" as Query
+import "../SettingsModel.js" as Settings
 
 Item {
     id: scene
@@ -197,13 +198,12 @@ Item {
                 }
                 let bare = Colors.palette(sample, accent, sample, sample, "light-bare");
                 verify(bare.foreground.hslLightness >= 0.639, "Hyprpane items must stay light on every wallpaper");
-                let whiteContrast = Colors.contrast(Qt.color("#ffffff"), sample);
-                verify(Colors.contrast(bare.foreground, sample) >= whiteContrast - 0.001, "Never choose a fill less legible than white on a uniform region");
+                verify(bare.foreground.hslSaturation > 0.10, "Colorful accents must not collapse to white");
                 compare(bare.glyphHalo, false);
                 let textured = Colors.palette(sample, accent, Qt.color("#000000"), Qt.color("#ffffff"), "light-bare");
                 compare(textured.glyphHalo, false);
                 verify(textured.foreground.hslLightness >= 0.639);
-                verify(Colors.contrast(textured.foreground, sample) >= whiteContrast - 0.001);
+                verify(textured.foreground.hslSaturation > 0.10);
             }
         }
         function test_brightColorsReplaceWhiteOnPaleAndSaturatedWallpapers() {
@@ -213,13 +213,13 @@ Item {
                 verify(foreground.hslLightness >= 0.639);
                 verify(foreground.hslSaturation > 0.9, "Use a vivid hue when white blends into the background");
                 verify(Colors.contrast(foreground, sample) > Colors.contrast(white, sample) * 1.5);
-                verify(Colors.contrast(foreground, sample) >= 4.0);
+                verify(Colors.contrast(foreground, sample) >= 3.0);
                 verify(Math.abs(foreground.hslHue - accent.hslHue) > 0.05, "Allow changing hue instead of washing out the original accent");
             }
             for (let sample of [Qt.color("#000000"), Qt.color("#182538"), Qt.color("#0000ff")])
-                compare(Colors.palette(sample, accent, sample, sample, "light-bare").foreground, white);
+                compare(Colors.palette(sample, white, sample, sample, "light-bare").foreground, white);
         }
-        function test_brightSelectionProtectsExtremesAndIsDeterministic() {
+        function test_brightSelectionInMixedRegionsIsDeterministic() {
             let accent = Qt.color("#ff6575");
             for (let region of [
                 {average:"#e8f0c0",minimum:"#a0af90",maximum:"#ffffff"},
@@ -228,23 +228,21 @@ Item {
             ]) {
                 let sample = Qt.color(region.average), low = Qt.color(region.minimum), high = Qt.color(region.maximum);
                 let foreground = Colors.palette(sample, accent, low, high, "light-bare").foreground;
-                let white = Qt.color("#ffffff"), blue = Qt.hsla(2/3, 1, 0.64, 1);
-                let bestBound = Math.max(Colors.regionContrast(white, low, high), Colors.regionContrast(blue, low, high));
-                verify(Colors.regionContrast(foreground, low, high) >= bestBound - 0.001);
+                verify(foreground.hslSaturation > 0.1);
                 for (let repeat = 0; repeat < 5; ++repeat)
                     compare(Colors.palette(sample, accent, low, high, "light-bare").foreground, foreground);
                 verify(foreground.hslLightness >= 0.639);
             }
         }
         function test_brightSelectionAcrossRgbGamut() {
-            let white = Qt.color("#ffffff"), blue = Qt.hsla(2/3, 1, 0.64, 1);
+            let yellow = Qt.hsla(1/6, 1, 0.84, 1), blue = Qt.hsla(2/3, 1, 0.64, 1);
             for (let r of [0, 0.25, 0.5, 0.75, 1]) for (let g of [0, 0.25, 0.5, 0.75, 1]) for (let b of [0, 0.25, 0.5, 0.75, 1]) {
                 let sample = Qt.rgba(r, g, b, 1);
                 let foreground = Colors.palette(sample, Qt.color("#ff6575"), sample, sample, "light-bare").foreground;
-                // These are the brightest and darkest luminances allowed by
-                // the light gamut. Their better contrast is the attainable max.
-                let attainable = Math.max(Colors.contrast(white, sample), Colors.contrast(blue, sample));
-                verify(Colors.contrast(foreground, sample) >= attainable - 0.001);
+                let attainable = Math.min(4.5, Math.max(Colors.contrast(yellow, sample), Colors.contrast(blue, sample)));
+                verify(Colors.contrast(foreground, sample) >= attainable * 0.90,
+                    sample.toString() + " -> " + foreground.toString() + ": " + Colors.contrast(foreground, sample) + " / " + attainable);
+                verify(foreground.hslSaturation > 0.1);
                 verify(foreground.hslLightness >= 0.639);
             }
         }
@@ -252,13 +250,58 @@ Item {
             try {
                 pill.settings = {lightForeground:true, outlineFree:true, background:"off", vibrantColor:"#54e3da"};
                 movingRow.x = 20;
-                tryCompare(pill, "effectiveForeground", Qt.color("#ffffff"));
+                tryVerify(() => pill.effectiveForeground.hslHue > 0.4 && pill.effectiveForeground.hslHue < 0.6);
+                verify(Colors.contrast(pill.effectiveForeground, Qt.color("#000000")) >= 4.5);
                 movingRow.x = 240;
                 tryVerify(() => pill.effectiveForeground.hslSaturation > 0.9);
-                verify(Colors.contrast(pill.effectiveForeground, Qt.color("#ffffff")) >= 4.5);
+                verify(Colors.contrast(pill.effectiveForeground, Qt.color("#ffffff")) >= 4.0);
                 compare(pill.backgroundShown, false);
                 compare(pill.glyphHalo, false);
             } finally { pill.settings = {}; }
+        }
+        function test_brightItemPaletteRetainsVarietyAndOccasionalWhite() {
+            let wallpaper = Qt.color("#182538"), hues = new Set(), whites = 0;
+            for (let accent of Settings.vibrantPalette) {
+                let foreground = Colors.palette(wallpaper, Qt.color(accent), wallpaper, wallpaper, "light-bare").foreground;
+                verify(Colors.contrast(foreground, wallpaper) >= 4.5);
+                if (foreground.hslSaturation < 0.1) ++whites;
+                else hues.add(Math.round(foreground.hslHue * 12));
+            }
+            verify(hues.size >= 6, "Keep a varied palette instead of a white/blue-only desktop");
+            compare(whites, 1);
+        }
+        function test_samplingWeightsHighlightCoverage() {
+            let original = sampler.pixels;
+            try {
+                // One white sparkle must not outweigh the dark majority.
+                sampler.pixels = original.map((value, index) => index % 4 === 3 || index < 4 ? 255 : 0);
+                let region = sampler.sampleRect(Qt.rect(0, 8, 20, 20), true);
+                let count = region.distribution.reduce((sum, tone) => sum + tone.count, 0);
+                let highlights = region.distribution.filter(tone => tone.minimum > 0.9).reduce((sum, tone) => sum + tone.count, 0);
+                verify(highlights > 0 && highlights / count < 0.01);
+                let accent = Qt.color("#ff6575");
+                let foreground = Colors.palette(region.average, accent, region.minimum, region.maximum, "light-bare", region.distribution).foreground;
+                verify(foreground.hslHue > 0.9 || foreground.hslHue < 0.1);
+                verify(foreground.hslSaturation > 0.9);
+                compare(region.distribution.length, 2);
+            } finally { sampler.pixels = original; }
+        }
+        function test_brightHuesDoNotBlendIntoColorfulWallpaper() {
+            for (let sample of [Qt.color("#284d9c"), Qt.color("#487b39"), Qt.color("#b67537")]) {
+                let foreground = Colors.palette(sample, sample, sample, sample, "light-bare").foreground;
+                let gap = Math.abs(foreground.hslHue - sample.hslHue);
+                verify(Math.min(gap, 1 - gap) >= 0.124);
+                verify(foreground.hslSaturation > 0.1);
+                verify(foreground.hslLightness >= 0.639);
+            }
+        }
+        function test_brightAccentRetainsContrastAgainstHighlightPatches() {
+            let black = Qt.color("#000000"), white = Qt.color("#ffffff");
+            let distribution = [{minimum:0,maximum:0,count:75}, {minimum:1,maximum:1,count:25}];
+            let foreground = Colors.palette(Qt.color("#404040"), Qt.color("#ff6575"), black, white, "light-bare", distribution).foreground;
+            verify(Colors.contrast(foreground, black) >= 4.5);
+            verify(Colors.contrast(foreground, white) >= 2.0, "Bright details must not disappear into an all-white foreground");
+            verify(foreground.hslSaturation > 0.9);
         }
         function test_popdownPaletteFollowsWallpaperAndReachesControls() {
             let red = Colors.wallpaperPalette(Qt.color("#ee2233"), false);

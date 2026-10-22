@@ -55,6 +55,7 @@ Item {
         let pixels = sampler.pixels;
         let linearChannels = sampler.linearChannels;
         let r = 0, g = 0, b = 0, count = 0;
+        let tones = includeBounds ? Array.from({length:32}, () => ({minimum:Infinity, maximum:-Infinity, count:0})) : null;
         let low = Infinity, high = -Infinity, lowIndex = 0, highIndex = 0;
         for (let y = y0; y < y1; ++y) for (let x = x0; x < x1; ++x) {
             let i = (y * strip.width + x) * 4;
@@ -63,6 +64,12 @@ Item {
                 // Use actual darkest/lightest pixels. Independent RGB extrema
                 // invented black/white bounds on colorful wallpaper regions.
                 let value = 0.2126 * linearChannels[pixels[i]] + 0.7152 * linearChannels[pixels[i + 1]] + 0.0722 * linearChannels[pixels[i + 2]];
+                // A resize can briefly expose the preceding strip's pixels.
+                if (!Number.isFinite(value)) continue;
+                let tone = tones[Math.min(31, Math.floor(value * 32))];
+                tone.minimum = Math.min(tone.minimum, value);
+                tone.maximum = Math.max(tone.maximum, value);
+                ++tone.count;
                 if (value < low) { low = value; lowIndex = i; }
                 if (value > high) { high = value; highIndex = i; }
             }
@@ -70,7 +77,8 @@ Item {
         let average = Qt.rgba(r / count / 255, g / count / 255, b / count / 255, 1);
         let result = includeBounds ? {average: average,
             minimum: Qt.rgba(pixels[lowIndex]/255, pixels[lowIndex+1]/255, pixels[lowIndex+2]/255, 1),
-            maximum: Qt.rgba(pixels[highIndex]/255, pixels[highIndex+1]/255, pixels[highIndex+2]/255, 1)} : average;
+            maximum: Qt.rgba(pixels[highIndex]/255, pixels[highIndex+1]/255, pixels[highIndex+2]/255, 1),
+            distribution: tones.filter(tone => tone.count > 0)} : average;
         // Bound memory while dragging or scrolling across many unique regions.
         if (cache.keys.length >= 128) delete cache.entries[cache.keys.shift()];
         cache.keys.push(key);
@@ -85,7 +93,7 @@ Item {
             x += node.x; y += node.y;
         }
         let region = sampleRect(Qt.rect(x, y, item.width, item.height), true);
-        return Colors.palette(region.average, accent, region.minimum, region.maximum, style);
+        return Colors.palette(region.average, accent, region.minimum, region.maximum, style, region.distribution);
     }
 
     Image {
