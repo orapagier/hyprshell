@@ -231,7 +231,7 @@ ShellRoot {
                 screen: panel.screen
                 barEdge: connected ? panel.edge : "top"
                 barRect: connected ? Qt.rect(panel.originX, panel.originY, panel.width, panel.height) : Qt.rect(0,0,0,0)
-                connected: panel.visible && (menuState.displayedSection !== "launcher" || bar.menuHasTrigger("launcher"))
+                connected: panel.visible && bar.menuHasTrigger(menuState.displayedSection)
                 pointed: bar.menuPointed(menuState.displayedSection)
                 movePointerOnOpen: !connected || menuState.openedByShortcut
                 section: menuState.section

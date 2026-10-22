@@ -284,8 +284,9 @@ Item {
         return itemRect(name);
     }
     function menuHasTrigger(name) {
+        let id = menuItemId(name);
         let item = menuTargets[name];
-        return itemEnabled(menuItemId(name)) && !!item && item.opacity > 0
+        return itemShown(id) && !!item && moduleItems[id].opacity > 0 && item.opacity > 0
             && item.glyphRect.width > 0 && item.glyphRect.height > 0;
     }
     function menuPointed(name) {
