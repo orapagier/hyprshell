@@ -9,7 +9,50 @@ Item {
     TestCase {
         name: "BarRegressions"
         when: windowShown
-        function cleanup() { bar.settings = {}; bar.statusIconsOnly = false; bar.width = scene.width; bar.mediaData = {playing: false}; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
+        function cleanup() { bar.settings = {}; bar.statusIconsOnly = false; bar.width = scene.width; bar.mediaData = {playing: false}; bar.trayModel = []; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
+        function connectorConfig(position, items, options) {
+            bar.width = position === "left" || position === "right" ? 40 : scene.width;
+            return {bar:Object.assign({position:position, background:"on", spacing:20}, options || {}),
+                items:Object.keys(bar.moduleItems).map(id => Object.assign({id:id, side:"left", enabled:!!items[id]}, items[id] || {}))};
+        }
+        function test_hyprknotsBareNeighbors() {
+            let links = findChild(bar, "panelConnectors");
+            for (let position of ["top", "bottom", "left", "right"]) {
+                for (let modes of [["on","on","on",true], ["off","on","on",false],
+                        ["on","off","on",false], ["off","off","on",false],
+                        ["inherit","inherit","off",false], ["on","on","off",true]]) {
+                    bar.settings = connectorConfig(position, {audio:{background:modes[0]}, wifi:{background:modes[1]}}, {background:modes[2]});
+                    compare(links.segments.length, 1);
+                    compare(links.segments[0].knots.length > 0, modes[3]);
+                    verify(links.segments[0].end > links.segments[0].start);
+                }
+                bar.settings = connectorConfig(position, {audio:{pillGroup:"pair", sharedBackground:"off"}, wifi:{pillGroup:"pair"}});
+                compare(links.segments.length, 1);
+                compare(links.segments[0].knots.length, 0);
+                bar.settings = connectorConfig(position, {audio:{pillGroup:"pair", sharedBackground:"on"}, wifi:{pillGroup:"pair"}});
+                compare(links.segments.length, 0);
+            }
+        }
+        function test_hyprknotsContainerPills() {
+            let links = findChild(bar, "panelConnectors");
+            bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}], audio:{}, network:{}, bluetooth:{}, battery:{}};
+            bar.mediaData = {playing:true, title:"Track", levels:[0.3,0.8]};
+            bar.trayModel = [{icon:Qt.resolvedUrl("../icons/preview-tray.svg")}];
+            for (let position of ["top", "bottom", "left", "right"]) {
+                for (let id of ["workspaces", "media", "tray"]) {
+                    for (let mode of ["off", "on", "off"]) {
+                        let items = {audio:{background:"on"}};
+                        items[id] = {background:mode};
+                        bar.settings = connectorConfig(position, items);
+                        // Allow Grid/Repeater positioning to settle before checking gaps.
+                        wait(0);
+                        compare(links.segments.length, id === "workspaces" ? 2 : 1);
+                        for (let segment of links.segments)
+                            compare(segment.knots.length > 0, mode === "on");
+                    }
+                }
+            }
+        }
         function test_hyprknotsSizing() {
             let links = findChild(bar, "panelConnectors");
             compare(links.lineWidth, 1.8);

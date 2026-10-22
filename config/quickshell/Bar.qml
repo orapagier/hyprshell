@@ -344,6 +344,17 @@ Item {
             // Keep enlarged knots within their gap instead of covering icons.
             return Math.min(4.8 * knotScale, length / 3.6);
         }
+        function endpointHasPill(id, trailing) {
+            if (fullPill.visible) return true;
+            let item = bar.moduleItems[id];
+            // Container items use the actual button facing this gap.
+            if (id === "workspaces")
+                item = workspaceRepeater.itemAt(trailing ? workspaceRepeater.count - 1 : 0);
+            else if (id === "media") item = mediaSlot.item;
+            else if (id === "tray" && bar.vertical)
+                item = trayIcons.itemAt(trailing ? trayIcons.count - 1 : 0);
+            return !!item && item.bare === false;
+        }
         property int patternSeed: Math.floor(Math.random() * 0x7fffffff) || 1
         function reshuffleKnots() {
             let next = Math.floor(Math.random() * 0x7fffffff) || 1;
@@ -391,12 +402,12 @@ Item {
             return Colors.contrast(light, region.average) >= Colors.contrast(dark, region.average)
                 ? light : dark;
         }
-        function segmentFor(start, end, cross, workspace) {
+        function segmentFor(start, end, cross, workspace, knotted) {
             let length = end - start;
             let steps = Math.max(1, Math.ceil(length / 16)), stops = [];
             for (let i = 0; i <= steps; ++i)
                 stops.push(colorAt(start + length * i / steps, cross, 8, true));
-            let count = workspace ? 1 : Math.max(1, Math.floor(length / 42)), knots = [];
+            let count = knotted ? (workspace ? 1 : Math.max(1, Math.floor(length / 42))) : 0, knots = [];
             for (let i = 0; i < count; ++i)
                 knots.push(colorAt(start + length * (i + 0.5) / count, cross, 12));
             return {start:start, end:end, cross:cross, workspace:workspace,
@@ -410,14 +421,15 @@ Item {
             let result = [];
             for (let i = 1; i < ids.length; ++i) {
                 let first = ids[i - 1], second = ids[i];
+                let knotted = endpointHasPill(first, true) && endpointHasPill(second, false);
                 if (bar.side(first) === bar.side(second) && bar.pillName(first)
-                    && bar.pillName(first) === bar.pillName(second)) continue;
+                    && bar.pillName(first) === bar.pillName(second) && knotted) continue;
                 let a = bar.moduleItems[first], b = bar.moduleItems[second];
                 let start = bar.vertical ? a.y + a.height : a.x + a.width;
                 let end = bar.vertical ? b.y : b.x;
                 if (end - start < 2) continue;
                 let cross = bar.vertical ? bar.width / 2 : bar.height / 2;
-                result.push(segmentFor(start, end, cross, false));
+                result.push(segmentFor(start, end, cross, false, knotted));
             }
             if (bar.itemShown("workspaces")) {
                 // Follow the actual filtered delegates, including their polished
@@ -428,7 +440,8 @@ Item {
                     let start = bar.vertical ? workspaceRow.y + a.y + a.height : workspaceRow.x + a.x + a.width;
                     let end = bar.vertical ? workspaceRow.y + b.y : workspaceRow.x + b.x;
                     let cross = bar.vertical ? workspaceRow.x + a.x + a.width / 2 : workspaceRow.y + a.y + a.height / 2;
-                    if (end - start >= 2) result.push(segmentFor(start, end, cross, true));
+                    let knotted = fullPill.visible || (!a.bare && !b.bare);
+                    if (end - start >= 2) result.push(segmentFor(start, end, cross, true, knotted));
                 }
             }
             return result;

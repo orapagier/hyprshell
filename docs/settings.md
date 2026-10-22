@@ -633,6 +633,9 @@ preserves preferences and history, and records recovery files. See
 
 Hyprpane & panels → Default appearance includes **Enable Hyprknots**
 (`bar.hyprknots`, default On) for the connector line and decorative knots.
+Gaps touching an item without a background pill use only the connecting line;
+decorative knots appear when both neighboring items have pills. This also follows
+workspace buttons and shared-pill backgrounds on all four edges.
 **Hyprknots line thickness** adjusts the connecting line from 0.5–6 px
 (`bar.hyprknotsLineWidth`, default 1.8). **Hyprknots knot size** scales the knots
 from 50–200% (`bar.hyprknotsKnotSize`, default 100); large knots stay within their
