@@ -183,7 +183,7 @@ Item {
             verify(media.item.adaptivePalette !== null);
             grabImage(bar).save("/tmp/quickshell-wallpaper-regions.png");
         }
-        function test_lightGlyphsKeepTheirHueAndContrast() {
+        function test_lightGlyphsStayBrightAndContrasting() {
             let samples = [Qt.color("#000000"), Qt.color("#ffffff"), Qt.color("#808080"), Qt.color("#ff0000"), Qt.color("#0000ff")];
             let accents = [Qt.color("#ff6575"), Qt.color("#54e3da"), Qt.color("#86a6ff"), Qt.color("#343650")];
             for (let sample of samples) for (let accent of accents) {
@@ -197,17 +197,68 @@ Item {
                 }
                 let bare = Colors.palette(sample, accent, sample, sample, "light-bare");
                 verify(bare.foreground.hslLightness >= 0.639, "Hyprpane items must stay light on every wallpaper");
-                let darkest = Qt.hsla(accent.hslHue, accent.hslSaturation, 0.64, 1);
-                let achievable = Math.min(4.5, Math.max(Colors.contrast(darkest, sample), Colors.contrast(Qt.color("#ffffff"), sample)) * 0.98);
-                verify(Colors.contrast(bare.foreground, sample) >= achievable, "Use the strongest available contrast without darkening the item");
-                fuzzyCompare(bare.foreground.hslHue, accent.hslHue, 0.01);
-                fuzzyCompare(bare.foreground.hslSaturation, accent.hslSaturation, 0.01);
+                let whiteContrast = Colors.contrast(Qt.color("#ffffff"), sample);
+                verify(Colors.contrast(bare.foreground, sample) >= whiteContrast - 0.001, "Never choose a fill less legible than white on a uniform region");
                 compare(bare.glyphHalo, false);
                 let textured = Colors.palette(sample, accent, Qt.color("#000000"), Qt.color("#ffffff"), "light-bare");
                 compare(textured.glyphHalo, false);
                 verify(textured.foreground.hslLightness >= 0.639);
-                verify(Colors.contrast(textured.foreground, sample) >= achievable);
+                verify(Colors.contrast(textured.foreground, sample) >= whiteContrast - 0.001);
             }
+        }
+        function test_brightColorsReplaceWhiteOnPaleAndSaturatedWallpapers() {
+            let white = Qt.color("#ffffff"), accent = Qt.color("#54e3da");
+            for (let sample of [white, Qt.color("#fff3ce"), Qt.color("#aaffcc"), Qt.color("#ffff00"), Qt.color("#00ff00"), Qt.color("#00ffff")]) {
+                let foreground = Colors.palette(sample, accent, sample, sample, "light-bare").foreground;
+                verify(foreground.hslLightness >= 0.639);
+                verify(foreground.hslSaturation > 0.9, "Use a vivid hue when white blends into the background");
+                verify(Colors.contrast(foreground, sample) > Colors.contrast(white, sample) * 1.5);
+                verify(Colors.contrast(foreground, sample) >= 4.0);
+                verify(Math.abs(foreground.hslHue - accent.hslHue) > 0.05, "Allow changing hue instead of washing out the original accent");
+            }
+            for (let sample of [Qt.color("#000000"), Qt.color("#182538"), Qt.color("#0000ff")])
+                compare(Colors.palette(sample, accent, sample, sample, "light-bare").foreground, white);
+        }
+        function test_brightSelectionProtectsExtremesAndIsDeterministic() {
+            let accent = Qt.color("#ff6575");
+            for (let region of [
+                {average:"#e8f0c0",minimum:"#a0af90",maximum:"#ffffff"},
+                {average:"#202040",minimum:"#000000",maximum:"#424268"},
+                {average:"#808080",minimum:"#000000",maximum:"#ffffff"}
+            ]) {
+                let sample = Qt.color(region.average), low = Qt.color(region.minimum), high = Qt.color(region.maximum);
+                let foreground = Colors.palette(sample, accent, low, high, "light-bare").foreground;
+                let white = Qt.color("#ffffff"), blue = Qt.hsla(2/3, 1, 0.64, 1);
+                let bestBound = Math.max(Colors.regionContrast(white, low, high), Colors.regionContrast(blue, low, high));
+                verify(Colors.regionContrast(foreground, low, high) >= bestBound - 0.001);
+                for (let repeat = 0; repeat < 5; ++repeat)
+                    compare(Colors.palette(sample, accent, low, high, "light-bare").foreground, foreground);
+                verify(foreground.hslLightness >= 0.639);
+            }
+        }
+        function test_brightSelectionAcrossRgbGamut() {
+            let white = Qt.color("#ffffff"), blue = Qt.hsla(2/3, 1, 0.64, 1);
+            for (let r of [0, 0.25, 0.5, 0.75, 1]) for (let g of [0, 0.25, 0.5, 0.75, 1]) for (let b of [0, 0.25, 0.5, 0.75, 1]) {
+                let sample = Qt.rgba(r, g, b, 1);
+                let foreground = Colors.palette(sample, Qt.color("#ff6575"), sample, sample, "light-bare").foreground;
+                // These are the brightest and darkest luminances allowed by
+                // the light gamut. Their better contrast is the attainable max.
+                let attainable = Math.max(Colors.contrast(white, sample), Colors.contrast(blue, sample));
+                verify(Colors.contrast(foreground, sample) >= attainable - 0.001);
+                verify(foreground.hslLightness >= 0.639);
+            }
+        }
+        function test_brightPaneColorsFollowTheirLocalWallpaperRegion() {
+            try {
+                pill.settings = {lightForeground:true, outlineFree:true, background:"off", vibrantColor:"#54e3da"};
+                movingRow.x = 20;
+                tryCompare(pill, "effectiveForeground", Qt.color("#ffffff"));
+                movingRow.x = 240;
+                tryVerify(() => pill.effectiveForeground.hslSaturation > 0.9);
+                verify(Colors.contrast(pill.effectiveForeground, Qt.color("#ffffff")) >= 4.5);
+                compare(pill.backgroundShown, false);
+                compare(pill.glyphHalo, false);
+            } finally { pill.settings = {}; }
         }
         function test_popdownPaletteFollowsWallpaperAndReachesControls() {
             let red = Colors.wallpaperPalette(Qt.color("#ee2233"), false);

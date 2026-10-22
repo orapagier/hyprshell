@@ -56,6 +56,41 @@ function readableForeground(sample, accent, minimum, maximum, goal, minimumLight
     return foreground;
 }
 
+var brightCandidates = null;
+function contrastingBrightForeground(sample, accent, minimum, maximum) {
+    // A bounded, cached gamut: vivid light colors plus white. Never fall back
+    // to a dark fill, and never use random choices during wallpaper sampling.
+    if (!brightCandidates) {
+        brightCandidates = [];
+        for (let hue = 0; hue < 24; ++hue)
+            for (let lightness of [0.64, 0.74, 0.84]) {
+                let color = Qt.hsla(hue / 24, 1, lightness, 1);
+                brightCandidates.push({color: color, luminance: luminance(color)});
+            }
+        brightCandidates.push({color: Qt.color("#ffffff"), luminance: 1});
+    }
+    let low = luminance(minimum), high = luminance(maximum), average = luminance(sample);
+    function ratio(a, b) { return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); }
+    let best = lightForeground(sample, accent), bestRegion = -1, bestAverage = -1;
+    function consider(color, value) {
+        // Rank the weakest contrast across the local luminance range first.
+        // On a texture spanning every bright candidate, use average contrast
+        // to break the tie; an average alone would hide bright wallpaper detail.
+        let region = value >= low && value <= high ? 1 : Math.min(ratio(value, low), ratio(value, high));
+        let center = ratio(value, average);
+        if (region > bestRegion + 0.000001 ||
+                (Math.abs(region - bestRegion) <= 0.000001 && center > bestAverage + 0.000001)) {
+            best = color;
+            bestRegion = region;
+            bestAverage = center;
+        }
+    }
+    // Keep the item's existing accent when contrast scores are tied.
+    consider(best, luminance(best));
+    for (let candidate of brightCandidates) consider(candidate.color, candidate.luminance);
+    return best;
+}
+
 function vibrantPalette(sample, accent, minimum, maximum, keepLight, appearanceStyle) {
     let foreground = keepLight ? lightForeground(sample, accent) : vibrantForeground(sample, accent);
     let base = Qt.rgba(0.035, 0.04, 0.06, 1);
@@ -118,9 +153,9 @@ function barePalette(sample, accent, minimum, maximum, style) {
         target = contrast(dark, sample) > contrast(light, sample) ? dark : light;
     let achievable = regionContrast(target, minimum, maximum);
     let textured = achievable < 4.5;
-    // Bare Hyprpane items keep their light, colorful fill even over pale pixels.
-    // Choose the best readable shade within that range instead of going dark.
-    let foreground = style === "light" ? readableForeground(sample, accent, minimum, maximum, 4.6, 0.64) : original;
+    // Bare Hyprpane items can change hue when white or their original accent
+    // blends into the wallpaper; no background or outline changes are needed.
+    let foreground = style === "light" ? contrastingBrightForeground(sample, accent, minimum, maximum) : original;
     if (!textured && style !== "light") {
         // Change lightness while retaining hue and saturation. Mixing toward
         // white bleached colorful items, even when a richer shade was readable.
