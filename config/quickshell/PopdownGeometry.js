@@ -31,21 +31,15 @@ function outline(x, y, width, height, tip, neck, half, pillRadius, shear, preser
         function footCurve(foot, side, reverse) {
             let a = [tip, neck], b = [tip + (foot - tip) * 0.07, neck + gap * 0.5];
             let c = [tip + (foot - tip) * 0.25, y], d = [foot, y];
-            let curves = [[a, b, c, d]];
             if (tip >= x && tip <= x + width && (foot - tip) * side < 0) {
-                // Keep the first 80% exactly; turn only the foot's final tip.
-                function split(p, q) { return [p[0] * 0.2 + q[0] * 0.8, p[1] * 0.2 + q[1] * 0.8]; }
-                let ab = split(a, b), bc = split(b, c), cd = split(c, d);
-                let abc = split(ab, bc), bcd = split(bc, cd), join = split(abc, bcd);
-                cd[0] = 2 * foot - cd[0];
-                curves = [[a, ab, abc, join], [join, bcd, cd, d]];
+                // Bow the outside like a speech-bubble tail, then sweep back
+                // into its original foot, opposite the concave inside edge.
+                b = [tip + (foot - tip) * 0.04, neck + gap * 0.5];
+                c = [foot - side * Math.min(gap * 0.22, Math.abs(foot - tip) * 0.4), y];
             }
-            if (reverse) curves.reverse();
-            for (let curve of curves) {
-                if (reverse) curve = curve.slice().reverse();
-                path.push('C ' + p(curve[1][0], curve[1][1]) + ' '
-                    + p(curve[2][0], curve[2][1]) + ' ' + p(curve[3][0], curve[3][1]));
-            }
+            let curve = reverse ? [d, c, b, a] : [a, b, c, d];
+            path.push('C ' + p(curve[1][0], curve[1][1]) + ' '
+                + p(curve[2][0], curve[2][1]) + ' ' + p(curve[3][0], curve[3][1]));
         }
         path.push('M ' + p(tip, neck));
         footCurve(right, 1, false);
