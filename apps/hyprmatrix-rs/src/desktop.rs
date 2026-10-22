@@ -57,9 +57,9 @@ struct MenuHover {
     close_at: Option<Instant>,
 }
 impl MenuHover {
-    fn opened(&mut self, now: Instant) {
-        // Allow entry when settings were opened from the launcher or a shortcut.
-        self.close_at = (!self.inside).then_some(now + Duration::from_millis(900));
+    fn opened(&mut self) {
+        // Keyboard openings stay visible until the pointer enters and leaves.
+        self.close_at = None;
     }
     fn update(&mut self, inside: bool, dragging: bool, now: Instant) {
         self.inside = inside;
@@ -72,9 +72,6 @@ impl MenuHover {
     fn expired(&self, now: Instant) -> bool {
         self.close_at.is_some_and(|deadline| now >= deadline)
     }
-}
-fn settings_corner(width: u32, (x,y): (f64,f64)) -> bool {
-    x >= width.saturating_sub(44) as f64 && x < width as f64 && (0.0..44.0).contains(&y)
 }
 enum Event {
     Command(String, Option<std_mpsc::Sender<Result<(), String>>>),
@@ -484,7 +481,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
             }
         })
         .map_err(|e| e.to_string())?;
-    if state.menu { state.menu_hover.opened(Instant::now()); }
+    if state.menu { state.menu_hover.opened(); }
     while !state.exit {
         let timeout = if state.menu_drag.is_some() {
             Some(Duration::from_millis(16))
@@ -622,7 +619,6 @@ impl Desktop {
     }
     fn input_region(&self) -> Result<(), String> {
         let region = Region::new(&self.compositor).map_err(|e| e.to_string())?;
-        region.add(self.width.saturating_sub(44) as i32, 0, 44, 44);
         if self.menu {
             let (x, y, w, h) = self.menu_rect_at();
             region.add(x as i32, y as i32, w as i32, h as i32);
@@ -784,7 +780,7 @@ impl Desktop {
                 self.user_visible = true;
                 self.visibility(true)?;
                 self.menu = true;
-                self.menu_hover.opened(Instant::now());
+                self.menu_hover.opened();
                 self.layer().set_layer(Layer::Top);
                 self.input_region()?;
                 self.layer().commit();
@@ -1124,17 +1120,8 @@ impl PointerHandler for Desktop {
                     && y < (my + mh) as f64
             };
             if matches!(&event.kind, PointerEventKind::Enter { .. } | PointerEventKind::Motion { .. }) {
-                if !self.menu && self.visible && settings_corner(self.width, (x,y)) {
-                    // Hover always reveals beside the corner, even after an earlier panel drag.
-                    self.menu_pos = None;
-                    if let Err(error) = self.command("settings") {
-                        self.error = Some(error);
-                        self.exit = true;
-                        continue;
-                    }
-                }
                 if self.menu {
-                    self.menu_hover.update(over_menu(self) || settings_corner(self.width, (x,y)),
+                    self.menu_hover.update(over_menu(self),
                         self.menu_drag.is_some(), Instant::now());
                 }
             }
@@ -1146,22 +1133,7 @@ impl PointerHandler for Desktop {
                     Ok(())
                 }
                 PointerEventKind::Press { button: 0x111, .. } => {
-                    if settings_corner(self.width, (x,y)) {
-                        if self.menu {
-                            self.close_menu()
-                        } else {
-                            self.menu = true;
-                            self.menu_hover.opened(Instant::now());
-                            self.layer().set_layer(Layer::Top);
-                            self.menu_drag = None;
-                            let out = self.input_region();
-                            if out.is_ok() {
-                                self.layer().commit();
-                                self.wake_draw();
-                            }
-                            out
-                        }
-                    } else if self.menu && over_menu(self) {
+                    if self.menu && over_menu(self) {
                         self.close_menu()
                     } else {
                         Ok(())
@@ -1233,9 +1205,8 @@ mod tests {
     fn hover_settings_cancel_dismissal_on_reentry_and_wait_for_drag_release() {
         let now=Instant::now();
         let mut hover=MenuHover::default();
-        hover.opened(now);
-        assert!(!hover.expired(now+Duration::from_millis(899)));
-        assert!(hover.expired(now+Duration::from_millis(900)));
+        hover.opened();
+        assert!(!hover.expired(now+Duration::from_secs(60)));
         hover.update(true,false,now);
         assert!(!hover.expired(now+Duration::from_secs(5)));
         hover.update(false,false,now);
@@ -1248,19 +1219,6 @@ mod tests {
         hover.update(false,false,now+Duration::from_secs(5));
         assert!(hover.expired(now+Duration::from_millis(5180)));
     }
-    #[test]
-    fn hover_corner_is_bounded_and_overlaps_the_default_settings_panel() {
-        for (w,h) in [(640,520),(1920,1080),(360,460)] {
-            assert!(settings_corner(w,((w-1) as f64,0.0)));
-            assert!(settings_corner(w,((w-44) as f64,43.0)));
-            assert!(!settings_corner(w,(w as f64,0.0)));
-            assert!(!settings_corner(w,((w-1) as f64,-1.0)));
-            assert!(!settings_corner(w,((w-1) as f64,44.0)));
-            let (x,y,mw,mh)=render::menu_rect(w,h);
-            assert!(x<w && x+mw>w-44 && y<44 && y+mh>0);
-        }
-    }
-
     #[test]
     fn layer_choice_survives_settings_close() {
         assert_eq!(rain_layer(false, false), Layer::Bottom);

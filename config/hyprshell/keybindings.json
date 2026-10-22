@@ -32,6 +32,22 @@
       "mode": "existing",
       "original": "ALT + T",
       "shortcut": "ALT + X"
+    },
+    {
+      "id": "dbf175d2bd47455aa306d22c9c9c1e6c",
+      "original": "",
+      "shortcut": "SUPER + CTRL + R",
+      "description": "Hyprrecorder Stop",
+      "mode": "command",
+      "command": "hyprrecorder stop"
+    },
+    {
+      "id": "e996f316ffa24d789ea7de7b0b1392dd",
+      "original": "",
+      "shortcut": "SUPER + R",
+      "description": "Open Hyprrecorder",
+      "mode": "command",
+      "command": "hyprrecorder & disown"
     }
   ]
 }

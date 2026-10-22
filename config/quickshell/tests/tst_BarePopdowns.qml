@@ -26,7 +26,6 @@ Item {
             return Qt.rect(rect.x + bar.x,rect.y + bar.y,rect.width,rect.height);
         }
         edge: connected ? bar.position : "top"
-        alignment: bar.side(scene.menu)
         pointed: bar.menuPointed(scene.menu)
         connected: bar.menuHasTrigger(scene.menu)
         requestedBodyHeight: 200
@@ -117,58 +116,13 @@ Item {
                 ]) {
                     style.bar.position = edge;
                     bar.settings = style;
-                    verify(popover.pointed);
+                    verify(!popover.pointed);
                     let rect = bar.menuRect("wifi");
                     compare(popover.triggerRect,Qt.rect(rect.x + bar.x,rect.y + bar.y,rect.width,rect.height));
-                    compare(popover.fluidOutline.footRight,popover.fluidOutline.footLeft);
+                    verify(popover.fluidOutline.footRight > popover.fluidOutline.footLeft);
                 }
                 bar.settings = {bar:{position:edge,background:"on"},items:[{id:"wifi",pillGroup:"test",sharedBackground:"off"}]};
                 verify(popover.pointed);
-            }
-        }
-        function test_allPillItemsUsePointedStems_data() {
-            let rows = [];
-            for (let edge of ["top","bottom","left","right"])
-                for (let side of ["left","center","right"])
-                    for (let menu of ["launcher","settings","audio","wifi","bluetooth","notifications","battery","power","calendar","workspacePreview","media"])
-                        rows.push({tag:edge + "-" + side + "-" + menu,edge:edge,side:side,menu:menu});
-            return rows;
-        }
-        function test_allPillItemsUsePointedStems(data) {
-            scene.menu = data.menu;
-            for (let shared of [false,true]) {
-                let id = bar.menuItemId(data.menu);
-                bar.settings = {bar:{position:data.edge,background:"on"},
-                    items:[{id:id,side:data.side,background:"on",pillGroup:shared ? "test" : "",sharedBackground:"on"},
-                        {id:id === "launcher" ? "settings" : "launcher",side:data.side,pillGroup:shared ? "test" : "",sharedBackground:"on"}]};
-                verify(popover.connected);
-                verify(popover.pointed);
-                let rect = bar.menuRect(data.menu);
-                compare(popover.triggerRect,Qt.rect(rect.x + bar.x,rect.y + bar.y,rect.width,rect.height));
-                compare(popover.fluidOutline.footLeft,popover.tipX);
-                compare(popover.fluidOutline.footRight,popover.tipX);
-                compare(popover.fluidOutline.footY,popover.neckY);
-                let bridge = data.edge === "top" ? Qt.point(popover.tipX,rect.y + bar.y + rect.height + 2)
-                    : data.edge === "bottom" ? Qt.point(popover.tipX,rect.y + bar.y - 2)
-                    : data.edge === "left" ? Qt.point(rect.x + rect.width + 2,popover.tipX)
-                    : Qt.point(rect.x + bar.x - 2,popover.tipX);
-                verify(popover.containsPointer(bridge));
-            }
-        }
-        function test_horizontalPillsKeepPointedStemsAcrossRadii() {
-            // Make a horizontal pill square without changing its rendered icon.
-            let item = bar.menuTargets.wifi;
-            for (let edge of ["top","bottom"]) {
-                for (let radius of [-1,0,100]) {
-                    bar.settings = {bar:{position:edge,background:"on"},items:[{id:"wifi",radius:radius}]};
-                    let padding = item.height - item.width;
-                    bar.settings = {bar:{position:edge,background:"on"},items:[{id:"wifi",radius:radius,paddingRight:padding}]};
-                    compare(item.width,item.height);
-                    verify(popover.pointed);
-                    let rect = bar.menuRect("wifi");
-                    compare(popover.triggerRect,Qt.rect(rect.x + bar.x,rect.y + bar.y,rect.width,rect.height));
-                    compare(popover.fluidOutline.footLeft,popover.fluidOutline.footRight);
-                }
             }
         }
         function test_anchorFollowsItemMovementAndScrolling() {

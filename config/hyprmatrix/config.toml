@@ -6,12 +6,14 @@ x = 1.0
 y = 0.5
 opacity = 1.0
 background = 0.0
-density = 0.24999995529651642
-speed = 8.0
-font_size = 16
+density = 0.24999983608722687
+speed = 6.0
+font_size = 12
 fps = 15
-theme = "wallpaper"
+theme = "matrix"
 effect = "matrix"
 
 [workspace_overrides]
-3 = true
+1 = false
+2 = false
+3 = false

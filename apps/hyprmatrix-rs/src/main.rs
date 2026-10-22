@@ -26,8 +26,8 @@ const HELP: &str = "Hyprmatrix — wallpaper-aware desktop digital rain\n\n\
   --preview-settings FILE.png   Save a preview with settings visible\n\
   --benchmark SECONDS           Measure 1920x1080 rain rendering\n\n\
   --benchmark-settings SECONDS  Measure with settings open\n\n\
-Hover the invisible 44px upper-right corner to open settings; leave to close.\n\
-Right-click the corner or panel also closes settings.\n\
+Super+Alt+M opens settings; the rain has no hover target.\n\
+Right-click the panel or use Close settings to close it.\n\
 Drag the settings panel to reposition it.\n\
 Rain is opt-in per workspace; use the keybinding or --toggle-workspace.\n\
 Choose behind or in front of application windows in settings; clicks pass through.\n\

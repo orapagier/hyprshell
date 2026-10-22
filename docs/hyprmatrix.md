@@ -9,15 +9,12 @@ It has no title bar, borders, dock entry or taskbar window.
 ## Use
 
 Launch **Hyprmatrix** from the app launcher to start it and open settings, or run
-`~/.local/bin/hyprmatrix` for rain alone. Hover the invisible 44 × 44 logical
-pixel area at the upper-right of the active effect to open settings beside it.
-Settings stay open over the corner or panel and close 180ms after the cursor
-leaves both. Dragging keeps settings open until release. Launcher and shortcut
-openings allow 900ms to enter the panel. Right-click still toggles the corner
-or closes the panel, and the Close settings row remains available. Other clicks pass
-through to the desktop. Ordinary
-application windows and panels remain above the effect and can cover the hotspot.
-`hyprmatrix --settings` opens the menu without finding the corner.
+`~/.local/bin/hyprmatrix` for rain alone. **Super+Alt+M** opens settings,
+starting Hyprmatrix if needed. There is no invisible hover target; the closed
+effect passes all pointer input through to the desktop. Settings stay open until
+the pointer enters and leaves the panel, then close after 180ms. Dragging keeps
+settings open until release. Right-clicking the panel or choosing Close settings
+also closes it. `hyprmatrix --settings` opens the same menu from a shell.
 Super+right-click along the screen's right edge also opens settings.
 The invisible target extends 48 logical pixels inside and 16 pixels outside the
 edge for its full height. Misses are quiet and retain window resizing; application

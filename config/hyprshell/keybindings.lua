@@ -4,4 +4,6 @@ return {
     { command = "uwsm app -- hyprshell-browser", description = "Open browser", id = "e36985f80a4c4fa9a08518d5aa357fbf", mode = "command", original = "SUPER + B", shortcut = "SUPER + B" },
     { command = "", description = "Open terminal", id = "72298b302c4e4208b58d6a6140c4039d", mode = "existing", original = "SUPER + T", shortcut = "SUPER + Z" },
     { command = "", description = "Toggle Hyprpane on current workspace", id = "9d4a8c9adf4d4021acf973369d9bbe51", mode = "existing", original = "ALT + T", shortcut = "ALT + X" },
+    { id = "dbf175d2bd47455aa306d22c9c9c1e6c", original = "", shortcut = "SUPER + CTRL + R", description = "Hyprrecorder Stop", mode = "command", command = "hyprrecorder stop" },
+    { id = "e996f316ffa24d789ea7de7b0b1392dd", original = "", shortcut = "SUPER + R", description = "Open Hyprrecorder", mode = "command", command = "hyprrecorder & disown" },
 }
