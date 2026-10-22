@@ -31,13 +31,15 @@ Item {
                 compare(links.segments[0].knots.length, 0);
                 bar.settings = connectorConfig(position, {audio:{pillGroup:"pair", sharedBackground:"on"}, wifi:{pillGroup:"pair"}});
                 compare(links.segments.length, 0);
-                // The open rail between center and right keeps its knots even
-                // when both endpoints and the following right-side item are bare.
-                bar.settings = connectorConfig(position, {audio:{side:"center", background:"off"},
+                // Both open rails around the center keep their knots with bare
+                // endpoints; the gap inside the right section remains a line.
+                bar.settings = connectorConfig(position, {audio:{side:"left", background:"off"},
+                    calendar:{side:"center", background:"off"},
                     wifi:{side:"right", background:"off"}, bluetooth:{side:"right", background:"off"}});
-                compare(links.segments.length, 2);
+                compare(links.segments.length, 3);
                 verify(links.segments[0].knots.length > 0);
-                compare(links.segments[1].knots.length, 0);
+                verify(links.segments[1].knots.length > 0);
+                compare(links.segments[2].knots.length, 0);
             }
         }
         function test_hyprknotsContainerPills() {

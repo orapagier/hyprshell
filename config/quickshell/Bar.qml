@@ -421,8 +421,9 @@ Item {
             let result = [];
             for (let i = 1; i < ids.length; ++i) {
                 let first = ids[i - 1], second = ids[i];
-                let centerToRight = bar.side(first) === "center" && bar.side(second) === "right";
-                let knotted = centerToRight || (endpointHasPill(first, true) && endpointHasPill(second, false));
+                let centerBoundary = bar.side(first) !== bar.side(second)
+                    && (bar.side(first) === "center" || bar.side(second) === "center");
+                let knotted = centerBoundary || (endpointHasPill(first, true) && endpointHasPill(second, false));
                 if (bar.side(first) === bar.side(second) && bar.pillName(first)
                     && bar.pillName(first) === bar.pillName(second) && knotted) continue;
                 let a = bar.moduleItems[first], b = bar.moduleItems[second];
