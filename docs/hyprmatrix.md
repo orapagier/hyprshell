@@ -94,25 +94,32 @@ Each group offers all three regions an event, with independent random positions,
 headings and birth times; there is no visible left/center/right rotation. Side
 headings mirror each other. About 65% of central events start near the top and
 fall exactly straight down; other events ignite across the upper and middle sky.
-Short, quick streaks brighten and burn out inside the view, with irregular gaps,
+Streaks brighten and burn out inside the view, with irregular gaps,
 overlaps and occasional two- or three-event clusters.
 
 Shooting stars mixes fine streaks with brighter meteors (about 20% of non-comet
 events) and occasional comet-like streaks (about 8%). Meteors mode keeps its
 brighter streaks and includes these longer, slower comet-like passes too. The
 latter have a faint spreading tail around a narrow luminous core. Ordinary
-streaks last at most 1.35 seconds and comet-like passes at most 3.8 seconds at
-the default Speed. These are stylized sky effects, with procedural trails.
+streaks last at most about 7 seconds and comet-like passes at most about 20 seconds
+at the default Speed and Particle size. These are stylized sky effects, with procedural trails.
 
 Fine tapered trails grow behind small neutral-white heads, then shorten as the
 event fades. Color tints the trail and halo. Density controls both the starfield
 and event frequency, with moving activity rising more strongly toward 100%.
-At 1080p/default Speed, 100% produces roughly thirty moving events per second,
-including clusters, and about 52 stationary stars. This triples moving-event
-frequency and reduces the maximum-density background starfield by 90%. Smaller screens
-scale the event count with a minimum activity floor. Low density retains quiet
-gaps. Speed scales motion and timing; Particle size scales heads, trails and
-speed. Matrix's density, motion and drawing remain unchanged.
+Moving activity is comparable to Matrix's simultaneous stream count
+at matching Density/Particle size, with about 10% fewer simultaneous streaks than
+the previous tuning. The gentle density curve keeps lower settings active too.
+Shooting stars and Meteors have about 15% more stationary stars (about
+120 at 1080p/100%), with a mix of small points and larger stars across the upper
+half of the screen. Comet-like passes share the adjusted event frequency.
+Screen width and streak lifetimes scale
+event frequency so smaller screens keep a similarly busy sky.
+Very low density retains quiet gaps.
+Speed scales motion and timing. Ordinary streaks match Matrix's typical pixel
+speed at the same Speed and size settings; comet-like passes remain slower.
+Particle size scales heads and trails, with motion following Matrix's character
+row height. Matrix's density, motion and drawing remain unchanged.
 
 Asteroids retain predominantly upper-left to lower-right paths, occasional other
 downward headings, and steady size/speed during each tumbling pass. They cross the
@@ -121,7 +128,8 @@ size, with occasional 20% smaller/larger rocks; about 90% of speeds stay within
 4% of Speed, with occasional 25% slower/faster passes. These variations are
 independent.
 
-All three space modes include a subtle stationary starfield. Each star stays in
+All three space modes include a subtle stationary starfield; Asteroids retains
+its existing full-screen starfield and particle counts. Each star stays in
 place with a fixed size and brightness for most of an 18–40 second lifetime,
 then fades away and returns at a new position, size and brightness. These stars
 use a cool neutral light, including in Asteroids mode, and renew independently

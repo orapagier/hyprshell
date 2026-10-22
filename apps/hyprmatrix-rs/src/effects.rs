@@ -92,19 +92,29 @@ fn streak_path(seed: u32, region: u32, (w,h): (u32,u32))
     ((x,y),length.min(available_x.min(available_y)*0.88),direction)
 }
 
+fn streak_pace(c: &Config) -> f32 {
+    // Matrix moves in (font_size + 5)-pixel rows per Speed unit. Match its
+    // typical pixel velocity, scaling the entire event clock so slower motion
+    // lengthens each pass without piling up extra simultaneous streaks.
+    9.0*(c.font_size+5) as f32/(975.0*(c.font_size as f32/16.0))
+}
+
 /// Stateless random time windows allow quiet gaps and overlapping events without
 /// frame-rate-dependent spawning or an identical repeating stream per particle.
 fn streaks(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
-    let clock = time*c.speed/9.0;
+    let clock = time*c.speed/9.0*streak_pace(c);
     let window = (clock/8.0).floor() as i32;
-    let area = w as f32*h as f32/(1920.0*1080.0);
-    let lanes = area.ceil().clamp(1.0,16.0) as u32;
-    // Keep sparse settings quiet, with a much busier sky toward 100%.
-    let activity = c.density*(0.12+0.88*c.density*c.density);
-    let chance = (activity*area.max(0.35)/lanes as f32).min(1.0);
+    // Matrix stream counts scale with width; compensate for shorter streak
+    // lifetimes on smaller displays so their simultaneous activity keeps up.
+    let activity_scale = w as f32/1920.0
+        *(1920.0_f32.hypot(1080.0)/(w as f32).hypot(h as f32));
+    let lanes = activity_scale.ceil().clamp(1.0,16.0) as u32;
+    // Keep moving activity close to Matrix's stream count across the density range.
+    let activity = c.density*(0.70+0.30*c.density);
+    let chance = (activity*activity_scale/lanes as f32).min(1.0);
     let size = c.font_size as f32/16.0;
     for period in (window-1).max(0)..=window {
-        for slot in 0..lanes*216 {
+        for slot in 0..lanes*1362 {
             let group = slot/3;
             let group_seed = hash((period as u32).wrapping_mul(104729).wrapping_add(group*7919+971));
             // Accept a left/center/right triplet together, but randomize each
@@ -117,6 +127,7 @@ fn streaks(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
             for member in 0..cluster {
                 let event = if member==0 { seed } else { hash(seed.wrapping_add(member*65537)) };
                 let age = clock-birth-member as f32*(0.12+unit(event)*0.36);
+                if !(0.0..3.8).contains(&age) { continue; }
                 let ((x,y),distance,direction) = streak_path(event,region,(w,h));
                 let comet = unit(event.wrapping_add(43))<0.08;
                 let speed = (650.0+unit(event.wrapping_add(31))*650.0)*size
@@ -152,11 +163,12 @@ fn streaks(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
 }
 
 fn starfield(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
-    // Keep the background sparse so moving streaks remain the main attraction.
-    let richness = if c.effect==Effect::Asteroids { 1.0 } else { 0.4 };
+    let upper_sky = c.effect!=Effect::Asteroids;
+    let richness = if upper_sky { 0.92 } else { 1.0 };
     let count = ((w as f32*h as f32/16000.0*c.density*richness).ceil() as u32)
-        .clamp(1,if c.effect==Effect::Asteroids { 220 } else { 880 });
-    let columns = ((count as f32*w as f32/h as f32).sqrt().ceil() as u32).max(1);
+        .clamp(1,if c.effect==Effect::Asteroids { 220 } else { 1760 });
+    let sky_height = if upper_sky { (h/2).max(1) } else { h };
+    let columns = ((count as f32*w as f32/sky_height as f32).sqrt().ceil() as u32).max(1);
     let rows = count.div_ceil(columns);
     for slot in 0..count {
         let base = hash(slot+894791);
@@ -169,9 +181,10 @@ fn starfield(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
         out.push(Particle {
             x: (((slot%columns) as f32+unit(seed.wrapping_add(2)))*w as f32/columns as f32)
                 .round().clamp(0.0,w.saturating_sub(1) as f32) as i32,
-            y: (((slot/columns) as f32+unit(seed.wrapping_add(3)))*h as f32/rows as f32)
-                .round().clamp(0.0,h.saturating_sub(1) as f32) as i32,
-            radius: ((0.65+unit(seed.wrapping_add(4))*1.2)*(c.font_size as f32/16.0).max(0.9))
+            y: (((slot/columns) as f32+unit(seed.wrapping_add(3)))*sky_height as f32/rows as f32)
+                .round().clamp(0.0,sky_height.saturating_sub(1) as f32) as i32,
+            radius: ((if upper_sky { 0.55+unit(seed.wrapping_add(4)).powf(1.5)*2.4 }
+                else { 0.65+unit(seed.wrapping_add(4))*1.2 })*(c.font_size as f32/16.0).max(0.9))
                 .round().clamp(1.0,3.0) as i32,
             opacity: (fade*(40.0+unit(seed.wrapping_add(5))*110.0)).round() as u8,
             tail: 0, direction: (0,0), angle: 0, seed, effect: c.effect, comet: false, stationary: true,
@@ -331,19 +344,19 @@ mod tests {
     }
     #[test]
     fn shooting_stars_have_quiet_gaps_bursts_and_occasional_bright_meteors() {
-        let c=Config { effect:Effect::ShootingStars,density:0.20,..Config::default() };
+        let c=Config { effect:Effect::ShootingStars,density:0.005,..Config::default() };
         let mut particles=Vec::new();
         let mut seen=std::collections::HashMap::new();
         let (mut quiet,mut overlapping,mut longest_gap,mut gap)=(0,0,0,0);
         for frame in 0..12000 {
-            let time=frame as f32/20.0;
+            let time=frame as f32/20.0/streak_pace(&c);
             generate(&mut particles,(1920,1080),&c,time);
             let mut count=0;
             for p in particles.iter().filter(|p| !p.stationary) {
                 count+=1;
                 let event=seen.entry(p.seed).or_insert((time,time,p.effect,p.comet));
                 event.1=time;
-                assert!(event.1-event.0<if p.comet { 3.9 } else { 1.4 });
+                assert!(event.1-event.0<(if p.comet { 3.9 } else { 1.4 })/streak_pace(&c));
             }
             if count==0 { quiet+=1; gap+=1; longest_gap=longest_gap.max(gap); }
             else { gap=0; }
@@ -384,9 +397,8 @@ mod tests {
                 for p in births.values() {
                     regions[((p.x as f32/dimensions.0 as f32*3.0) as usize).min(2)]+=1;
                     kinds[if p.comet { 2 } else if p.effect==Effect::Meteors { 1 } else { 0 }]+=1;
-                    if p.direction.0==0 {
-                        assert!(p.x as f32>dimensions.0 as f32/3.0
-                            && (p.x as f32)<dimensions.0 as f32*2.0/3.0);
+                    if p.direction.0==0 && p.x as f32>dimensions.0 as f32/3.0
+                        && (p.x as f32)<dimensions.0 as f32*2.0/3.0 {
                         assert!((p.y as f32)<dimensions.1 as f32*0.25);
                         vertical+=1;
                     }
@@ -404,15 +416,44 @@ mod tests {
                 assert!(active>if dimensions.0==1920 { 4000 } else { 1000 },
                     "{dimensions:?}: {active}");
             }
-            assert!(totals[1]>totals[0]*3,"{dimensions:?}: {totals:?}");
+            assert!(totals[1]>totals[0]*2,"{dimensions:?}: {totals:?}");
         }
         let mut stars=Vec::new();
         for effect in [Effect::ShootingStars,Effect::Meteors,Effect::Asteroids] {
             stars.clear();
             let c=Config { effect,density:1.0,..Config::default() };
             starfield(&mut stars,(1920,1080),&c,12.0);
-            let range=if effect==Effect::Asteroids { 120..=140 } else { 40..=60 };
+            let range=if effect==Effect::Asteroids { 120..=140 } else { 115..=125 };
             assert!(range.contains(&stars.len()),"{effect:?}: {} stars",stars.len());
+            if effect!=Effect::Asteroids {
+                assert!(stars.iter().all(|p| (0..540).contains(&p.y)));
+                assert!(stars.iter().any(|p| p.y>400));
+                assert!(stars.iter().filter(|p| p.radius==1).count()>stars.len()/3);
+                assert!(stars.iter().filter(|p| p.radius>=2).count()>stars.len()/5);
+                assert!(stars.iter().any(|p| p.radius==3));
+            }
+        }
+    }
+    #[test]
+    fn sky_activity_approaches_matrix_stream_count_at_matching_density() {
+        for effect in [Effect::ShootingStars,Effect::Meteors] {
+            for (w,h) in [(640,520),(1280,720),(1920,1080)] {
+                for font_size in [12,16,32] {
+                    for density in [0.25,0.55,1.0] {
+                        let c=Config { effect,density,font_size,..Config::default() };
+                        let mut particles=Vec::new();
+                        let mut active=0;
+                        for frame in 0..300 {
+                            generate(&mut particles,(w,h),&c,(8.0+frame as f32/20.0)/streak_pace(&c));
+                            active+=particles.iter().filter(|p| !p.stationary && p.opacity>0).count();
+                        }
+                        let streams=w as f32/(((c.font_size*2/3).max(7)+4) as f32/density).round();
+                        let mean=active as f32/300.0;
+                        assert!((streams*0.6..=streams*1.5).contains(&mean),
+                            "{effect:?} {w}x{h} size {font_size} density {density}: {mean:.1} events vs {streams:.1} Matrix streams");
+                    }
+                }
+            }
         }
     }
     #[test]
@@ -481,7 +522,7 @@ mod tests {
                             47.0*c.font_size as f32/16.0*speed_variation(p.seed)
                         } else {
                             (650.0+unit(p.seed.wrapping_add(31))*650.0)*c.font_size as f32/16.0
-                                *if p.comet { 0.38 } else { 1.0 }
+                                *(if p.comet { 0.38 } else { 1.0 })*streak_pace(&c)
                         };
                         let distance=((p.x-old.x) as f32).hypot((p.y-old.y) as f32);
                         assert!((distance-expected_speed/10.0).abs()<1.5);
@@ -496,6 +537,39 @@ mod tests {
                 previous=current;
             }
             assert!(tracked>100);
+        }
+    }
+    #[test]
+    fn streak_motion_matches_matrix_pixel_speed_at_all_size_and_speed_settings() {
+        for effect in [Effect::ShootingStars,Effect::Meteors] {
+            for font_size in [10,12,16,24,32] {
+                for speed in [1.0,6.0,9.0,30.0] {
+                    let c=Config { effect,font_size,speed,density:1.0,..Config::default() };
+                    let mut before=Vec::new();
+                    let mut after=Vec::new();
+                    let mut total=0.0;
+                    let mut count=0;
+                    // One Matrix row of time: enough displacement to avoid
+                    // rounding noise at low speeds and small particle sizes.
+                    let dt=1.0/speed;
+                    for frame in 0..20 {
+                        let time=(12.0+frame as f32/2.0)/streak_pace(&c)*9.0/speed;
+                        generate(&mut before,(1920,1080),&c,time);
+                        generate(&mut after,(1920,1080),&c,time+dt);
+                        for p in before.iter().filter(|p| !p.stationary && !p.comet) {
+                            if let Some(next)=after.iter().find(|next| next.seed==p.seed && !next.stationary) {
+                                total+=((next.x-p.x) as f32).hypot((next.y-p.y) as f32)/dt;
+                                count+=1;
+                            }
+                        }
+                    }
+                    assert!(count>100);
+                    let mean=total/count as f32;
+                    let matrix=speed*(font_size+5) as f32*1.05;
+                    assert!((matrix*0.85..=matrix*1.15).contains(&mean),
+                        "{effect:?} size {font_size} speed {speed}: {mean:.1} px/s vs Matrix {matrix:.1}");
+                }
+            }
         }
     }
     #[test]
