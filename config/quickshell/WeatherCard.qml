@@ -23,6 +23,8 @@ Rectangle {
     property bool editing: false
     property bool manual: false
     property bool philippinesOnly: true
+    property real minimumHeaderHeight: 0
+    readonly property real headerImplicitHeight: locationHeading.implicitHeight + (province.visible ? province.implicitHeight + 5 : 0)
     readonly property var current: snapshot.weather?.current || ({})
     readonly property var daily: snapshot.weather?.daily || ({})
     readonly property var upcomingHours: {
@@ -117,6 +119,7 @@ Rectangle {
         id: details
         anchors.fill: parent; anchors.margins: 24; spacing: 0
         RowLayout {
+            id: locationHeading
             Layout.fillWidth: true; spacing: 12
             Label {
                 objectName: "weatherLocation"
@@ -146,12 +149,14 @@ Rectangle {
             }
         }
         Label {
+            id: province
             visible: card.locationParts.length > 1 || !card.snapshot.location
             objectName: "weatherProvince"
             text: (card.locationParts[1] || "").replace(/^Province of /, "") || "Choose a city or municipality to get started"
             color: card.secondaryColor; font.pixelSize: 11; lineHeight: 1.3
             Layout.topMargin: 5; Layout.fillWidth: true
         }
+        Item { Layout.preferredHeight: Math.max(0, card.minimumHeaderHeight - card.headerImplicitHeight) }
         ColumnLayout {
             visible: card.choosingCity
             Layout.topMargin: 22; Layout.fillWidth: true; spacing: 12
@@ -275,7 +280,7 @@ Rectangle {
         Rectangle {
             objectName: "weatherMetrics"
             visible: card.snapshot.weather !== undefined && !card.choosingCity
-            Layout.topMargin: 14; Layout.fillWidth: true
+            Layout.topMargin: 14; Layout.fillWidth: true; Layout.fillHeight: true
             implicitHeight: metrics.implicitHeight + 32
             color: Colors.alpha(card.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
             border.width: Style.Theme.highContrast ? 1 : 0; border.color: card.textColor
@@ -326,7 +331,7 @@ Rectangle {
             }
         }
         Label { objectName: "weatherStatus"; text: card.snapshot.warning || ""; visible: text.length > 0 && card.snapshot.weather !== undefined; color: card.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true; Layout.topMargin: visible ? 8 : 0 }
-        Item { Layout.fillHeight: true }
+        Item { visible: card.choosingCity || card.snapshot.weather === undefined; Layout.fillHeight: true }
     }
     component Label: MenuLabel { color: card.textColor }
     component Metric: ColumnLayout {

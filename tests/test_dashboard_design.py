@@ -116,6 +116,13 @@ ShellRoot {
                 dashboard.services = services;
                 const metrics = test.findChild(weather, 'weatherMetrics');
                 const hourly = test.findChild(weather, 'weatherHourlyForecast');
+                const current = test.findChild(weather, 'weatherCurrentConditions');
+                const device = test.findChild(dashboard, 'dashboardDeviceDetails');
+                const connection = test.findChild(dashboard, 'dashboardConnectionStatus');
+                if (Math.abs(current.mapToItem(dashboard,0,0).y - device.mapToItem(dashboard,0,0).y) > 1)
+                    throw new Error('Top inner cards must align');
+                if (Math.abs(hourly.mapToItem(dashboard,0,hourly.height).y - connection.mapToItem(dashboard,0,connection.height).y) > 1)
+                    throw new Error('Bottom inner cards must align');
                 if (Math.abs(hourly.y - metrics.y - metrics.height - 14) > 1) throw new Error('Forecast gap is not compact');
                 const pencil = test.findChild(weather, 'weatherChangeCity');
                 const location = test.findChild(weather, 'weatherLocation');

@@ -46,8 +46,10 @@ ColumnLayout {
         columns: page.width >= 620 ? 2 : 1
         columnSpacing: 14; rowSpacing: 14
         WeatherCard {
+            id: weatherCard
             Layout.fillWidth: true; Layout.fillHeight: true
             Layout.preferredWidth: cards.columns === 2 ? page.width * 0.55 : page.width
+            minimumHeaderHeight: cards.columns === 2 ? systemTitle.implicitHeight + systemSubtitle.implicitHeight + 4 : 0
             active: page.active
             textColor: page.textColor; secondaryColor: page.secondaryColor
             accentColor: page.accentColor; cardColor: page.cardColor
@@ -72,15 +74,19 @@ ColumnLayout {
                 id: systemDetails
                 anchors.fill: parent; anchors.margins: 24; spacing: 0
                 Label {
+                    id: systemTitle
                     objectName: "dashboardSystemInfo"
                     text: page.resourceData.system?.hostname || Quickshell.env("USER") || "System"
                     font.pixelSize: 24; font.weight: Font.DemiBold
                     Layout.fillWidth: true; elide: Text.ElideRight
                 }
-                Label { text: page.resourceData.system?.os || "Reading system information…"; color: page.secondaryColor; font.pixelSize: 12; Layout.topMargin: 4; Layout.fillWidth: true }
+                Label { id: systemSubtitle; text: page.resourceData.system?.os || "Reading system information…"; color: page.secondaryColor; font.pixelSize: 12; Layout.topMargin: 4; Layout.fillWidth: true }
+                Item {
+                    Layout.preferredHeight: cards.columns === 2 ? Math.max(0, weatherCard.headerImplicitHeight - systemTitle.implicitHeight - systemSubtitle.implicitHeight - 4) : 0
+                }
                 Rectangle {
                     objectName: "dashboardDeviceDetails"
-                    Layout.fillWidth: true; Layout.topMargin: 18
+                    Layout.fillWidth: true; Layout.topMargin: cards.columns === 2 ? 22 : 18
                     implicitHeight: deviceDetails.implicitHeight + 28
                     color: Colors.alpha(page.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
                     border.width: Style.Theme.highContrast ? 1 : 0; border.color: page.textColor
@@ -106,7 +112,7 @@ ColumnLayout {
                 }
                 Rectangle {
                     objectName: "dashboardResourceUsage"
-                    Layout.fillWidth: true; Layout.topMargin: 14
+                    Layout.fillWidth: true; Layout.fillHeight: true; Layout.topMargin: 14
                     implicitHeight: resourceDetails.implicitHeight + 28
                     color: Colors.alpha(page.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
                     border.width: Style.Theme.highContrast ? 1 : 0; border.color: page.textColor
@@ -162,7 +168,6 @@ ColumnLayout {
                         }
                     }
                 }
-                Item { Layout.fillHeight: true }
             }
         }
     }
