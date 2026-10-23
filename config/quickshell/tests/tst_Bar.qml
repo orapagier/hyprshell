@@ -14,14 +14,62 @@ Item {
         settings: ({adaptiveColors:true, clockFormat:"hh:mm"})
         onEdited: (key, value) => settings = Object.assign({}, settings, {[key]:value})
     }
+    SettingsSlider {
+        id: geometrySlider
+        visible: false
+        width: 400
+        label: "Padding drag"
+        editInterval: 32
+        settingValue: 0
+        onEdited: value => settingValue = value
+    }
+    SignalSpy { id: dragEdits; target: geometrySlider; signalName: "edited" }
     TestCase {
         name: "BarRegressions"
         when: windowShown
-        function cleanup() { bar.settings = {}; bar.statusIconsOnly = false; bar.width = scene.width; bar.mediaData = {playing: false}; bar.trayModel = []; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
+        function cleanup() { geometrySlider.visible = false; bar.settings = {}; bar.statusIconsOnly = false; bar.width = scene.width; bar.mediaData = {playing: false}; bar.trayModel = []; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
         function connectorConfig(position, items, options) {
             bar.width = position === "left" || position === "right" ? 40 : scene.width;
             return {bar:Object.assign({position:position, background:"on", spacing:20}, options || {}),
                 items:Object.keys(bar.moduleItems).map(id => Object.assign({id:id, side:"left", enabled:!!items[id]}, items[id] || {}))};
+        }
+        function test_asymmetricPaddingConnectorsAndSymmetricCentering() {
+            let links = findChild(bar, "panelConnectors");
+            bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}],audio:{},network:{},bluetooth:{},battery:{}};
+            for (let edge of ["top","bottom","left","right"]) {
+                bar.settings = connectorConfig(edge, {audio:{},wifi:{side:"right"},calendar:{side:"center"},workspaces:{}},
+                    {contentPaddingTop:100,contentPaddingBottom:0,contentPaddingLeft:100,contentPaddingRight:100});
+                if (bar.vertical) bar.width = bar.implicitWidth;
+                wait(0);
+                let audio = bar.moduleItems.audio;
+                let cross = bar.vertical ? audio.x + audio.width / 2 : audio.y + audio.height / 2;
+                verify(links.segments.length > 0);
+                for (let segment of links.segments) fuzzyCompare(segment.cross, cross, 0.01);
+                if (!bar.vertical) {
+                    let clock = bar.moduleItems.calendar;
+                    fuzzyCompare(clock.x + clock.width / 2, bar.width / 2, 0.01);
+                    compare(bar.wallpaperColors.bandHeight, bar.contentHeight);
+                    compare(bar.wallpaperColors.regionOffsetY, bar.screenOffsetY + 100);
+                    compare(bar.wallpaperColors.offsetY, bar.screenOffsetY);
+                } else {
+                    compare(bar.wallpaperColors.bandWidth, bar.contentWidth);
+                    compare(bar.wallpaperColors.regionOffsetX, bar.screenOffsetX + 100);
+                }
+            }
+        }
+        function test_paddingDragCoalescesAndFlushesFinalValue() {
+            geometrySlider.visible = true;
+            geometrySlider.settingValue = 0;
+            dragEdits.clear();
+            let track = findChild(geometrySlider,"effectSlider");
+            mousePress(track, 20, track.height / 2);
+            for (let x = 25; x < track.width - 20; x += 5) mouseMove(track,x,track.height/2,0);
+            verify(dragEdits.count < 8, "Pointer motion should coalesce into bounded updates");
+            let value = Math.round(track.value);
+            mouseRelease(track,track.width - 20,track.height/2);
+            compare(geometrySlider.pendingDisplayValue,undefined);
+            compare(geometrySlider.settingValue,Math.round(track.value));
+            verify(geometrySlider.settingValue >= value);
         }
         function test_compactSpacingAndWorkspaceGaps() {
             bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}], audio:{}, network:{}, bluetooth:{}, battery:{}};

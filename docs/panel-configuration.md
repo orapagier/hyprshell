@@ -39,6 +39,18 @@ within the remaining top/bottom margins.
 **Inner padding** provides independent Top, Bottom, Left and Right controls
 (`bar.contentPaddingTop/Bottom/Left/Right`, 0–100 px, default 0). Padding expands
 the panel thickness and compact side-panel length and insets its items. It is
-included in the full panel background, when enabled. Controls autosave and apply
+included in the full panel background, when enabled. Hyprknots follow the
+padded content center, and wallpaper sampling covers the occupied strip rather
+than the empty padding. Geometry sliders preview on the live panel while dragging,
+coalesce pointer updates, and save through the existing validated transaction.
+Closing Settings or a save error clears the temporary preview.
+
+Zero inner padding means no **additional** inset. Existing Edge margin and End
+margins still position the panel, and individual pills retain their own padding.
+Hyprland's `general.gaps_out` controls window gaps separately; it does not inset
+Hyprpane's contents. Equal left/right insets preserve the center group at the
+screen center; left/right groups retain their saved edge alignment.
+
+Controls autosave and apply
 to both the Settings item preview and the live panel without changing item order,
 group membership or menu anchoring.

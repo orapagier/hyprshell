@@ -23,6 +23,24 @@ ShellRoot {
                     ui.updateBar("screenMargin" + side, 12);
                     ui.updateBar("contentPadding" + side, 6);
                 }
+                test.phase = 15;
+            } else if (test.phase === 15) {
+                if (prefs.panelConfig.bar.contentPaddingTop !== 6 || prefs.panelConfig.bar.screenMarginLeft !== 12) {
+                    test.fail("Live spacing preview did not follow draft before autosave"); return;
+                }
+                if (test.edgeIndex === 0 && prefs.config.bar.contentPaddingTop !== 0) {
+                    test.fail("Preview changed saved settings before autosave"); return;
+                }
+                if (test.edgeIndex === 0) {
+                    ui.updateBar("contentPaddingTop", 101);
+                    test.phase = 16;
+                } else test.phase = 2;
+            } else if (test.phase === 16 && !ui.success && !ui.saving) {
+                if (prefs.panelConfig.bar.contentPaddingTop !== 0 || Object.keys(prefs.panelPreview).length) {
+                    test.fail("Rejected save left an invalid live preview"); return;
+                }
+                ui.updateBar("contentPaddingTop", 6);
+                ui.apply();
                 test.phase = 2;
             } else if (test.phase === 2 && !ui.dirty && !ui.saving) {
                 if (prefs.config.bar.position !== test.edges[test.edgeIndex]) { test.fail("Position was not saved"); return; }

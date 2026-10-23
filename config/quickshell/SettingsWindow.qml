@@ -27,6 +27,21 @@ FloatingWindow {
     property var initial: Model.copy(store.defaults)
     property var submitted: Model.copy(store.defaults)
     property bool editingSession: false
+    Binding {
+        target: window.store
+        property: "panelPreview"
+        value: {
+            if (!window.visible || !window.editingSession || !window.success || window.store.error) return {};
+            let preview = {};
+            for (let key of ["height", "spacing", "compactSpacing", "groupSpacing", "marginTop", "marginSide", "paddingBottom",
+                    "screenMarginTop", "screenMarginBottom", "screenMarginLeft", "screenMarginRight",
+                    "contentPaddingTop", "contentPaddingBottom", "contentPaddingLeft", "contentPaddingRight"]) {
+                if (window.draft.bar[key] !== window.initial.bar[key]) preview[key] = window.draft.bar[key];
+            }
+            return preview;
+        }
+        restoreMode: Binding.RestoreBindingOrValue
+    }
     readonly property bool saving: writer.running
     readonly property bool idle: !writer.running && !autoSave.running && !displayPage.busy && !cleanupPage.busy && !hyprskillPage.busy && !githubSync.running && !githubUpdate.busy && !keybindingsPage.busy && !themePage.busy && !applicationsPage.busy && !recoveryPage.busy && !powerPage.busy && !soundPage.busy && !networkPage.busy && !firewallPage.busy && !regionalPage.busy && !helpPage.busy && !behaviorPage.busy && !clipboardPage.busy && !peripheralsPage.busy && !setupBackupPage.busy
     readonly property bool manualDirty: lockPage.dirty || themePage.dirty || displayPage.dirty || keybindingsPage.dirty || cleanupPage.dirty || regionalPage.dirty || firewallPage.dirty || behaviorPage.dirty || recoveryPage.dirty

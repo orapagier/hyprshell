@@ -19,11 +19,23 @@ ColumnLayout {
     property string resetDescription: "Use your existing configuration"
     readonly property bool inherited: settingValue === undefined
     readonly property real displayValue: inherited ? defaultValue : inverted ? (1 - settingValue) * 100 : settingValue
+    // Geometry sliders coalesce pointer motion while keeping the thumb live.
+    property int editInterval: 0
+    property var pendingDisplayValue: undefined
     signal edited(var value)
+    function flushPendingEdit() {
+        editTimer.stop();
+        if (pendingDisplayValue === undefined) return;
+        let value = pendingDisplayValue;
+        pendingDisplayValue = undefined;
+        commitDisplayValue(value);
+    }
+    Timer { id: editTimer; interval: root.editInterval; onTriggered: root.flushPendingEdit() }
     function commitDisplayValue(value) {
         let bounded = Math.max(from, Math.min(to, value));
         let rounded = Math.max(from, Math.min(to, Math.round(bounded / stepSize) * stepSize));
-        edited(inverted ? Number((1 - rounded / 100).toFixed(6)) : Number(rounded.toFixed(6)));
+        let next = inverted ? Number((1 - rounded / 100).toFixed(6)) : Number(rounded.toFixed(6));
+        if (settingValue !== next) edited(next);
     }
     function adjust(direction) {
         commitDisplayValue(slider.value + direction * stepSize);
@@ -40,7 +52,7 @@ ColumnLayout {
         }
         Label {
             objectName: "sliderValue"
-            text: root.inherited ? root.inheritedText : Number(root.displayValue.toFixed(2)) + root.suffix
+            text: root.inherited && !slider.pressed ? root.inheritedText : Number((slider.pressed ? slider.value : root.displayValue).toFixed(2)) + root.suffix
             color: root.inherited ? Style.Theme.muted : Style.Theme.accentText
             font.pixelSize: Style.Theme.bodySize
         }
@@ -85,7 +97,13 @@ ColumnLayout {
             live: true
             hoverEnabled: true
             Accessible.name: root.label
-            onMoved: root.commitDisplayValue(value)
+            onMoved: {
+                if (root.editInterval > 0 && pressed) {
+                    root.pendingDisplayValue = value;
+                    if (!editTimer.running) editTimer.start();
+                } else root.commitDisplayValue(value);
+            }
+            onPressedChanged: if (!pressed) root.flushPendingEdit()
             background: Rectangle {
                 x: slider.leftPadding
                 y: slider.topPadding + (slider.availableHeight - height) / 2

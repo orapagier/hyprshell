@@ -9,6 +9,11 @@ Item {
     readonly property string settingsPath: configHome + "/hyprshell/settings.json"
     readonly property var defaults: JSON.parse(defaultFile.text())
     property var config: Model.copy(defaults)
+    // Transient geometry preview never replaces saved settings or the expected
+    // revision used by the transaction writer.
+    property var panelPreview: ({})
+    readonly property var panelConfig: Object.keys(panelPreview).length
+        ? Object.assign({}, config, {bar:Object.assign({}, config.bar, panelPreview)}) : config
     property string error: ""
     property bool loaded: false
     FileView {

@@ -11,6 +11,7 @@ Item {
     property real bandHeight: 32
     property real bandWidth: screenWidth
     property real regionOffsetX: 0
+    property real regionOffsetY: offsetY
     // Optional thumbnail for card palettes. Bare panel glyphs retain the
     // original pixel-resolution sampling and contrast-extrema behavior.
     property int sampleWidth: 0
@@ -38,6 +39,7 @@ Item {
     onBandHeightChanged: invalidate()
     onBandWidthChanged: invalidate()
     onRegionOffsetXChanged: invalidate()
+    onRegionOffsetYChanged: invalidate()
 
     function sampleRect(rect, includeBounds) {
         if (!ready) {
@@ -46,8 +48,8 @@ Item {
         }
         let x0 = Math.max(0, Math.min(strip.width - 1, Math.floor((rect.x - regionOffsetX) / bandWidth * strip.width)));
         let x1 = Math.max(x0 + 1, Math.min(strip.width, Math.ceil((rect.x + rect.width - regionOffsetX) / bandWidth * strip.width)));
-        let y0 = Math.max(0, Math.min(strip.height - 1, Math.floor((rect.y - offsetY) / bandHeight * strip.height)));
-        let y1 = Math.max(y0 + 1, Math.min(strip.height, Math.ceil((rect.y + rect.height - offsetY) / bandHeight * strip.height)));
+        let y0 = Math.max(0, Math.min(strip.height - 1, Math.floor((rect.y - regionOffsetY) / bandHeight * strip.height)));
+        let y1 = Math.max(y0 + 1, Math.min(strip.height, Math.ceil((rect.y + rect.height - regionOffsetY) / bandHeight * strip.height)));
         let cache = sampleCache;
         let key = [x0, x1, y0, y1, !!includeBounds].join(":");
         if (cache.entries[key] !== undefined) return cache.entries[key];
@@ -141,7 +143,7 @@ Item {
             // Match awww's default center-cropped, aspect-preserving wallpaper.
             let scale = Math.max(sampler.screenWidth / iw, sampler.screenHeight / ih);
             let sx = (iw - sampler.screenWidth / scale) / 2 + sampler.regionOffsetX / scale;
-            let sy = (ih - sampler.screenHeight / scale) / 2 + sampler.offsetY / scale;
+            let sy = (ih - sampler.screenHeight / scale) / 2 + sampler.regionOffsetY / scale;
             // Layout/reload can briefly place the strip outside the wallpaper.
             // Sample its nearest edge until the final geometry is available.
             sx = Math.max(0, Math.min(iw - 1, sx));

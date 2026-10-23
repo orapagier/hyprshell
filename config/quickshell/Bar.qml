@@ -243,9 +243,12 @@ Item {
         screenHeight: bar.screenHeight
         offsetX: bar.screenOffsetX
         offsetY: bar.screenOffsetY
-        bandHeight: bar.height
-        bandWidth: bar.vertical ? bar.width : bar.screenWidth
-        regionOffsetX: bar.vertical ? bar.screenOffsetX : 0
+        // Sample the occupied strip, excluding empty padding. Keep the item
+        // coordinate origin separate from the sampled wallpaper region.
+        bandHeight: bar.vertical ? bar.height : bar.contentHeight
+        bandWidth: bar.vertical ? bar.contentWidth : bar.screenWidth
+        regionOffsetX: bar.vertical ? bar.screenOffsetX + bar.insetLeft : 0
+        regionOffsetY: bar.screenOffsetY + (bar.vertical ? 0 : bar.insetTop)
     }
     property var trayModel: []
     property string clockText: ""
@@ -441,7 +444,7 @@ Item {
                 let start = bar.vertical ? a.y + a.height : a.x + a.width;
                 let end = bar.vertical ? b.y : b.x;
                 if (end - start < 2) continue;
-                let cross = bar.vertical ? bar.width / 2 : bar.height / 2;
+                let cross = bar.vertical ? bar.insetLeft + bar.contentWidth / 2 : bar.insetTop + bar.contentHeight / 2;
                 result.push(segmentFor(start, end, cross, false, knotted));
             }
             if (bar.itemShown("workspaces")) {

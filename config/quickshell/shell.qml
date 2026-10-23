@@ -139,7 +139,7 @@ ShellRoot {
                 let ws = monitor && monitor.activeWorkspace;
                 return Settings.panelVisible(preferences.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
             }
-            exclusiveZone: (vertical ? width : height) + (preferences.config.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
+            exclusiveZone: (vertical ? width : height) + (preferences.panelConfig.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
             exclusionMode: visible ? ExclusionMode.Normal : ExclusionMode.Ignore
             onVisibleChanged: if (!visible) menuState.close()
             readonly property string edge: preferences.config.bar.position || "top"
@@ -148,7 +148,7 @@ ShellRoot {
             readonly property rect menuBounds: Qt.rect(0, 0, modelData.width, modelData.height)
             onWorkspaceChanged: closeMenu()
             onMenuBoundsChanged: closeMenu()
-            readonly property var outerMargins: Settings.screenMargins(preferences.config.bar)
+            readonly property var outerMargins: Settings.screenMargins(preferences.panelConfig.bar)
             readonly property real availableHeight: Math.max(1, modelData.height)
             readonly property bool compact: vertical && preferences.config.bar.verticalPresentation === "compact"
             anchors {
@@ -171,7 +171,7 @@ ShellRoot {
             WlrLayershell.namespace: "hyprshell"
             Bar {
                 id: bar
-                settings: preferences.config
+                settings: preferences.panelConfig
                 hoverPopdowns: menuState.hoverEnabled
                 anchors.fill: parent
                 statusData: shell.statusData

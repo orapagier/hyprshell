@@ -191,6 +191,7 @@ ColumnLayout {
                     objectName: modelData.key + "Control"
                     Layout.fillWidth: true
                     label: modelData.label
+                    editInterval: 32
                     settingValue: root.settings[modelData.key] ?? modelData.fallback
                     from: modelData.min; to: modelData.max; suffix: " px"
                     resetDescription: "Restore default " + modelData.label.toLowerCase()
@@ -217,6 +218,7 @@ ColumnLayout {
                     objectName: settingKey + "Control"
                     Layout.fillWidth: true
                     label: modelData.label
+                    editInterval: 32
                     settingValue: root.settings[settingKey] ?? undefined
                     defaultValue: Model.screenMargins(root.settings)[modelData.side.toLowerCase()]
                     inheritedText: "Follow layout (" + defaultValue + " px)"
@@ -230,7 +232,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Inner padding"
-        subtitle: "Space between the panel boundary and its items. Each side is independent on every screen edge."
+        subtitle: "Extra space around the items. Zero adds no extra padding; outer margins and each item’s own padding still apply. Equal left/right values keep the center group centered."
         GridLayout {
             Layout.fillWidth: true
             columns: root.width >= 600 ? 2 : 1
@@ -245,6 +247,7 @@ ColumnLayout {
                     objectName: settingKey + "Control"
                     Layout.fillWidth: true
                     label: modelData.label
+                    editInterval: 32
                     settingValue: root.settings[settingKey] ?? 0
                     from: 0; to: 100; suffix: " px"
                     resetDescription: "Remove this side's inner padding"
