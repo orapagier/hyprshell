@@ -141,6 +141,16 @@ ColumnLayout {
                         id: connectionDetails
                         anchors.fill: parent; anchors.margins: 14; spacing: 10
                         InfoRow {
+                            title: "Bluetooth"; valueName: "dashboardBluetoothState"
+                            value: page.services.adapter ? (page.services.adapter.enabled ? "On" : "Off") : "Unavailable"
+                            Accessible.name: "Bluetooth: " + value
+                        }
+                        InfoRow {
+                            title: "Audio"; valueName: "dashboardAudioLevel"
+                            value: page.services.sink?.audio ? Math.round(page.services.sink.audio.volume * 100) + "%" + (page.services.sink.audio.muted ? " · Muted" : "") : "Unavailable"
+                            Accessible.name: "Audio: " + value
+                        }
+                        InfoRow {
                             title: "Wi-Fi"; valueName: "dashboardWifiSignal"
                             value: page.services.connectedWifi ? Math.round(page.services.connectedWifi.signalStrength * 100) + "%" : page.services.wifiEnabled ? "Disconnected" : "Off"
                             Accessible.name: page.services.statusData.network.tooltip

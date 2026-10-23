@@ -51,7 +51,7 @@ ShellRoot {
             DashboardContent {
                 id: dashboard; x: 18; y: 18
                 width: root.previewWidth; height: implicitHeight
-                services: ({connectedWifi:{signalStrength:0.78},wifiEnabled:true,statusData:{network:{tooltip:"Home Wi-Fi · 78%"}},batteryInfo:{present:true,percentage:38,pluggedIn:false}})
+                services: ({sink:{audio:{volume:0.42,muted:false}},adapter:{enabled:true},connectedWifi:{signalStrength:0.78},wifiEnabled:true,statusData:{network:{tooltip:"Home Wi-Fi · 78%"}},batteryInfo:{present:true,percentage:38,pluggedIn:false}})
                 resourceData: ({system:{hostname:"fedora",os:"Fedora Linux 44 (Forty Four)",
                     cpuModel:"12th Gen Intel(R) Core(TM) i5-1235U",kernel:"7.2.9-201.fc44.x86_64",
                     memoryTotal:16428249907,uptimeSeconds:132840,osAgeDays:8},usage:{cpuPercent:18,
@@ -93,10 +93,27 @@ ShellRoot {
                 if (test.findChild(dashboard, 'dashboardCpuUsage').value !== '18%') throw new Error('CPU usage missing');
                 if (test.findChild(dashboard, 'dashboardRamUsage').value !== '5.4 / 15.3 GiB') throw new Error('RAM usage missing');
                 if (test.findChild(dashboard, 'dashboardStorageUsage').value !== '178.0 GiB free') throw new Error('Free storage missing');
-                if (dashboard.implicitHeight > 580) throw new Error('Wide dashboard is not compact');
+                if (dashboard.implicitHeight > 620) throw new Error('Wide dashboard is not compact');
                 if (weather.x !== 0 || weather.width <= 350) throw new Error('Weather does not lead wide layout');
                 if (test.findChild(dashboard, 'dashboardSettings') || test.findChild(dashboard, 'dashboardLock')) throw new Error('Removed buttons still take space');
                 if (test.findChild(dashboard, 'dashboardWifiSignal').text !== '78%' || test.findChild(dashboard, 'dashboardBatteryLevel').text !== '38%') throw new Error('Connection percentages missing');
+                const audio = test.findChild(dashboard, 'dashboardAudioLevel');
+                const bluetooth = test.findChild(dashboard, 'dashboardBluetoothState');
+                if (audio.text !== '42%' || bluetooth.text !== 'On') throw new Error('Audio or Bluetooth status missing');
+                const statusOrder = ['dashboardBluetoothState','dashboardAudioLevel','dashboardWifiSignal','dashboardBatteryLevel'];
+                for (let i = 1; i < statusOrder.length; i++)
+                    if (test.findChild(dashboard, statusOrder[i-1]).mapToItem(dashboard,0,0).y >= test.findChild(dashboard, statusOrder[i]).mapToItem(dashboard,0,0).y)
+                        throw new Error('Status rows must end with Battery at the bottom');
+                const services = dashboard.services;
+                for (let state of [{volume:0.42,muted:true,enabled:false,text:'42% · Muted'}, {volume:0,muted:false,enabled:true,text:'0%'}, {volume:1.25,muted:false,enabled:true,text:'125%'}]) {
+                    dashboard.services = Object.assign({}, services, {sink:{audio:{volume:state.volume,muted:state.muted}},adapter:{enabled:state.enabled}});
+                    test.wait(20);
+                    if (audio.text !== state.text || bluetooth.text !== (state.enabled ? 'On' : 'Off')) throw new Error('Audio/Bluetooth status did not update');
+                }
+                dashboard.services = Object.assign({}, services, {sink:null,adapter:null});
+                test.wait(20);
+                if (audio.text !== 'Unavailable' || bluetooth.text !== 'Unavailable') throw new Error('Unavailable device state incorrect');
+                dashboard.services = services;
                 const metrics = test.findChild(weather, 'weatherMetrics');
                 const hourly = test.findChild(weather, 'weatherHourlyForecast');
                 if (Math.abs(hourly.y - metrics.y - metrics.height - 14) > 1) throw new Error('Forecast gap is not compact');

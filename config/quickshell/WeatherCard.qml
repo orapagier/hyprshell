@@ -325,7 +325,7 @@ Rectangle {
                 }
             }
         }
-        Label { objectName: "weatherStatus"; text: card.snapshot.warning || (card.busy && card.operation === "weather" ? "Updating weather…" : ""); visible: text.length > 0 && card.snapshot.weather !== undefined; color: card.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true; Layout.topMargin: visible ? 8 : 0 }
+        Label { objectName: "weatherStatus"; text: card.snapshot.warning || ""; visible: text.length > 0 && card.snapshot.weather !== undefined; color: card.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true; Layout.topMargin: visible ? 8 : 0 }
         Item { Layout.fillHeight: true }
     }
     component Label: MenuLabel { color: card.textColor }

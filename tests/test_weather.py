@@ -157,9 +157,16 @@ import Quickshell
 import "shell"
 ShellRoot {
     id: root
+    property bool silentRefreshSeen: false
     FloatingWindow {
         id: window; visible: true; implicitWidth: 286; implicitHeight: 650
-        WeatherCard { id: weather; anchors { left: parent.left; right: parent.right; top: parent.top } height: implicitHeight; active: true }
+        WeatherCard {
+            id: weather; anchors { left: parent.left; right: parent.right; top: parent.top } height: implicitHeight; active: true
+            onBusyChanged: if (busy && operation === 'weather' && snapshot.weather !== undefined) {
+                const status = test.findChild(weather, 'weatherStatus');
+                root.silentRefreshSeen = !status.visible && status.text.length === 0;
+            }
+        }
     }
     TestCase { id: test; name: "Weather"; when: false }
     Timer {
@@ -185,8 +192,10 @@ ShellRoot {
                 test.wait(1100);
                 if (weather.snapshot !== snapshot || weather.busy) throw new Error('Work while closed');
                 weather.active = true;
+                if (weather.snapshot !== snapshot) throw new Error('Refresh must keep cached forecast visible');
                 test.tryVerify(() => weather.snapshot !== snapshot, 2000);
                 test.tryVerify(() => !weather.busy, 2000);
+                if (!root.silentRefreshSeen) throw new Error('Refresh must run without a status message');
                 snapshot = weather.snapshot;
                 test.wait(1100);
                 if (weather.snapshot !== snapshot || weather.busy) throw new Error('Polling while open');
