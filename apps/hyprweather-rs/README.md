@@ -13,7 +13,8 @@ in both package manifests. Binary and build outputs are excluded from Git/sync.
 On each dashboard opening the helper emits cached JSON immediately, then fetches
 only if older than 15 minutes. It exits after the request. No automatic retries
 or scheduled network work while closed; an in-flight request may finish after closing. Search and explicit location changes are
-user-triggered. Failed requests retain stale weather with an error and timestamp.
+user-triggered. Failed requests retain stale weather with an error and saved-forecast label.
+Legacy caches without hourly data are refreshed on the next opening.
 
 `search NAME [COUNTRY]` uses Open-Meteo geocoding; COUNTRY defaults to PH and an
 empty string enables worldwide results. Province/region names distinguish
@@ -28,8 +29,11 @@ the disposable cache stays local. No city is selected by default.
 
 Weather is modeled data, not a local station reading or an official warning feed.
 Current rain is the preceding 15-minute amount; rain chance is today's maximum.
-Sun times use the selected location's time zone. Source attribution appears on
-the card. APIs: https://open-meteo.com/en/docs and
+Sun and hourly times use the selected location's time zone. The footer shows
+temperature and rain probability at the next three hourly timestamps after the
+current observation, including across midnight. Two forecast days cover that boundary.
+Source attribution is in the LOCAL WEATHER header tooltip and accessibility description;
+click the header to open Open-Meteo. APIs: https://open-meteo.com/en/docs and
 https://open-meteo.com/en/docs/geocoding-api (location data: GeoNames).
 
 Validation: `cargo test`, `cargo clippy --all-targets -- -D warnings`, and

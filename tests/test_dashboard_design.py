@@ -40,7 +40,8 @@ ShellRoot {
             relative_humidity_2m:79, precipitation:0, interval:900, weather_code:3, wind_speed_10m:4,
             wind_gusts_10m:7, time:"2026-10-21T06:00"}, daily:{temperature_2m_max:[34],
             temperature_2m_min:[27],precipitation_probability_max:[22],sunrise:["2026-10-21T05:25"],
-            sunset:["2026-10-21T17:19"]},timezone_abbreviation:"GMT+8"}})
+            sunset:["2026-10-21T17:19"]},hourly:{time:["2026-10-21T07:00","2026-10-21T08:00","2026-10-21T09:00"],
+            temperature_2m:[28,30,31],precipitation_probability:[20,35,60]},timezone_abbreviation:"GMT+8"}})
     FloatingWindow {
         id: window
         visible: true; implicitWidth: 800; implicitHeight: 1500
@@ -77,7 +78,7 @@ ShellRoot {
     }
     function checkBounds(item) {
         if (!item.visible || item.width === 0 || item.height === 0) return;
-        if (item.objectName && item.objectName.startsWith('dashboard') || item.objectName === 'weatherLocation' || item.objectName === 'weatherTemperature') {
+        if (item.objectName && item.objectName.startsWith('dashboard') || item.objectName === 'weatherLocation' || item.objectName === 'weatherTemperature' || item.objectName === 'weatherHourlyForecast' || item.objectName.startsWith('weatherHour-')) {
             let position = item.mapToItem(dashboard, 0, 0);
             if (position.x < -1 || position.y < -1 || position.x + item.width > dashboard.width + 1 || position.y + item.height > dashboard.height + 1)
                 throw new Error('Overflow: ' + item.objectName + ' at ' + position + ' size ' + item.width + ',' + item.height);

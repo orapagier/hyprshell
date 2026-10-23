@@ -20,7 +20,10 @@ FORECAST = {'current': {'temperature_2m': 29.5, 'apparent_temperature': 34, 'rel
                        'time': '2026-10-21T09:15'},
             'daily': {'temperature_2m_max': [31], 'temperature_2m_min': [24],
                       'precipitation_probability_max': [80], 'sunrise': ['2026-10-21T05:40'],
-                      'sunset': ['2026-10-21T17:30']}, 'timezone_abbreviation': 'GMT+8'}
+                      'sunset': ['2026-10-21T17:30']},
+            'hourly': {'time': ['2026-10-21T09:00', '2026-10-21T10:00', '2026-10-21T11:00', '2026-10-21T12:00'],
+                       'temperature_2m': [29.5, 30, 31, 30], 'precipitation_probability': [80, 60, 40, 20]},
+            'timezone_abbreviation': 'GMT+8'}
 
 
 class WeatherValidationTests(unittest.TestCase):
@@ -87,6 +90,8 @@ else:
         self.cli('select', json.dumps(found))
         fresh = self.cli()[0]
         self.assertFalse(fresh['stale'])
+        self.assertIn('hourly=temperature_2m,precipitation_probability', self.calls.read_text())
+        self.assertIn('forecast_days=2', self.calls.read_text())
         calls = self.calls.read_text()
         self.fail.touch()
         self.assertEqual(self.cli()[0], fresh)
@@ -111,6 +116,19 @@ else:
         changed = self.cli()[0]
         self.assertNotIn('weather', changed, 'Never show another location’s cached weather')
         self.assertEqual(changed['location']['latitude'], 10.7)
+
+    def test_legacy_cache_refreshes_to_include_hourly_data(self):
+        self.cli('select', json.dumps(LOCATION))
+        self.cli()
+        cache = next((self.root / 'state/hyprshell/weather').glob('*.json'))
+        data = json.loads(cache.read_text())
+        del data['weather']['hourly']
+        cache.write_text(json.dumps(data))
+        rows = self.cli()
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(rows[0]['stale'])
+        self.assertEqual(rows[1]['weather']['hourly'], FORECAST['hourly'])
+        self.assertFalse(rows[1]['stale'])
 
     @unittest.skipUnless(shutil.which('quickshell'), 'Native Quickshell is needed')
     def test_native_picker_and_snapshot_lifecycle(self):
@@ -141,6 +159,10 @@ ShellRoot {
                 test.tryVerify(() => weather.snapshot.weather !== undefined, 3000);
                 if (weather.snapshot.weather.current.temperature_2m !== 29.5) throw new Error('Temperature missing');
                 if (!test.findChild(weather, 'weatherTemperature').visible) throw new Error('Weather hidden');
+                const hourly = test.findChild(weather, 'weatherHourlyForecast');
+                if (!hourly.visible || weather.upcomingHours.length !== 3) throw new Error('Hourly forecast missing');
+                if (weather.upcomingHours[0].time !== '2026-10-21T10:00' || weather.upcomingHours[0].rain !== 60)
+                    throw new Error('Past hour included or rain missing');
                 weather.active = false;
                 let snapshot = weather.snapshot;
                 test.wait(1100);
@@ -153,7 +175,21 @@ ShellRoot {
                 if (weather.snapshot !== snapshot || weather.busy) throw new Error('Polling while open');
                 weather.grabToImage(result => result.saveToFile('/tmp/hyprweather-build/weather-preview.png'));
                 test.wait(200);
+                weather.active = false;
+                snapshot = weather.snapshot;
+                weather.snapshot = {weather:{current:{time:'2026-10-21T23:45'},hourly:{
+                    time:['2026-10-21T23:00','2026-10-22T00:00','2026-10-22T01:00','2026-10-22T02:00'],
+                    temperature_2m:[28,27,26,25],precipitation_probability:[40,30,20,10]}}};
+                test.wait(50);
+                if (weather.upcomingHours.length !== 3 || weather.upcomingHours[0].time !== '2026-10-22T00:00')
+                    throw new Error('Hourly forecast fails across midnight');
+                weather.snapshot = {weather:{current:{time:'2026-10-21T09:15'}}};
+                test.wait(50);
+                if (hourly.visible) throw new Error('Missing hourly data must hide forecast');
+                weather.snapshot = snapshot;
                 weather.manual = true; weather.editing = true;
+                test.wait(50);
+                if (hourly.visible) throw new Error('Hourly forecast crowds city editor');
                 test.findChild(weather, 'weatherLatitude').text = '10.7';
                 test.findChild(weather, 'weatherLongitude').text = '122.3';
                 if (!test.findChild(weather, 'weatherSearchButton').enabled) throw new Error('Manual selection unavailable');

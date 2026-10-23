@@ -170,7 +170,7 @@ fn snapshot(location: &Location, fetched: u64, weather: Value, stale: bool) -> V
     json!({"location":location,"fetchedAt":fetched,"stale":stale,"weather":weather})
 }
 fn forecast(location: &Location) -> Result<Value, String> {
-    let url = format!("https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&timezone=auto&forecast_days=1", location.latitude, location.longitude);
+    let url = format!("https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&hourly=temperature_2m,precipitation_probability&timezone=auto&forecast_days=2", location.latitude, location.longitude);
     let result = request(&url)?;
     if !result["current"]["temperature_2m"].is_number() || !result["daily"].is_object() {
         return Err("Weather service returned incomplete data".into());
@@ -194,7 +194,7 @@ fn weather() -> Result<(), String> {
     let mut cached_snapshot = None;
     if let Some(cache) = cache {
         if let Some(timestamp) = cache["fetchedAt"].as_u64() {
-            let is_fresh = fresh(timestamp, now());
+            let is_fresh = fresh(timestamp, now()) && cache["weather"]["hourly"].is_object();
             let value = snapshot(&location, timestamp, cache["weather"].clone(), !is_fresh);
             emit(&value);
             if is_fresh {

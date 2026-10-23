@@ -25,6 +25,14 @@ Rectangle {
     property bool philippinesOnly: true
     readonly property var current: snapshot.weather?.current || ({})
     readonly property var daily: snapshot.weather?.daily || ({})
+    readonly property var upcomingHours: {
+        const hourly = snapshot.weather?.hourly || ({});
+        if (!current.time) return [];
+        return (hourly.time || []).map((time, index) => ({
+            time: time, temperature: hourly.temperature_2m?.[index],
+            rain: hourly.precipitation_probability?.[index]
+        })).filter(hour => hour.time > current.time).slice(0, 3);
+    }
     readonly property bool busy: worker.running
     property string operation: "weather"
     property bool reloadAfterSave: false
@@ -110,7 +118,17 @@ Rectangle {
         anchors.fill: parent; anchors.margins: 24; spacing: 0
         RowLayout {
             Layout.fillWidth: true; spacing: 12
-            Label { text: "LOCAL WEATHER"; color: card.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.8; Layout.fillWidth: true }
+            Label {
+                text: "LOCAL WEATHER"; color: card.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.8; Layout.fillWidth: true
+                Accessible.description: "Weather by Open-Meteo. Location data by GeoNames."
+                ToolTip.visible: sourceHover.containsMouse
+                ToolTip.text: "Weather: Open-Meteo · Location: GeoNames"
+                MouseArea {
+                    id: sourceHover
+                    anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: Qt.openUrlExternally("https://open-meteo.com/")
+                }
+            }
             Action {
                 objectName: "weatherChangeCity"
                 text: card.editing ? "Back" : "Change city"
@@ -125,6 +143,7 @@ Rectangle {
             Layout.topMargin: 14; Layout.fillWidth: true
         }
         Label {
+            visible: card.locationParts.length > 1 || !card.snapshot.location
             text: card.locationParts.slice(1).join(" · ").replace(/^Province of /, "") || "Choose a city or municipality to get started"
             color: card.secondaryColor; font.pixelSize: 11; lineHeight: 1.3
             Layout.topMargin: 5; Layout.fillWidth: true
@@ -253,17 +272,36 @@ Rectangle {
             }
         }
         Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
-        Label {
-            objectName: "weatherUpdated"
-            visible: card.snapshot.fetchedAt !== undefined && !card.choosingCity
-            text: (card.snapshot.stale ? "Cached · " : "As of ") + (card.snapshot.weather?.current?.time || "").replace("T", " · ") + " " + (card.snapshot.weather?.timezone_abbreviation || "")
-            color: card.secondaryColor; font.pixelSize: 10; Layout.fillWidth: true
+        ColumnLayout {
+            objectName: "weatherHourlyForecast"
+            visible: card.upcomingHours.length > 0 && !card.choosingCity
+            Layout.fillWidth: true; spacing: 10
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: card.snapshot.stale ? "SAVED FORECAST" : "NEXT 3 HOURS"; color: card.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.2; Layout.fillWidth: true }
+                Label { text: "Temp · Rain"; color: card.secondaryColor; font.pixelSize: 10 }
+            }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 12
+                Repeater {
+                    model: card.upcomingHours
+                    delegate: ColumnLayout {
+                        id: hour
+                        required property var modelData
+                        required property int index
+                        objectName: "weatherHour-" + index
+                        Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 5
+                        Label { text: card.sun(hour.modelData.time); color: card.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true }
+                        Label {
+                            text: card.number(hour.modelData.temperature, "°") + " · " + card.number(hour.modelData.rain, "%")
+                            font.pixelSize: card.width < 320 ? 12 : 14; font.weight: Font.Medium; Layout.fillWidth: true
+                            Accessible.name: card.sun(hour.modelData.time) + ", " + card.number(hour.modelData.temperature, " degrees Celsius") + ", rain chance " + card.number(hour.modelData.rain, "%")
+                        }
+                    }
+                }
+            }
         }
         Label { text: card.snapshot.error || card.snapshot.warning || (card.busy && card.operation === "weather" ? "Updating weather…" : ""); visible: text.length > 0 && card.snapshot.weather !== undefined; color: card.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true; Layout.topMargin: visible ? 8 : 0 }
-        Label {
-            text: "Open-Meteo / GeoNames"; font.pixelSize: 10; color: card.secondaryColor; Layout.fillWidth: true; Layout.topMargin: 6
-            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Qt.openUrlExternally("https://open-meteo.com/") }
-        }
     }
     component Label: MenuLabel { color: card.textColor }
     component Metric: ColumnLayout {
