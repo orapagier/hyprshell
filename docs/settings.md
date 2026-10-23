@@ -13,14 +13,12 @@ The backend renders only the bundled theme's named appearance tokens to
 `state/hyprshell/hyprlock.conf` when locking. Custom locker commands, explicit
 `hyprlock --config` commands and themes without those tokens stay untouched.
 
-**Hyprpane** means Hyprshell's status/menu panel on any edge. Hyprdock is the
-app dock; Hyprbar is the classic taskbar (see [Hyprbar](hyprbar.md)). This document also uses “bar” and
-"topbar"; IPC methods and configuration keys keep their existing names.
+**Hyprpane** means Hyprshell's status/menu panel on any edge. This document also
+uses “bar” and “topbar”; IPC methods and configuration keys keep their existing names.
 
-Hyprpane & panels includes a searchable schematic layout preview and explicit
-placement presets. Selection previews without saving; Apply layout preset changes
-enablement and edges together while retaining personal panel preferences. See
-[panel layout settings](panel-layout-settings.md) for scope and validation limits.
+Hyprpane includes a schematic layout preview and four edge presets. Selecting
+previews without saving; Apply layout preset changes the edge while retaining
+appearance and visibility. See [panel layout settings](panel-layout-settings.md).
 
 The settings app is part of the existing Quickshell process. `SettingsWindow.qml`
 is created on demand by `SettingsController.qml` through the `bar settings` IPC
@@ -47,7 +45,7 @@ including collapsed bar items and pages that have never been opened.
 Explanatory subtitles, descriptions and sentence-style help text are excluded,
 so a word in instructions alone does not make a page match.
 For example, **System updates** finds Updates & recovery, and **Popdown glass**
-finds Hyprpane & panels and individual bar-item editors. Matching ignores case and
+finds Hyprpane and individual bar-item editors. Matching ignores case and
 repeated whitespace. **Ctrl+F** focuses search; **Up/Down** select a result;
 **Enter** opens the selected match;
 **Escape** or the clear button clears the query. Browsing and searching do not
@@ -60,8 +58,8 @@ First-time setup remains available from the overview instead of redirecting away
 from it. Failed drafts and direct display-settings navigation retain their routes.
 
 Short preference sections start expanded across Settings. Only sections with more
-than 1,000 logical pixels of control content start collapsed, including Hyprbar,
-Hyprdock, advanced blur, and large cleanup forms. The shared card measures its
+than 1,000 logical pixels of control content start collapsed, including advanced
+blur and large cleanup forms. The shared card measures its
 actual laid-out content, including loaded rows, so the rule also covers other
 pages and adapts to text size and available width. Appearance, Clipboard history,
 Printing & scanning, Applications, Notifications, Displays, and Network keep their
@@ -117,7 +115,7 @@ Network checks: `python3 -m unittest discover -s tests -p test_network.py -v`.
 These exercise isolated commands and the native Settings page without touching
 the real network. Physical network behavior requires a desktop-session check.
 
-**Hyprpane & panels → Layout & spacing → Screen edge** selects Top, Left, Right,
+**Hyprpane → Layout & spacing → Screen edge** selects Top, Left, Right,
 or Bottom. `bar.position` defaults to `top` for existing settings. On either
 side edge, the left item group sits at the top, the center group stays centered,
 and the right group sits at the bottom, keeping each group's existing order.
@@ -200,7 +198,7 @@ using saved neighbours after drag operations renumber a group. It never loads
 bundled item defaults. The button waits for any in-flight save to finish.
 Because edits autosave, already saved edits become the new reset point.
 
-**Hyprpane & panels → Default appearance → Random vibrant item colors** gives
+**Hyprpane → Default appearance → Random vibrant item colors** gives
 inheriting item icons and labels distinct bright colors. The shuffled palette
 reshuffles when the wallpaper image changes, while staying stable during edits
 and matching the preview to the live bar on the same screen. Returning to a
@@ -407,7 +405,7 @@ faces while their pills are hidden. Shared visible pills retain their glass styl
 Old experimental motion preferences are ignored and removed on the next save;
 popdowns use the original fade-and-slide transition.
 
-All settings pages share the same preference-group structure and spacing. **Hyprpane & panels**
+All settings pages share the same preference-group structure and spacing. **Hyprpane**
 groups layout sliders, default appearance, and clock formatting with a sample.
 Item pages group visibility/position, text/icon overrides, colors/background,
 and shape/transparency. Grids stack into one column below 600 px of editor
@@ -631,7 +629,7 @@ preserves preferences and history, and records recovery files. See
 
 ## Shared bar pills
 
-Hyprpane & panels → Default appearance includes **Enable Hyprknots**
+Hyprpane → Default appearance includes **Enable Hyprknots**
 (`bar.hyprknots`, default On) for the connector line and decorative knots.
 Gaps touching an item without a background pill use only the connecting line;
 decorative knots appear when both neighboring items have pills. This also follows
@@ -661,7 +659,7 @@ Members are kept together in their existing order. Joining a pill adopts its
 alignment; changing a member's alignment moves the whole pill. Dragging a
 member to another alignment removes it from its old pill. Dragging within the
 same alignment retains membership. Use Earlier/Later or the preview to reorder.
-**Hyprpane & panels → Inside shared pills** sets the base gap between members;
+**Hyprpane → Inside shared pills** sets the base gap between members;
 individual before/after adjustments still apply. The regular gap separates
 pills and standalone items.
 
@@ -753,7 +751,7 @@ and regenerates its Lua payload; setup restores both along with the Lua hook.
 
 ## Hyprpane visibility
 
-**Hyprpane & panels → Hyprpane visibility** provides **Show on all** and **Hide on
+**Hyprpane → Hyprpane visibility** provides **Show on all** and **Hide on
 all** buttons. Either button replaces the default visibility for all workspaces
 and clears individual choices. Choose a workspace (1–99) in **Individual
 workspace**, then toggle **Show Hyprpane on workspace …** to change only that
@@ -776,7 +774,7 @@ overrides inherit an empty map. Each screen uses its own active workspace.
 
 ## Popdown glass
 
-**Hyprpane & panels → Popdown glass → Popdown translucency** controls the background
+**Hyprpane → Popdown glass → Popdown translucency** controls the background
 of all inheriting popdowns and Super+K. The default is 6% translucency (94%
 opacity), keeping text and controls fully visible. Each module has its own
 **Popdown glass** slider; reset follows the general setting. These controls are
@@ -1452,7 +1450,7 @@ personal Lua configuration again. Generated Lua uses Hyprland's CSS gap table;
 legacy configuration uses top,right,bottom,left order. Workspace rules can override
 these gaps.
 
-Hyprpane & panels → Layout & spacing → Gap toward windows reserves
+Hyprpane → Layout & spacing → Gap toward windows reserves
 0–100 additional pixels toward the desktop, without moving the visible bar. For
 a top bar this is bottom padding; for another edge it follows the bar inward.
 Hidden bars reserve no space. Edge margin continues to move the bar itself.
@@ -1636,14 +1634,13 @@ compositor and transaction rollback. `tst_SettingsAppearance.qml` exercises nati
 workspace selection, focus/style changes, retained choices, advanced sliders,
 reset and narrow layouts. These checks do not establish live session rendering.
 
-Panel naming and reserved component settings are documented in
-[Panel configuration — Phase 1](panel-configuration.md), including the compatibility
-mapping, shared/separate desktop-ID pins, placement validation and corner policy.
+Hyprpane storage and compatibility names are documented in
+[Panel configuration](panel-configuration.md).
 
 ### Hover popdowns by workspace
 
-Settings → Hyprpane & panels → Hover popdowns controls hover opening for all
-three panels on each output's current workspace. Hover is enabled by default,
+Settings → Hyprpane → Hover popdowns controls hover opening for
+Hyprpane on each output's current workspace. Hover is enabled by default,
 including when loading older saved settings. The default switch applies to
 workspaces without an override. Select workspace 1–99 to enable or disable hover
 there; **Use default on this workspace** removes that override.

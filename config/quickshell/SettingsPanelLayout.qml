@@ -14,16 +14,14 @@ SettingsCard {
     property string monitor: ''
     property int workspace: currentWorkspace
     readonly property var candidate: selectedPreset < 0 ? config : LayoutModel.preset(config, selectedPreset)
-    readonly property string conflict: Model.panelLayoutError(candidate)
     readonly property var panels: LayoutModel.rows(candidate, monitor, workspace)
     signal layoutChosen(var config)
     title: "Panel layout preview & presets"
-    subtitle: "Preview your draft or choose a preset before applying it. Presets change enabled components and their edges; styling, pins, items, monitor and workspace choices are retained."
+    subtitle: "Preview your draft or choose a preset before applying it. Presets change the Hyprpane edge; styling, items, monitor and workspace choices are retained."
     SettingsComboBox {
         objectName: 'panelLayoutPreset'
         Layout.fillWidth: true
-        model: ['Current layout', 'Hyprpane Top + Hyprdock Bottom', 'Hyprpane Top + Hyprbar Bottom',
-            'Hyprdock Left + Hyprbar Bottom', 'Hyprpane only · Top', 'Hyprdock only · Bottom', 'Hyprbar only · Bottom']
+        model: ['Current layout', 'Hyprpane · Top', 'Hyprpane · Bottom', 'Hyprpane · Left', 'Hyprpane · Right']
         currentIndex: root.selectedPreset + 1
         Accessible.name: 'Panel layout preset'
         onActivated: root.selectedPreset = currentIndex - 1
@@ -89,21 +87,14 @@ SettingsCard {
     }
     Label {
         Layout.fillWidth: true
-        text: 'Schematic placement preview. Faded edges use auto-hide or overlap hiding. Actual dimensions and fullscreen behavior follow each panel’s settings.'
+        text: 'Schematic placement preview. Actual dimensions follow Hyprpane settings.'
         color: Style.Theme.muted
-        wrapMode: Text.WordWrap
-    }
-    Label {
-        Layout.fillWidth: true
-        visible: !!root.conflict
-        text: root.conflict
-        color: Style.Theme.warning
         wrapMode: Text.WordWrap
     }
     SettingsButton {
         objectName: 'applyPanelLayoutPreset'
         text: 'Apply layout preset'
-        enabled: root.selectedPreset >= 0 && !root.conflict
+        enabled: root.selectedPreset >= 0
         onClicked: {
             root.layoutChosen(root.candidate);
             root.selectedPreset = -1;

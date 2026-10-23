@@ -8,7 +8,6 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "SettingsModel.js" as Settings
-import "DockModel.js" as DockModel
 
 ShellRoot {
     id: shell
@@ -38,9 +37,7 @@ ShellRoot {
     Binding { target: Style.Theme; property: "preferences"; value: preferences.config.accessibility || ({}) }
     ApplicationService {
         id: applications; store: preferences
-        geometryTracking: docks.instances.concat(taskbars.instances).some(d => d.shown && d.panel.hideMode === 'dodge')
     }
-    DockUtilities { id: dockUtilities; watching: ['hyprdock','hyprbar'].some(name => preferences.config.panels[name].enabled && preferences.config.panels[name].showTrash) }
     ScreenCorners {}
     Dashboard {
         id: dashboardWindow
@@ -49,7 +46,7 @@ ShellRoot {
         translucency: preferences.config.bar.popdownTranslucency ?? 0.06
         onOpenedChanged: if (opened) {
             activityWindow.close();
-            for (let panel of panels.instances) { panel.closeMenu(); panel.closeDockMenus(); }
+            for (let panel of panels.instances) panel.closeMenu();
         }
         onSettingsRequested: settingsController.open()
         onLockRequested: locking.lockNow()
@@ -68,7 +65,7 @@ ShellRoot {
         translucency: preferences.config.bar.popdownTranslucency ?? 0.06
         onOpenedChanged: if (opened) {
             dashboardWindow.close();
-            for (let panel of panels.instances) { panel.closeMenu(); panel.closeDockMenus(); }
+            for (let panel of panels.instances) panel.closeMenu();
         }
         contentPage: Component {
             ActivityContent {
@@ -147,14 +144,11 @@ ShellRoot {
             onVisibleChanged: if (!visible) menuState.close()
             readonly property string edge: preferences.config.bar.position || "top"
             readonly property bool vertical: edge === "left" || edge === "right"
-            readonly property var cornerInsets: DockModel.insets(preferences.config, "hyprpane", panel.modelData.name,
-                Hyprland.monitorFor(panel.modelData)?.activeWorkspace?.id ?? null, 0)
             readonly property var workspace: Hyprland.monitorFor(panel.modelData)?.activeWorkspace?.id ?? null
-            readonly property rect menuBounds: DockModel.menuBounds(preferences.config, "hyprpane", panel.modelData.name,
-                workspace, 0, modelData.width, modelData.height)
+            readonly property rect menuBounds: Qt.rect(0, 0, modelData.width, modelData.height)
             onWorkspaceChanged: closeMenu()
             onMenuBoundsChanged: closeMenu()
-            readonly property real availableHeight: Math.max(1, modelData.height - cornerInsets.top - cornerInsets.bottom)
+            readonly property real availableHeight: Math.max(1, modelData.height)
             readonly property bool compact: vertical && preferences.config.bar.verticalPresentation === "compact"
             anchors {
                 top: edge !== "bottom"
@@ -163,8 +157,8 @@ ShellRoot {
                 right: edge !== "left"
             }
             margins {
-                top: edge === "top" ? preferences.config.bar.marginTop : vertical ? (compact ? cornerInsets.top + (availableHeight - implicitHeight) / 2 : cornerInsets.top + preferences.config.bar.marginSide) : 0
-                bottom: edge === "bottom" ? preferences.config.bar.marginTop : vertical ? cornerInsets.bottom + preferences.config.bar.marginSide : 0
+                top: edge === "top" ? preferences.config.bar.marginTop : vertical ? (compact ? (availableHeight - implicitHeight) / 2 : preferences.config.bar.marginSide) : 0
+                bottom: edge === "bottom" ? preferences.config.bar.marginTop : vertical ? preferences.config.bar.marginSide : 0
                 left: edge === "left" ? preferences.config.bar.marginTop : !vertical ? preferences.config.bar.marginSide : 0
                 right: edge === "right" ? preferences.config.bar.marginTop : !vertical ? preferences.config.bar.marginSide : 0
             }
@@ -193,14 +187,12 @@ ShellRoot {
                 activeMenu: menuState.section
                 onMenuHovered: name => {
                     if (!menuState.hoverEnabled) return;
-                    panel.closeDockMenus();
                     for (let other of panels.instances) if (other !== panel) other.closeMenu();
                     menuState.hover(name);
                 }
                 onMenuLeft: name => menuState.leave(name)
                 onPreviewUnavailable: menuState.close()
                 onAction: (name, argument) => {
-                    panel.closeDockMenus();
                     if (name === "workspace") { menuState.close(); shell.services.workspace(argument); }
                     else if (name === "workspace-scroll") shell.services.scrollWorkspace(argument);
                     else if (name === "settings") {
@@ -213,7 +205,6 @@ ShellRoot {
                     }
                 }
                 onTrayAction: (item, source, button) => {
-                    panel.closeDockMenus();
                     for (let other of panels.instances) other.closeMenu();
                     if (button === Qt.MiddleButton) item.secondaryActivate();
                     else if (button === Qt.RightButton || item.onlyMenu) {
@@ -254,67 +245,13 @@ ShellRoot {
                 onHoverChanged: inside => menuState.retain(inside)
             }
             KeybindingsPopup { id: keybindings; screen: panel.screen; wallpaperSource: bar.wallpaperSource; translucency: preferences.config.bar.popdownTranslucency ?? 0.06 }
-            function closeDockMenus() { for (let dock of docks.instances) dock.closeMenu(); for (let bar of taskbars.instances) bar.closeMenu(); }
             function closeMenu() { menuState.close(); keybindings.opened = false; }
             function refreshSettings() {
                 if (!panel.visible || (menuState.section && !bar.itemEnabled(bar.menuItemId(menuState.section)))) menuState.close();
             }
-            function toggleMenu(name) { closeDockMenus(); keybindings.opened = false; menuState.activate(name, true); }
+            function toggleMenu(name) { keybindings.opened = false; menuState.activate(name, true); }
             function toggleLauncher() { toggleMenu("launcher"); }
-            function toggleKeybindings() { closeDockMenus(); menuState.close(); keybindings.opened = !keybindings.opened; }
-        }
-    }
-    Variants {
-        id: docks
-        model: Quickshell.screens
-        DockWindow {
-            id: dockWindow
-            desktopServices:shell.services; inbox:shell.inbox
-            statusData:shell.statusData; mediaData:shell.mediaData; notificationData:shell.notificationData
-            trayModel:tray.items; clockText:shell.clockText
-            required property var modelData
-            output: modelData
-            utilities: dockUtilities
-            onSettingsRequested: settingsController.open()
-            service: applications
-            config: preferences.config
-            wallpaperSource: wallpapers.sources[modelData.name] || ""
-            paneThickness: {
-                let pane = panels.instances.find(p => p.modelData.name === modelData.name);
-                return pane ? (pane.vertical ? pane.implicitWidth : pane.implicitHeight) : preferences.config.bar.height;
-            }
-            onInteractionStarted: {
-                for (let panel of panels.instances) panel.closeMenu();
-                for (let dock of docks.instances) if (dock !== dockWindow) dock.closeMenu();
-                for (let bar of taskbars.instances) bar.closeMenu();
-            }
-        }
-    }
-    Variants {
-        id: taskbars
-        model: Quickshell.screens
-        DockWindow {
-            id: taskbarWindow
-            required property var modelData
-            component: 'hyprbar'
-            desktopServices:shell.services; inbox:shell.inbox
-            statusData:shell.statusData; mediaData:shell.mediaData; notificationData:shell.notificationData
-            trayModel:tray.items; clockText:shell.clockText
-            output: modelData
-            utilities: dockUtilities
-            onSettingsRequested: settingsController.open()
-            service: applications
-            config: preferences.config
-            wallpaperSource: wallpapers.sources[modelData.name] || ""
-            paneThickness: {
-                let pane = panels.instances.find(p => p.modelData.name === modelData.name);
-                return pane ? (pane.vertical ? pane.implicitWidth : pane.implicitHeight) : preferences.config.bar.height;
-            }
-            onInteractionStarted: {
-                for (let panel of panels.instances) panel.closeMenu();
-                for (let dock of docks.instances) dock.closeMenu();
-                for (let bar of taskbars.instances) if (bar !== taskbarWindow) bar.closeMenu();
-            }
+            function toggleKeybindings() { menuState.close(); keybindings.opened = !keybindings.opened; }
         }
     }
     Connections {
@@ -391,8 +328,6 @@ ShellRoot {
         function toggleBar(): void {
             shell.toggleWorkspacePanel('hyprpane');
         }
-        function toggleDock(): void { shell.toggleWorkspacePanel('hyprdock'); }
-        function toggleTaskbar(): void { shell.toggleWorkspacePanel('hyprbar'); }
         function toggleMenu(name: string): void {
             if (!["calendar", "notifications", "audio", "wifi", "bluetooth", "battery", "power", "launcher"].includes(name)) return;
             let focused = Hyprland.focusedMonitor;
@@ -409,11 +344,8 @@ ShellRoot {
         function toggleLauncher(): void {
             let focused = Hyprland.focusedMonitor;
             let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
-            let outputName = focused ? focused.name : panel ? panel.screen.name : '';
-            let appPanel = taskbars.instances.concat(docks.instances).find(p => p.output.name === outputName && p.launcherAvailable);
-            for (let other of panels.instances) if (appPanel || other !== panel) other.closeMenu();
-            if (appPanel) appPanel.toggleLauncher();
-            else if (panel) panel.toggleLauncher();
+            for (let other of panels.instances) if (other !== panel) other.closeMenu();
+            if (panel) panel.toggleLauncher();
         }
     }
 }

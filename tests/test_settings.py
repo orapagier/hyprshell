@@ -313,31 +313,7 @@ class SettingsTests(unittest.TestCase):
                 self.assertIs(backend.bar_visible(bar, 1), baseline)
                 self.assertIs(bar['visible'], baseline)
 
-    def test_app_panel_shortcuts_toggle_latest_workspace_state(self):
-        self.data['bar']['visible'] = False
-        for name in ('hyprdock', 'hyprbar'):
-            self.data['panels'][name].update(enabled=True, visible=False)
-        backend.save(self.data)
-        for name in ('hyprdock', 'hyprbar'):
-            for visible in (True, False, True, False):
-                before = json.loads(self.path.read_text())
-                result = subprocess.run(['python3', str(ROOT / 'config/quickshell/settings/backend.py'),
-                                         '--toggle-panel', name, '3'], capture_output=True, text=True, timeout=10)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                expected = copy.deepcopy(before)
-                expected['panels'][name]['workspaceOverrides']['3'] = visible
-                self.assertEqual(json.loads(self.path.read_text()), expected)
-                self.assertFalse(backend.bar_visible(expected['panels'][name], 1))
 
-    def test_app_panel_shortcuts_reject_conflicts_and_invalid_requests(self):
-        self.data['bar'].update(position='bottom', visible=True)
-        self.data['panels']['hyprdock'].update(enabled=True, position='bottom', visible=False)
-        backend.save(self.data)
-        before = self.path.read_bytes()
-        for component, workspace in [('hyprdock', 3), ('unknown', 3), ('hyprbar', 0), ('hyprbar', 100)]:
-            with self.assertRaises(ValueError):
-                backend.save(backend.DEFAULTS, toggle_workspace=workspace, toggle_component=component)
-            self.assertEqual(self.path.read_bytes(), before)
 
     def test_workspace_overrides_validation_and_legacy_inheritance(self):
         legacy = copy.deepcopy(self.data)

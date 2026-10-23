@@ -298,7 +298,7 @@ def validate(data):
 
 
 def validate_panels(data, result):
-    """Validate reserved layouts too; never silently move or disable a component."""
+    """Validate Hyprpane monitor gates and shared application identities."""
     panels = data.get('panels', {})
     if not isinstance(panels, dict) or set(panels) - set(result['panels']):
         raise ValueError('Unknown panel component')
@@ -315,77 +315,12 @@ def validate_panels(data, result):
             for m in monitors
         ) or len(set(monitors)) != len(monitors):
             raise ValueError(f'{name} monitors must be unique connector names; empty means all')
-        modes = ('always',) if name == 'hyprpane' else ('always', 'auto-hide', 'dodge')
-        if target['hideMode'] not in modes:
-            raise ValueError(f'Invalid {name} hide mode')
-        if name == 'hyprpane':
-            continue  # Its established appearance/edge/visibility live in bar + items.
-        if target['position'] not in ('top', 'bottom', 'left', 'right'):
-            raise ValueError(f'{name} position must be top, bottom, left, or right')
-        if type(target['visible']) is not bool:
-            raise ValueError(f'{name} visibility must be boolean')
-        if target['workspaceScope'] not in ('all', 'selected'):
-            raise ValueError(f'Invalid {name} workspace scope')
-        workspaces = target['workspaceList']
-        if not isinstance(workspaces, list) or any(type(w) is not int or not 1 <= w <= 99 for w in workspaces) or len(set(workspaces)) != len(workspaces):
-            raise ValueError(f'{name} workspace list must contain unique numbers 1–99')
-        if target['workspaceScope'] == 'selected' and not workspaces:
-            raise ValueError(f'Choose at least one {name} workspace')
-        overrides = target['workspaceOverrides']
-        if not isinstance(overrides, dict) or any(
-            not isinstance(w, str) or not re.fullmatch(r'[1-9][0-9]?', w) or type(v) is not bool
-            for w, v in overrides.items()
-        ):
-            raise ValueError(f'{name} workspace overrides must map numbers 1–99 to booleans')
-        for key, low, high in [('thickness', 28, 160), ('marginEdge', 0, 100), ('marginEnds', 0, 200), ('windowGap', 0, 100), ('iconSize', 8, 96), ('spacing', 0, 30)]:
-            number(target[key], low, high, True)
-        if target['background'] not in ('inherit', 'on', 'off'):
-            raise ValueError(f'Invalid {name} background')
-        number(target['paddingStart'], 0, 100, True)
-        if target['paddingEnd'] is not None:
-            number(target['paddingEnd'], 0, 100, True)
-        if name in ('hyprdock', 'hyprbar'):
-            right_items = target['rightItems']
-            allowed_items = {item['id'] for item in result['items']}
-            if right_items is not None and (not isinstance(right_items, list)
-                    or any(not isinstance(item, str) or item not in allowed_items for item in right_items)
-                    or len(set(right_items)) != len(right_items)):
-                raise ValueError(f'{name} right items must be unique Hyprpane item IDs')
-            for key in ('grouped',):
-                if type(target[key]) is not bool:
-                    raise ValueError(f'{name} {key} must be boolean')
-            for key in ('windowWorkspaceScope', 'windowMonitorScope'):
-                if target[key] not in ('current', 'all'):
-                    raise ValueError(f'Invalid {name} {key}')
-        if name == 'hyprbar':
-            if target['spacingRight'] is not None:
-                number(target['spacingRight'], 0, 30, True)
-            if type(target['showTitles']) is not bool:
-                raise ValueError('Hyprbar showTitles must be boolean')
-            for key in ('buttonWidth', 'verticalWidth'):
-                number(target[key], 80, 400, True)
-        if name in ('hyprdock', 'hyprbar'):
-            number(target['backgroundOpacity'], 0, 1)
-            if target['alignment'] not in ('start', 'center', 'end'):
-                raise ValueError(f'Invalid {name} alignment')
-            if target['fullscreenPolicy'] not in ('hide', 'show'):
-                raise ValueError(f'Invalid {name} fullscreen policy')
-            for key in ('indicators', 'animations', 'showFiles', 'showSettings', 'showTrash', 'showDesktop'):
-                if type(target[key]) is not bool:
-                    raise ValueError(f'{name} {key} must be boolean')
+        if target['hideMode'] != 'always':
+            raise ValueError('Invalid Hyprpane hide mode')
     pins = data.get('pins', {})
-    if not isinstance(pins, dict) or set(pins) - set(result['pins']):
-        raise ValueError('Unknown pin setting')
+    if not isinstance(pins, dict) or set(pins) - {'matches'}:
+        raise ValueError('Unknown application matching setting')
     result['pins'].update(pins)
-    if result['pins']['mode'] not in ('shared', 'separate'):
-        raise ValueError('Pin mode must be shared or separate')
-    for name in ('shared', 'hyprdock', 'hyprbar'):
-        ids = result['pins'][name]
-        if not isinstance(ids, list) or any(
-            not desktop_id(app)
-            for app in ids
-        ) or len(set(ids)) != len(ids):
-            raise ValueError('Pins must be unique desktop application IDs ending in .desktop')
     matches = result['pins']['matches']
     if not isinstance(matches, dict) or len(matches) > 512 or any(
         not isinstance(key, str) or not key.strip() or len(key) > 255
@@ -393,7 +328,6 @@ def validate_panels(data, result):
         for key, app in matches.items()
     ):
         raise ValueError('App matches must map window classes/app IDs to desktop application IDs')
-    validate_panel_layout(result)
 
 
 def desktop_id(value):
@@ -411,9 +345,7 @@ def application_action(current, action):
     data = copy.deepcopy(current)
     pins = data['pins']
     kind = action.get('action')
-    if kind == 'mode':
-        pins['mode'] = action.get('mode')
-    elif kind == 'match':
+    if kind == 'match':
         key, app = action.get('key'), action.get('id')
         if not isinstance(key, str) or not key.strip():
             raise ValueError('Choose a window class/app ID')
@@ -421,47 +353,9 @@ def application_action(current, action):
             pins['matches'].pop(key, None)
         else:
             pins['matches'][key] = app
-    elif kind in ('pin', 'unpin', 'reorder'):
-        component, app = action.get('component'), action.get('id')
-        if component not in ('hyprdock', 'hyprbar') or not desktop_id(app):
-            raise ValueError('Choose an app component and desktop application ID')
-        target = 'shared' if pins['mode'] == 'shared' else component
-        ids = pins[target]
-        if kind == 'pin' and app not in ids:
-            ids.append(app)
-        elif kind == 'unpin' and app in ids:
-            ids.remove(app)
-        elif kind == 'reorder':
-            index = action.get('index')
-            if app not in ids or type(index) is not int or not 0 <= index < len(ids):
-                raise ValueError('Choose an existing pin and a valid position')
-            ids.remove(app)
-            ids.insert(index, app)
     else:
         raise ValueError('Unknown application action')
     return validate(data)
-
-
-def panel_config(data, name):
-    """One compatibility view; there is no second copy of Hyprpane preferences."""
-    panel = data['panels'][name]
-    return {**data['bar'], **panel} if name == 'hyprpane' else panel
-
-
-def validate_panel_layout(data):
-    panels = {name: panel_config(data, name) for name in data['panels']}
-    # The unnamed bucket catches future/hotplug outputs selected by an empty list.
-    monitors = {None} | {m for panel in panels.values() for m in panel['monitors']}
-    for monitor in sorted(monitors, key=lambda m: m or ''):
-        for workspace in range(0, 100):  # 0 also covers unnumbered/special workspaces.
-            active = [(name, panel) for name, panel in panels.items()
-                      if panel['enabled'] and (not panel['monitors'] or monitor in panel['monitors'])
-                      and bar_visible(panel, workspace)]
-            location = f"{monitor or 'other monitors'}, workspace {workspace or 'unnumbered'}"
-            if len(active) > 2:
-                raise ValueError(f'Panel conflict on {location}: at most two components may be visible. Disable a component or change its monitor/workspace visibility.')
-            if len(active) == 2 and active[0][1]['position'] == active[1][1]['position']:
-                raise ValueError(f"Panel conflict on {location}: {active[0][0]} and {active[1][0]} both use {active[0][1]['position']}. Choose another edge, use separate workspaces, or disable a component.")
 
 
 def lock_argv(command):
@@ -807,8 +701,8 @@ def bar_visible(bar, workspace):
 def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpane', app_action=None, toggle_hover=None, monitor_action=None):
     data = validate(data)
     if toggle_workspace is not None:
-        if toggle_component not in ('hyprpane', 'hyprdock', 'hyprbar'):
-            raise ValueError('Choose Hyprpane, Hyprdock or Hyprbar')
+        if toggle_component != 'hyprpane':
+            raise ValueError('Choose Hyprpane')
         if type(toggle_workspace) is not int or not 1 <= toggle_workspace <= 99:
             raise ValueError('Choose a workspace number from 1 to 99')
     if toggle_hover is not None and (type(toggle_hover) is not int or not 1 <= toggle_hover <= 99):
@@ -836,7 +730,7 @@ def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpa
             data = application_action(current, app_action)
         if toggle_workspace is not None:
             data = copy.deepcopy(current)
-            panel = data['bar'] if toggle_component == 'hyprpane' else data['panels'][toggle_component]
+            panel = data['bar']
             panel['workspaceOverrides'][str(toggle_workspace)] = not bar_visible(panel, toggle_workspace)
         if toggle_hover is not None:
             data = copy.deepcopy(current)

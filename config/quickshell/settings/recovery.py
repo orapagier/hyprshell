@@ -110,8 +110,8 @@ def checkpoint(expected):
 def preview(ident):
     _, state = roots()
     before, after = current(), snapshot(ident)
-    labels = {'clipboard': 'Clipboard capture preferences', 'accessibility': 'Accessibility', 'bar': 'Hyprpane & panels', 'items': 'Hyprpane items', 'hyprland': 'Compositor, mouse & keyboard',
-              'panels': 'Panel placement', 'pins': 'Pinned applications', 'locking': 'Screen locking', 'power': 'Power & battery', 'notifications': 'Notification delivery'}
+    labels = {'clipboard': 'Clipboard capture preferences', 'accessibility': 'Accessibility', 'bar': 'Hyprpane', 'items': 'Hyprpane items', 'hyprland': 'Compositor, mouse & keyboard',
+              'panels': 'Panel placement', 'pins': 'Application matching', 'locking': 'Screen locking', 'power': 'Power & battery', 'notifications': 'Notification delivery'}
     changes = [label for key, label in labels.items() if before[key] != after[key]]
     token = secrets.token_hex(24)
     record = {'id': ident, 'token': token, 'revision': revision(), 'current': before,

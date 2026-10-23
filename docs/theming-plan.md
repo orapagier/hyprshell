@@ -1,8 +1,6 @@
 # Comprehensive theming: future implementation plan
 
-Historical terminology: “hyprbar” in this saved theme plan refers to the existing
-status/menu panel, now named Hyprpane. It does not refer to the planned classic
-Hyprbar taskbar.
+
 
 Status: deferred proposal. Saved on 2026-10-14 at the user's request.
 Implementation is not authorized yet; the user may approve or revise this plan
@@ -12,7 +10,7 @@ when returning to the feature. No desktop configuration changes accompany it.
 
 Hyprshell supports portable community theme packages that coordinate desktop,
 window, and supported application appearance. Each theme retains its own personal
-customizations, including wallpaper and workspace-specific hyprbar visibility.
+customizations, including wallpaper and workspace-specific Hyprpane visibility.
 
 Super + Shift + W opens a stacked theme preview on the focused monitor. Arrow keys
 navigate, Enter applies the selected theme, and Escape closes without changes.
@@ -21,7 +19,7 @@ Browsing changes the preview only, rather than repeatedly applying desktop theme
 ## Existing foundation
 
 The inspected setup already provides application appearance preferences,
-configurable hyprbar styling, workspace-specific bar visibility, wallpaper
+configurable Hyprpane styling, workspace-specific bar visibility, wallpaper
 handling, and validated settings transactions. Relevant integration points include:
 
 - `config/quickshell/style/Theme.qml` and shell components.
@@ -41,7 +39,7 @@ Use a folder or importable archive with:
 - A versioned manifest containing stable ID, name, author, description, license,
   and compatibility requirements.
 - Shared palette, typography, spacing, rounding, and transparency.
-- Desktop appearance defaults and workspace-specific hyprbar visibility.
+- Desktop appearance defaults and workspace-specific Hyprpane visibility.
 - Wallpaper assets and preview images.
 - Optional GTK/Qt assets and supported application palettes.
 
@@ -53,10 +51,10 @@ not execute arbitrary theme scripts. Validate assets and archive paths before us
 
 | Area | Proposed controls |
 | --- | --- |
-| Hyprshell | Hyprbar, launcher, menus, notifications, Settings, picker, shared controls |
+| Hyprshell | Hyprpane, launcher, menus, notifications, Settings, picker, shared controls |
 | Hyprland | Borders, active/inactive colors, rounding, shadows, blur, opacity, gaps, supported animations |
 | Wallpaper | Theme default, personal replacement, per-monitor choices |
-| Hyprbar | Position, layout, item styling, adaptive colors, workspace visibility |
+| Hyprpane | Position, layout, item styling, adaptive colors, workspace visibility |
 | Applications | Light/dark preference, GTK/Qt integration, fonts, icons, cursors, supported application palettes |
 | Lock screen | Matching colors, typography, wallpaper |
 
@@ -77,7 +75,7 @@ step for privileged files rather than changes on every picker selection.
 
 - Center the picker on the focused monitor, selected card at the front and
   neighboring cards visible behind it.
-- Show wallpaper, palette, sample window, hyprbar, theme name, and active marker.
+- Show wallpaper, palette, sample window, Hyprpane, theme name, and active marker.
 - Support arrow navigation, Enter to apply, and Escape to cancel.
 - Respect reduced motion and restore keyboard focus on close.
 - Apply only after Enter; browsing does not mutate desktop preferences.
@@ -92,8 +90,8 @@ implementation. This reassignment remains part of the pending proposal.
 Add a Themes page for browsing, applying, importing, exporting, duplicating, and
 removing themes. Support saving the current appearance as a new theme.
 
-Allow editing wallpaper, palette, window styling, hyprbar configuration, and which
-numbered workspaces show hyprbar. Support resetting individual preferences or all
+Allow editing wallpaper, palette, window styling, Hyprpane configuration, and which
+numbered workspaces show Hyprpane. Support resetting individual preferences or all
 customizations for a theme. Show missing assets, dependencies, and application
 compatibility. Preserve existing appearance controls and connect them to the
 active theme's overrides rather than removing controls or behavior.

@@ -25,7 +25,7 @@ import github_sync
 import github_update
 import recovery
 
-NAMES = ('hyprpane', 'hyprdock', 'hyprbar')
+NAMES = ('hyprpane',)
 EDGES = ('top', 'right', 'bottom', 'left')
 SETTINGS = 'hyprshell/settings.json'
 
@@ -35,9 +35,7 @@ def preferences(layout, disjoint=False):
     data['bar'].update(position=layout.get('hyprpane', 'right'), height=39,
                        marginTop=13, marginSide=17, verticalPresentation='compact',
                        workspaceOverrides={'7': False})
-    data['pins'].update(mode='separate', shared=['kitty.desktop'],
-                        hyprdock=['missing.desktop', 'org.gnome.Nautilus.desktop'],
-                        hyprbar=['firefox.desktop'], matches={'example.App': 'kitty.desktop'})
+    data['pins']['matches'] = {'example.App': 'kitty.desktop'}
     data['items'][0]['hideText'] = True
     data['notifications']['doNotDisturb'] = True
     data['accessibility']['reducedMotion'] = True
@@ -47,15 +45,6 @@ def preferences(layout, disjoint=False):
         visible = data['bar'] if name == 'hyprpane' else panel
         visible.update(workspaceScope='selected', workspaceList=[index] if disjoint else [1, 2],
                        workspaceOverrides={'7': False, str(index if disjoint else 9): True})
-        if name != 'hyprpane':
-            panel.update(position=layout.get(name, 'bottom'), thickness=43,
-                         backgroundOpacity=0.57, marginEdge=11, paddingStart=9,
-                         paddingEnd=15, iconSize=19, spacing=7,
-                         hideMode='dodge' if name == 'hyprdock' else 'auto-hide',
-                         showFiles=True, showTrash=True, showSettings=True, showDesktop=True,
-                         fullscreenPolicy='show', rightItems=['audio', 'calendar', 'tray'],
-                         windowWorkspaceScope='current', windowMonitorScope='all')
-    data['panels']['hyprbar'].update(grouped=False, spacingRight=12)
     return backend.validate(data)
 
 
@@ -98,10 +87,7 @@ class PanelPersistenceTests(unittest.TestCase):
         self.git('commit', '-m', 'Initial panel fixture')
 
     def test_fresh_setup_restores_every_pair_edge_and_disjoint_workspace_layout(self):
-        layouts = [(dict(zip(pair, edges)), False)
-                   for pair in itertools.combinations(NAMES, 2)
-                   for edges in itertools.permutations(EDGES, 2)]
-        layouts += [(dict.fromkeys(NAMES, edge), True) for edge in EDGES]
+        layouts = [({'hyprpane':edge}, False) for edge in EDGES]
         for index, (layout, disjoint) in enumerate(layouts):
             with self.subTest(layout=layout, disjoint=disjoint):
                 data = preferences(layout, disjoint)
@@ -111,8 +97,7 @@ class PanelPersistenceTests(unittest.TestCase):
                 deployment.install(self.repo, locations=locations)
                 installed = locations['config'] / SETTINGS
                 self.assertEqual(json.loads(installed.read_text()), data)
-                for name in ('PanelLayout.js', 'SettingsPanelLayout.qml', 'Dock.qml',
-                             'TaskbarModel.js', 'TaskbarStatus.qml', 'DockVisibility.qml'):
+                for name in ('PanelLayout.js', 'SettingsPanelLayout.qml'):
                     self.assertEqual((locations['config'] / 'quickshell' / name).read_bytes(),
                                      (self.repo / 'config/quickshell' / name).read_bytes())
 
@@ -134,17 +119,17 @@ class PanelPersistenceTests(unittest.TestCase):
                 self.assertEqual((self.config / 'quickshell/PanelLayout.js').read_bytes(), old)
                 self.assertEqual(self.target.read_bytes(), before)
 
-    def test_conflicting_import_is_rejected_before_any_deployment(self):
-        data = preferences({'hyprpane': 'left', 'hyprbar': 'bottom'})
+    def test_invalid_import_is_rejected_before_any_deployment(self):
+        data = preferences({'hyprpane': 'left'})
         self.write(self.source, data)
         deployment.install(self.repo)
         before = {p.relative_to(self.config): p.read_bytes()
                   for p in self.config.rglob('*') if p.is_file()}
-        data['panels']['hyprbar']['position'] = 'left'
+        data['bar']['position'] = 'invalid'
         self.write(self.source, data)
         with self.assertRaises(subprocess.CalledProcessError) as caught:
             deployment.install(self.repo, resolved=True)
-        self.assertIn('Choose another edge', caught.exception.stderr)
+        self.assertIn('Bar position must be', caught.exception.stderr)
         self.assertEqual({p.relative_to(self.config): p.read_bytes()
                           for p in self.config.rglob('*') if p.is_file()}, before)
 
@@ -157,7 +142,7 @@ class PanelPersistenceTests(unittest.TestCase):
         self.assert_saved(backend.validate(legacy))
 
     def test_installer_entry_point_restores_then_preserves_panel_preferences(self):
-        data = preferences({'hyprdock': 'left', 'hyprbar': 'bottom'})
+        data = preferences({'hyprpane': 'left'})
         self.write(self.source, data)
         command = ['python3', str(ROOT / 'tools/install_configs.py'), str(self.repo)]
         subprocess.run(command, check=True, capture_output=True, text=True, timeout=60)
@@ -179,12 +164,11 @@ class PanelPersistenceTests(unittest.TestCase):
                     else:
                         ident = configuration.request({'operation': 'checkpoint',
                             'expected': configuration.status()['revision']})['createdBackup']
-                    changed = preferences({'hyprbar': 'bottom'})
+                    changed = preferences({'hyprpane': 'bottom'})
                     backend.save(changed)
                     if kind == 'settings':
                         preview = recovery.preview(ident)
-                        self.assertIn('Panel placement', preview['changes'])
-                        self.assertIn('Hyprpane & panels', preview['changes'])
+                        self.assertIn('Hyprpane', preview['changes'])
                         recovery.restore(preview['token'])
                         undo = next(row['id'] for row in recovery.backups()
                                     if recovery.snapshot(row['id']) == changed)
@@ -220,13 +204,13 @@ class PanelPersistenceTests(unittest.TestCase):
                 deployment.install(self.repo, locations=fresh)
                 self.assertEqual(json.loads((fresh['config'] / SETTINGS).read_text()), data)
 
-    def test_reviewed_update_applies_explicit_panel_conflict_choices(self):
-        baseline = preferences({'hyprpane': 'top', 'hyprdock': 'bottom'})
+    def test_reviewed_update_applies_explicit_pane_preference_choices(self):
+        baseline = preferences({'hyprpane': 'top'})
         self.write(self.source, baseline)
         deployment.install(self.repo)
         self.init_git()
         base = self.git('rev-parse', 'HEAD')
-        incoming = preferences({'hyprbar': 'left'})
+        incoming = preferences({'hyprpane': 'left'})
         self.write(self.source, incoming)
         self.git('add', '.')
         self.git('commit', '-m', 'Change panel layout')
@@ -252,13 +236,17 @@ class PanelPersistenceTests(unittest.TestCase):
                      patch.object(compatibility, 'missing_packages', return_value=[]), \
                      patch.object(deployment, 'validate_staged', side_effect=lambda stage, native=False: validator(stage, False)):
                     review = github_update.preview(self.repo)
-                    self.assertFalse(review['ready'])
-                    self.assertIn('config/' + SETTINGS, [row['path'] for row in review['conflicts']])
+                    self.assertTrue(review['ready'], review['blockers'])
+                    row = next(row for row in review['selections'] if row['path'] == 'config/' + SETTINGS)
+                    self.assertEqual(row['choice'], 'local')
                     review = github_update.preview(self.repo, {'config/' + SETTINGS: choice}, review['token'])
                     self.assertTrue(review['ready'], review['blockers'])
                     github_update.apply(self.repo, review['token'])
                 self.assert_saved(local if choice == 'local' else incoming)
-                self.assertEqual(self.git('rev-parse', 'HEAD'), target)
+                if choice == 'github':
+                    self.assertEqual(self.git('rev-parse', 'HEAD'), target)
+                else:
+                    self.assertEqual(self.git('rev-parse', 'HEAD^2'), target)
                 self.assertEqual(json.loads(self.source.read_text()), local if choice == 'local' else incoming)
                 self.assertEqual(bool(self.git('status', '--porcelain', '--', 'config/' + SETTINGS)),
                                  choice == 'local')

@@ -5,7 +5,6 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
-import "DockModel.js" as Geometry
 
 PanelWindow {
     id: dropdown
@@ -26,7 +25,11 @@ PanelWindow {
     property rect barRect: Qt.rect(0, 5, width, 32)
     readonly property real barBottom: barRect.y + barRect.height
     property rect panelBounds: Qt.rect(0, 0, width, height)
-    readonly property rect inputRect: Geometry.intersection(panelBounds, inwardRect)
+    readonly property rect inputRect: {
+        let x = Math.max(panelBounds.x, inwardRect.x), y = Math.max(panelBounds.y, inwardRect.y);
+        return Qt.rect(x, y, Math.max(0, Math.min(panelBounds.x + panelBounds.width, inwardRect.x + inwardRect.width) - x),
+            Math.max(0, Math.min(panelBounds.y + panelBounds.height, inwardRect.y + inwardRect.height) - y));
+    }
     readonly property rect inwardRect: !connected ? Qt.rect(0, 0, width, height)
         : barEdge === "bottom" ? Qt.rect(0, 0, width, barRect.y)
         : barEdge === "left" ? Qt.rect(barRect.x + barRect.width, 0, width - barRect.x - barRect.width, height)

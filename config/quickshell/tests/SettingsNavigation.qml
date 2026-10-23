@@ -94,10 +94,6 @@ ShellRoot {
                 test.phase = 5;
             } else if (test.phase === 5) {
                 let sections=test.cards(editor.contentItem,[]);
-                for(let name of ["Hyprbar","Hyprdock"]) {
-                    let card=sections.find(card => card.title===name);
-                    if(!card || !card.collapsible || card.contentExpanded) { test.fail(name+" should start folded"); return; }
-                }
                 if (!test.control("settingsBarPreview").visible) { test.fail("bar preview missing on bar page"); return; }
                 editor.section = -2;
                 test.phase = 6;

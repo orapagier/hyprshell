@@ -60,9 +60,7 @@ function merge(defaults, saved) {
     result.bar = Object.assign(result.bar, saved.bar || {});
     for (let name of Object.keys(result.panels || {}))
         result.panels[name] = Object.assign(result.panels[name], (saved.panels || {})[name] || {});
-    result.pins = Object.assign(result.pins || {}, saved.pins || {});
-    let conflict = panelLayoutError(result);
-    if (conflict) throw new Error(conflict);
+    result.pins = {matches: copy((saved.pins || {}).matches || {})};
     result.systemMonitor = Object.assign(result.systemMonitor || {}, saved.systemMonitor || {});
     result.hyprland = saved.hyprland || {};
     result.clipboard = Object.assign(result.clipboard || {}, saved.clipboard || {});
@@ -170,27 +168,4 @@ function panelConfig(config, name) {
 function panelVisible(config, name, monitor, workspace) {
     let panel = panelConfig(config, name);
     return panel.enabled !== false && (!(panel.monitors || []).length || panel.monitors.indexOf(monitor) >= 0) && (workspace === null ? panel.visible !== false : barVisible(panel, workspace));
-}
-function panelLayoutError(config) {
-    let names = ['hyprpane', 'hyprdock', 'hyprbar'];
-    let panels = names.map(name => panelConfig(config, name));
-    let monitors = [''];
-    for (let panel of panels)
-        for (let monitor of panel.monitors || [])
-            if (monitors.indexOf(monitor) < 0) monitors.push(monitor);
-    for (let monitor of monitors) {
-        for (let workspace = 0; workspace <= 99; ++workspace) {
-            let active = names.filter(name => panelVisible(config, name, monitor, workspace));
-            let location = (monitor || 'other monitors') + ', workspace ' + (workspace || 'unnumbered');
-            if (active.length > 2)
-                return 'Panel conflict on ' + location + ': at most two components may be visible. Disable a component or change its monitor/workspace visibility.';
-            if (active.length === 2 && panelConfig(config, active[0]).position === panelConfig(config, active[1]).position)
-                return 'Panel conflict on ' + location + ': ' + active.join(' and ') + ' both use ' + panelConfig(config, active[0]).position + '. Choose another edge, use separate workspaces, or disable a component.';
-        }
-    }
-    return '';
-}
-function effectivePins(config, name) {
-    let pins = config.pins || {};
-    return (pins.mode === 'separate' ? pins[name] : pins.shared) || [];
 }

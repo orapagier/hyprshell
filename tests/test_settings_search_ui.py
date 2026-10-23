@@ -44,7 +44,7 @@ ShellRoot {
             if (!editor.searchResults.some(row => row.section === -1) || !editor.searchResults.some(row => row.section >= 0)) { test.fail("missing global/item Popdown glass subheading"); return; }
             search.accepted(); test.phase++;
         } else if (test.phase === 2) {
-            if (editor.section !== -1) { test.fail("Enter did not open Hyprpane & panels"); return; }
+            if (editor.section !== -1) { test.fail("Enter did not open Hyprpane"); return; }
             let search = test.find(editor.contentItem, "settingsSearch");
             search.text = "hyprpane thickness";
             let thickness = test.find(editor.contentItem, "heightControl");

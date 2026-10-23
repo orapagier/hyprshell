@@ -1,49 +1,14 @@
 # Desktop map
 
-**Hyprpane** is the existing status/menu panel on any edge (formerly hyprbar).
-**Hyprdock** is the app dock; **Hyprbar** is the classic window taskbar.
-Legacy `bar` keys, file names and IPC still target Hyprpane. See
-`docs/panel-configuration.md` in the checkout for the Phase 1 compatibility mapping.
+**Hyprpane** is the status/menu panel on any edge. Legacy `bar` keys, file names
+and IPC target it. See `docs/panel-configuration.md` for storage and visibility.
 
-Settings → Hyprpane & panels → Panel layout preview & presets provides a
-schematic of draft placement for a monitor/workspace and six explicit presets.
-Selection is read-only; Apply layout preset saves enablement and selected edges
-together through the existing transaction, retaining styling, pins, items,
-monitor/workspace scopes and visibility overrides. `PanelLayout.js` and
-`SettingsPanelLayout.qml` own this Phase 8 slice; see `docs/panel-layout-settings.md`,
-`tst_PanelLayout.qml` and `tests/test_panel_layout.py`. The desktop panel plan is closed with user-accepted limits; see `docs/desktop-panels-plan.md`.
-Optional recoverable Show Desktop is implemented; see `docs/show-desktop.md`.
-
-Live panel validation (2026-10-17): `hyprctl` access works. The opt-in
-`python3 tools/check_panel_live.py --run` checks production panel
-layer geometry on a temporary headless output with isolated preferences and
-state, then removes it. All 36 distinct-edge arrangements across the three
-allowed pairs passed at scale 2, using panel composition from `shell.qml`.
-See `docs/panel-coexistence.md` for the dated evidence and limits. The persistence
-transaction matrix is covered in `docs/panel-persistence.md`; the physical external-display continuation and deferred VM/tray checks are recorded there.
-
-The subsequent `--checks behavior` mode verifies both app panels on all four
-edges: auto-hide/dodge, programmatic launcher-held visibility, reveal strips,
-compositor reservation deltas, injected fullscreen/overlap metadata, and current
-workspace visibility overrides. Eight baselines and 88 transitions passed at
-scale 2. `--checks all` includes geometry first. These are isolated integration
-checks. A later `tools/check_panel_session.py --run --wtype /path/to/wtype` run
-passed actual workspace/fullscreen transitions, all eight edge-reveal/Escape
-cases, Show Desktop restart/closure recovery and virtual output removal.
-All 36 pair geometries also pass at scales 1, 1.25 and 2. HDMI-A-1 (1440×900 at scale 1) passed all 36 pair geometries and the real-window/input
-continuation. The user accepted deferring cable-cycle, native tray-input, fresh-VM
-and pre-existing full-suite issues and requested plan closure/local commit. Native layout/workspace settings and recovery UI checks now pass;
-see `docs/panel-persistence.md`. The current runtime includes event-coalesced monitor refresh, refresh after Lua detection/startup, and safe output teardown. `tests/test_panel_monitors.py` checks initial per-output workspace resolution without switching workspaces.
-
-All three panels can be enabled globally and share an edge on separate
-workspaces. Settings → Hyprpane & panels provides each app panel with workspace
-visibility controls: Show on all, Hide on all, workspace 1–99 selector and an
-individual switch, matching Hyprpane. Hide all then enable selected workspaces
-to put Hyprpane Bottom on 1, Hyprdock Bottom on 2 and Hyprbar Bottom on 3.
-Enable switches remain master gates; appearance, pins and window filters are
-preserved. The two-panel/different-edge rule applies only to panels visible
-together on one monitor/workspace. See `docs/panel-configuration.md` and
-`tests/test_panel_workspaces.py` for behavior and native save coverage.
+Settings → Hyprpane → Panel layout preview & presets previews a monitor/workspace
+and offers four edge presets. Apply changes only the edge, retaining appearance,
+monitor selection and workspace choices. `PanelLayout.js`, `SettingsPanelLayout.qml`
+and `tst_PanelLayout.qml` own this behavior. See `docs/panel-layout-settings.md`
+and `tests/test_panel_persistence.py`. `tests/test_panel_monitors.py` covers
+initial per-output workspace visibility without switching workspaces.
 
 Paths below are relative to the resolved config/state roots or checkout. Prefer actual local source over upstream examples: this checkout uses Hyprland 0.56+ Lua APIs.
 
@@ -56,9 +21,7 @@ Paths below are relative to the resolved config/state roots or checkout. Prefer 
 | Saved appearance, bar items, locking | `hyprshell/settings.json` / `config/hyprshell/settings.json` |
 | Shell composition and bar | `quickshell/shell.qml`, `Bar.qml`, `DesktopServices.qml` |
 | Hyprview / virtual projector | `quickshell/Hyprview.qml`; Super+V projects the active window with no visible controls/decorations or copied cursor; external projection uses an Overlay layer with OnDemand keyboard focus to fill an enabled non-mirrored external display (HDMI preferred) without moving a toplevel/focusing that output; follows hotplug, floating fallback with one screen; Super+Shift+V closes via an explicit `hl.exec_cmd` callback and `bar.closeHyprview` (user verified the live callback); F11 fullscreen and Escape leave fullscreen/close when viewer focused; view only, capture released on close; `tests/test_hyprview.py` covers key events, close routing, offscreen lifecycle, output routing and stretch-to-fill sizing; physical pointer/video checks need a live compositor |
-| Hyprdock | `Dock.qml`, `DockWindow.qml`, `DockPopup.qml`, `DockActions.qml`, `DockModel.js`, `SettingsDockEditor.qml`; opt-in Settings → Hyprpane & panels → Enable Hyprdock, four-edge compact app dock matching the center Hyprpane glass pill and launcher/Settings symbols (32 px rail, 15 px icons by default), picker/context actions, launcher pin menu (Ctrl+P), drag/Ctrl+arrow reorder and overflow. Always-visible reserves space; auto-hide and overlap hiding use a 3 px edge strip with no reservation. Phase 5 adds optional Files/Settings/Trash (emptying requires confirmation), fullscreen policy, alignment, background/indicator/animation and output/workspace controls. `DockVisibility.qml`, `DockUtilities.qml`, `DockTrashMenu.qml` and `settings/dock_utilities.py` own this behavior; reduced motion disables fades. The shared app service samples geometry only while an eligible dodge dock needs it. One shared ApplicationService, existing pin transactions; adjacent vertical panels yield horizontal corners. See `docs/hyprdock.md`, `tst_Dock.qml`, `tests/test_dock.py`; layer-shell placement and native window actions require compositor access |
-| Hyprbar | Phase 6 classic taskbar, opt-in Settings → Hyprpane & panels → Enable Hyprbar. Shared Dock/DockWindow/DockPopup surfaces select `hyprbar`; `TaskbarModel.js` filters windows before grouping. Four edges, narrow side rails (32 px, 15 px icons by default), one continuous Hyprpane-style glass pill without individual status backgrounds, icon-only buttons without tooltips, optional grouping, current/all workspace/output filters, focus/pickers/pins/close/move actions. `TaskbarStatus.qml` reuses Hyprpane controls and menus at the trailing edge; `rightItems: null` inherits the current enabled right-side selection, while Settings switches save an independent item list. `SettingsTaskbarEditor.qml`, `docs/hyprbar.md`, `tst_Taskbar.qml`, `tests/test_taskbar.py`; Phase 7 menu coexistence uses `DockModel.js` bounds to protect neighbouring edge/reveal bands and constrain popovers, coordinating hover/tray menus and closing them on workspace/layout changes; see `docs/panel-coexistence.md` and `tst_PanelCoexistence.qml`. Optional Show Desktop uses the shared `ShowDesktop.qml` and `settings/show_desktop.py` recovery journal. Connected physical external-display checks passed; native tray-input and cable-cycle checks were explicitly deferred at plan closure. |
-| Shared apps / windows / pins | `ApplicationService.qml`, `ApplicationModel.js`, `ApplicationManager.qml`; one shell service shares launcher discovery/icons and UWSM launching with future app panels. Launcher → Apps & windows manages shared/separate pins, ordering, missing-app removal, window focus/close/workspace moves and explicit identity corrections (`pins.matches`). `backend.py --app-action-json` edits latest preferences inside the existing settings lock/backup transaction. Optional Show Desktop is available on both app panels; Apps & windows retains a Restore desktop windows action while recovery is pending, even if the shortcut is disabled. State stays local at `state/hyprshell/show-desktop.json`; `bar.restoreDesktop` provides IPC recovery. Individual minimize remains deferred. See `docs/application-support.md` and `tests/test_application_support.py`; live compositor actions need session access |
+| Shared apps / windows | `ApplicationService.qml`, `ApplicationModel.js`, `ApplicationManager.qml`; shared app discovery/icons and UWSM launching, cached window rows, focus/close/workspace actions and identity corrections (`pins.matches`). `backend.py --app-action-json` edits corrections inside the settings transaction. `ShowDesktop.qml` retains pending journal recovery and `bar.restoreDesktop` IPC. See `docs/application-support.md` and `tests/test_application_support.py`. |
 | Menus | `quickshell/*Menu.qml`, `MenuController.qml`, `MenuPopover.qml` |
 | Shortcut guide / Super+K | `quickshell/KeybindingsMenu.qml`, `KeybindingsGuide.js`; preserves every runtime binding, with submap/trigger labels plus scoped shell controls and configured Kitty copy/paste; independent of the narrower Settings editor; `tests/test_keybindings_guide.py` audits Lua registration/remaps without executing actions |
 | Notifications | `quickshell/NotificationInbox.qml`, `NotificationCard.qml`; Quickshell owns `org.freedesktop.Notifications`; inbox history uses `Quickshell.statePath("notifications.json")` |
@@ -89,7 +52,7 @@ Quickshell owns the bar, menus, notification inbox, and optional Hypridle child.
 
 Settings are version 1 JSON with defaults and inheritance. Inspect `backend.py`'s CLI before using `--save-json` / `--expected-json`; preserve its validation, backups, conflict detection, and rollback. Hyprland settings overrides are managed by this backend; avoid competing writes to generated blocks. Adding a preference requires checking defaults, backend validation, UI model, and consumers. Read `docs/settings.md` only for settings work.
 
-Settings → Hyprpane & panels → Layout & spacing → Screen edge selects Top, Left,
+Settings → Hyprpane → Layout & spacing → Screen edge selects Top, Left,
 Right, or Bottom (`bar.position`, default `top`). On either side, saved left
 items sit at the top and right items sit at the bottom. Side panels use centered icons
 in circular pills (28 px at the default 32 px panel width).
@@ -115,7 +78,7 @@ individual circles; saved labels and radii return on Top/Bottom. Edge margin is 
 and item alignment labels follow the orientation.
 
 Alt+T toggles Hyprpane only on the focused monitor's active numbered workspace.
-Settings → Hyprpane & panels → Hyprpane visibility provides Show on all / Hide on all
+Settings → Hyprpane → Hyprpane visibility provides Show on all / Hide on all
 (clearing individual choices) and a workspace selector with an individual switch.
 Saved `bar.workspaceOverrides` booleans take priority over the legacy visibility
 and selected-workspace defaults. The CLI toggle requires a workspace number:

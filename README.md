@@ -5,16 +5,9 @@ Fedora**, built with **Quickshell and Qt 6**. It brings application launching,
 window and workspace controls, status menus, notifications, and desktop settings
 into one interface, with wallpaper-adaptive glass surfaces.
 
-Choose the desktop layout that suits you:
-
-- **Hyprpane** is the status and menu panel, with configurable items and groups.
-- **Hyprdock** is a compact application dock with pins and running applications.
-- **Hyprbar** is a classic taskbar combining application buttons and status controls.
-
-All three support Top, Bottom, Left, and Right placement, monitor selection, and
-workspace-specific visibility. Use them separately or combine two on different
-edges of the same monitor/workspace. Existing `bar` settings and IPC names refer
-to Hyprpane, which was formerly called hyprbar.
+**Hyprpane** is the status and menu panel, with configurable items and groups.
+It supports Top, Bottom, Left, and Right placement, monitor selection, and
+workspace-specific visibility. Existing `bar` settings and IPC names refer to Hyprpane.
 
 The repository includes the shell, editable Hyprland Lua configuration, desktop
 utilities, boot/login themes, and an installer. Setup runs on an existing
@@ -87,7 +80,7 @@ To add or refresh only the tiled windows view, use
 | Boot appearance | Animated Hyprshell Glass Plymouth splash, plus matching static artwork for supported unified kernel images. |
 | Login screen | Matching animated Glass SDDM theme with user, password, session, keyboard layout, and power controls. |
 | Application launcher | Search installed desktop applications and launch them from the bar or Super key. |
-| Panels | Hyprpane status/menu panel, Hyprdock app dock, and Hyprbar taskbar; four-edge layouts, monitor/workspace scopes, previews, and presets. |
+| Panels | Hyprpane status/menu panel; four-edge placement, monitor/workspace scopes, previews, and presets. |
 | Apps and windows | Shared or separate pins, drag reordering, running-window grouping, window pickers, focus/close/move actions, and optional recoverable Show Desktop. |
 | Workspace controls | Switch workspaces and hover for a miniature wallpaper/window preview without switching. |
 | Media display | Playback information, a speaker-output spectrum (12 bars horizontally, 5 on side panels), and a Now playing hover preview. |
@@ -531,7 +524,7 @@ time of this README update, both the checkout and installed preferences use:
 
 | Preference | Saved choice |
 | --- | --- |
-| Panel layout | Hyprpane at the top on workspaces 1–4; Hyprbar at the bottom on workspace 5; Hyprdock at the bottom on workspace 6. All three master switches are enabled. |
+| Panel layout | Hyprpane at the top with the saved workspace visibility choices. |
 | Appearance | Wallpaper-adaptive colors and random vibrant item colors enabled. |
 | App pins | Shared Brave and COSMIC Files pins. |
 | Locking | Hyprlock after 10 idle minutes and before sleep. |
@@ -600,23 +593,13 @@ Hold Shift with those shortcuts to move the focused window to a workspace.
 Regular application windows tile; the supplied rules float common dialogs and
 file choosers.
 
-### Hyprdock, Hyprbar, and app pins
+### Applications and windows
 
-Click an idle pinned app to launch it, a single-window app to focus it, or a
-group to choose a window. Right-click an app for pin/unpin, new instance, close,
-and workspace-move actions; middle-click opens another instance. Drag pins or
-use Ctrl+arrow keys to reorder them. Overflow scrolls when the panel is full.
-
-Right-click a launcher result, or select it and press `Ctrl+P`, to pin it.
-**Apps & windows** manages shared or separate pin lists, running windows, and
-explicit app matching when a window has the wrong identity. Hyprbar can group
-windows and filter them by workspace and monitor. Its trailing status items can
-inherit Hyprpane's selection or use their own list.
-
-Enable **Show Desktop shortcut** in either app panel to hide and restore the
-current workspace's windows. Recovery survives shell restarts; **Apps & windows →
-Restore desktop windows** remains available if a restore needs retrying. The
-`Super+H` / `Super+Shift+H` single-window shortcuts use a separate stack.
+Hyprpane's launcher searches installed applications and launches them through
+UWSM. Shared application matching retains explicit window identity corrections.
+The Show Desktop recovery helper and IPC remain available for any pending restore;
+see [recovery](docs/show-desktop.md). The `Super+H` / `Super+Shift+H` single-window
+shortcuts use a separate stack.
 
 ### Displays and Hyprview
 
@@ -677,7 +660,6 @@ The Windows key is normally Super.
 | `Super+E` | Open a COSMIC Files window. |
 | `Super+K` | Toggle the searchable shortcut overlay. |
 | `Alt+X` | Toggle Hyprpane on the current workspace (base binding: `Alt+T`). |
-| `Alt+D` / `Alt+Z` | Toggle Hyprdock / Hyprbar on the current workspace. |
 | `Alt+S` | Open Hyprshell Settings. |
 | `Alt+C` / `Alt+N` | Toggle calendar / notifications. |
 | `Alt+A` / `Alt+W` | Toggle audio / Wi-Fi. |
@@ -736,35 +718,15 @@ Settings opens inside the existing Quickshell process
 and includes a preview with sample statuses. The preview's colors and visible
 sample modules may differ from live hardware and wallpaper colors.
 
-### Choose panels and workspace layouts
+### Hyprpane workspace layout
 
-Open **Settings → Hyprpane & panels**. Each panel has an enable switch, edge,
-monitor selection, and workspace visibility controls. Master enablement gates
-all workspace choices. **Show on all** and **Hide on all** clear individual
-choices; use the workspace selector and switch to make exceptions.
-
-At most **two panels may be visible together on one monitor/workspace**, and
-they must occupy different edges. All three can remain enabled globally when
-workspace or monitor scopes separate them. Auto-hide panels still count toward
-this limit. Invalid placements show an error and retain the last saved layout.
+Open **Settings → Hyprpane**. **Show on all** and **Hide on all** clear individual
+workspace choices; use the workspace selector and switch to make exceptions.
+The existing monitor and enable gates remain part of the saved configuration.
 
 **Panel layout preview & presets** shows draft placement for a selected monitor
-and workspace. Selecting a preset only previews it; **Apply layout preset**
-changes enablement and edges together. Presets preserve appearance, pins, and
-visibility scopes, so check whether a selected panel is hidden on that workspace.
-
-For example, use **Hide on all**, then enable workspaces 1–4 for Hyprpane,
-workspace 5 for Hyprbar, and workspace 6 for Hyprdock to reproduce the saved
-layout. For a status panel plus app dock on every workspace, apply the
-Hyprpane Top + Hyprdock Bottom preset (which disables Hyprbar), then choose
-**Show on all** for both panels.
-
-Hyprdock and Hyprbar offer **Always visible**, **Auto-hide**, and **Hide when
-overlapped**. Always-visible panels reserve window space; the other modes do
-not, and reveal from a 3 px screen-edge strip. Choose whether they hide in
-fullscreen, then tune alignment, margins, thickness, icon size, spacing, inside
-padding, indicators, and animations. Files, Settings, Trash, and Show Desktop
-shortcuts are optional. Empty Trash requires confirmation.
+and workspace. Selecting a preset previews it; **Apply layout preset** selects
+Top, Bottom, Left, or Right while preserving appearance and visibility scopes.
 
 ### Layout and appearance
 
@@ -1164,7 +1126,6 @@ and Hyprshell is running. Review errors on the Screen locking page.
 ## Project structure and references
 
 For focused usage details, see [panel layout controls](docs/panel-layout-settings.md),
-[Hyprdock](docs/hyprdock.md), [Hyprbar](docs/hyprbar.md),
 [Show Desktop and recovery](docs/show-desktop.md), and
 [settings, inheritance, and persistence](docs/settings.md).
 

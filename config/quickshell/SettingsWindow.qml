@@ -108,7 +108,7 @@ FloatingWindow {
             {section: -21, title: "Printing & scanning", symbol: "󰐪", keywords: "printer scanner cups paper documents"},
             {section: -19, title: "Workspaces & rules", symbol: "󰍹", keywords: "workspace rules tiling layout focus pointer"},
             {section: -2, title: "Windows", symbol: "󰖲", keywords: "hyprland transparency blur gaps animations"},
-            {section: -1, title: "Hyprpane & panels", symbol: "󰕮", keywords: "hyprpane hyprdock hyprbar panels pins topbar position screen edge top bottom left right spacing workspace workspaces"},
+            {section: -1, title: "Hyprpane", symbol: "󰕮", keywords: "hyprpane panel topbar position screen edge top bottom left right spacing workspace workspaces"},
             {section: -13, title: "Applications", symbol: "󰀻", keywords: "default apps startup"},
             {section: -11, title: "Notifications", symbol: "󰂚", keywords: "delivery popups disturb"}
         ]},
@@ -258,11 +258,7 @@ FloatingWindow {
         updateBarSettings(Model.withWorkspaceVisibility(draft.bar, workspace, !Model.barVisible(draft.bar, workspace)));
     }
     function toggleWorkspacePanel(component, workspace) {
-        if (component === 'hyprpane') { toggleWorkspaceBar(workspace); return; }
-        let next = Model.copy(draft);
-        let panel = next.panels[component];
-        next.panels[component] = Model.withWorkspaceVisibility(panel, workspace, !Model.barVisible(panel, workspace));
-        draft = next;
+        if (component === 'hyprpane') toggleWorkspaceBar(workspace);
     }
     function updateHypr(key, value) {
         let next = Model.copy(draft);
@@ -305,8 +301,8 @@ FloatingWindow {
     function saveNotice(before, after) {
         let labels = [];
         if (JSON.stringify(before.panels) !== JSON.stringify(after.panels)) labels.push("Panel placement");
-        if (JSON.stringify(before.pins) !== JSON.stringify(after.pins)) labels.push("Pinned applications");
-        if (JSON.stringify(before.bar) !== JSON.stringify(after.bar)) labels.push("Hyprpane & panels");
+        if (JSON.stringify(before.pins) !== JSON.stringify(after.pins)) labels.push("Application matching");
+        if (JSON.stringify(before.bar) !== JSON.stringify(after.bar)) labels.push("Hyprpane");
         let inputKeys = ["pointerSpeed", "mouseNaturalScroll", "touchpadNaturalScroll", "tapToClick", "disableWhileTyping", "repeatRate", "repeatDelay", "keyboardLayouts", "layoutSwitch"];
         if (inputKeys.some(key => before.hyprland[key] !== after.hyprland[key])) labels.push("Mouse, touchpad & keyboard");
         if (Object.keys(Object.assign({}, before.hyprland, after.hyprland)).some(key => inputKeys.indexOf(key) < 0 && before.hyprland[key] !== after.hyprland[key])) labels.push("Hyprland appearance");
@@ -870,24 +866,6 @@ FloatingWindow {
                             settings: window.draft.bar
                             fullConfig: window.draft
                             onLayoutChosen: config => window.draft = config
-                            onAppVisibilityEdited: (component, settings) => {
-                                let next = Model.copy(window.draft);
-                                next.panels[component] = settings;
-                                window.draft = next;
-                            }
-                            paneItems: window.draft.items
-                            taskbarSettings: window.draft.panels.hyprbar
-                            onTaskbarEdited: (key, value) => {
-                                let next = Model.copy(window.draft);
-                                next.panels.hyprbar[key] = value;
-                                window.draft = next;
-                            }
-                            dockSettings: window.draft.panels.hyprdock
-                            onDockEdited: (key, value) => {
-                                let next = Model.copy(window.draft);
-                                next.panels.hyprdock[key] = value;
-                                window.draft = next;
-                            }
                             currentWorkspace: window.currentWorkspace
                             onVisibilityEdited: bar => window.updateBarSettings(bar)
                             onEdited: (key, value) => window.updateBar(key, value)

@@ -4,7 +4,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import "ApplicationModel.js" as Apps
-import "SettingsModel.js" as Settings
 
 Item {
     id: service
@@ -12,7 +11,6 @@ Item {
     readonly property var desktop: desktopControl
     ShowDesktop { id: desktopControl }
     // Injectable inputs also let native checks exercise lifecycle without actions.
-    property bool geometryTracking: false
     property var entries: DesktopEntries.applications.values.slice().sort((a, b) => a.name.localeCompare(b.name))
     property var windows: Hyprland.toplevels.values
     readonly property var matches: store.config.pins.matches || {}
@@ -35,13 +33,9 @@ Item {
     }
     readonly property bool busy: writer.running
     property string error: ""
-    signal windowSelectionRequested(var group)
     AppIcons { id: icons; visible: false }
     function iconSource(name) { return icons.source(name) || icons.source('application-x-executable'); }
     function entry(id) { return entries.find(e => Apps.desktopId(e) === id) || null; }
-    function groups(component) {
-        return Apps.groups(entries, [], Settings.effectivePins(store.config, component), matches, windowRows);
-    }
     function launch(application) {
         let app = typeof application === 'string' ? entry(application) : application;
         if (!app || !app.id) { error = 'This application is no longer installed.'; return false; }
@@ -51,12 +45,6 @@ Item {
         else app.execute();
         error = '';
         return true;
-    }
-    function activate(group, preservePointer) {
-        if (!group.windows.length) return launch(group.id);
-        if (group.windows.length === 1) return windowAction('focus', group.windows[0].address, 0, preservePointer);
-        windowSelectionRequested(group);
-        return false;
     }
     function windowAction(action, address, workspace, preservePointer) {
         // Recheck liveness; a menu can outlive its window.
@@ -154,13 +142,6 @@ Item {
                  'fullscreen', 'changefloatingmode', 'workspace', 'workspacev2', 'focusedmon'].indexOf(event.name) >= 0)
                 refresh.restart();
         }
-    }
-    // Hyprland has no continuous move/resize event. Sample geometry only while
-    // an enabled dodge dock needs it, using the existing shared toplevel model.
-    Timer {
-        interval: 350; repeat: true
-        running: service.geometryTracking
-        onTriggered: Hyprland.refreshToplevels()
     }
     Timer { id: refresh; interval: 60; onTriggered: Hyprland.refreshToplevels() }
     // Workspace events can race focus restoration on another output. Read the

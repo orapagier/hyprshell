@@ -41,30 +41,6 @@ function windowData(window, entries, overrides) {
         workspaceName: window.workspace ? window.workspace.name : (info.workspace || {}).name || '',
         output: window.monitor ? window.monitor.name : '', handle: window};
 }
-function groups(entries, windows, pins, overrides, rows) {
-    let result = [], byKey = {};
-    function ensure(id, unknownKey, identity) {
-        let groupKey = id ? 'app:' + id : 'window:' + unknownKey;
-        if (!Object.prototype.hasOwnProperty.call(byKey, groupKey)) {
-            let entry = entries.find(e => desktopId(e) === id) || null;
-            let group = {key: groupKey, id: id, name: entry ? entry.name : id || identity || 'Unknown application',
-                icon: entry ? entry.icon : '', entry: entry, installed: !!entry,
-                pinned: pins.indexOf(id) >= 0, active: false, urgent: false, windows: []};
-            byKey[groupKey] = group;
-            result.push(group);
-        }
-        return byKey[groupKey];
-    }
-    for (let id of pins) ensure(id, '', '');
-    let windowRows = rows === undefined ? windows.map(w => windowData(w, entries, overrides)) : rows;
-    for (let row of windowRows) {
-        let group = ensure(row.appId, key(row.identity) || row.address, row.identity);
-        group.windows.push(row);
-        group.active = group.active || row.active;
-        group.urgent = group.urgent || row.urgent;
-    }
-    return result;
-}
 function launchCommand(entry) {
     let id = desktopId(entry);
     return /^[A-Za-z0-9_][A-Za-z0-9_.-]*\.desktop$/.test(id)

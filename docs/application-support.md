@@ -1,22 +1,12 @@
-# Shared applications and windows — Phase 3
+# Applications and windows
 
-Right-click any application in a panel's launcher to choose **Pin to Hyprdock**
-or **Pin to Hyprbar**. Keyboard users can select an app and press **Ctrl+P**.
-Open **Hyprdock app context menu → App matching and pins…** to manage shared
-application preferences. [Phase 4](hyprdock.md) now renders Hyprdock; classic Hyprbar arrives later.
-Neither phase automatically enables a new panel.
-
-Choose Hyprdock or Hyprbar pins, select an installed application, and press **Pin**.
-**Shared pins** uses the same ordered list for both components. Turning it off
-selects each component's independent saved list; switching modes retains all three
-lists. Use the arrows to reorder, **Unpin** to remove, or the app button to launch
-a pin. An uninstalled pin stays in its saved position, marked “not installed,”
-and can still be removed. Pinning and ordering save immediately through the
-existing settings transaction, with backups and conflict protection.
+`shell.qml` creates one `ApplicationService` for application discovery, launcher
+icons and UWSM launches. `ApplicationManager.qml` retains window actions and
+explicit application identity corrections.
 
 The running-window list includes titles, workspace names and output names.
 Select a window to focus it, close it, or move it to workspace 1–99 without
-following it. **Pin app** uses its matched desktop ID. **New instance** uses the
+following it. **New instance** uses the
 same desktop-entry launch path as the launcher; single-instance applications may
 choose to reuse an existing window. For an unmatched or incorrectly matched
 window, select the correct installed app in the chooser, then **Match to chosen
@@ -24,17 +14,14 @@ app**. **Automatic match** removes the correction for that window's class/app ID
 Corrections apply to all windows with the same identity, persist in
 `pins.matches`, and travel with settings backups and sync.
 
-Existing Super+H / Super+Shift+H behavior stays unchanged. The optional panel
-[Show Desktop control](show-desktop.md) now has a separate persistent recovery
-journal and an Apps & windows restore action. Ordinary window focus remains
-independent of that recovery transaction; individual minimize controls are still
-deferred.
+Existing Super+H / Super+Shift+H behavior remains independent. Pending Show
+Desktop restores retain their journal and IPC recovery; see [recovery](show-desktop.md).
 
 ## Shared contract
 
 `shell.qml` creates one `ApplicationService` and passes it to the launcher.
 `ApplicationModel.js` contains desktop-ID normalization, launch argv generation,
-matching, grouping and validated window dispatcher arguments. `AppIcons.qml`
+matching and validated window dispatcher arguments. `AppIcons.qml`
 provides the existing theme/catalog/fallback lookup, now shared by the service.
 Standalone launcher instances retain their compatible launch and icon fallback.
 
@@ -42,19 +29,12 @@ Matching first honors explicit case-sensitive identity corrections, then compare
 case-insensitive full desktop IDs, StartupWMClass, and the final desktop-ID
 segment, in that priority order. Current Wayland app ID, class and initial class
 are considered. Ambiguous matches remain unmatched instead of guessing from
-window titles. Unknown classes group together; windows without a class/app ID
-remain separate. Missing icons use the existing generic fallback. Explicit
+window titles. Missing icons use the existing generic fallback. Explicit
 corrections to uninstalled apps retain their ID and can be corrected again.
 
-`service.groups(component)` returns pins in saved order followed by running
-unpinned apps. Each group exposes its desktop ID, installed entry, name/icon,
-pinned/active/urgent flags and window rows. Rows include address, title,
-workspace ID/name, output, focus/urgency and the native handle. Multiple windows
-of one app share a group. The service uses Quickshell's compositor objects and
-coalesced compositor events, without periodic client-list polling. Multiwindow
-`activate(group)` emits `windowSelectionRequested(group)` so future panels can
-present a picker; the current manager selects individual window rows directly.
-Every dispatched action rechecks that the addressed window is still present.
+The service keeps cached window rows with address, title, workspace ID/name,
+output, focus/urgency and native handles. It uses compositor objects and coalesced
+events without periodic client-list polling. Actions recheck window liveness.
 
 Normal application IDs launch with `uwsm app -t service -- ID.desktop`, retaining
 Terminal, working-directory and field-code handling. Unusual filenames keep the
@@ -62,8 +42,7 @@ existing `DesktopEntry.execute()` fallback: Quickshell handles Exec/working
 directory but does not provide UWSM's Terminal/field-code semantics. This phase
 does not change that existing limitation.
 
-`backend.py --app-action-json` supports pin/unpin/reorder, pin mode and identity
-corrections. Each operation reads the latest configuration under the existing
+`backend.py --app-action-json` supports identity corrections. Each operation reads the latest configuration under the existing
 settings lock, validates, backs up and atomically saves through the normal
 transaction. It does not submit a stale whole-settings snapshot. An already-open
 Settings draft retains its usual conflict detection. No new state file or sync
@@ -73,13 +52,13 @@ Window-to-application matching runs through `Qt.callLater`, after native
 Hyprland property notifications finish. Matching directly inside a QML binding
 reproduced a startup segmentation fault in `Qt::endPropertyUpdateGroup()` with
 Quickshell 0.3.2 / Qt 6.11.2 and real installed apps/windows. App and window
-signals queue a coalesced rebuild; dock grouping consumes the cached rows so it
+signals queue a coalesced rebuild; the window manager consumes the cached rows so it
 does not repeat native matching inside a binding. Title, focus, urgency,
 workspace/output, app metadata and identity-correction updates remain reactive;
 this adds no periodic polling.
 
-The deferred-matching fix passed 33 focused model, service, dock and launcher
-checks, including QObject property updates and cached grouping without reading
+The deferred-matching fix passed focused model, service and launcher
+checks, including QObject property updates and cached rows without reading
 native windows. The user confirmed full live shell startup and notification
 ownership on 2026-10-16. This startup confirmation does not certify every
 compositor action described below.

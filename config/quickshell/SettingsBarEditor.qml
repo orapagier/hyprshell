@@ -10,62 +10,18 @@ ColumnLayout {
     required property var settings
     property var fullConfig: null
     signal layoutChosen(var config)
-    property var dockSettings: null
-    property var taskbarSettings: null
-    property var paneItems: []
-    signal taskbarEdited(string key, var value)
-    signal dockEdited(string key, var value)
-    signal appVisibilityEdited(string component, var settings)
     property int currentWorkspace: 1
     property int selectedWorkspace: currentWorkspace >= 1 && currentWorkspace <= 99 ? currentWorkspace : 1
     property int hoverWorkspace: selectedWorkspace
     signal visibilityEdited(var bar)
     signal edited(string key, var value)
     spacing: 16
-    SettingsCard {
-        Layout.fillWidth: true
-        title: "Desktop panels"
-        subtitle: "Hyprpane is your status and menu panel. Hyprdock holds apps; Hyprbar is the classic window taskbar. Configure app panels below."
-        Label {
-            Layout.fillWidth: true
-            text: "Each monitor and workspace can show up to two panels on different edges. Panels on separate workspaces may use the same edge, and all three can be enabled when their visibility allows it. For example: Hyprpane Bottom on workspace 1, Hyprdock Bottom on workspace 2, and Hyprbar Bottom on workspace 3."
-            wrapMode: Text.WordWrap
-            color: Style.Theme.text
-            font.pixelSize: Style.Theme.bodySize
-        }
-        Label {
-            Layout.fillWidth: true
-            text: "Top and Bottom own adjacent corners; Left and Right fit between them. App pins are shared by default, with an optional separate list for Hyprdock and Hyprbar. Alt+T continues to target Hyprpane."
-            wrapMode: Text.WordWrap
-            color: Style.Theme.muted
-            font.pixelSize: Style.Theme.captionSize
-        }
-    }
     SettingsPanelLayout {
         Layout.fillWidth: true
         visible: root.fullConfig !== null
         config: root.fullConfig || {bar:root.settings,panels:{}}
         currentWorkspace: root.currentWorkspace
         onLayoutChosen: config => root.layoutChosen(config)
-    }
-    SettingsTaskbarEditor {
-        Layout.fillWidth:true
-        visible:root.taskbarSettings !== null
-        settings:root.taskbarSettings || {}
-        paneItems:root.paneItems
-        paneSpacing:root.settings.spacing ?? 3
-        currentWorkspace:root.currentWorkspace
-        onEdited:(key,value) => root.taskbarEdited(key,value)
-        onVisibilityEdited:settings => root.appVisibilityEdited('hyprbar',settings)
-    }
-    SettingsDockEditor {
-        Layout.fillWidth: true
-        visible: root.dockSettings !== null
-        settings: root.dockSettings || {}
-        paneItems:root.paneItems
-        currentWorkspace:root.currentWorkspace
-        onEdited: (key, value) => root.dockEdited(key, value)
-        onVisibilityEdited:settings => root.appVisibilityEdited('hyprdock',settings)
     }
     SettingsCard {
         Layout.fillWidth: true
@@ -123,7 +79,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Hover popdowns"
-        subtitle: "Choose where hovering opens menus and previews across Hyprpane, Hyprdock and Hyprbar. When disabled, click to open. Click a workspace number for its preview, then click the preview to switch there. Right-clicking the number also switches directly."
+        subtitle: "Choose where hovering opens menus and previews in Hyprpane. When disabled, click to open. Click a workspace number for its preview, then click the preview to switch there. Right-clicking the number also switches directly."
         SettingsSwitch {
             objectName: "hoverPopdownsDefaultControl"
             Layout.fillWidth: true

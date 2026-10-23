@@ -4,8 +4,6 @@ shell_bin=$(command -v quickshell || command -v qs || true)
 [[ -n "$shell_bin" ]] || { printf 'Quickshell is not installed.\n' >&2; exit 1; }
 case "${1:-}" in
     topbar) method=toggleBar; args=() ;;
-    hyprdock) method=toggleDock; args=() ;;
-    hyprbar) method=toggleTaskbar; args=() ;;
     dashboard) method=dashboard; args=() ;;
     settings) method=settings; args=() ;;
     displays) method=displays; args=() ;;
