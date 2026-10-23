@@ -216,7 +216,7 @@
       "opacity": 1,
       "fontSize": 0,
       "radius": -1,
-      "background": "inherit",
+      "background": "off",
       "spacingLeft": 0,
       "spacingRight": 0,
       "iconSize": 0,
