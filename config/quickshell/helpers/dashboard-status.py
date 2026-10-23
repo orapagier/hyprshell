@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Read one dashboard snapshot on opening; no polling or process scans."""
+"""Read lightweight dashboard counters; watch only while the drawer is open."""
 import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import time
 
 
@@ -42,8 +43,58 @@ def system_info():
             'memoryTotal': os.sysconf('SC_PHYS_PAGES') * os.sysconf('SC_PAGE_SIZE')}
 
 
-if __name__ == '__main__':
+def cpu_ticks():
     try:
-        print(json.dumps({'system': system_info()}))
-    except (OSError, ValueError, IndexError) as error:
-        print(json.dumps({'error': 'System information unavailable'}))
+        # Guest times already belong to user/nice; count only the first 8 fields.
+        ticks = [int(value) for value in Path('/proc/stat').read_text().splitlines()[0].split()[1:9]]
+        return sum(ticks), ticks[3] + ticks[4]
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def cpu_percent(before, after):
+    if before is None or after is None:
+        return None
+    total, idle = after[0] - before[0], after[1] - before[1]
+    if total <= 0 or idle < 0:
+        return None
+    return max(0, min(100, (total - idle) / total * 100))
+
+
+def resource_usage(before, after):
+    usage = {'cpuPercent': cpu_percent(before, after)}
+    try:
+        memory = dict((key.rstrip(':'), int(value) * 1024)
+                      for key, value, *_ in (line.split() for line in Path('/proc/meminfo').read_text().splitlines()))
+        total = memory['MemTotal']
+        used = max(0, total - memory['MemAvailable'])
+        usage.update(memoryTotal=total, memoryUsed=used)
+    except (OSError, ValueError, KeyError):
+        pass
+    try:
+        storage = os.statvfs('/')
+        usage['storageTotal'] = storage.f_blocks * storage.f_frsize
+        usage['storageFree'] = storage.f_bavail * storage.f_frsize
+    except OSError:
+        pass
+    return usage
+
+
+def main():
+    try:
+        system = system_info()
+        before = cpu_ticks()
+        time.sleep(0.2)
+        while True:
+            after = cpu_ticks()
+            print(json.dumps({'system': system, 'usage': resource_usage(before, after)}), flush=True)
+            if '--watch' not in sys.argv[1:]:
+                break
+            before = after
+            time.sleep(2)
+    except (OSError, ValueError, IndexError):
+        print(json.dumps({'error': 'System information unavailable'}), flush=True)
+
+
+if __name__ == '__main__':
+    main()

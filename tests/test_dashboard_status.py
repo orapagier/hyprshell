@@ -1,15 +1,52 @@
-"""Native dashboard interaction and absence of live resource polling."""
+"""Dashboard interaction and lightweight resource sampling only while open."""
+import importlib.util
+import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+STATUS_HELPER = ROOT / 'config/quickshell/helpers/dashboard-status.py'
+spec = importlib.util.spec_from_file_location('dashboard_status', STATUS_HELPER)
+status_helper = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(status_helper)
+
+
+class DashboardResourceTests(unittest.TestCase):
+    def test_cpu_guest_time_idle_and_counter_resets(self):
+        with patch.object(status_helper.Path, 'read_text', return_value='cpu 100 10 20 800 40 5 5 20 30 10\ncpu0 0 0 0 0 0 0 0 0\n'):
+            self.assertEqual(status_helper.cpu_ticks(), (1000, 840))
+        self.assertEqual(status_helper.cpu_percent((1000, 840), (1200, 990)), 25)
+        self.assertEqual(status_helper.cpu_percent((1000, 840), (1200, 1040)), 0)
+        for before, after in [(None, (1200, 990)), ((1000, 840), (1000, 840)), ((1000, 840), (500, 400))]:
+            self.assertIsNone(status_helper.cpu_percent(before, after))
+
+    def test_memory_uses_available_and_handles_unavailable_sources(self):
+        with patch.object(status_helper.Path, 'read_text', return_value='MemTotal: 1000 kB\nMemAvailable: 700 kB\nMemFree: 100 kB\nCached: 600 kB\n'), patch.object(status_helper.os, 'statvfs', side_effect=OSError):
+            usage = status_helper.resource_usage(None, None)
+            self.assertEqual(usage['memoryTotal'], 1024000)
+            self.assertEqual(usage['memoryUsed'], 307200)
+            self.assertNotIn('storageTotal', usage)
+        with patch.object(status_helper.Path, 'read_text', side_effect=OSError), patch.object(status_helper.os, 'statvfs', side_effect=OSError):
+            self.assertEqual(status_helper.resource_usage(None, None), {'cpuPercent': None})
+
+    def test_real_one_shot_counters(self):
+        result = subprocess.run(['python3', str(STATUS_HELPER)], capture_output=True, text=True, timeout=5, check=True)
+        snapshot = json.loads(result.stdout)
+        usage = snapshot['usage']
+        self.assertGreater(snapshot['system']['memoryTotal'], 0)
+        self.assertTrue(0 <= usage['cpuPercent'] <= 100)
+        self.assertTrue(0 <= usage['memoryUsed'] <= usage['memoryTotal'])
+        self.assertTrue(0 <= usage['storageFree'] <= usage['storageTotal'])
+
+
 @unittest.skipUnless(shutil.which('quickshell'), 'Native Quickshell is needed')
 class DashboardNativeTests(unittest.TestCase):
-    def test_hover_single_page_and_static_system_info(self):
+    def test_hover_single_page_and_resource_sampling_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             payload = root / 'shell'
@@ -91,7 +128,9 @@ ShellRoot {
                     test.check(dashboard.resourceData.system.os.length > 0, "System identity populated");
                     test.check(dashboard.resourceData.system.uptimeSeconds > 0, "Uptime snapshot populated");
                     test.check(test.find(content, 'dashboardUptime').visible && test.find(content, 'dashboardOsAge').visible, "Uptime and OS age are visible");
-                    test.check(dashboard.resourceData.cpuTotal === undefined && dashboard.resourceData.processes === undefined, "No live resource counters or processes");
+                    test.check(dashboard.resourceData.usage.memoryUsed > 0 && dashboard.resourceData.processes === undefined, "Lightweight counters without process scans");
+                    test.check(test.find(content, 'dashboardResourceUsage').visible, "Resource usage card visible");
+                    test.check(input.findChild(dashboard, 'dashboardResourceSampler').running, "Sampler runs while dashboard is open");
                     test.check(test.find(content, 'dashboardMemoryDetails').visible, "Static RAM capacity shown");
                     test.check(test.find(content, 'dashboardMediaDetails') === null, "Music card removed");
                     test.check(popover.edge === 'left' && popover.connected, "Left-edge dashboard");
@@ -167,7 +206,8 @@ ShellRoot {
                 } else if (test.step === 10) {
                     test.check(dashboard.visible && !popover.rendering, "Window stays mapped but dashboard finishes exit animation");
                     test.check(popover.edgeProgress === 0, "Closing motion fully retracts to edge");
-                    test.check(dashboard.resourceData === test.stoppedSnapshot, "Hidden dashboard keeps static identity");
+                    test.check(dashboard.resourceData === test.stoppedSnapshot, "Hidden dashboard stops sampling");
+                    test.check(!input.findChild(dashboard, 'dashboardResourceSampler').running, "Sampler exits when dashboard closes");
                     dashboard.toggle(null);
                     test.check(dashboard.opened, "Shortcut opens dashboard");
                     input.mouseMove(dashboard.contentItem, popover.bodyX + 100, popover.bodyY + 100);
@@ -182,8 +222,8 @@ ShellRoot {
                     input.wait(5400);
                     test.check(dashboard.resourceData !== test.stoppedSnapshot, "Reopening refreshes the snapshot");
                     let openedSnapshot = dashboard.resourceData;
-                    input.wait(1200);
-                    test.check(dashboard.resourceData === openedSnapshot, "No polling while open");
+                    input.tryVerify(() => dashboard.resourceData !== openedSnapshot, 2800);
+                    test.check(dashboard.resourceData !== openedSnapshot, "Open dashboard refreshes resource usage");
                     let content = test.find(dashboard.contentItem, 'dashboardContent');
                     content.dismissRequested();
                     test.check(!dashboard.opened, "Escape dismissal still works");
@@ -238,6 +278,11 @@ ShellRoot {
                     controller.close();
                     input.mouseMove(corner.contentItem, 0, corner.height - 1);
                     test.check(dashboard.opened, "Extreme bottom-left pixel opens without cursor adjustment");
+                    controller.close();
+                    dashboard.rightCorner = true;
+                    dashboard.reveal(null);
+                    input.wait(300);
+                    test.check(!input.findChild(dashboard, 'dashboardResourceSampler').running, "Right activity drawer does not start resource sampling");
                     controller.close();
                     console.log('DASHBOARD_NATIVE_OK'); Qt.quit();
                 }

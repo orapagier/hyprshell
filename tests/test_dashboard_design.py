@@ -56,7 +56,8 @@ ShellRoot {
                 services: ({statusData:{network:{tooltip:"Home Wi-Fi · 78%"}},batteryInfo:{present:true,percentage:38,pluggedIn:false}})
                 resourceData: ({system:{hostname:"fedora",os:"Fedora Linux 44 (Forty Four)",
                     cpuModel:"12th Gen Intel(R) Core(TM) i5-1235U",kernel:"7.2.9-201.fc44.x86_64",
-                    memoryTotal:16428249907,uptimeSeconds:132840,osAgeDays:8}})
+                    memoryTotal:16428249907,uptimeSeconds:132840,osAgeDays:8},usage:{cpuPercent:18,
+                    memoryUsed:5798205850,memoryTotal:16428249907,storageFree:191126044672,storageTotal:511101108224}})
                 onSettingsRequested: root.settingsClicks++
                 onLockRequested: root.lockClicks++
             }
@@ -92,6 +93,11 @@ ShellRoot {
                 const weather = test.findChild(dashboard, 'dashboardWeather');
                 weather.snapshot = root.data;
                 root.capture('wide'); root.checkBounds(dashboard);
+                if (!test.findChild(dashboard, 'dashboardResourceUsage').visible) throw new Error('Resource card missing');
+                if (test.findChild(dashboard, 'dashboardCpuUsage').value !== '18%') throw new Error('CPU usage missing');
+                if (test.findChild(dashboard, 'dashboardRamUsage').value !== '5.4 / 15.3 GiB') throw new Error('RAM usage missing');
+                if (test.findChild(dashboard, 'dashboardStorageUsage').value !== '178.0 GiB free') throw new Error('Free storage missing');
+                if (dashboard.implicitHeight > 664) throw new Error('Wide dashboard exceeds 700 px drawer with padding');
                 if (weather.x !== 0 || weather.width <= 350) throw new Error('Weather does not lead wide layout');
                 test.mouseClick(test.findChild(dashboard, 'dashboardSettings'));
                 test.mouseClick(test.findChild(dashboard, 'dashboardLock'));
@@ -103,6 +109,13 @@ ShellRoot {
                 weather.editing = false;
                 root.previewWidth = 320;
                 root.capture('narrow'); root.checkBounds(dashboard);
+                const resources = dashboard.resourceData;
+                dashboard.resourceData = {system:resources.system};
+                root.capture('resources-unavailable'); root.checkBounds(dashboard);
+                for (let name of ['dashboardCpuUsage','dashboardRamUsage','dashboardStorageUsage'])
+                    if (test.findChild(dashboard, name).value !== '—' || test.findChild(dashboard, name).fraction !== -1)
+                        throw new Error('Unavailable resources must not show invented usage');
+                dashboard.resourceData = resources;
                 const system = test.findChild(dashboard, 'dashboardSystemInfo');
                 if (system.mapToItem(dashboard,0,0).y < weather.height) throw new Error('Narrow layout must stack');
                 weather.snapshot = Object.assign({}, root.data, {stale:true,error:"Could not reach weather service. Check your connection."});

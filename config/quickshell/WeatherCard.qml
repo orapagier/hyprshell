@@ -272,30 +272,37 @@ Rectangle {
             }
         }
         Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
-        ColumnLayout {
+        Rectangle {
             objectName: "weatherHourlyForecast"
             visible: card.upcomingHours.length > 0 && !card.choosingCity
-            Layout.fillWidth: true; spacing: 10
-            RowLayout {
-                Layout.fillWidth: true
-                Label { text: card.snapshot.stale ? "SAVED FORECAST" : "NEXT 3 HOURS"; color: card.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.2; Layout.fillWidth: true }
-                Label { text: "Temp · Rain"; color: card.secondaryColor; font.pixelSize: 10 }
-            }
-            RowLayout {
-                Layout.fillWidth: true; spacing: 12
-                Repeater {
-                    model: card.upcomingHours
-                    delegate: ColumnLayout {
-                        id: hour
-                        required property var modelData
-                        required property int index
-                        objectName: "weatherHour-" + index
-                        Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 5
-                        Label { text: card.sun(hour.modelData.time); color: card.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true }
-                        Label {
-                            text: card.number(hour.modelData.temperature, "°") + " · " + card.number(hour.modelData.rain, "%")
-                            font.pixelSize: card.width < 320 ? 12 : 14; font.weight: Font.Medium; Layout.fillWidth: true
-                            Accessible.name: card.sun(hour.modelData.time) + ", " + card.number(hour.modelData.temperature, " degrees Celsius") + ", rain chance " + card.number(hour.modelData.rain, "%")
+            Layout.fillWidth: true
+            implicitHeight: hourlyDetails.implicitHeight + 32
+            color: Colors.alpha(card.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
+            border.width: Style.Theme.highContrast ? 1 : 0; border.color: card.textColor
+            ColumnLayout {
+                id: hourlyDetails
+                anchors.fill: parent; anchors.margins: 16; spacing: 10
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label { text: card.snapshot.stale ? "SAVED FORECAST" : "NEXT 3 HOURS"; color: card.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.2; Layout.fillWidth: true }
+                    Label { text: "Temp · Rain"; color: card.secondaryColor; font.pixelSize: 10 }
+                }
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 12
+                    Repeater {
+                        model: card.upcomingHours
+                        delegate: ColumnLayout {
+                            id: hour
+                            required property var modelData
+                            required property int index
+                            objectName: "weatherHour-" + index
+                            Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 5
+                            Label { text: card.sun(hour.modelData.time); color: card.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true }
+                            Label {
+                                text: card.number(hour.modelData.temperature, "°") + " · " + card.number(hour.modelData.rain, "%")
+                                font.pixelSize: card.width < 320 ? 12 : 14; font.weight: Font.Medium; Layout.fillWidth: true
+                                Accessible.name: card.sun(hour.modelData.time) + ", " + card.number(hour.modelData.temperature, " degrees Celsius") + ", rain chance " + card.number(hour.modelData.rain, "%")
+                            }
                         }
                     }
                 }

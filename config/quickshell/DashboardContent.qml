@@ -10,6 +10,7 @@ ColumnLayout {
     objectName: "dashboardContent"
     required property var services
     property var resourceData: ({})
+    readonly property var usage: resourceData.usage || ({})
     property bool active: false
     property url wallpaperSource: ""
     property real screenWidth: 1366
@@ -36,6 +37,7 @@ ColumnLayout {
         return (days ? days + "d " : "") + Math.floor(minutes % 1440 / 60) + "h " + minutes % 60 + "m";
     }
     function focusFirst() { page.forceActiveFocus(); }
+    function gib(bytes) { return typeof bytes === "number" ? (bytes / 1073741824).toFixed(1) : "—"; }
     spacing: 12
     Keys.onEscapePressed: dismissRequested()
     GridLayout {
@@ -92,6 +94,33 @@ ColumnLayout {
                     title: "OS age (est.)"; valueName: "dashboardOsAge"; Layout.topMargin: 10
                     value: page.resourceData.system?.osAgeDays !== null && page.resourceData.system?.osAgeDays !== undefined ? page.resourceData.system.osAgeDays + " days" : "Unavailable"
                 }
+                Rectangle {
+                    objectName: "dashboardResourceUsage"
+                    Layout.fillWidth: true; Layout.topMargin: 20
+                    implicitHeight: resourceDetails.implicitHeight + 28
+                    color: Colors.alpha(page.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
+                    border.width: Style.Theme.highContrast ? 1 : 0; border.color: page.textColor
+                    ColumnLayout {
+                        id: resourceDetails
+                        anchors.fill: parent; anchors.margins: 14; spacing: 10
+                        Label { text: "RESOURCE USAGE"; color: page.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.2; Layout.fillWidth: true }
+                        UsageRow {
+                            objectName: "dashboardCpuUsage"; title: "CPU"
+                            value: typeof page.usage.cpuPercent === "number" ? Math.round(page.usage.cpuPercent) + "%" : "—"
+                            fraction: typeof page.usage.cpuPercent === "number" ? page.usage.cpuPercent / 100 : -1
+                        }
+                        UsageRow {
+                            objectName: "dashboardRamUsage"; title: "RAM"
+                            value: page.usage.memoryTotal > 0 ? page.gib(page.usage.memoryUsed) + " / " + page.gib(page.usage.memoryTotal) + " GiB" : "—"
+                            fraction: page.usage.memoryTotal > 0 ? page.usage.memoryUsed / page.usage.memoryTotal : -1
+                        }
+                        UsageRow {
+                            objectName: "dashboardStorageUsage"; title: "Storage (/)"
+                            value: page.usage.storageTotal > 0 ? page.gib(page.usage.storageFree) + " GiB free" : "—"
+                            fraction: page.usage.storageTotal > 0 ? 1 - page.usage.storageFree / page.usage.storageTotal : -1
+                        }
+                    }
+                }
                 Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
                 RowLayout {
                     Layout.fillWidth: true; spacing: 9
@@ -123,6 +152,27 @@ ColumnLayout {
         Layout.fillWidth: true; spacing: 10
         Label { text: info.title; font.pixelSize: 12; color: page.secondaryColor; Layout.fillWidth: true }
         Label { objectName: info.valueName; text: info.value; font.pixelSize: 13; font.weight: Font.Medium }
+    }
+    component UsageRow: ColumnLayout {
+        id: usageRow
+        property string title
+        property string value
+        property real fraction: -1
+        Layout.fillWidth: true; spacing: 6
+        Accessible.name: title + ": " + value
+        RowLayout {
+            Layout.fillWidth: true; spacing: 8
+            Label { text: usageRow.title; color: page.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true }
+            Label { text: usageRow.value; font.pixelSize: 11; font.weight: Font.Medium }
+        }
+        Rectangle {
+            Layout.fillWidth: true; implicitHeight: 4; radius: 2
+            color: Colors.alpha(page.textColor, Style.Theme.highContrast ? 0.35 : 0.10)
+            Rectangle {
+                width: parent.width * Math.max(0, Math.min(1, usageRow.fraction)); height: parent.height; radius: 2
+                color: page.accentColor
+            }
+        }
     }
     component Action: MenuButton {
         accent: page.textColor; font.pixelSize: 12

@@ -21,8 +21,11 @@ continue to apply.
 
 Super+D or the bottom-left hot corner opens the dashboard. Escape, leaving the
 drawer or a click outside dismisses it. System Info shows identity, RAM capacity,
-uptime and estimated OS age. The system snapshot is read once per opening, with
-no resource polling. Settings and Lock remain available; the shortcuts card and
+uptime and estimated OS age. A resource card below OS age shows CPU usage, RAM
+used/total and free space on the root filesystem, with usage bars. A lightweight
+helper samples every two seconds while the left dashboard is open and exits on
+close; it does not scan processes or run for the right activity drawer. System
+identity is read once per opening. Settings and Lock remain available; the shortcuts card and
 embedded calendar have been removed to make room for weather. The standalone
 calendar menu remains available elsewhere in the shell.
 
@@ -33,7 +36,8 @@ search defaults to the Philippines and includes province/region details; manual
 coordinates cover places missing from GeoNames. Weather → Change city saves the selected
 place in `hyprshell/weather.json`, retained by updates and explicit GitHub sync.
 Cached forecasts stay local. The weather-first layout uses a large temperature,
-static vector condition illustration, grouped readings and aligned device details.
+static vector condition illustration, grouped readings, a rounded next-three-hours
+forecast card and aligned device details.
 The city editor replaces the forecast while editing, with keyboard focus on
 search. Content resizes smoothly, respecting Reduce desktop motion; narrow
 layouts stack and scroll. The card shows conditions, temperature/feels-like,
