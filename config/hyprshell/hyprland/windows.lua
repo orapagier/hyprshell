@@ -292,6 +292,14 @@ hl.layer_rule({
     animation = "slide",
 })
 
+-- Blur only Hyprmatrix's settings popup, leaving the rain surface clear.
+hl.layer_rule({
+    name = "hyprmatrix-settings-glass",
+    match = { namespace = "^hyprmatrix-settings$" },
+    blur = true,
+    ignore_alpha = 0.05,
+})
+
 -- Frosted shortcut overlay; transparent space around the card stays clear.
 hl.layer_rule({
     name = "hyprmonitor-rust-glass",

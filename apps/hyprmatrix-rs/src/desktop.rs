@@ -44,8 +44,8 @@ use std::{
 };
 use wayland_client::{
     globals::registry_queue_init,
-    protocol::{wl_output, wl_pointer, wl_seat, wl_shm, wl_surface},
-    Connection, QueueHandle,
+    protocol::{wl_keyboard, wl_output, wl_pointer, wl_seat, wl_shm, wl_surface},
+    Connection, Dispatch, QueueHandle, WEnum,
 };
 
 fn rain_layer(menu: bool, in_front: bool) -> Layer {
@@ -176,6 +176,9 @@ fn cursor_position() -> Result<(i32, i32), String> {
         value["y"].as_i64().unwrap_or(0) as i32,
     ))
 }
+fn header_position((ox,oy): (i32,i32), (x,y,w,h): (u32,u32,u32,u32)) -> (i32,i32) {
+    (ox+x as i32+w as i32/2, oy+y as i32+(render::MENU_HEADER.min(h)/2) as i32)
+}
 /// Client windows report `at`/`size` arrays; point hit-test in global coordinates.
 fn client_contains(obj: &serde_json::Value, x: i32, y: i32) -> bool {
     let (ax, ay) = (
@@ -279,6 +282,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
         .map_err(|e| format!("Wayland layer-shell required: {e}"))?;
     let shm = Shm::bind(&globals, &qh).map_err(|e| e.to_string())?;
     let pool = SlotPool::new(4096, &shm).map_err(|e| e.to_string())?;
+    let menu_pool = SlotPool::new(4096, &shm).map_err(|e| e.to_string())?;
     let renderer = Renderer::new(&config)?;
     let active = Arc::new(AtomicBool::new(true));
     let refresh = Arc::new(AtomicBool::new(false));
@@ -289,12 +293,19 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
         outputs: OutputState::new(&globals, &qh),
         compositor,
         pointer: None,
+        keyboard: None,
         shm,
         pool,
         buffers: Vec::new(),
         last_buffer: None,
         buffer_wait: None,
         layer: None,
+        menu_layer: None,
+        menu_pool,
+        menu_buffers: Vec::new(),
+        menu_configured: false,
+        menu_dirty: true,
+        menu_pointer_at: None,
         target: None,
         renderer,
         config,
@@ -353,6 +364,12 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
     layer.set_keyboard_interactivity(KeyboardInteractivity::None);
     layer.set_exclusive_zone(-1);
     state.layer = Some(layer);
+    let popup = shell.create_layer_surface(
+        &qh, state.compositor.create_surface(&qh), Layer::Overlay,
+        Some("hyprmatrix-settings"), state.target.as_ref(),
+    );
+    popup.set_exclusive_zone(-1);
+    state.menu_layer = Some(popup);
     state.place()?;
     let (sender, events) = channel::channel();
     let control_sender = sender.clone();
@@ -499,15 +516,22 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
             (None, Some(deadline)) => Some(deadline.saturating_duration_since(Instant::now())),
             (timeout, None) => timeout,
         };
+        let timeout = match (timeout, state.menu_pointer_at) {
+            (Some(timeout), Some(deadline)) => Some(timeout.min(deadline.saturating_duration_since(Instant::now()))),
+            (None, Some(deadline)) => Some(deadline.saturating_duration_since(Instant::now())),
+            (timeout, None) => timeout,
+        };
         event_loop
             .dispatch(timeout, &mut state)
             .map_err(|e| e.to_string())?;
         state.poll_menu_drag();
+        state.move_pointer_to_header();
         if state.menu && state.menu_drag.is_none()
             && state.menu_hover.expired(Instant::now()) {
             state.close_menu()?;
         }
         if !state.exit {
+            state.draw_menu()?;
             state.draw(&qh)?;
         }
     }
@@ -530,12 +554,19 @@ struct Desktop {
     outputs: OutputState,
     compositor: CompositorState,
     pointer: Option<wl_pointer::WlPointer>,
+    keyboard: Option<wl_keyboard::WlKeyboard>,
     shm: Shm,
     pool: SlotPool,
     buffers: Vec<Buffer>,
     last_buffer: Option<usize>,
     buffer_wait: Option<Instant>,
     layer: Option<LayerSurface>,
+    menu_layer: Option<LayerSurface>,
+    menu_pool: SlotPool,
+    menu_buffers: Vec<Buffer>,
+    menu_configured: bool,
+    menu_dirty: bool,
+    menu_pointer_at: Option<Instant>,
     target: Option<wl_output::WlOutput>,
     renderer: Renderer,
     config: Config,
@@ -594,8 +625,11 @@ impl Desktop {
         self.layer().set_margin(y, 0, 0, x);
         if resized {
             self.buffers.clear();
+            self.menu_buffers.clear();
+            self.menu_configured = false;
         }
         self.input_region()?;
+        self.place_menu();
         self.layer().commit();
         Ok(())
     }
@@ -611,18 +645,76 @@ impl Desktop {
         let mh = render::MENU_HEIGHT.min(self.height);
         (dx, dy, mw, mh)
     }
+    fn place_menu(&self) {
+        let Some(layer) = &self.menu_layer else { return; };
+        let (x,y,w,h) = self.menu_rect_at();
+        layer.set_exclusive_zone(-1);
+        layer.set_anchor(Anchor::TOP | Anchor::LEFT);
+        layer.set_size(w,h);
+        layer.set_margin(y as i32,0,0,x as i32);
+        layer.set_keyboard_interactivity(if self.menu {
+            KeyboardInteractivity::Exclusive
+        } else { KeyboardInteractivity::None });
+        layer.commit();
+    }
+    fn unmap_menu(&mut self) {
+        if let Some(layer) = &self.menu_layer {
+            layer.set_keyboard_interactivity(KeyboardInteractivity::None);
+            layer.wl_surface().attach(None,0,0);
+            layer.commit();
+        }
+        self.menu_buffers.clear();
+        self.menu_configured = false;
+        self.menu_pointer_at = None;
+        self.renderer.release_menu();
+    }
+    fn move_pointer_to_header(&mut self) {
+        if self.menu_pointer_at.is_none_or(|deadline| Instant::now() < deadline) { return; }
+        self.menu_pointer_at = None;
+        if !self.menu || !self.menu_configured { return; }
+        let (x,y,w,h) = self.menu_rect_at();
+        let (ox,oy) = self.output_position();
+        let (x,y) = header_position((ox,oy), (x,y,w,h));
+        if let Err(error) = hypr_query(&format!(
+            "dispatch hl.dsp.cursor.move({{ x = {x}, y = {y} }})"
+        ), 4096) {
+            eprintln!("hyprmatrix: cannot move pointer to settings header: {error}");
+        }
+    }
+    fn draw_menu(&mut self) -> Result<(), String> {
+        if !self.menu || !self.menu_configured || !self.menu_dirty { return Ok(()); }
+        let (_,_,w,h) = self.menu_rect_at();
+        if self.menu_buffers.is_empty() {
+            self.menu_pool = SlotPool::new((w*h*8) as usize, &self.shm).map_err(|e| e.to_string())?;
+            for _ in 0..2 {
+                let (buffer,_) = self.menu_pool.create_buffer(
+                    w as i32,h as i32,w as i32*4,wl_shm::Format::Argb8888,
+                ).map_err(|e| e.to_string())?;
+                self.menu_buffers.push(buffer);
+            }
+        }
+        let Some(index) = self.menu_buffers.iter().position(|b| self.menu_pool.canvas(b).is_some()) else {
+            return Ok(());
+        };
+        let canvas = self.menu_pool.canvas(&self.menu_buffers[index]).ok_or("Busy popup buffer")?;
+        let pixels = bytemuck::try_cast_slice_mut::<u8,u32>(canvas).map_err(|e| e.to_string())?;
+        self.renderer.render_menu(pixels,w,h,&self.config,&self.status);
+        let surface = self.menu_layer.as_ref().ok_or("Missing popup surface")?.wl_surface();
+        self.menu_buffers[index].attach_to(surface).map_err(|e| e.to_string())?;
+        surface.damage_buffer(0,0,w as i32,h as i32);
+        surface.commit();
+        self.menu_dirty = false;
+        Ok(())
+    }
     /// Request the next frame as soon as the frame budget allows.
     fn wake_draw(&mut self) {
+        self.menu_dirty = true;
         self.ready = true;
         self.last = Instant::now()
             - Duration::from_secs_f64((1.0 / self.config.fps as f64).min(0.25));
     }
     fn input_region(&self) -> Result<(), String> {
         let region = Region::new(&self.compositor).map_err(|e| e.to_string())?;
-        if self.menu {
-            let (x, y, w, h) = self.menu_rect_at();
-            region.add(x as i32, y as i32, w as i32, h as i32);
-        }
         self.layer()
             .wl_surface()
             .set_input_region(Some(region.wl_region()));
@@ -648,6 +740,7 @@ impl Desktop {
             self.layer().commit();
             self.configured = false;
             self.menu = false;
+            self.unmap_menu();
             self.menu_hover = MenuHover::default();
             self.layer().set_layer(rain_layer(false, self.config.in_front));
         }
@@ -747,8 +840,7 @@ impl Desktop {
         ), (self.width, self.height));
         if self.menu_pos != Some(pos) {
             self.menu_pos = Some(pos);
-            self.input_region()?;
-            self.layer().commit();
+            self.place_menu();
         }
         self.wake_draw();
         Ok(())
@@ -780,10 +872,15 @@ impl Desktop {
                 self.user_visible = true;
                 self.visibility(true)?;
                 self.menu = true;
+                self.menu_pos = None;
+                self.menu_drag = None;
                 self.menu_hover.opened();
                 self.layer().set_layer(Layer::Top);
                 self.input_region()?;
                 self.layer().commit();
+                self.place_menu();
+                // As in Dropdown.qml, wait for mapping/input before moving the pointer.
+                self.menu_pointer_at = Some(Instant::now() + Duration::from_millis(100));
                 self.wake_draw();
             }
             "refresh" => self.refresh.store(true, Ordering::Relaxed),
@@ -871,7 +968,6 @@ impl Desktop {
         }
         let dt = self.last.elapsed().as_secs_f32().min(0.25);
         self.time += dt;
-        let menu_rect = self.menu.then(|| self.menu_rect_at());
         let canvas = self
             .pool
             .canvas(&self.buffers[index])
@@ -885,7 +981,7 @@ impl Desktop {
             self.time,
             dt,
             self.config.color(self.palette),
-            menu_rect,
+            None,
             &self.status,
             self.menu_page,
         );
@@ -918,6 +1014,7 @@ impl Desktop {
     }
     fn close_menu(&mut self) -> Result<(), String> {
         self.menu = false;
+        self.unmap_menu();
         self.menu_hover = MenuHover::default();
         self.layer().set_layer(rain_layer(false, self.config.in_front));
         self.menu_drag = None;
@@ -936,11 +1033,6 @@ impl Desktop {
         let Some(row) = render::menu_row(rect, self.menu_page, x, y) else {
             return Ok(());
         };
-        if row >= render::MENU_ROWS {
-            self.menu_page = row - render::MENU_ROWS;
-            self.wake_draw();
-            return Ok(());
-        }
         let old = self.config.clone();
         let action = render::adjust(&mut self.config, row, render::menu_increase(rect, x));
         if !["hide", "close", "quit", "refresh"].contains(&action) {
@@ -1016,10 +1108,19 @@ impl LayerShellHandler for Desktop {
         &mut self,
         _: &Connection,
         _: &QueueHandle<Self>,
-        _: &LayerSurface,
+        layer: &LayerSurface,
         c: LayerSurfaceConfigure,
         _: u32,
     ) {
+        if self.menu_layer.as_ref() == Some(layer) {
+            let first_configure = !self.menu_configured;
+            self.menu_configured = true;
+            self.menu_dirty = true;
+            if self.menu && first_configure {
+                self.menu_pointer_at = Some(Instant::now() + Duration::from_millis(100));
+            }
+            return;
+        }
         let (w, h) = c.new_size;
         dbg_event(&format!("configure {w}x{h}"));
         if w > 0 {
@@ -1083,6 +1184,9 @@ impl SeatHandler for Desktop {
         if cap == Capability::Pointer && self.pointer.is_none() {
             self.pointer = self.seats.get_pointer(qh, &seat).ok();
         }
+        if cap == Capability::Keyboard && self.keyboard.is_none() {
+            self.keyboard = Some(seat.get_keyboard(qh, ()));
+        }
     }
     fn remove_capability(
         &mut self,
@@ -1096,6 +1200,9 @@ impl SeatHandler for Desktop {
                 p.release();
             }
         }
+        if cap == Capability::Keyboard {
+            if let Some(keyboard) = self.keyboard.take() { keyboard.release(); }
+        }
     }
     fn remove_seat(&mut self, _: &Connection, _: &QueueHandle<Self>, _: wl_seat::WlSeat) {}
 }
@@ -1108,10 +1215,11 @@ impl PointerHandler for Desktop {
         events: &[PointerEvent],
     ) {
         for event in events {
-            if &event.surface != self.layer().wl_surface() {
+            if self.menu_layer.as_ref().is_none_or(|layer| &event.surface != layer.wl_surface()) {
                 continue;
             }
-            let (x, y) = event.position;
+            let (mx,my,_,_) = self.menu_rect_at();
+            let (x, y) = (event.position.0+mx as f64, event.position.1+my as f64);
             let over_menu = |desktop: &Self| {
                 let (mx, my, mw, mh) = desktop.menu_rect_at();
                 x >= mx as f64
@@ -1190,6 +1298,16 @@ impl PointerHandler for Desktop {
         }
     }
 }
+// Escape needs only the evdev key code, without parsing or retaining keymaps.
+impl Dispatch<wl_keyboard::WlKeyboard, ()> for Desktop {
+    fn event(state: &mut Self, _: &wl_keyboard::WlKeyboard, event: wl_keyboard::Event,
+        _: &(), _: &Connection, _: &QueueHandle<Self>) {
+        if matches!(event, wl_keyboard::Event::Key { key: 1,
+            state: WEnum::Value(wl_keyboard::KeyState::Pressed), .. }) && state.menu {
+            if let Err(error) = state.close_menu() { state.status = error; }
+        }
+    }
+}
 delegate_compositor!(Desktop);
 delegate_layer!(Desktop);
 delegate_output!(Desktop);
@@ -1201,6 +1319,11 @@ delegate_pointer!(Desktop);
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn header_pointer_uses_output_origin_and_stays_in_small_popups() {
+        assert_eq!(header_position((-1920,100), render::menu_rect(1920,1080)), (-960,444));
+        assert_eq!(header_position((0,0), render::menu_rect(20,20)), (10,10));
+    }
     #[test]
     fn hover_settings_cancel_dismissal_on_reentry_and_wait_for_drag_release() {
         let now=Instant::now();

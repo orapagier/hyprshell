@@ -14,16 +14,20 @@ starting Hyprmatrix if needed. There is no invisible hover target; the closed
 effect passes all pointer input through to the desktop. Settings stay open until
 the pointer enters and leaves the panel, then close after 180ms. Dragging keeps
 settings open until release. Right-clicking the panel or choosing Close settings
-also closes it. `hyprmatrix --settings` opens the same menu from a shell.
+also closes it; Escape dismisses it too. Every opening centers the panel on the
+effect's output and moves the cursor into its header after the surface maps,
+matching the launcher popup. `hyprmatrix --settings` opens the same menu from a shell.
 Super+right-click along the screen's right edge also opens settings.
 The invisible target extends 48 logical pixels inside and 16 pixels outside the
 edge for its full height. Misses are quiet and retain window resizing; application
 windows under the pointer keep priority when Window layer is Behind. Open settings temporarily
 raise the rain surface above application windows; closing restores the selected Window layer.
 
-The rounded charcoal settings panel matches Hyprshell’s neutral surfaces and blue
-controls, with a proportional UI font and Appearance / Behavior tabs. Appearance,
-window layer, visibility and settings-panel movement remain available.
+The rounded settings panel uses translucent charcoal glass, a subtle top gradient,
+a tinted rim and compositor blur, with a proportional UI font and blue controls.
+All appearance, window-layer and visibility controls share one page. Its separate
+`hyprmatrix-settings` overlay confines blur to the popup, keeping the rain clear.
+Dragging repositions the panel until the next opening, which centers it again.
 
 Use the left and right arrows in each value control to decrease or increase it.
 Hyprmatrix always covers the full monitor; the smaller region mode has been removed.
@@ -138,13 +142,15 @@ with craters. They are drawn procedurally without image assets or a GPU context.
 Color, rain opacity, background, density, speed and frame limit apply to every
 effect. Character size becomes Particle size for space effects. Lower Density
 widens Matrix column spacing or reduces the number of sky events; zero hides
-all particles. The Window layer control remains
-under Behavior. Reset appearance restores Matrix and the usual defaults.
+all particles. The Window layer control shares the settings page with appearance
+controls. Reset appearance restores Matrix and the usual defaults.
 The saved `effect` values are `matrix`, `shooting_stars`, `meteors`, and `asteroids`.
 
 ## Resource design
 
-No web view, GTK/Qt runtime, GPU context, blur or bloom. The default rain and UI
+No web view, GTK/Qt runtime, GPU context or rain blur/bloom. Settings use the
+compositor's blur through a separate, panel-sized overlay and repaint only when
+the controls change. The default rain and UI
 fonts use a built-in ASCII bitmap atlas, retaining the original DejaVu coverage
 without parsing or keeping whole fonts in memory. The atlas license is available
 with `--font-license`; its reproducible generator is

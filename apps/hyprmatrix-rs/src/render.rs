@@ -5,12 +5,10 @@ const SYMBOLS: &[u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ<>[]{}/\\:;=+*#$%&!
 pub const MENU_ROWS: usize = 19;
 pub const ROW: u32 = 26;
 pub const MENU_WIDTH: u32 = 400;
-pub const MENU_HEADER: u32 = 82;
-pub const MENU_HEIGHT: u32 = MENU_HEADER + ROW * 13 + 28;
-const APPEARANCE: &[usize] = &[18, 1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16];
-const BEHAVIOR: &[usize] = &[17, 12, 13, 14, 15, 16];
-fn page_rows(page: usize) -> &'static [usize] {
-    if page == 1 { BEHAVIOR } else { APPEARANCE }
+pub const MENU_HEADER: u32 = 54;
+pub const MENU_HEIGHT: u32 = MENU_HEADER + ROW * 14 + 28;
+fn page_rows(_page: usize) -> &'static [usize] {
+    &[18, 1, 2, 3, 4, 5, 6, 7, 17, 12, 13, 14, 15, 16]
 }
 /// Movement in surface coordinates before a panel press becomes a drag.
 pub const DRAG_THRESHOLD: f64 = 4.0;
@@ -211,11 +209,7 @@ impl Renderer {
         status: &str,
         page: usize,
     ) {
-        if menu.is_some() && self.ui_glyphs.is_empty() {
-            for size in [12,13,20] {
-                for (ch,glyph) in atlas(1,size) { self.ui_glyphs.insert((ch,size),glyph); }
-            }
-        }
+        if menu.is_some() { self.prepare_menu(); }
         let palette_changed = self.tables(c, target, dt);
         // Density controls one constant column pitch instead of random omissions.
         let base_cw = (c.font_size * 2 / 3).max(7) + 4;
@@ -349,12 +343,14 @@ impl Renderer {
                 for py in y.max(my)..(y+dh).min(my+mh) {
                     for px in x.max(mx)..(x+dw).min(mx+mw) {
                         let color=cache.pixels[((py-my)*mw+px-mx) as usize];
-                        if color != 0 { pixels[(py*w+px) as usize]=color; }
+                        if color != 0 {
+                            let pixel = &mut pixels[(py*w+px) as usize];
+                            *pixel = over(color, *pixel);
+                        }
                     }
                 }
             }
         }
-        if menu.is_none() && !self.ui_glyphs.is_empty() { self.ui_glyphs=HashMap::new(); }
         std::mem::swap(&mut self.cells,&mut self.next);
         std::mem::swap(&mut self.particles,&mut self.next_particles);
     }
@@ -401,46 +397,66 @@ impl Renderer {
                     let (px, py) = (x.round() as i32 + dx as i32, y + dy as i32);
                     if px >= 0 && py >= 0 && px < w as i32 && py < h as i32 {
                         let bg = pixels[py as usize * w as usize + px as usize];
-                        let mut result = 0xff000000;
+                        let mut source = (a as u32) << 24;
                         for (i, shift) in [16, 8, 0].iter().enumerate() {
-                            result |= ((color[i] as u32 * a as u32
-                                + (bg >> shift & 255) * (255 - a as u32)) / 255) << shift;
+                            source |= (color[i] as u32 * a as u32 / 255) << shift;
                         }
-                        pixels[py as usize * w as usize + px as usize] = result;
+                        pixels[py as usize * w as usize + px as usize] = over(source, bg);
                     }
                 }
                 x += advance;
             }
         }
     }
+    fn prepare_menu(&mut self) {
+        if self.ui_glyphs.is_empty() {
+            for size in [12,13,20] {
+                for (ch,glyph) in atlas(1,size) { self.ui_glyphs.insert((ch,size),glyph); }
+            }
+        }
+    }
+    pub fn release_menu(&mut self) {
+        self.ui_glyphs = HashMap::new();
+        self.menu_cache = None;
+    }
+    /// Paint only the popup, leaving its rounded corners transparent for compositor blur.
+    pub fn render_menu(&mut self, pixels: &mut [u32], w: u32, h: u32, c: &Config, status: &str) {
+        self.prepare_menu();
+        pixels.fill(0);
+        self.menu(pixels, w, h, c, status, (0,0,w,h), 0);
+    }
     #[allow(clippy::too_many_arguments)]
     fn menu(&self, pixels: &mut [u32], w: u32, h: u32, c: &Config, status: &str,
         (x, y, mw, mh): (u32, u32, u32, u32), page: usize) {
         let draw = |pixels: &mut [u32], rect, radius, color| rounded(pixels, (w, h), rect, radius, color);
-        draw(pixels, (x, y, mw, mh), 12, 0xff484848);
-        draw(pixels, (x+1, y+1, mw-2, mh-2), 11, 0xff202020);
+        // Match the shell's 94% dark glass, light top gradient and tinted rim.
+        draw(pixels, (x, y, mw, mh), 22, argb([142,193,255], 140, 0));
+        draw(pixels, (x+1, y+1, mw.saturating_sub(2), mh.saturating_sub(2)), 21, argb([32;3], 240, 0));
+        for py in y+1..(y+mh).saturating_sub(1) {
+            let lift = 15 * (y+mh-py) / mh.max(1);
+            for px in x+1..(x+mw).saturating_sub(1) {
+                let pixel = &mut pixels[(py*w+px) as usize];
+                if *pixel >> 24 >= 240 {
+                    *pixel = argb([(32+lift) as u8;3], 240, 0);
+                }
+            }
+        }
         self.text(pixels, (w,h), "Hyprmatrix", (x as i32+16, y as i32+30), 20, [245;3]);
         self.text(pixels, (w,h), "Drag to reposition", (x as i32+mw as i32-126, y as i32+28), 12, [184;3]);
-        draw(pixels, (x+12, y+42, mw-24, 30), 8, 0xff282828);
-        let tab_width = (mw-24)/2;
-        for (i, name) in ["Appearance", "Behavior"].iter().enumerate() {
-            let tx = x+12+i as u32*tab_width;
-            if i == page { draw(pixels, (tx+2, y+44, tab_width-4, 26), 6, 0xff33455b); }
-            self.text(pixels, (w,h), name, (tx as i32+14, y as i32+62), 13,
-                if i == page { [142,193,255] } else { [184;3] });
-        }
         let labels = labels(c);
+        debug_assert_eq!(labels.len(), MENU_ROWS);
         for (slot, &i) in page_rows(page).iter().enumerate() {
             let ry = y+MENU_HEADER+slot as u32*ROW;
-            if ry+ROW > y+mh-24 { break; }
+            if ry+ROW > y+mh.saturating_sub(24) { break; }
             let (name, value) = &labels[i];
             let action = value.is_empty();
-            draw(pixels, (x+12, ry, mw-24, ROW-2), 6, if action { 0xff303030 } else { 0xff282828 });
+            draw(pixels, (x+12, ry, mw.saturating_sub(24), ROW-2), 6,
+                argb([255;3], if action { 16 } else { 8 }, 0));
             self.text(pixels, (w,h), name, (x as i32+22, ry as i32+17), 13,
                 if i == 16 { [255,156,165] } else { [245;3] });
             if !action {
-                let vx = x+mw-170;
-                draw(pixels, (vx, ry+2, 148, ROW-6), 5, 0xff252525);
+                let vx = x+mw.saturating_sub(170);
+                draw(pixels, (vx, ry+2, 148, ROW-6), 5, argb([0;3], 24, 0));
                 self.text(pixels, (w,h), "<", (vx as i32+8, ry as i32+17), 13, [142,193,255]);
                 let length: f32 = value.chars().filter_map(|ch| self.ui_glyphs.get(&(ch,13)).map(|g| g.1)).sum();
                 self.text(pixels, (w,h), value, (vx as i32+74-(length/2.0) as i32, ry as i32+17), 13, [142,193,255]);
@@ -448,12 +464,21 @@ impl Renderer {
             }
         }
         let note = if status.is_empty() { "Auto-saved  /  Left: decrease  /  Right: increase" } else { status };
-        let note: String = note.chars().take((mw as usize-32)/7).collect();
-        self.text(pixels, (w,h), &note, (x as i32+16, (y+mh-10) as i32), 12,
+        let note: String = note.chars().take((mw as usize).saturating_sub(32)/7).collect();
+        self.text(pixels, (w,h), &note, (x as i32+16, (y+mh.saturating_sub(10)) as i32), 12,
             if status.is_empty() { [184;3] } else { [255,156,165] });
     }
 }
-/// Rounded opaque UI surfaces leave the rain outside each corner untouched.
+/// Premultiplied source-over keeps antialiased text and nested glass translucent.
+fn over(source: u32, destination: u32) -> u32 {
+    let inverse = 255 - (source >> 24);
+    let mut result = 0;
+    for shift in [0,8,16,24] {
+        result |= (((source >> shift & 255) + (destination >> shift & 255) * inverse / 255).min(255)) << shift;
+    }
+    result
+}
+/// Rounded UI surfaces leave each corner transparent.
 fn rounded(pixels: &mut [u32], size: (u32,u32), (x,y,w,h): (u32,u32,u32,u32), radius: u32, color: u32) {
     let r = radius.min(w/2).min(h/2) as i32;
     for py in y..(y+h).min(size.1) {
@@ -462,7 +487,10 @@ fn rounded(pixels: &mut [u32], size: (u32,u32), (x,y,w,h): (u32,u32,u32,u32), ra
             let ly = (py-y) as i32;
             let dx = (r-lx-1).max(lx-(w as i32-r)).max(0);
             let dy = (r-ly-1).max(ly-(h as i32-r)).max(0);
-            if dx*dx+dy*dy <= r*r { pixels[(py*size.0+px) as usize] = color; }
+            if dx*dx+dy*dy <= r*r {
+                let pixel = &mut pixels[(py*size.0+px) as usize];
+                *pixel = over(color, *pixel);
+            }
         }
     }
 }
@@ -471,8 +499,8 @@ pub fn menu_rect(w: u32, h: u32) -> (u32, u32, u32, u32) {
     let mw = MENU_WIDTH.min(w);
     let mh = MENU_HEIGHT.min(h);
     (
-        w.saturating_sub(mw + 8),
-        8.min(h.saturating_sub(mh)),
+        w.saturating_sub(mw) / 2,
+        h.saturating_sub(mh) / 2,
         mw,
         mh,
     )
@@ -490,9 +518,6 @@ pub fn menu_row(rect: (u32, u32, u32, u32), page: usize, x: f64, y: f64) -> Opti
     let (mx,my,mw,mh) = rect;
     if x < mx as f64 || x >= (mx+mw) as f64 || y < my as f64 || y >= (my+mh) as f64 { return None; }
     let local_y = y-my as f64;
-    if (42.0..72.0).contains(&local_y) {
-        return Some(MENU_ROWS + usize::from(x >= (mx+mw/2) as f64));
-    }
     if local_y < MENU_HEADER as f64 || local_y >= mh.saturating_sub(28) as f64 { return None; }
     page_rows(page).get(((local_y-MENU_HEADER as f64)/ROW as f64) as usize).copied()
 }
@@ -758,8 +783,8 @@ mod tests {
                     (my+MENU_HEADER+slot as u32*ROW+4) as f64), Some(row));
             }
         }
-        assert_eq!(menu_row(rect, 0, mx as f64+20.0, (my+50) as f64), Some(MENU_ROWS));
-        assert_eq!(menu_row(rect, 0, (mx+MENU_WIDTH-20) as f64, (my+50) as f64), Some(MENU_ROWS+1));
+        assert_eq!(menu_row(rect, 0, mx as f64+20.0, (my+50) as f64), None);
+        assert_eq!(menu_row(rect, 0, (mx+MENU_WIDTH-20) as f64, (my+50) as f64), None);
         assert_eq!(labels(&Config::default())[15].0, "Close settings");
         assert_eq!(labels(&Config::default())[16].0, "Quit Hyprmatrix");
     }
@@ -768,7 +793,7 @@ mod tests {
     fn fullscreen_settings_keep_all_remaining_controls_reachable() {
         let rect = menu_rect(360, 460);
         let mut reachable = std::collections::BTreeSet::new();
-        for page in 0..2 {
+        for page in 0..1 {
             for (slot, row) in page_rows(page).iter().enumerate() {
                 let y = rect.1+MENU_HEADER+slot as u32*ROW+ROW/2;
                 assert!(y < rect.1+rect.3-28);
@@ -793,5 +818,25 @@ mod tests {
         );
         assert_eq!(clamp_menu_pos((5000, 5000), (300, 300)), (0, 300 - 300));
         assert_eq!(clamp_menu_pos((100, 100), (300, 300)), (0, 0));
+    }
+    #[test]
+    fn popup_is_centered_and_glass_is_premultiplied_with_clear_corners() {
+        assert_eq!(menu_rect(1920,1080), (760,317,400,446));
+        assert_eq!(menu_rect(300,300), (0,0,300,300));
+        let c = Config::default();
+        let mut renderer = Renderer::new(&c).unwrap();
+        let (w,h) = (MENU_WIDTH,MENU_HEIGHT);
+        let mut pixels = vec![0;(w*h) as usize];
+        renderer.render_menu(&mut pixels,w,h,&c,"");
+        assert_eq!(pixels[0],0);
+        assert_eq!(pixels[(w-1) as usize],0);
+        assert_eq!(pixels[((h-1)*w) as usize],0);
+        let center = pixels[(h/2*w+w/2) as usize];
+        assert!((240..255).contains(&(center>>24)));
+        for pixel in pixels {
+            for shift in [0,8,16] { assert!((pixel>>shift&255) <= pixel>>24); }
+        }
+        renderer.release_menu();
+        assert!(renderer.ui_glyphs.is_empty());
     }
 }
