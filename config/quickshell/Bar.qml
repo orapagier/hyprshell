@@ -186,6 +186,7 @@ Item {
         style.lightForeground = true;
         style.outlineFree = true;
         style.uniformItems = uniformItems;
+        style.circularIcons = true;
         if (uniformItems && id !== "workspaces") style.iconSize = panelIconSize;
         if (compactItemPadding) style.compactPadding = true;
         let group = sharedPills.find(group => group.ids.includes(id));
@@ -445,7 +446,7 @@ Item {
             let steps = Math.max(1, Math.ceil(length / 16)), stops = [];
             for (let i = 0; i <= steps; ++i)
                 stops.push(colorAt(start + length * i / steps, cross, 8, true));
-            let count = knotted ? (workspace ? 1 : Math.max(1, Math.floor(length / 42))) : 0, knots = [];
+            let count = knotted ? (workspace || bar.centerItems ? 1 : Math.max(1, Math.floor(length / 42))) : 0, knots = [];
             for (let i = 0; i < count; ++i)
                 knots.push(colorAt(start + length * (i + 0.5) / count, cross, 12));
             return {start:start, end:end, cross:cross, workspace:workspace,
@@ -461,8 +462,8 @@ Item {
                 let first = ids[i - 1], second = ids[i];
                 let centerBoundary = bar.side(first) !== bar.side(second)
                     && (bar.side(first) === "center" || bar.side(second) === "center");
-                let knotted = centerBoundary || (endpointHasPill(first, true) && endpointHasPill(second, false));
-                if (bar.side(first) === bar.side(second) && bar.pillName(first)
+                let knotted = bar.centerItems || centerBoundary || (endpointHasPill(first, true) && endpointHasPill(second, false));
+                if (!bar.centerItems && bar.side(first) === bar.side(second) && bar.pillName(first)
                     && bar.pillName(first) === bar.pillName(second) && knotted) continue;
                 let a = bar.moduleItems[first], b = bar.moduleItems[second];
                 let start = bar.vertical ? a.y + a.height : a.x + a.width;
@@ -480,8 +481,18 @@ Item {
                     let start = bar.vertical ? workspaceRow.y + a.y + a.height : workspaceRow.x + a.x + a.width;
                     let end = bar.vertical ? workspaceRow.y + b.y : workspaceRow.x + b.x;
                     let cross = bar.vertical ? workspaceRow.x + a.x + a.width / 2 : workspaceRow.y + a.y + a.height / 2;
-                    let knotted = fullPill.visible || (!a.bare && !b.bare);
+                    let knotted = bar.centerItems || fullPill.visible || (!a.bare && !b.bare);
                     if (end - start >= 2) result.push(segmentFor(start, end, cross, true, knotted));
+                }
+            }
+            if (bar.centerItems && bar.itemShown("tray")) {
+                for (let i = 1; i < trayIcons.count; ++i) {
+                    let a = trayIcons.itemAt(i - 1), b = trayIcons.itemAt(i);
+                    if (!a || !b) continue;
+                    let start = bar.vertical ? trayPill.y + trayRow.y + a.y + a.height : trayPill.x + trayRow.x + a.x + a.width;
+                    let end = bar.vertical ? trayPill.y + trayRow.y + b.y : trayPill.x + trayRow.x + b.x;
+                    let cross = bar.vertical ? trayPill.x + trayRow.x + a.x + a.width / 2 : trayPill.y + trayRow.y + a.y + a.height / 2;
+                    if (end - start >= 2) result.push(segmentFor(start, end, cross, false, true));
                 }
             }
             return result;
@@ -566,7 +577,10 @@ Item {
             let top = Math.min(...items.map(item => item.y));
             let right = Math.max(...items.map(item => item.x + item.width));
             let bottom = Math.max(...items.map(item => item.y + item.height));
-            return Qt.rect(left - bar.insetLeft, top - bar.insetTop, right - left + bar.insetLeft + bar.insetRight, bottom - top + bar.insetTop + bar.insetBottom);
+            // Centered full pills get end caps even with zero content padding.
+            let leading = bar.centerItems && !bar.vertical ? Math.max(5, bar.insetLeft) : bar.insetLeft;
+            let trailing = bar.centerItems && !bar.vertical ? Math.max(5, bar.insetRight) : bar.insetRight;
+            return Qt.rect(left - leading, top - bar.insetTop, right - left + leading + trailing, bottom - top + bar.insetTop + bar.insetBottom);
         }
         visible: !bar.statusIconsOnly && fullPill.memberIds.length > 0 && fullPill.backgroundShown
         x: fullPill.bounds.x; y: fullPill.bounds.y; width: fullPill.bounds.width; height: fullPill.bounds.height
@@ -803,6 +817,7 @@ Item {
     }
     Pill {
         id: trayPill
+        circular: trayIcons.count === 1
         x: bar.itemX("tray")
         y: bar.itemY("tray")
         vertical: bar.iconPills

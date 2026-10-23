@@ -412,6 +412,45 @@ Item {
             bar.statusIconsOnly = true;
             verify(!links.visible);
         }
+        function test_centeredFullPillDefaultEndPadding() {
+            let pill = findChild(bar, "fullPanelPill");
+            for (let edge of ["top", "bottom"]) for (let padding of [0, 2, 12]) {
+                bar.settings = connectorConfig(edge, {audio:{},wifi:{side:"right"}},
+                    {centerItems:true,fullBackground:"on",contentPaddingLeft:padding,contentPaddingRight:padding});
+                wait(0);
+                fuzzyCompare(bar.moduleItems.audio.x - pill.x, Math.max(5,padding), 0.01);
+                fuzzyCompare(pill.x + pill.width - bar.moduleItems.wifi.x - bar.moduleItems.wifi.width, Math.max(5,padding), 0.01);
+                fuzzyCompare(pill.x + pill.width / 2, bar.width / 2, 0.01);
+            }
+        }
+        function test_centeredKnotsCoverBareGroupedWorkspaceAndTrayIcons() {
+            let links = findChild(bar, "panelConnectors");
+            bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}],audio:{},network:{},bluetooth:{},battery:{}};
+            bar.trayModel = [{icon:Qt.resolvedUrl("../icons/preview-tray.svg")},{icon:Qt.resolvedUrl("../icons/preview-tray.svg")}];
+            for (let edge of ["top","bottom","left","right"]) {
+                bar.settings = connectorConfig(edge, {audio:{pillGroup:"test"},wifi:{pillGroup:"test"},workspaces:{},tray:{}},
+                    {centerItems:true,background:"off",spacing:100});
+                if (bar.vertical) bar.width = bar.implicitWidth;
+                wait(0);
+                compare(links.segments.length,5);
+                for (let segment of links.segments) compare(segment.knots.length,1);
+                compare(links.arrangeKnots(links.segments,42),links.arrangeKnots(links.segments,42));
+                verify(JSON.stringify(links.arrangeKnots(links.segments,42)) !== JSON.stringify(links.arrangeKnots(links.segments,123)));
+            }
+        }
+        function test_iconPillBackgroundsAreCircularWithoutChangingLabels() {
+            for (let centered of [false,true]) for (let uniform of [false,true]) {
+                bar.settings = connectorConfig("top", {wifi:{radius:0},audio:{radius:0}},
+                    {centerItems:centered,uniformItems:uniform});
+                bar.statusData = {audio:{icon:"󰕾",text:"48%"},network:{text:"󰤨"},bluetooth:{},battery:{}};
+                wait(0);
+                let wifi = bar.moduleItems.wifi, circle = findChild(wifi,"pillBackground");
+                compare(circle.width,circle.height);
+                compare(circle.radius,circle.width / 2);
+                compare(bar.moduleItems.audio.circular,centered);
+                if (!centered) compare(bar.moduleItems.audio.shownText,"48%");
+            }
+        }
         function test_fullPillBoundsAndStyle() {
             let pill = findChild(bar, "fullPanelPill");
             verify(!pill.visible);

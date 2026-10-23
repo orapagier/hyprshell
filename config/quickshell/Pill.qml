@@ -8,6 +8,9 @@ Item {
     property bool vertical: false
     readonly property bool uniformItems: settings.uniformItems === true
     property bool iconOnly: vertical
+    property bool circular: settings.circularIcons === true
+        && (iconOnly || (shownIcon.length > 0 && shownText.length === 0)
+            || (labelIsIcon && shownText.length > 0 && !settings.text))
     property real iconOnlyHeight: 0
     property string compactIcon: ""
     readonly property string displayText: shownText
@@ -95,8 +98,10 @@ Item {
     Rectangle {
         objectName: "pillBackground"
         visible: pill.backgroundShown
-        anchors.fill: parent
-        radius: pill.vertical ? Math.min(width, height) / 2 : pill.settings.radius >= 0 ? pill.settings.radius : height / 2
+        anchors.centerIn: parent
+        width: pill.circular ? Math.min(pill.width, pill.height) : pill.width
+        height: pill.circular ? width : pill.height
+        radius: pill.circular ? width / 2 : pill.vertical ? Math.min(width, height) / 2 : pill.settings.radius >= 0 ? pill.settings.radius : height / 2
         color: pill.styledBackground(pill.adaptivePalette
             ? (pill.selected ? pill.adaptivePalette.selected : pointer.containsMouse || pill.activeFocus ? pill.adaptivePalette.hover : pill.adaptivePalette.tint)
             : pill.selected ? Qt.rgba(pill.foreground.r, pill.foreground.g, pill.foreground.b, 0.32) : pointer.containsMouse || pill.activeFocus ? pill.hoverTint : pill.tint)
