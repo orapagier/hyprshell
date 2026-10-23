@@ -30,7 +30,7 @@ PanelWindow {
         return Qt.rect(x, y, Math.max(0, Math.min(panelBounds.x + panelBounds.width, inwardRect.x + inwardRect.width) - x),
             Math.max(0, Math.min(panelBounds.y + panelBounds.height, inwardRect.y + inwardRect.height) - y));
     }
-    readonly property rect inwardRect: !connected ? Qt.rect(0, 0, width, height)
+    readonly property rect inwardRect: !connected || section === "launcher" ? Qt.rect(0, 0, width, height)
         : barEdge === "bottom" ? Qt.rect(0, 0, width, barRect.y)
         : barEdge === "left" ? Qt.rect(barRect.x + barRect.width, 0, width - barRect.x - barRect.width, height)
         : barEdge === "right" ? Qt.rect(0, 0, barRect.x, height)
@@ -38,7 +38,7 @@ PanelWindow {
     readonly property bool opened: section.length > 0
     signal hoverChanged(bool inside)
     property var applicationService: null
-    readonly property bool managingApplications: section === "launcher" && !!popover.pageItem?.interacting
+    readonly property bool managingApplications: section === "launcher" && !!launcher.interacting
     required property var services
     required property var inbox
     signal closeRequested()
@@ -49,12 +49,12 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
-    // Keep the bar reachable while this overlay is open, so hovering a
-    // neighboring icon can switch menus without closing the current one.
+    // Ordinary menus keep the bar reachable for hover switching. The centered
+    // launcher takes the full screen so outside clicks can dismiss it.
     mask: Region { x: dropdown.inputRect.x; y: dropdown.inputRect.y; width: Math.max(0, dropdown.inputRect.width); height: dropdown.opened ? Math.max(0, dropdown.inputRect.height) : 0 }
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "hyprshell"
-    WlrLayershell.keyboardFocus: !opened ? WlrKeyboardFocus.None : pinned ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
+    WlrLayershell.keyboardFocus: !opened ? WlrKeyboardFocus.None : pinned || section === "launcher" ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
     MouseArea { anchors.fill: parent; onClicked: dropdown.closeRequested() }
     FocusScope {
         id: focusScope
@@ -75,9 +75,7 @@ PanelWindow {
             preserveCornerPosition: dropdown.displayedSection !== "notifications"
             edge: dropdown.barEdge
             accent: dropdown.accent
-            opened: dropdown.opened
-            persistentPage: launcherPage
-            persistentSelected: dropdown.displayedSection === "launcher"
+            opened: dropdown.opened && dropdown.section !== "launcher"
             cardClickable: dropdown.displayedSection === "settings" || dropdown.displayedSection === "workspacePreview"
             onCardClicked: {
                 let workspaceId = dropdown.previewWorkspace?.id;
@@ -89,16 +87,27 @@ PanelWindow {
             }
             title: dropdown.displayedSection === "workspacePreview" ? "Workspace " + (dropdown.previewWorkspace?.name || dropdown.previewWorkspace?.id || "") : ({media:"Now playing",launcher:"Applications",settings:"Hyprshell",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",notifications:"Notifications",battery:"Battery",power:"Power options"})[dropdown.displayedSection] || ""
             symbol: ({workspacePreview:"󰍹",media:"󰎆",launcher:"",settings:"󰒓",calendar:"󰃭",audio:dropdown.services.audioIcon || "󰕾",wifi:"󰤨",bluetooth:"󰂯",notifications:"󰂚",battery:"󰁹",power:"󰐥"})[dropdown.displayedSection] || ""
-            page: ({workspacePreview: workspacePage, media: mediaPage, launcher: launcherPage, settings: settingsPage, calendar: calendarPage, audio: audioPage, wifi: wifiPage, bluetooth: bluetoothPage, notifications: inboxPage, battery: batteryPage, power: powerPage})[dropdown.displayedSection] || null
+            page: ({workspacePreview: workspacePage, media: mediaPage, settings: settingsPage, calendar: calendarPage, audio: audioPage, wifi: wifiPage, bluetooth: bluetoothPage, notifications: inboxPage, battery: batteryPage, power: powerPage})[dropdown.displayedSection] || null
             onHoverChanged: inside => dropdown.hoverChanged(inside)
         }
+    }
+    LauncherPopup {
+        id: launcher
+        anchors.fill: parent
+        screen: dropdown.screen
+        opened: dropdown.section === "launcher"
+        wallpaperSource: dropdown.wallpaperSource
+        translucency: dropdown.translucency
+        applicationService: dropdown.applicationService
+        onCloseRequested: dropdown.closeRequested()
+        onHoverChanged: inside => dropdown.hoverChanged(inside)
     }
     // Delay the warp until the compositor has received the input region.
     Timer {
         id: headerPointer
         interval: 100
         onTriggered: {
-            if (!dropdown.opened || !dropdown.movePointerOnOpen) return;
+            if (!dropdown.opened || dropdown.section === "launcher" || !dropdown.movePointerOnOpen) return;
             let monitor = Hyprland.monitorFor(dropdown.screen);
             if (!monitor) return;
             let x = Math.round(monitor.x + popover.bodyX + popover.bodyWidth / 2);
@@ -123,7 +132,6 @@ PanelWindow {
     }
     onPinnedChanged: if (opened && pinned) focusScope.forceActiveFocus()
     Shortcut { sequence: "Escape"; enabled: dropdown.opened; onActivated: dropdown.closeRequested() }
-    Component { id: launcherPage; LauncherMenu { wallpaperSource: dropdown.wallpaperSource; translucency: dropdown.translucency; applicationService: dropdown.applicationService; active: dropdown.opened && dropdown.section === "launcher"; onLaunched: dropdown.closeRequested() } }
     Component { id: settingsPage; SettingsMenu { onOpenRequested: { dropdown.closeRequested(); dropdown.settingsRequested(); } } }
     Component {
         id: workspacePage

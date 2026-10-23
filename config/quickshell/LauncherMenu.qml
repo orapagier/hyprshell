@@ -45,15 +45,24 @@ ColumnLayout {
         }
         launched();
     }
-    spacing: 8
+    spacing: 12
     Loader { id: fallbackIcons; active: !page.applicationService; visible: false; sourceComponent: AppIcons {} }
     TextField {
         id: search
         objectName: "launcherSearch"
         Layout.fillWidth: true
+        implicitHeight: 46
+        leftPadding: 15; rightPadding: 15
         placeholderText: "Search applications"; color: page.menuColors.text; placeholderTextColor: page.menuColors.secondary
-        font.family: "DejaVu Sans"; font.pixelSize: 13
-        background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#1fffffff" }
+        font.family: "Noto Sans"; font.pixelSize: 13
+        selectionColor: page.menuColors.accent
+        selectedTextColor: page.menuColors.background
+        background: Rectangle {
+            radius: 12
+            color: Qt.rgba(page.menuColors.background.r, page.menuColors.background.g, page.menuColors.background.b, 0.65)
+            border.color: Qt.rgba(page.menuColors.text.r, page.menuColors.text.g, page.menuColors.text.b, 0.12)
+            Behavior on border.color { ColorAnimation { duration: 140 } }
+        }
         Component.onCompleted: if (page.active) page.prepare()
         onAccepted: { if (page.entries.length) page.launch(page.entries[Math.max(0, applications.currentIndex)]); }
         Keys.onDownPressed: page.moveSelection(1)
@@ -62,19 +71,47 @@ ColumnLayout {
     ListView {
         id: applications
         objectName: "applicationsList"
-        Layout.fillWidth: true; Layout.preferredHeight: 300
+        Layout.fillWidth: true; Layout.fillHeight: true
+        Layout.preferredHeight: 300; Layout.minimumHeight: 120
         model: page.entries
-        clip: true; spacing: 4
+        clip: true; spacing: 6
         keyNavigationEnabled: true
+        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
         Keys.onReturnPressed: { if (currentIndex >= 0 && page.entries[currentIndex]) { page.launch(page.entries[currentIndex]); } }
         delegate: AppListButton {
+            id: appRow
             required property var modelData
             required property int index
+            readonly property bool rowHighlighted: hovered || ((applications.activeFocus || search.activeFocus) && applications.currentIndex === index)
             width: applications.width
+            implicitHeight: 54
+            leftPadding: 14; rightPadding: 14
+            font.family: "Noto Sans"; font.pixelSize: 13; font.weight: Font.Medium
             text: modelData.name
             iconSource: page.applicationService ? page.applicationService.iconSource(modelData.icon) : fallbackIcons.item ? (fallbackIcons.item.source(modelData.icon) || fallbackIcons.item.source("application-x-executable")) : ""
-            accent: (applications.activeFocus || search.activeFocus) && applications.currentIndex === index ? page.menuColors.accent : page.menuColors.text
+            accent: page.menuColors.text
+            background: Rectangle {
+                radius: 12
+                color: appRow.down ? page.menuColors.pressed : appRow.rowHighlighted
+                    ? Qt.rgba(page.menuColors.accent.r, page.menuColors.accent.g, page.menuColors.accent.b, 0.12)
+                    : Qt.rgba(page.menuColors.text.r, page.menuColors.text.g, page.menuColors.text.b, 0.035)
+                border.color: appRow.rowHighlighted
+                    ? Qt.rgba(page.menuColors.accent.r, page.menuColors.accent.g, page.menuColors.accent.b, 0.24) : "transparent"
+                Behavior on color { ColorAnimation { duration: 120 } }
+            }
             onClicked: { page.launch(modelData); }
         }
+        Column {
+            anchors.centerIn: parent; width: parent.width; spacing: 8
+            visible: !page.entries.length
+            Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: "No applications found"; color: page.menuColors.text; font.family: "Noto Sans"; font.pixelSize: 14; font.weight: Font.Medium }
+            Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: "Try a different name"; color: page.menuColors.secondary; font.family: "Noto Sans"; font.pixelSize: 12 }
+        }
+    }
+    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Qt.rgba(page.menuColors.text.r, page.menuColors.text.g, page.menuColors.text.b, 0.08) }
+    RowLayout {
+        Layout.fillWidth: true
+        Text { text: page.entries.length + " of " + page.sortedEntries.length + " apps"; color: page.menuColors.secondary; font.family: "Noto Sans"; font.pixelSize: 11; Layout.fillWidth: true }
+        Text { text: "↑ ↓  Browse   ·   Enter  Open"; color: page.menuColors.secondary; font.family: "Noto Sans"; font.pixelSize: 11 }
     }
 }
