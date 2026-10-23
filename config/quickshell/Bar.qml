@@ -12,6 +12,7 @@ Item {
     property bool hoverPopdowns: true
     readonly property string position: settings.bar?.position || "top"
     readonly property bool vertical: position === "left" || position === "right"
+    readonly property bool centerItems: settings.bar?.centerItems === true
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Length never affects width. Explicit icon/font sizing and thickness still do.
     readonly property real verticalThickness: Math.max(32, settings.bar?.height || 32,
@@ -51,7 +52,22 @@ Item {
             + Math.max(0, Settings.item(settings, ids[ids.length - 1]).spacingRight || 0)
             + ids.reduce((total, id, i) => total + (vertical ? moduleItems[id].height : moduleItems[id].width) + (i ? gapBetween(ids[i - 1], id) : 0), 0);
     }
+    function centeredGroupStart(sideName, length, center) {
+        let sides = ["left", "center", "right"];
+        let sizes = sides.map(side => groupLength(side));
+        let total = sizes.reduce((sum, size) => sum + size, 0)
+            + Math.max(0, sizes.filter(size => size > 0).length - 1) * sectionGap;
+        // Honor available padding when the centered block approaches an edge.
+        let cursor = Math.max(0, Math.min(Math.max(0, length - total), center - total / 2));
+        for (let i = 0; i < sides.length; ++i) {
+            if (sides[i] === sideName) return cursor;
+            if (sizes[i]) cursor += sizes[i] + sectionGap;
+        }
+        return cursor;
+    }
     function verticalGroupStart(sideName) {
+        if (centerItems && !overflowing)
+            return centeredGroupStart(sideName, layoutLength, screenHeight / 2 - screenOffsetY - insetTop);
         let sides = ["left", "center", "right"], sizes = sides.map(side => groupLength(side));
         if (compact || overflowing) {
             let cursor = Math.max(0, (layoutLength - minimumVerticalLength) / 2);
@@ -201,7 +217,9 @@ Item {
         let gap = i => Math.max(0, (pillName(group[i]) && pillName(group[i]) === pillName(group[i + 1]) ? (settings.bar?.groupSpacing ?? 3) : spacing) + right(group[i]) + left(group[i + 1]));
         let total = leading + trailing + group.reduce((n, k, i) => n + (vertical ? moduleItems[k].height : moduleItems[k].width) + (i < group.length - 1 ? gap(i) : 0), 0);
         let length = vertical ? contentHeight : contentWidth;
-        let cursor = (side(id) === "right" ? length - total : side(id) === "center" ? (length - total) / 2 : 0) + leading;
+        let cursor = (centerItems
+            ? centeredGroupStart(side(id), length, screenWidth / 2 - screenOffsetX - insetLeft)
+            : side(id) === "right" ? length - total : side(id) === "center" ? (length - total) / 2 : 0) + leading;
         for (let i = 0; i < group.length; i++) {
             let k = group[i];
             if (k === id)

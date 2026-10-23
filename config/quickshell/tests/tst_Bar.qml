@@ -71,6 +71,58 @@ Item {
             compare(geometrySlider.settingValue,Math.round(track.value));
             verify(geometrySlider.settingValue >= value);
         }
+        function test_centerAllGroupsTogetherAndPreserveMembership() {
+            for (let edge of ["top","bottom","left","right"]) {
+                for (let knots of [true,false]) {
+                    bar.settings = connectorConfig(edge, {audio:{side:"left"},calendar:{side:"center"},
+                        wifi:{side:"right",pillGroup:"status"},bluetooth:{side:"right",pillGroup:"status"}},
+                        {centerItems:true,hyprknots:knots,spacing:18,groupSpacing:7,contentPaddingLeft:13,contentPaddingRight:17});
+                    if (bar.vertical) bar.width = bar.implicitWidth;
+                    wait(0);
+                    let savedItems = JSON.stringify(bar.settings.items);
+                    compare(bar.orderedItems("left"),["audio"]);
+                    compare(bar.orderedItems("center"),["calendar"]);
+                    compare(bar.orderedItems("right"),["wifi","bluetooth"]);
+                    let audio = bar.moduleItems.audio, clock = bar.moduleItems.calendar;
+                    let wifi = bar.moduleItems.wifi, bluetooth = bar.moduleItems.bluetooth;
+                    let start = item => bar.vertical ? item.y : item.x;
+                    let size = item => bar.vertical ? item.height : item.width;
+                    fuzzyCompare((start(audio) + start(bluetooth) + size(bluetooth)) / 2
+                        + (bar.vertical ? bar.screenOffsetY : bar.screenOffsetX),
+                        (bar.vertical ? bar.screenHeight : bar.screenWidth) / 2,0.01);
+                    fuzzyCompare(start(clock) - start(audio) - size(audio),bar.sectionGap,0.01);
+                    fuzzyCompare(start(wifi) - start(clock) - size(clock),bar.sectionGap,0.01);
+                    fuzzyCompare(start(bluetooth) - start(wifi) - size(wifi),7,0.01);
+                    compare(bar.sharedPills.length,1);
+                    compare(bar.menuRect("audio").x,audio.x);
+                    bar.settings = Object.assign({},bar.settings,{bar:Object.assign({},bar.settings.bar,{centerItems:false})});
+                    wait(0);
+                    compare(JSON.stringify(bar.settings.items),savedItems);
+                    fuzzyCompare(start(audio),bar.vertical ? bar.insetTop : bar.insetLeft,0.01);
+                }
+            }
+        }
+        function test_centeredLayoutSkipsEmptyGroups() {
+            for (let side of ["left","center","right"]) {
+                let modules = {audio:{side:side}};
+                bar.settings = connectorConfig("top",modules,{centerItems:true});
+                wait(0);
+                let item = bar.moduleItems.audio;
+                fuzzyCompare(item.x + item.width / 2 + bar.screenOffsetX,bar.screenWidth/2,0.01);
+            }
+            bar.settings = connectorConfig("top",{audio:{side:"left"},wifi:{side:"right"}},{centerItems:true});
+            wait(0);
+            fuzzyCompare(bar.moduleItems.wifi.x - bar.moduleItems.audio.x - bar.moduleItems.audio.width,bar.sectionGap,0.01);
+        }
+        function test_centerAllItemsSwitch() {
+            editor.settings = {adaptiveColors:true,clockFormat:"hh:mm"};
+            let control = findChild(editor,"centerItemsControl");
+            verify(!control.checked);
+            control.checked = true; control.toggled();
+            compare(editor.settings.centerItems,true);
+            control.checked = false; control.toggled();
+            compare(editor.settings.centerItems,false);
+        }
         function test_compactSpacingAndWorkspaceGaps() {
             bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}], audio:{}, network:{}, bluetooth:{}, battery:{}};
             for (let edge of ["top", "bottom", "left", "right"]) {

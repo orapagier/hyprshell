@@ -16,6 +16,21 @@ spec.loader.exec_module(backend)
 
 
 class SettingsTests(unittest.TestCase):
+    def test_center_all_items_defaults_validation_and_persistence(self):
+        self.assertFalse(backend.validate({'version': 1})['bar']['centerItems'])
+        for enabled in (True, False):
+            data = copy.deepcopy(self.data)
+            data['bar']['centerItems'] = enabled
+            backend.save(data)
+            saved = json.loads(self.path.read_text())
+            self.assertEqual(saved['bar']['centerItems'], enabled)
+            self.assertEqual(saved['items'], data['items'])
+        for value in (None, 0, 1, 'true', []):
+            data = copy.deepcopy(self.data)
+            data['bar']['centerItems'] = value
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                backend.validate(data)
+
     def test_panel_spacing_and_four_sides_validate_and_persist(self):
         defaults = backend.validate({'version': 1})['bar']
         self.assertEqual(defaults['compactSpacing'], 3)

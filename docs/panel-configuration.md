@@ -54,3 +54,13 @@ screen center; left/right groups retain their saved edge alignment.
 Controls autosave and apply
 to both the Settings item preview and the live panel without changing item order,
 group membership or menu anchoring.
+
+**Layout & spacing → Center all items** (`bar.centerItems`, default false)
+places the left, center and right groups together at the screen center, in that
+order. Each group retains its saved membership, order, individual offsets and
+shared pills. Nonempty groups use the normal section gap; empty groups add no
+gap. The whole collection is centered, so the center group itself can move away
+from the screen midpoint. Padding bounds constrain placement near screen edges.
+The switch previews immediately and autosaves. Turning it off restores the
+usual edge alignment. On side panels it centers the three groups vertically;
+the existing Full edge / Compact length selection is retained.

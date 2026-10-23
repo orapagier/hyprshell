@@ -26,6 +26,7 @@ class AutosaveTests(unittest.TestCase):
         settings = self.run_ui_scenario('SettingsBarPosition', 'BAR_POSITION_OK', ('right', '', 1))
         self.assertEqual(settings['bar']['position'], 'top')
         self.assertEqual(settings['bar']['compactSpacing'], 4)
+        self.assertTrue(settings['bar']['centerItems'])
         for side in ('Top', 'Bottom', 'Left', 'Right'):
             self.assertEqual(settings['bar']['screenMargin' + side], 12)
             self.assertEqual(settings['bar']['contentPadding' + side], 6)

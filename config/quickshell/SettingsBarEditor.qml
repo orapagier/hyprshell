@@ -152,6 +152,18 @@ ColumnLayout {
             text: "On either side edge, the left group sits at the top and the right group sits at the bottom."
             wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
+        SettingsSwitch {
+            objectName: "centerItemsControl"
+            Layout.fillWidth: true
+            text: "Center all items"
+            checked: root.settings.centerItems === true
+            onToggled: root.edited("centerItems", checked)
+        }
+        Label {
+            Layout.fillWidth: true
+            text: "Keep the left, center, and right groups in order and place them together at the screen’s center. Item order and shared pills stay the same."
+            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+        }
         Label {
             visible: ["left", "right"].includes(root.settings.position)
             text: "Side panel length"; color: Style.Theme.muted; font.pixelSize: Style.Theme.bodySize

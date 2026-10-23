@@ -23,6 +23,7 @@
     "marginSide": 10,
     "spacing": 3,
     "compactSpacing": 3,
+    "centerItems": false,
     "screenMarginTop": null,
     "screenMarginBottom": null,
     "screenMarginLeft": null,
