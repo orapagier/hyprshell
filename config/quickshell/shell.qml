@@ -229,6 +229,7 @@ ShellRoot {
                 section: menuState.section
                 displayedSection: menuState.displayedSection
                 alignment: connected ? bar.side(menuState.displayedSection) : "center"
+                alignToTrigger: connected && bar.centerItems
                 pinned: menuState.pinned
                 triggerRect: {
                     if (!connected) return Qt.rect(panel.screen.width / 2, 0, 0, 0);

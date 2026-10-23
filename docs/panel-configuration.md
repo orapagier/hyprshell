@@ -64,3 +64,10 @@ from the screen midpoint. Padding bounds constrain placement near screen edges.
 The switch previews immediately and autosaves. Turning it off restores the
 usual edge alignment. On side panels it centers the three groups vertically;
 the existing Full edge / Compact length selection is retained.
+
+With **Center all items** enabled, connected popdown cards follow their actual
+triggering icon, including workspace and media previews. Cards stay within the
+screen boundaries and update while icons move. Saved left/center/right group
+membership continues to control layout; disabling centering restores ordinary
+menu alignment. Hidden-panel shortcuts and the application launcher overlay
+retain their existing placement.

@@ -74,6 +74,19 @@ ShellRoot {
                 dropdown.settingsRequested.connect(() => { test.settingsOpened++; });
                 let popover = test.find(dropdown.contentItem, 'dropdownPopover');
                 test.check(popover && popover.cardClickable, 'workspace preview card is clickable');
+                dropdown.width = 1200; dropdown.height = 800;
+                dropdown.panelBounds = Qt.rect(0,0,1200,800);
+                dropdown.alignToTrigger = true;
+                dropdown.alignment = 'left';
+                dropdown.triggerRect = Qt.rect(500,5,30,28);
+                test.check(popover.alignToTrigger, 'production dropdown forwards icon-following placement');
+                test.check(Math.abs(popover.bodyX + popover.bodyWidth/2 - 515) < 0.01,
+                    'workspace preview follows icon instead of saved left alignment');
+                dropdown.triggerRect = Qt.rect(700,5,30,28);
+                test.check(Math.abs(popover.bodyX + popover.bodyWidth/2 - 715) < 0.01,
+                    'open popdown follows its moving icon');
+                dropdown.alignToTrigger = false;
+                test.check(popover.bodyX === popover.safeLeft, 'ordinary group alignment is retained');
                 popover.cardClicked();
                 test.check(test.switchedWorkspace === 2 && test.closedMenus === 1 && !test.settingsOpened,
                     'preview click switches to the previewed workspace and closes the menu');

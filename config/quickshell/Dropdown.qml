@@ -16,6 +16,7 @@ PanelWindow {
     property string displayedSection: section
     property rect triggerRect: Qt.rect(12, 4, 32, 20)
     property string alignment: "center"
+    property bool alignToTrigger: false
     property color accent: "#b4befe"
     property bool connected: true
     property bool pointed: false
@@ -70,6 +71,7 @@ PanelWindow {
             translucency: dropdown.translucency
             triggerRect: dropdown.triggerRect
             alignment: dropdown.alignment
+            alignToTrigger: dropdown.alignToTrigger
             connected: dropdown.connected
             pointed: dropdown.pointed
             preserveCornerPosition: dropdown.displayedSection !== "notifications"
