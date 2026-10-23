@@ -29,8 +29,6 @@ ShellRoot {
     id: root
     property real previewWidth: 724
     property bool saved: false
-    property int settingsClicks: 0
-    property int lockClicks: 0
     property real testHeight: 200
     property bool interpolated: false
     property bool reducedPhase: false
@@ -53,13 +51,11 @@ ShellRoot {
             DashboardContent {
                 id: dashboard; x: 18; y: 18
                 width: root.previewWidth; height: implicitHeight
-                services: ({statusData:{network:{tooltip:"Home Wi-Fi · 78%"}},batteryInfo:{present:true,percentage:38,pluggedIn:false}})
+                services: ({connectedWifi:{signalStrength:0.78},wifiEnabled:true,statusData:{network:{tooltip:"Home Wi-Fi · 78%"}},batteryInfo:{present:true,percentage:38,pluggedIn:false}})
                 resourceData: ({system:{hostname:"fedora",os:"Fedora Linux 44 (Forty Four)",
                     cpuModel:"12th Gen Intel(R) Core(TM) i5-1235U",kernel:"7.2.9-201.fc44.x86_64",
                     memoryTotal:16428249907,uptimeSeconds:132840,osAgeDays:8},usage:{cpuPercent:18,
                     memoryUsed:5798205850,memoryTotal:16428249907,storageFree:191126044672,storageTotal:511101108224}})
-                onSettingsRequested: root.settingsClicks++
-                onLockRequested: root.lockClicks++
             }
         }
     }
@@ -97,16 +93,29 @@ ShellRoot {
                 if (test.findChild(dashboard, 'dashboardCpuUsage').value !== '18%') throw new Error('CPU usage missing');
                 if (test.findChild(dashboard, 'dashboardRamUsage').value !== '5.4 / 15.3 GiB') throw new Error('RAM usage missing');
                 if (test.findChild(dashboard, 'dashboardStorageUsage').value !== '178.0 GiB free') throw new Error('Free storage missing');
-                if (dashboard.implicitHeight > 664) throw new Error('Wide dashboard exceeds 700 px drawer with padding');
+                if (dashboard.implicitHeight > 580) throw new Error('Wide dashboard is not compact');
                 if (weather.x !== 0 || weather.width <= 350) throw new Error('Weather does not lead wide layout');
-                test.mouseClick(test.findChild(dashboard, 'dashboardSettings'));
-                test.mouseClick(test.findChild(dashboard, 'dashboardLock'));
-                if (root.settingsClicks !== 1 || root.lockClicks !== 1) throw new Error('Device actions broken');
+                if (test.findChild(dashboard, 'dashboardSettings') || test.findChild(dashboard, 'dashboardLock')) throw new Error('Removed buttons still take space');
+                if (test.findChild(dashboard, 'dashboardWifiSignal').text !== '78%' || test.findChild(dashboard, 'dashboardBatteryLevel').text !== '38%') throw new Error('Connection percentages missing');
+                const metrics = test.findChild(weather, 'weatherMetrics');
+                const hourly = test.findChild(weather, 'weatherHourlyForecast');
+                if (Math.abs(hourly.y - metrics.y - metrics.height - 14) > 1) throw new Error('Forecast gap is not compact');
+                const pencil = test.findChild(weather, 'weatherChangeCity');
+                const location = test.findChild(weather, 'weatherLocation');
+                if (Math.abs(pencil.mapToItem(weather, 0, pencil.height / 2).y - location.mapToItem(weather, 0, location.height / 2).y) > 1) throw new Error('Pencil is not aligned with city');
                 test.mouseClick(test.findChild(weather, 'weatherChangeCity'));
                 if (!weather.editing || !test.findChild(weather, 'weatherCitySearch').activeFocus) throw new Error('City editor focus missing');
                 if (test.findChild(weather, 'weatherTemperature').visible) throw new Error('Editor crowds forecast');
                 root.capture('city-editor'); root.checkBounds(dashboard);
-                weather.editing = false;
+                test.mouseClick(pencil);
+                if (weather.editing) throw new Error('City editor cancel broken');
+                dashboard.services = {connectedWifi:null,wifiEnabled:true,statusData:{network:{tooltip:'Offline'}},batteryInfo:{present:false}};
+                test.wait(50);
+                if (test.findChild(dashboard, 'dashboardWifiSignal').text !== 'Disconnected' || test.findChild(dashboard, 'dashboardBatteryLevel').text !== 'No battery') throw new Error('Unavailable connection state incorrect');
+                dashboard.services = {connectedWifi:null,wifiEnabled:false,statusData:{network:{tooltip:'Wi-Fi turned off'}},batteryInfo:{present:true,percentage:0,pluggedIn:false}};
+                test.wait(50);
+                if (test.findChild(dashboard, 'dashboardWifiSignal').text !== 'Off' || test.findChild(dashboard, 'dashboardBatteryLevel').text !== '0%') throw new Error('Wi-Fi off or empty battery state incorrect');
+                dashboard.services = {connectedWifi:{signalStrength:0.78},wifiEnabled:true,statusData:{network:{tooltip:'Home Wi-Fi · 78%'}},batteryInfo:{present:true,percentage:38,pluggedIn:false}};
                 root.previewWidth = 320;
                 root.capture('narrow'); root.checkBounds(dashboard);
                 const resources = dashboard.resourceData;

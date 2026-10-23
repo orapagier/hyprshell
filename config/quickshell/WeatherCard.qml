@@ -119,7 +119,11 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true; spacing: 12
             Label {
-                text: "LOCAL WEATHER"; color: card.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.8; Layout.fillWidth: true
+                objectName: "weatherLocation"
+                text: card.locationParts[0] || "Your local weather"
+                Accessible.name: card.snapshot.location?.name || text
+                font.pixelSize: 24; font.weight: Font.DemiBold
+                Layout.fillWidth: true
                 Accessible.description: "Weather by Open-Meteo. Location data by GeoNames."
                 ToolTip.visible: sourceHover.containsMouse
                 ToolTip.text: "Weather: Open-Meteo · Location: GeoNames"
@@ -131,16 +135,15 @@ Rectangle {
             }
             Action {
                 objectName: "weatherChangeCity"
-                text: card.editing ? "Back" : "Change city"
+                text: card.editing ? "\u{f00d}" : "\u{f040}"
+                font.family: "GoMono Nerd Font"; font.pixelSize: 16
+                implicitWidth: 34; leftPadding: 0; rightPadding: 0
+                contentItem: Text { text: parent.text; font: parent.font; color: card.textColor; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                Accessible.name: card.editing ? "Cancel city edit" : "Change city"
+                ToolTip.visible: hovered
+                ToolTip.text: Accessible.name
                 onClicked: { card.editing = !card.editing; if (card.editing) city.forceActiveFocus(); }
             }
-        }
-        Label {
-            objectName: "weatherLocation"
-            text: card.locationParts[0] || "Your local weather"
-            Accessible.name: card.snapshot.location?.name || text
-            font.pixelSize: 24; font.weight: Font.DemiBold
-            Layout.topMargin: 14; Layout.fillWidth: true
         }
         Label {
             visible: card.locationParts.length > 1 || !card.snapshot.location
@@ -269,6 +272,7 @@ Rectangle {
             }
         }
         Rectangle {
+            objectName: "weatherMetrics"
             visible: card.snapshot.weather !== undefined && !card.choosingCity
             Layout.topMargin: 14; Layout.fillWidth: true
             implicitHeight: metrics.implicitHeight + 32
@@ -284,11 +288,10 @@ Rectangle {
                 Metric { title: "Sunrise"; value: card.sun(card.daily.sunrise?.[0]); detail: "Sunset " + card.sun(card.daily.sunset?.[0]) + " · local" }
             }
         }
-        Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
         Rectangle {
             objectName: "weatherHourlyForecast"
             visible: card.upcomingHours.length > 0 && !card.choosingCity
-            Layout.fillWidth: true
+            Layout.topMargin: 14; Layout.fillWidth: true
             implicitHeight: hourlyDetails.implicitHeight + 32
             color: Colors.alpha(card.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
             border.width: Style.Theme.highContrast ? 1 : 0; border.color: card.textColor
@@ -322,6 +325,7 @@ Rectangle {
             }
         }
         Label { text: card.snapshot.error || card.snapshot.warning || (card.busy && card.operation === "weather" ? "Updating weather…" : ""); visible: text.length > 0 && card.snapshot.weather !== undefined; color: card.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true; Layout.topMargin: visible ? 8 : 0 }
+        Item { Layout.fillHeight: true }
     }
     component Label: MenuLabel { color: card.textColor }
     component Metric: ColumnLayout {

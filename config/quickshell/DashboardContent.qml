@@ -71,11 +71,11 @@ ColumnLayout {
             ColumnLayout {
                 id: systemDetails
                 anchors.fill: parent; anchors.margins: 24; spacing: 0
-                Label { objectName: "dashboardSystemInfo"; text: "THIS DEVICE"; color: page.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.8 }
                 Label {
+                    objectName: "dashboardSystemInfo"
                     text: page.resourceData.system?.hostname || Quickshell.env("USER") || "System"
                     font.pixelSize: 24; font.weight: Font.DemiBold
-                    Layout.topMargin: 12; Layout.fillWidth: true; elide: Text.ElideRight
+                    Layout.fillWidth: true; elide: Text.ElideRight
                 }
                 Label { text: page.resourceData.system?.os || "Reading system information…"; color: page.secondaryColor; font.pixelSize: 12; Layout.topMargin: 4; Layout.fillWidth: true }
                 Rectangle {
@@ -131,32 +131,28 @@ ColumnLayout {
                         }
                     }
                 }
-                Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
                 Rectangle {
                     objectName: "dashboardConnectionStatus"
-                    Layout.fillWidth: true
+                    Layout.topMargin: 14; Layout.fillWidth: true
                     implicitHeight: connectionDetails.implicitHeight + 28
                     color: Colors.alpha(page.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
                     border.width: Style.Theme.highContrast ? 1 : 0; border.color: page.textColor
                     ColumnLayout {
                         id: connectionDetails
-                        anchors.fill: parent; anchors.margins: 14; spacing: 0
-                        RowLayout {
-                            Layout.fillWidth: true; spacing: 9
-                            Rectangle { implicitWidth: 5; implicitHeight: 5; radius: 3; color: page.accentColor }
-                            Label { text: page.services.statusData.network.tooltip; color: page.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true }
+                        anchors.fill: parent; anchors.margins: 14; spacing: 10
+                        InfoRow {
+                            title: "Wi-Fi"; valueName: "dashboardWifiSignal"
+                            value: page.services.connectedWifi ? Math.round(page.services.connectedWifi.signalStrength * 100) + "%" : page.services.wifiEnabled ? "Disconnected" : "Off"
+                            Accessible.name: page.services.statusData.network.tooltip
                         }
-                        Label {
-                            text: page.services.batteryInfo.present ? page.services.batteryInfo.percentage + "% battery · " + (page.services.batteryInfo.pluggedIn ? "Plugged in" : "On battery") : "Desktop power"
-                            font.pixelSize: 11; color: page.secondaryColor; Layout.topMargin: 7; Layout.fillWidth: true
+                        InfoRow {
+                            title: "Battery"; valueName: "dashboardBatteryLevel"
+                            value: page.services.batteryInfo.present ? page.services.batteryInfo.percentage + "%" : "No battery"
+                            Accessible.name: "Battery: " + value + (page.services.batteryInfo.present ? (page.services.batteryInfo.pluggedIn ? ", plugged in" : ", on battery") : "")
                         }
                     }
                 }
-                RowLayout {
-                    Layout.topMargin: 12; Layout.fillWidth: true; spacing: 8
-                    Action { objectName: "dashboardSettings"; text: "Settings"; Layout.fillWidth: true; onClicked: page.settingsRequested() }
-                    Action { objectName: "dashboardLock"; text: "Lock"; Layout.fillWidth: true; onClicked: page.lockRequested() }
-                }
+                Item { Layout.fillHeight: true }
             }
         }
     }
@@ -193,21 +189,6 @@ ColumnLayout {
                 width: parent.width * Math.max(0, Math.min(1, usageRow.fraction)); height: parent.height; radius: 2
                 color: page.accentColor
             }
-        }
-    }
-    component Action: MenuButton {
-        accent: page.textColor; font.pixelSize: 12
-        fillColor: Colors.alpha(page.accentColor, 0.07)
-        hoverColor: Colors.alpha(page.accentColor, 0.16)
-        pressedColor: Colors.alpha(page.accentColor, 0.22)
-        outlineColor: Style.Theme.highContrast ? page.textColor : "transparent"
-        focusColor: page.accentColor
-        implicitHeight: 36; topPadding: 9; bottomPadding: 9
-        background: Rectangle {
-            radius: 12
-            color: parent.down ? parent.pressedColor : parent.hovered || parent.activeFocus ? parent.hoverColor : parent.fillColor
-            border.width: 1; border.color: parent.activeFocus ? page.accentColor : parent.outlineColor
-            Behavior on color { ColorAnimation { duration: Style.Theme.duration(page, 140) } }
         }
     }
     component Card: Rectangle {
