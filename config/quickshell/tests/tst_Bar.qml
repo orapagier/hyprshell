@@ -230,6 +230,55 @@ Item {
             control.checked = false; control.toggled();
             compare(editor.settings.centerItems,false);
         }
+        function test_uniformSpacingMeasuresVisibleGlyphsInBothLayouts() {
+            bar.statusData = {workspaces:[],audio:{},network:{text:"󰤨"},bluetooth:{text:"󰂯"},battery:{}};
+            for (let centered of [false,true]) for (let knots of [false,true]) for (let gap of [0,5,20]) {
+                bar.settings = connectorConfig("top",{
+                    wifi:{side:"left",pillGroup:"status",iconSize:9,paddingLeft:30,paddingRight:25,spacingRight:12},
+                    bluetooth:{side:"left",pillGroup:"status",iconSize:32,paddingLeft:20,paddingRight:20,spacingLeft:30},
+                    power:{side:"left",iconSize:40}},
+                    {uniformItems:true,centerItems:centered,iconSize:15,hyprknots:knots,
+                        spacing:knots ? gap : 29,compactSpacing:knots ? 27 : gap,groupSpacing:25});
+                wait(0);
+                let ids=bar.orderedItems("left");
+                for (let i=0; i<ids.length; ++i) {
+                    let item=bar.moduleItems[ids[i]], ink=item.glyphRect;
+                    compare(item.effectiveIconSize,15,ids[i] + " common icon size");
+                    fuzzyCompare(ink.x,4,0.01,ids[i] + " visible left padding");
+                    fuzzyCompare(item.width-ink.x-ink.width,4,0.01,ids[i] + " visible right padding");
+                    if (i) {
+                        let previous=bar.moduleItems[ids[i-1]], previousInk=previous.glyphRect;
+                        fuzzyCompare(item.x+ink.x-previous.x-previousInk.x-previousInk.width,gap+8,0.01,"visible gap");
+                        fuzzyCompare(item.x-previous.x-previous.width,gap,0.01,"pill gap");
+                    }
+                }
+                compare(bar.appearance("bluetooth").iconSize,15);
+                bar.settings=Object.assign({},bar.settings,{bar:Object.assign({},bar.settings.bar,{uniformItems:false})});
+                compare(bar.appearance("bluetooth").iconSize,32,"individual setting remains saved");
+            }
+        }
+        function test_uniformSizeCoversCustomMarksMediaTrayAndCompactWorkspaces() {
+            bar.statusData={workspaces:[{id:1,name:"1"},{id:12,name:"12"}],audio:{icon:"󰕾",text:"48%"},network:{},bluetooth:{},battery:{present:true,text:"󰁹 82%"}};
+            bar.mediaData={playing:true,title:"Song",levels:[0.2,0.8]};
+            bar.trayModel=[{icon:Qt.resolvedUrl("../icons/preview-tray.svg")},{icon:Qt.resolvedUrl("../icons/preview-tray.svg")}];
+            for (let centered of [false,true]) {
+                let modules={}; for(let id of Object.keys(bar.moduleItems)) modules[id]={iconSize:30};
+                modules.workspaces={iconSize:9,fontSize:9};
+                bar.settings=connectorConfig("top",modules,{uniformItems:true,centerItems:centered,iconSize:15,hyprknots:false,compactSpacing:5});
+                wait(0);
+                for (let id of ["launcher","settings","calendar","audio","wifi","bluetooth","notifications","battery","power"])
+                    compare(bar.moduleItems[id].effectiveIconSize,15,id);
+                compare(findChild(bar,"distroGlassLogo").iconSize,15);
+                compare(findChild(bar,"settingsGlassCog").iconSize,15);
+                compare(findChild(bar,"mediaSpectrum").width,15);
+                compare(findChild(bar,"mediaSpectrum").height,15);
+                compare(bar.moduleItems.tray.trayIconSize,15);
+                compare(findChild(bar,"workspace1").content.font.pixelSize,9);
+                verify(findChild(bar,"workspace12").height<=20);
+                compare(bar.moduleItems.workspaces.spacing,5);
+                compare(findChild(bar.moduleItems.tray,"trayIcon").parent.spacing,5);
+            }
+        }
         function test_compactSpacingAndWorkspaceGaps() {
             bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}], audio:{}, network:{}, bluetooth:{}, battery:{}};
             for (let edge of ["top", "bottom", "left", "right"]) {

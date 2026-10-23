@@ -14,9 +14,12 @@ Item {
     readonly property bool vertical: position === "left" || position === "right"
     readonly property bool centerItems: settings.bar?.centerItems === true
     readonly property bool iconsOnly: vertical || centerItems
+    readonly property bool uniformItems: settings.bar?.uniformItems === true
+    readonly property real panelIconSize: settings.bar?.iconSize || 16
+    readonly property bool iconPills: vertical || (centerItems && !uniformItems)
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Length never affects width. Explicit icon/font sizing and thickness still do.
-    readonly property real verticalThickness: Math.max(32, settings.bar?.height || 32,
+    readonly property real verticalThickness: uniformItems ? Math.max(32, settings.bar?.height || 32, panelIconSize + 12) : Math.max(32, settings.bar?.height || 32,
         ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => {
             let style = Settings.appearance(settings, id);
             return Math.max(style.iconSize || 16, style.fontSize || 12) + 12 + Math.max(0, style.paddingLeft || 0) + Math.max(0, style.paddingRight || 0);
@@ -28,7 +31,7 @@ Item {
     readonly property real insetRight: settings.bar?.contentPaddingRight ?? 0
     readonly property real contentWidth: Math.max(0, width - insetLeft - insetRight)
     readonly property real contentHeight: Math.max(0, height - insetTop - insetBottom)
-    readonly property real sectionGap: centerItems || settings.bar?.hyprknots === false ? itemSpacing : Math.max(12, itemSpacing)
+    readonly property real sectionGap: uniformItems || centerItems || settings.bar?.hyprknots === false ? itemSpacing : Math.max(12, itemSpacing)
     readonly property real minimumVerticalLength: {
         let sizes = ["left", "center", "right"].map(side => groupLength(side)).filter(size => size > 0);
         return sizes.reduce((total, size) => total + size, 0) + Math.max(0, sizes.length - 1) * sectionGap;
@@ -42,15 +45,16 @@ Item {
         let offset = scrollOffset;
         return Qt.rect(item.x, item.y - (vertical ? offset : 0), item.width, item.height);
     }
+    function spacingOffset(id, key) { return uniformItems ? 0 : (Settings.item(settings, id)[key] || 0); }
     function gapBetween(first, second) {
-        let base = !centerItems && pillName(first) && pillName(first) === pillName(second) ? (settings.bar?.groupSpacing ?? 3) : itemSpacing;
-        return Math.max(0, base + (Settings.item(settings, first).spacingRight || 0) + (Settings.item(settings, second).spacingLeft || 0));
+        let base = !uniformItems && !centerItems && pillName(first) && pillName(first) === pillName(second) ? (settings.bar?.groupSpacing ?? 3) : itemSpacing;
+        return Math.max(0, base + spacingOffset(first, "spacingRight") + spacingOffset(second, "spacingLeft"));
     }
     function groupLength(sideName) {
         let ids = orderedItems(sideName);
         if (!ids.length) return 0;
-        return Math.max(0, Settings.item(settings, ids[0]).spacingLeft || 0)
-            + Math.max(0, Settings.item(settings, ids[ids.length - 1]).spacingRight || 0)
+        return Math.max(0, spacingOffset(ids[0], "spacingLeft"))
+            + Math.max(0, spacingOffset(ids[ids.length - 1], "spacingRight"))
             + ids.reduce((total, id, i) => total + (vertical ? moduleItems[id].height : moduleItems[id].width) + (i ? gapBetween(ids[i - 1], id) : 0), 0);
     }
     function centeredGroupStart(sideName, length, center) {
@@ -181,6 +185,8 @@ Item {
         let style = Settings.appearance(settings, id, wallpaperSource.toString());
         style.lightForeground = true;
         style.outlineFree = true;
+        style.uniformItems = uniformItems;
+        if (uniformItems && id !== "workspaces") style.iconSize = panelIconSize;
         if (compactItemPadding) style.compactPadding = true;
         let group = sharedPills.find(group => group.ids.includes(id));
         if (group) {
@@ -202,7 +208,7 @@ Item {
     function itemPosition(id) {
         if (vertical) {
             let ids = orderedItems(side(id));
-            let cursor = verticalGroupStart(side(id)) + (ids.length ? Math.max(0, Settings.item(settings, ids[0]).spacingLeft || 0) : 0);
+            let cursor = verticalGroupStart(side(id)) + (ids.length ? Math.max(0, spacingOffset(ids[0], "spacingLeft")) : 0);
             for (let i = 0; i < ids.length; ++i) {
                 if (ids[i] === id) return cursor;
                 cursor += moduleItems[ids[i]].height + (i + 1 < ids.length ? gapBetween(ids[i], ids[i + 1]) : 0);
@@ -210,12 +216,11 @@ Item {
             return cursor;
         }
         let group = orderedItems(side(id));
-        let spacing = itemSpacing;
-        let left = k => Settings.item(settings, k).spacingLeft || 0;
-        let right = k => Settings.item(settings, k).spacingRight || 0;
+        let left = k => spacingOffset(k, "spacingLeft");
+        let right = k => spacingOffset(k, "spacingRight");
         let leading = group.length ? Math.max(0, left(group[0])) : 0;
         let trailing = group.length ? Math.max(0, right(group[group.length - 1])) : 0;
-        let gap = i => Math.max(0, (!centerItems && pillName(group[i]) && pillName(group[i]) === pillName(group[i + 1]) ? (settings.bar?.groupSpacing ?? 3) : spacing) + right(group[i]) + left(group[i + 1]));
+        let gap = i => gapBetween(group[i], group[i + 1]);
         let total = leading + trailing + group.reduce((n, k, i) => n + (vertical ? moduleItems[k].height : moduleItems[k].width) + (i < group.length - 1 ? gap(i) : 0), 0);
         let length = vertical ? contentHeight : contentWidth;
         let cursor = (centerItems
@@ -612,7 +617,7 @@ Item {
         menu: "launcher"
         x: bar.itemX("launcher")
         y: bar.itemY("launcher")
-        vertical: bar.iconsOnly
+        vertical: bar.iconPills
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("launcher")
         opacity: Settings.item(bar.settings, "launcher").opacity ?? 1
@@ -636,8 +641,8 @@ Item {
             objectName: "distroGlassLogo"
             iconSize: distroLogo.settings.iconSize || distroLogo.settings.fontSize || 22
             visible: !distroLogo.settings.text && !distroLogo.settings.icon && (bar.iconsOnly || !distroLogo.settings.hideText) && !distroLogo.settings.hideIcon
-            x: bar.iconsOnly ? 0 : distroLogo.content.x
-            width: bar.iconsOnly ? distroLogo.width : distroLogo.content.width
+            x: bar.uniformItems && !bar.vertical ? 4 : bar.iconsOnly ? 0 : distroLogo.content.x
+            width: bar.uniformItems && !bar.vertical ? iconSize : bar.iconsOnly ? distroLogo.width : distroLogo.content.width
             height: distroLogo.height
             accent: distroLogo.settings.iconColor || distroLogo.settings.textColor || distroLogo.effectiveForeground
             highlighted: distroLogo.hovered || distroLogo.selected
@@ -650,7 +655,7 @@ Item {
         id: settingsCog
         bar: bar; menu: "settings"
         x: bar.itemX("settings"); y: bar.itemY("settings")
-        vertical: bar.iconsOnly
+        vertical: bar.iconPills
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("settings")
         opacity: settings.opacity ?? 1
@@ -675,8 +680,8 @@ Item {
             objectName: "settingsGlassCog"
             iconSize: settingsCog.settings.iconSize || settingsCog.settings.fontSize || 22
             visible: !settingsCog.settings.text && !settingsCog.settings.icon && (bar.iconsOnly || !settingsCog.settings.hideText) && !settingsCog.settings.hideIcon
-            x: bar.iconsOnly ? 0 : settingsCog.content.x
-            width: bar.iconsOnly ? settingsCog.width : settingsCog.content.width
+            x: bar.uniformItems && !bar.vertical ? 4 : bar.iconsOnly ? 0 : settingsCog.content.x
+            width: bar.uniformItems && !bar.vertical ? iconSize : bar.iconsOnly ? settingsCog.width : settingsCog.content.width
             height: settingsCog.height
             accent: settingsCog.settings.iconColor || settingsCog.settings.textColor || settingsCog.effectiveForeground
             highlighted: settingsCog.hovered || settingsCog.selected
@@ -699,9 +704,9 @@ Item {
         horizontalItemAlignment: Grid.AlignHCenter
         verticalItemAlignment: Grid.AlignVCenter
         height: Math.max(28, implicitHeight)
-        spacing: bar.statusIconsOnly ? 2 : bar.centerItems || bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
-        leftPadding: bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
-        rightPadding: bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
+        spacing: bar.statusIconsOnly ? 2 : bar.uniformItems || bar.centerItems || bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
+        leftPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
+        rightPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
         Repeater {
             id: workspaceRepeater
             model: (bar.statusData.workspaces || []).filter(w => !bar.outputName || w.monitor === bar.outputName)
@@ -763,8 +768,8 @@ Item {
         onActiveChanged: if (!active && bar.activeMenu === "media") bar.previewUnavailable()
         visible: active
         sourceComponent: MediaPill {
-            vertical: bar.iconsOnly
-            iconOnly: vertical || bar.statusIconsOnly
+            vertical: bar.iconPills
+            iconOnly: bar.iconsOnly || bar.statusIconsOnly
             settings: bar.appearance("media")
             colorSampler: Settings.adaptive(bar.settings, "media") ? bar.wallpaperColors : null
             colorRoot: bar
@@ -775,7 +780,7 @@ Item {
             onClicked: bar.action("media", null)
             onEntered: bar.menuHovered("media")
             onExited: bar.menuLeft("media")
-            width: bar.iconsOnly ? bar.verticalThickness - 4 : implicitWidth
+            width: bar.iconPills ? bar.verticalThickness - 4 : implicitWidth
         }
     }
     BarMenuButton {
@@ -784,7 +789,7 @@ Item {
         menu: "calendar"
         x: bar.itemX("calendar")
         y: bar.itemY("calendar")
-        vertical: bar.iconsOnly
+        vertical: bar.iconPills
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("calendar")
         opacity: Settings.item(bar.settings, "calendar").opacity ?? 1
@@ -800,7 +805,7 @@ Item {
         id: trayPill
         x: bar.itemX("tray")
         y: bar.itemY("tray")
-        vertical: bar.iconsOnly
+        vertical: bar.iconPills
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: {
             let style = bar.appearance("tray");
@@ -813,26 +818,26 @@ Item {
         foreground: "#cba6f7"
         interactive: false
         visible: bar.itemEnabled("tray") && trayIcons.count > 0
-        width: bar.vertical ? bar.verticalThickness - 4 : trayRow.width + (bar.centerItems ? 0 : effectiveLeftPadding + effectiveRightPadding)
+        width: bar.vertical ? bar.verticalThickness - 4 : trayRow.width + (bar.uniformItems || bar.centerItems ? 0 : effectiveLeftPadding + effectiveRightPadding)
         implicitHeight: bar.centerItems ? Math.max(28, settings.hideIcon ? 0 : trayRow.height) : bar.vertical ? Math.max(32, settings.hideIcon ? 0 : trayRow.height) : Math.max(28, trayRow.height + 8)
         content.y: bar.vertical ? 4 : (height - content.height) / 2
         leftPadding: bar.vertical ? 4 : 11
         rightPadding: bar.vertical ? 4 : 11
         readonly property int trayIconSize: settings.iconSize || 16
-        readonly property int trayTargetSize: bar.iconsOnly ? bar.verticalThickness - 4 : trayIconSize
+        readonly property int trayTargetSize: bar.vertical ? bar.verticalThickness - 4 : bar.uniformItems ? trayIconSize + 8 : bar.centerItems ? bar.verticalThickness - 4 : trayIconSize
         Grid {
             id: trayRow
             columns: bar.vertical ? Math.max(1, Math.floor((bar.verticalThickness - 4 + spacing) / (trayPill.trayTargetSize + spacing))) : Math.max(1, trayIcons.count)
-            x: bar.vertical ? (trayPill.width - width) / 2 : bar.centerItems ? 0 : trayPill.effectiveLeftPadding
+            x: bar.vertical ? (trayPill.width - width) / 2 : bar.uniformItems || bar.centerItems ? 0 : trayPill.effectiveLeftPadding
             y: bar.vertical ? 0 : (parent.height - height) / 2
             visible: !trayPill.settings.hideIcon
-            spacing: bar.centerItems ? bar.itemSpacing : bar.vertical ? 4 : 0
+            spacing: bar.uniformItems || bar.centerItems ? bar.itemSpacing : bar.vertical ? 4 : 0
             Repeater {
                 id: trayIcons
                 model: bar.trayModel
                 delegate: Pill {
                     id: trayIcon
-                    vertical: bar.iconsOnly
+                    vertical: bar.iconPills
                     interactive: false
                     settings: bar.vertical ? bar.appearance("tray") : ({background:"off"})
                     colorSampler: trayPill.colorSampler
@@ -875,7 +880,7 @@ Item {
         menu: "notifications"
         x: bar.itemX("notifications")
         y: bar.itemY("notifications")
-        vertical: bar.iconsOnly
+        vertical: bar.iconPills
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("notifications")
         opacity: Settings.item(bar.settings, "notifications").opacity ?? 1
@@ -887,7 +892,7 @@ Item {
         minimumTextWidth: 12
         leftPadding: 7
         rightPadding: bar.vertical ? 6 : badge.visible ? Math.max(11, badge.implicitWidth + 1) : 11
-        effectiveRightPadding: bar.compactItemPadding && !bar.vertical
+        effectiveRightPadding: bar.uniformItems ? Math.max(4, badge.visible ? badge.implicitWidth - 2 : 0) : bar.compactItemPadding && !bar.vertical
             ? Math.max(0, (badge.visible ? badge.implicitWidth + 1 : 0) + (settings.paddingRight || 0))
             : Math.max(0, (bar.vertical ? Math.min(4, rightPadding) : rightPadding) + (settings.paddingRight || 0))
         implicitHeight: !vertical && iconOnly ? Math.max(28, effectiveIconSize + 8) : naturalHeight
@@ -920,7 +925,7 @@ Item {
         id: audio
         x: bar.itemX("audio")
         y: bar.itemY("audio")
-        vertical: bar.iconsOnly
+        vertical: bar.iconPills
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("audio")
         opacity: Settings.item(bar.settings, "audio").opacity ?? 1
@@ -937,7 +942,7 @@ Item {
         id: wifi
         x: bar.itemX("wifi")
         y: bar.itemY("wifi")
-        vertical: bar.iconsOnly
+        vertical: bar.iconPills
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("wifi")
         opacity: Settings.item(bar.settings, "wifi").opacity ?? 1
@@ -950,13 +955,13 @@ Item {
         outline: bar.rgba("#94e2d5", 0.26)
         family: "GoMono Nerd Font"
         pixelSize: 15
-        implicitWidth: bar.compactItemPadding && !bar.vertical ? naturalWidth : implicitHeight
+        implicitWidth: bar.uniformItems || (bar.compactItemPadding && !bar.vertical) ? naturalWidth : vertical ? bar.verticalThickness - 4 : implicitHeight
         leftPadding: 4
         rightPadding: 4
         // Center the visible glyph rather than the font's advance box.
         content.horizontalAlignment: bar.vertical ? Text.AlignHCenter : Text.AlignLeft
         content.elide: Text.ElideNone
-        content.x: bar.vertical ? effectiveLeftPadding : (wifi.width - wifiGlyphMetrics.tightBoundingRect.width) / 2
+        content.x: bar.uniformItems && !bar.vertical ? effectiveLeftPadding - wifiGlyphMetrics.tightBoundingRect.x : bar.vertical ? effectiveLeftPadding : (wifi.width - wifiGlyphMetrics.tightBoundingRect.width) / 2
                    - wifiGlyphMetrics.tightBoundingRect.x
         TextMetrics {
             id: wifiGlyphMetrics
@@ -968,7 +973,7 @@ Item {
         id: bluetooth
         x: bar.itemX("bluetooth")
         y: bar.itemY("bluetooth")
-        vertical: bar.iconsOnly
+        vertical: bar.iconPills
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("bluetooth")
         opacity: Settings.item(bar.settings, "bluetooth").opacity ?? 1
@@ -981,7 +986,7 @@ Item {
         outline: bar.rgba("#b4befe", 0.28)
         family: "GoMono Nerd Font"
         pixelSize: 15
-        implicitWidth: bar.compactItemPadding && !bar.vertical ? naturalWidth : implicitHeight
+        implicitWidth: bar.uniformItems || (bar.compactItemPadding && !bar.vertical) ? naturalWidth : vertical ? bar.verticalThickness - 4 : implicitHeight
         leftPadding: 4
         rightPadding: 4
     }
@@ -989,7 +994,7 @@ Item {
         id: battery
         x: bar.itemX("battery")
         y: bar.itemY("battery")
-        vertical: bar.iconsOnly
+        vertical: bar.iconPills
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("battery")
         opacity: Settings.item(bar.settings, "battery").opacity ?? 1
@@ -1008,7 +1013,7 @@ Item {
         id: power
         x: bar.itemX("power")
         y: bar.itemY("power")
-        vertical: bar.iconsOnly
+        vertical: bar.iconPills
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("power")
         opacity: Settings.item(bar.settings, "power").opacity ?? 1

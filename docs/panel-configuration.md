@@ -79,11 +79,25 @@ including two-digit numbers; centering does not enlarge them into icon circles.
 Normal-mode workspace names and custom appearance remain saved. Notification
 counts and status text remain available in their menus. The normal text layout
 returns when centering is disabled; saved item text, icons and appearance are
-retained. Centered icons share consistent slot sizes, so former text padding does
-not produce visibly different icon spacing.
+retained. Uniform mode sizes controls around visible content with equal padding,
+so narrow glyphs do not leave extra blank space.
 
 The active item-gap control (with or without Hyprknots) applies to centered
 items in every group, workspace buttons, tray icons, shared-pill members and
 section boundaries. Empty groups add no gap. Shared-pill spacing remains saved
-for the ordinary layout; individual before/after adjustments still apply.
+for individual mode; before/after adjustments apply when uniform mode is off.
 Only the applicable gap control is enabled for the current mode.
+
+**Uniform icon size & spacing** (`bar.uniformItems`, default true) uses the
+General icon size for launcher/settings marks, status icons, calendar, media
+spectrum and tray artwork. Workspace number font choices remain independent.
+Both centered and ordinary horizontal layouts size pills around visible glyph
+bounds with 4 px padding on either side; Bluetooth and Wi-Fi no longer reserve
+an unrelated square width or font-bearing space. Text labels remain available
+in the ordinary layout, and workspace pills keep compact text sizing.
+
+The active item gap applies to every group, shared pill, workspace button and
+tray icon in either layout. Individual size/padding/gap overrides remain saved;
+turn uniform mode off to use them again. Side panels retain their circular
+controls and use the same icon size and item gap. Group positions still follow
+the selected centered or ordinary layout.

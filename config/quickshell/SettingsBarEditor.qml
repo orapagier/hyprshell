@@ -153,6 +153,18 @@ ColumnLayout {
             wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
         SettingsSwitch {
+            objectName: "uniformItemsControl"
+            Layout.fillWidth: true
+            text: "Uniform icon size & spacing"
+            checked: root.settings.uniformItems === true
+            onToggled: root.edited("uniformItems", checked)
+        }
+        Label {
+            Layout.fillWidth: true
+            text: "Use the general icon size, equal padding and the active item gap in every layout. Switch off to use saved individual sizes, padding and spacing adjustments. Workspace numbers keep their small text size."
+            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+        }
+        SettingsSwitch {
             objectName: "centerItemsControl"
             Layout.fillWidth: true
             text: "Center all items"
@@ -206,7 +218,7 @@ ColumnLayout {
                     editInterval: 32
                     enabled: modelData.key === "spacing" ? root.settings.hyprknots !== false
                         : modelData.key === "compactSpacing" ? root.settings.hyprknots === false
-                        : modelData.key === "groupSpacing" ? root.settings.centerItems !== true : true
+                        : modelData.key === "groupSpacing" ? root.settings.centerItems !== true && root.settings.uniformItems !== true : true
                     settingValue: root.settings[modelData.key] ?? modelData.fallback
                     from: modelData.min; to: modelData.max; suffix: " px"
                     resetDescription: "Restore default " + modelData.label.toLowerCase()

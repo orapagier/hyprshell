@@ -33,7 +33,7 @@ FloatingWindow {
         value: {
             if (!window.visible || !window.editingSession || !window.success || window.store.error) return {};
             let preview = {};
-            for (let key of ["height", "spacing", "compactSpacing", "groupSpacing", "centerItems", "marginTop", "marginSide", "paddingBottom",
+            for (let key of ["height", "spacing", "compactSpacing", "groupSpacing", "centerItems", "uniformItems", "iconSize", "marginTop", "marginSide", "paddingBottom",
                     "screenMarginTop", "screenMarginBottom", "screenMarginLeft", "screenMarginRight",
                     "contentPaddingTop", "contentPaddingBottom", "contentPaddingLeft", "contentPaddingRight"]) {
                 if (window.draft.bar[key] !== window.initial.bar[key]) preview[key] = window.draft.bar[key];

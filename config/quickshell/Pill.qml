@@ -6,7 +6,9 @@ Item {
     id: pill
     property var settings: ({})
     property bool vertical: false
+    readonly property bool uniformItems: settings.uniformItems === true
     property bool iconOnly: vertical
+    property real iconOnlyHeight: 0
     property string compactIcon: ""
     readonly property string displayText: shownText
     readonly property string shownText: iconOnly || settings.hideText ? "" : settings.text || text
@@ -43,8 +45,8 @@ Item {
     property bool bold: true
     property int leftPadding: 11
     property int rightPadding: 11
-    property int effectiveLeftPadding: Math.max(0, (vertical ? Math.min(4, leftPadding) : settings.compactPadding ? 0 : leftPadding) + (settings.paddingLeft || 0))
-    property int effectiveRightPadding: Math.max(0, (vertical ? Math.min(4, rightPadding) : settings.compactPadding ? 0 : rightPadding) + (settings.paddingRight || 0))
+    property int effectiveLeftPadding: uniformItems ? (settings.compactPadding ? 0 : 4) : Math.max(0, (vertical ? Math.min(4, leftPadding) : settings.compactPadding ? 0 : leftPadding) + (settings.paddingLeft || 0))
+    property int effectiveRightPadding: uniformItems ? (settings.compactPadding ? 0 : 4) : Math.max(0, (vertical ? Math.min(4, rightPadding) : settings.compactPadding ? 0 : rightPadding) + (settings.paddingRight || 0))
     property int minimumTextWidth: 0
     property int maximumWidth: 10000
     property int textFormat: Text.PlainText
@@ -68,7 +70,7 @@ Item {
         label.y + label.baselineOffset + labelMetrics.tightBoundingRect.y,
         labelMetrics.tightBoundingRect.width, labelMetrics.tightBoundingRect.height)
     readonly property rect iconGlyphRect: Qt.rect(
-        iconLabel.x + (vertical ? 0 : (iconLabel.width - iconLabel.implicitWidth) / 2) + compactGlyphMetrics.tightBoundingRect.x,
+        iconLabel.x + (vertical || uniformItems ? 0 : (iconLabel.width - iconLabel.implicitWidth) / 2) + compactGlyphMetrics.tightBoundingRect.x,
         iconLabel.y + iconLabel.baselineOffset + compactGlyphMetrics.tightBoundingRect.y,
         compactGlyphMetrics.tightBoundingRect.width, compactGlyphMetrics.tightBoundingRect.height)
     property rect glyphRect: shownIcon.length ? iconGlyphRect : textGlyphRect
@@ -80,10 +82,12 @@ Item {
     readonly property int effectiveIconSize: settings.iconSize || settings.fontSize || iconSize
     readonly property int effectiveGlyphSize: settings.iconSize || settings.fontSize || pixelSize
     readonly property int effectiveTextSize: settings.fontSize || Math.max(8, Math.round(pixelSize * (settings.iconSize || 16) / 16))
-    readonly property int iconWidth: shownIcon.length ? effectiveIconSize + 5 : 0
-    readonly property real naturalWidth: Math.min(maximumWidth, Math.max(minimumTextWidth, label.implicitWidth, vertical && shownIcon.length ? effectiveIconSize : 0) + (vertical ? 0 : iconWidth) + effectiveLeftPadding + effectiveRightPadding)
+    readonly property real iconWidth: shownIcon.length ? (uniformItems && !vertical ? compactGlyphMetrics.tightBoundingRect.width + (shownText.length ? 4 : 0) : effectiveIconSize + 5) : 0
+    readonly property real naturalWidth: uniformItems && !vertical
+        ? Math.min(maximumWidth, (shownText.length ? (labelIsIcon ? labelMetrics.tightBoundingRect.width : label.implicitWidth) : shownIcon.length ? 0 : minimumTextWidth) + iconWidth + effectiveLeftPadding + effectiveRightPadding)
+        : Math.min(maximumWidth, Math.max(minimumTextWidth, label.implicitWidth, vertical && shownIcon.length ? effectiveIconSize : 0) + (vertical ? 0 : iconWidth) + effectiveLeftPadding + effectiveRightPadding)
     implicitWidth: naturalWidth
-    readonly property real naturalHeight: iconOnly ? width : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
+    readonly property real naturalHeight: iconOnly ? (iconOnlyHeight > 0 ? iconOnlyHeight : width) : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
     implicitHeight: naturalHeight
     activeFocusOnTab: interactive
     Keys.onReturnPressed: if (interactive) clicked(null)
@@ -129,7 +133,7 @@ Item {
     }
     Text {
         id: iconLabel
-        x: pill.vertical ? (parent.width - compactGlyphMetrics.tightBoundingRect.width) / 2 - compactGlyphMetrics.tightBoundingRect.x : pill.effectiveLeftPadding
+        x: pill.vertical ? (parent.width - compactGlyphMetrics.tightBoundingRect.width) / 2 - compactGlyphMetrics.tightBoundingRect.x : pill.effectiveLeftPadding - (pill.uniformItems ? compactGlyphMetrics.tightBoundingRect.x : 0)
         y: pill.vertical && !pill.shownText.length
             ? (parent.height - compactGlyphMetrics.tightBoundingRect.height) / 2 - baselineOffset - compactGlyphMetrics.tightBoundingRect.y
             : pill.vertical ? 4 : (parent.height - height) / 2
@@ -142,13 +146,13 @@ Item {
         style: pill.settings.outlineFree ? Text.Normal : pill.glyphHalo ? Text.Outline : pill.bare ? Text.Raised : Text.Normal
         styleColor: pill.glyphHalo ? pill.iconEdge : pill.glyphShadow
         font.family: "GoMono Nerd Font"; font.pixelSize: pill.effectiveIconSize
-        horizontalAlignment: pill.vertical ? Text.AlignLeft : Text.AlignHCenter
+        horizontalAlignment: pill.vertical || pill.uniformItems ? Text.AlignLeft : Text.AlignHCenter
         renderType: Text.QtRendering
     }
     Text {
         id: label
         opacity: pill.glyphOpacity
-        x: pill.effectiveLeftPadding + (pill.vertical ? 0 : pill.iconWidth)
+        x: pill.effectiveLeftPadding + (pill.vertical ? 0 : pill.iconWidth) - (pill.uniformItems && !pill.vertical && pill.labelIsIcon ? labelMetrics.tightBoundingRect.x : 0)
         y: (parent.height - height + (pill.vertical && pill.shownIcon.length ? pill.effectiveIconSize + 4 : 0)) / 2
         width: Math.max(1, parent.width - pill.effectiveLeftPadding - pill.effectiveRightPadding - (pill.vertical ? 0 : pill.iconWidth))
         wrapMode: Text.NoWrap
@@ -160,9 +164,9 @@ Item {
         font.family: pill.family
         font.pixelSize: pill.labelIsIcon ? pill.effectiveGlyphSize : pill.effectiveTextSize
         font.bold: pill.bold
-        horizontalAlignment: Text.AlignHCenter
+        horizontalAlignment: pill.uniformItems && !pill.vertical ? Text.AlignLeft : Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        elide: pill.vertical ? Text.ElideNone : Text.ElideRight
+        elide: pill.vertical || (pill.uniformItems && pill.labelIsIcon) ? Text.ElideNone : Text.ElideRight
         renderType: Text.QtRendering
     }
     MouseArea {

@@ -113,6 +113,8 @@ def validate(data):
         raise ValueError('Vertical presentation must be edge or compact')
     if bar['position'] not in ('top', 'left', 'right', 'bottom'):
         raise ValueError('Bar position must be top, left, right, or bottom')
+    if type(bar['uniformItems']) is not bool:
+        raise ValueError('Uniform icon size and spacing must be boolean')
     if type(bar['centerItems']) is not bool:
         raise ValueError('Center all items must be boolean')
     if type(bar['visible']) is not bool:

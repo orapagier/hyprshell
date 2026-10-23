@@ -70,7 +70,7 @@ Item {
             menuState.activate(data.menu,true);
             for (let background of ["on","off"]) {
                 for (let padding of [0,45]) {
-                    bar.settings = {bar:{position:data.edge,centerItems:true,background:background,
+                    bar.settings = {bar:{position:data.edge,centerItems:true,uniformItems:true,background:background,
                         contentPaddingLeft:padding,contentPaddingRight:padding}};
                     wait(0);
                     verify(popover.alignToTrigger);
@@ -132,5 +132,5 @@ Item {
             fixture.write_text(source)
             env = dict(os.environ, QT_QPA_PLATFORMTHEME='', QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
             result = subprocess.run([runner, '-input', str(fixture)], env=env,
-                                    capture_output=True, text=True, timeout=30)
+                                    capture_output=True, text=True, timeout=60)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

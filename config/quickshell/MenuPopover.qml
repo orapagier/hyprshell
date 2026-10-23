@@ -128,10 +128,11 @@ Item {
         ? (alignToTrigger && connected ? clamp(triggerRect.x + triggerRect.width / 2 - bodyWidth / 2, safeLeft, safeRight - bodyWidth) : alignment === "left" ? safeLeft : alignment === "right" ? safeRight - bodyWidth : panelBounds.x + (panelBounds.width - bodyWidth) / 2)
         : edge === "left" ? clamp(triggerRect.x + triggerRect.width + connectorGap, safeLeft, safeRight - bodyWidth)
         : clamp(triggerRect.x - connectorGap - bodyWidth, safeLeft, safeRight - bodyWidth)
-    readonly property real availableHeight: !connected ? Math.max(0, Math.min(panelBounds.height - 64, safeBottom - bodyY)) : vertical ? Math.max(0, safeBottom - safeTop)
+    readonly property real detachedY: Math.max(safeTop + 36, triggerRect.y + triggerRect.height + 12)
+    readonly property real availableHeight: !connected ? Math.max(0, Math.min(panelBounds.height - 64, safeBottom - detachedY)) : vertical ? Math.max(0, safeBottom - safeTop)
         : edge === "bottom" ? triggerRect.y - connectorGap - safeTop - 4 : safeBottom - triggerRect.y - triggerRect.height - connectorGap - 4
     readonly property real bodyHeight: Math.max(0, Math.min(availableHeight, maximumBodyHeight, requestedBodyHeight))
-    readonly property real bodyY: attachedCorner ? safeBottom - bodyHeight : !connected ? Math.max(safeTop + 36, triggerRect.y + triggerRect.height + 12)
+    readonly property real bodyY: attachedCorner ? safeBottom - bodyHeight : !connected ? detachedY
         : edge === "top" ? clamp(triggerRect.y + triggerRect.height + connectorGap, safeTop, safeBottom - bodyHeight)
         : edge === "bottom" ? clamp(triggerRect.y - connectorGap - bodyHeight, safeTop, safeBottom - bodyHeight)
         : clamp(triggerRect.y + triggerRect.height / 2 - bodyHeight / 2, safeTop, safeBottom - bodyHeight)

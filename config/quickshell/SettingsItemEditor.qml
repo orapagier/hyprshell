@@ -87,7 +87,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Item spacing"
-        subtitle: "Negative values reduce the gap; positive values add space. Gaps stop at zero. Base spacing: " + (!root.barSettings.centerItems && root.settings.pillGroup ? (root.barSettings.groupSpacing ?? 3) : root.barSettings.hyprknots === false ? (root.barSettings.compactSpacing ?? 3) : (root.barSettings.spacing ?? 3)) + " px."
+        subtitle: root.barSettings.uniformItems === true ? "Uniform spacing is on. Change the active gap in Hyprpane settings, or switch uniform spacing off to use these saved adjustments." : "Negative values reduce the gap; positive values add space. Gaps stop at zero. Base spacing: " + (!root.barSettings.centerItems && root.settings.pillGroup ? (root.barSettings.groupSpacing ?? 3) : root.barSettings.hyprknots === false ? (root.barSettings.compactSpacing ?? 3) : (root.barSettings.spacing ?? 3)) + " px."
         GridLayout {
             Layout.fillWidth: true
             columns: root.width >= 600 ? 2 : 1
@@ -99,6 +99,7 @@ ColumnLayout {
                 delegate: SettingsSlider {
                     required property var modelData
                     objectName: modelData.key + "Control"
+                    enabled: root.barSettings.uniformItems !== true
                     Layout.fillWidth: true
                     label: modelData.label
                     settingValue: root.settings[modelData.key] ?? 0
@@ -112,7 +113,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Padding inside pill"
-        subtitle: "Adjust space inside this item's click area, between its content and the pill edges. Positive values add space; negative values reduce the original padding. Works in shared pills too."
+        subtitle: root.barSettings.uniformItems === true ? "Uniform spacing uses equal padding. Switch it off in Hyprpane settings to use these saved padding adjustments." : "Adjust space inside this item's click area, between its content and the pill edges. Positive values add space; negative values reduce the original padding. Works in shared pills too."
         GridLayout {
             Layout.fillWidth: true
             columns: root.width >= 600 ? 2 : 1
@@ -124,6 +125,7 @@ ColumnLayout {
                 delegate: SettingsSlider {
                     required property var modelData
                     objectName: modelData.key + "Control"
+                    enabled: root.barSettings.uniformItems !== true
                     Layout.fillWidth: true
                     label: modelData.label
                     settingValue: root.settings[modelData.key] ?? 0
@@ -162,6 +164,7 @@ ColumnLayout {
         SettingsIconSize {
             Layout.fillWidth: true
             individual: true
+            enabled: root.barSettings.uniformItems !== true || root.settings.id === "workspaces"
             settingValue: root.settings.iconSize
             inheritedSize: root.barSettings.iconSize
             onEdited: value => root.edited("iconSize", value)
