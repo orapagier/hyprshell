@@ -119,6 +119,17 @@ changes before committing, and report the local commit. If committing fails,
 retain the changes and report the failure. Manual desktop edits remain live and
 uncommitted until the user chooses Sync to GitHub; there is no background saver.
 
+Before completing a task that changes the sync payload, follow
+[Sync baseline completion](references/sync.md). After validation and matching
+live deployment, use `scripts/sync_baseline.py` for the task's payload paths.
+It verifies the actual sync snapshot and updates only matching entries in the
+local sync baseline, with a checkpoint. Matching repo/live copies alone are not
+enough: a stale baseline makes a later manual Settings edit look like a conflict.
+Preserve unrelated manual edits and genuine conflicts; never clear the baseline,
+mark differing copies as synchronized, or run `save_local()` to finalize an agent
+task (it captures and commits unrelated desktop changes). This step runs before
+the final local commit and completion report; documentation-only tasks need none.
+
 Settings → Sync to GitHub captures the live configuration, commits it locally,
 then pushes. Push completed agent commits with their original subjects and bodies
 intact; do not amend, squash, replace, or recommit them under a generic sync
