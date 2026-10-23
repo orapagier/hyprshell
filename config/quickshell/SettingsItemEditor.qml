@@ -87,7 +87,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Item spacing"
-        subtitle: "Negative values reduce the gap; positive values add space. Gaps stop at zero. Base spacing: " + (root.settings.pillGroup ? (root.barSettings.groupSpacing ?? 3) : (root.barSettings.spacing ?? 3)) + " px."
+        subtitle: "Negative values reduce the gap; positive values add space. Gaps stop at zero. Base spacing: " + (!root.barSettings.centerItems && root.settings.pillGroup ? (root.barSettings.groupSpacing ?? 3) : root.barSettings.hyprknots === false ? (root.barSettings.compactSpacing ?? 3) : (root.barSettings.spacing ?? 3)) + " px."
         GridLayout {
             Layout.fillWidth: true
             columns: root.width >= 600 ? 2 : 1

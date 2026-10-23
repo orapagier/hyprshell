@@ -71,6 +71,87 @@ Item {
             compare(geometrySlider.settingValue,Math.round(track.value));
             verify(geometrySlider.settingValue >= value);
         }
+        function test_centeredIconsHideLabelsAndRestoreNormalText() {
+            bar.statusData = {workspaces:[{id:1,name:"Dev",active:true},{id:2,name:"Chat"}],
+                audio:{icon:"󰕾",text:"48%"},network:{text:"󰤨"},bluetooth:{text:"󰂯"},battery:{present:true,text:"󰁹 82%"}};
+            bar.mediaData = {playing:true,title:"Artist — A song",levels:[0.2,0.8,0.4]};
+            bar.notificationData = {count:42};
+            bar.trayModel = [{icon:Qt.resolvedUrl("../icons/preview-tray.svg")}];
+            for (let edge of ["top","bottom"]) {
+                let modules = {};
+                for (let id of Object.keys(bar.moduleItems)) modules[id] = {};
+                modules.calendar = {side:"center"};
+                modules.audio = {side:"right",paddingLeft:20,paddingRight:-5};
+                bar.settings = connectorConfig(edge,modules,{centerItems:true,iconSize:16});
+                wait(0);
+                let saved = JSON.stringify(bar.settings.items);
+                for (let id of ["launcher","settings","calendar","audio","wifi","bluetooth","notifications","battery","power"]) {
+                    let item = bar.moduleItems[id];
+                    compare(item.shownText,"",id + " text");
+                    compare(item.width,bar.verticalThickness - 4,id + " icon slot");
+                    if (id !== "launcher" && id !== "settings") verify(item.shownIcon.length > 0,id + " icon");
+                }
+                compare(bar.moduleItems.calendar.shownIcon,"󰃭");
+                verify(findChild(bar,"distroGlassLogo").visible);
+                verify(findChild(bar,"settingsGlassCog").visible);
+                let first = findChild(bar,"workspace1"), second = findChild(bar,"workspace2");
+                compare(first.shownText,""); compare(second.shownText,"");
+                verify(first.shownIcon.length > 0 && second.shownIcon.length > 0);
+                verify(first.shownIcon !== second.shownIcon);
+                compare(bar.moduleItems.media.item.shownText,"");
+                compare(findChild(bar,"mediaSpectrum").barCount,5);
+                verify(!findChild(bar,"notificationBadge").visible);
+                bar.settings = Object.assign({},bar.settings,{bar:Object.assign({},bar.settings.bar,{centerItems:false})});
+                wait(0);
+                compare(bar.moduleItems.calendar.shownText,bar.clockText);
+                compare(bar.moduleItems.audio.shownText,"48%");
+                compare(bar.moduleItems.battery.shownText,"82%");
+                compare(findChild(bar,"workspace1").shownText,"Dev");
+                compare(bar.moduleItems.media.item.shownText,"Artist — A song");
+                verify(findChild(bar,"notificationBadge").visible);
+                compare(JSON.stringify(bar.settings.items),saved);
+            }
+        }
+        function test_centeredGapReachesEveryGroupWorkspaceAndTray() {
+            bar.statusData = {workspaces:[{id:1,name:"1",active:true},{id:2,name:"2"}],audio:{},network:{},bluetooth:{},battery:{}};
+            bar.mediaData = {playing:true,title:"Song",levels:[0.2,0.8]};
+            bar.trayModel = [{icon:Qt.resolvedUrl("../icons/preview-tray.svg")},{icon:Qt.resolvedUrl("../icons/preview-tray.svg")}];
+            for (let edge of ["top","bottom","left","right"]) {
+                for (let knots of [true,false]) for (let gap of [0,5,20]) {
+                    bar.settings = connectorConfig(edge,{workspaces:{side:"left"},media:{side:"left"},calendar:{side:"center"},
+                        audio:{side:"right",pillGroup:"status"},wifi:{side:"right",pillGroup:"status"},tray:{side:"right"}},
+                        {centerItems:true,hyprknots:knots,spacing:knots ? gap : 27,compactSpacing:knots ? 1 : gap,groupSpacing:29});
+                    if (bar.vertical) bar.width = bar.implicitWidth;
+                    wait(0);
+                    let ids = ["left","center","right"].reduce((ids,side) => ids.concat(bar.orderedItems(side)),[]);
+                    for (let i = 1; i < ids.length; ++i) {
+                        let a=bar.moduleItems[ids[i-1]], b=bar.moduleItems[ids[i]];
+                        fuzzyCompare(bar.vertical ? b.y-a.y-a.height : b.x-a.x-a.width,gap,0.01,ids[i-1] + " to " + ids[i]);
+                    }
+                    let row = bar.moduleItems.workspaces;
+                    compare(row.spacing,gap);
+                    let first = findChild(bar,"workspace1"), second = findChild(bar,"workspace2");
+                    fuzzyCompare(bar.vertical ? second.y-first.y-first.height : second.x-first.x-first.width,gap,0.01);
+                    let tray = findChild(bar.moduleItems.tray,"trayIcon").parent;
+                    compare(tray.spacing,gap);
+                    let icons = tray.children.filter(child => child.objectName === "trayIcon");
+                    if (!bar.vertical) {
+                        fuzzyCompare(icons[1].x-icons[0].x-icons[0].width,gap,0.01);
+                        compare(bar.moduleItems.tray.height,bar.verticalThickness - 4);
+                    }
+                }
+            }
+        }
+        function test_spacingControlsFollowCurrentMode() {
+            editor.settings = {adaptiveColors:true,clockFormat:"hh:mm",centerItems:true,hyprknots:false};
+            verify(findChild(editor,"compactSpacingControl").enabled);
+            verify(!findChild(editor,"spacingControl").enabled);
+            verify(!findChild(editor,"groupSpacingControl").enabled);
+            editor.settings = Object.assign({},editor.settings,{centerItems:false,hyprknots:true});
+            verify(!findChild(editor,"compactSpacingControl").enabled);
+            verify(findChild(editor,"spacingControl").enabled);
+            verify(findChild(editor,"groupSpacingControl").enabled);
+        }
         function test_centerAllGroupsTogetherAndPreserveMembership() {
             for (let edge of ["top","bottom","left","right"]) {
                 for (let knots of [true,false]) {
@@ -92,7 +173,7 @@ Item {
                         (bar.vertical ? bar.screenHeight : bar.screenWidth) / 2,0.01);
                     fuzzyCompare(start(clock) - start(audio) - size(audio),bar.sectionGap,0.01);
                     fuzzyCompare(start(wifi) - start(clock) - size(clock),bar.sectionGap,0.01);
-                    fuzzyCompare(start(bluetooth) - start(wifi) - size(wifi),7,0.01);
+                    fuzzyCompare(start(bluetooth) - start(wifi) - size(wifi),bar.itemSpacing,0.01);
                     compare(bar.sharedPills.length,1);
                     compare(bar.menuRect("audio").x,audio.x);
                     bar.settings = Object.assign({},bar.settings,{bar:Object.assign({},bar.settings.bar,{centerItems:false})});

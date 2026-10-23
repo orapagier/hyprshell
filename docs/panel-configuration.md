@@ -71,3 +71,16 @@ screen boundaries and update while icons move. Saved left/center/right group
 membership continues to control layout; disabling centering restores ordinary
 menu alignment. Hidden-panel shortcuts and the application launcher overlay
 retain their existing placement.
+
+Centered layouts display icons only, including a calendar icon for date/time,
+filled/hollow workspace indicators, and a compact media spectrum. Notification
+counts and status text remain available in their menus. The normal text layout
+returns when centering is disabled; saved item text, icons and appearance are
+retained. Centered icons share consistent slot sizes, so former text padding does
+not produce visibly different icon spacing.
+
+The active item-gap control (with or without Hyprknots) applies to centered
+items in every group, workspace buttons, tray icons, shared-pill members and
+section boundaries. Empty groups add no gap. Shared-pill spacing remains saved
+for the ordinary layout; individual before/after adjustments still apply.
+Only the applicable gap control is enabled for the current mode.

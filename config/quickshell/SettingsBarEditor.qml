@@ -138,7 +138,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Layout & spacing"
-        subtitle: "Set the global gap here. Select a module in the sidebar or preview to adjust its individual spacing."
+        subtitle: "The active item gap applies across the centered layout, including workspaces, tray icons and shared pills. Individual spacing adjustments still apply."
         Label { text: "Screen edge"; color: Style.Theme.muted; font.pixelSize: Style.Theme.bodySize }
         SettingsComboBox {
             objectName: "barPositionControl"
@@ -161,7 +161,7 @@ ColumnLayout {
         }
         Label {
             Layout.fillWidth: true
-            text: "Keep the left, center, and right groups in order and place them together at the screen’s center. Item order and shared pills stay the same."
+            text: "Show icons only and place the left, center, and right groups together at the screen’s center. The calendar icon opens the date and time. Item order and shared pills stay the same."
             wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
         Label {
@@ -204,6 +204,9 @@ ColumnLayout {
                     Layout.fillWidth: true
                     label: modelData.label
                     editInterval: 32
+                    enabled: modelData.key === "spacing" ? root.settings.hyprknots !== false
+                        : modelData.key === "compactSpacing" ? root.settings.hyprknots === false
+                        : modelData.key === "groupSpacing" ? root.settings.centerItems !== true : true
                     settingValue: root.settings[modelData.key] ?? modelData.fallback
                     from: modelData.min; to: modelData.max; suffix: " px"
                     resetDescription: "Restore default " + modelData.label.toLowerCase()
