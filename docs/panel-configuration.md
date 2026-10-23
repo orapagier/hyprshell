@@ -24,3 +24,21 @@ all outputs; disconnected connector names are retained for hotplug.
 
 `pins.matches` retains explicit application identity corrections used by the
 launcher/window service. See [application support](application-support.md).
+
+Settings → Hyprpane has separate item gaps with and without Hyprknots.
+Disabling Hyprknots uses `bar.compactSpacing` (3 px by default), including
+workspace buttons, and re-enabling restores `bar.spacing`. Shared-pill spacing
+and individual item offsets remain independent.
+
+**Outer margins** provides physical Top, Bottom, Left and Right overrides
+(`bar.screenMarginTop/Bottom/Left/Right`, 0–200 px). Reset follows the existing
+Edge margin / End margins controls. The inward-facing side reserves extra space
+toward windows, in addition to Gap toward windows. Compact side panels center
+within the remaining top/bottom margins.
+
+**Inner padding** provides independent Top, Bottom, Left and Right controls
+(`bar.contentPaddingTop/Bottom/Left/Right`, 0–100 px, default 0). Padding expands
+the panel thickness and compact side-panel length and insets its items. It is
+included in the full panel background, when enabled. Controls autosave and apply
+to both the Settings item preview and the live panel without changing item order,
+group membership or menu anchoring.

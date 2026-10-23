@@ -139,7 +139,7 @@ ShellRoot {
                 let ws = monitor && monitor.activeWorkspace;
                 return Settings.panelVisible(preferences.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
             }
-            exclusiveZone: (vertical ? width : height) + (preferences.config.bar.paddingBottom || 0)
+            exclusiveZone: (vertical ? width : height) + (preferences.config.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
             exclusionMode: visible ? ExclusionMode.Normal : ExclusionMode.Ignore
             onVisibleChanged: if (!visible) menuState.close()
             readonly property string edge: preferences.config.bar.position || "top"
@@ -148,6 +148,7 @@ ShellRoot {
             readonly property rect menuBounds: Qt.rect(0, 0, modelData.width, modelData.height)
             onWorkspaceChanged: closeMenu()
             onMenuBoundsChanged: closeMenu()
+            readonly property var outerMargins: Settings.screenMargins(preferences.config.bar)
             readonly property real availableHeight: Math.max(1, modelData.height)
             readonly property bool compact: vertical && preferences.config.bar.verticalPresentation === "compact"
             anchors {
@@ -157,13 +158,13 @@ ShellRoot {
                 right: edge !== "left"
             }
             margins {
-                top: edge === "top" ? preferences.config.bar.marginTop : vertical ? (compact ? (availableHeight - implicitHeight) / 2 : preferences.config.bar.marginSide) : 0
-                bottom: edge === "bottom" ? preferences.config.bar.marginTop : vertical ? preferences.config.bar.marginSide : 0
-                left: edge === "left" ? preferences.config.bar.marginTop : !vertical ? preferences.config.bar.marginSide : 0
-                right: edge === "right" ? preferences.config.bar.marginTop : !vertical ? preferences.config.bar.marginSide : 0
+                top: compact ? outerMargins.top + (availableHeight - outerMargins.top - outerMargins.bottom - implicitHeight) / 2 : outerMargins.top
+                bottom: outerMargins.bottom
+                left: outerMargins.left
+                right: outerMargins.right
             }
             implicitWidth: bar.implicitWidth
-            implicitHeight: vertical ? Math.min(bar.implicitHeight, Math.max(1, availableHeight - 2*preferences.config.bar.marginSide)) : bar.implicitHeight
+            implicitHeight: vertical ? Math.min(bar.implicitHeight, Math.max(1, availableHeight - outerMargins.top - outerMargins.bottom)) : bar.implicitHeight
             readonly property real originX: edge === "right" ? screen.width - margins.right - width : margins.left
             readonly property real originY: edge === "bottom" ? screen.height - margins.bottom - height : margins.top
             color: "transparent"

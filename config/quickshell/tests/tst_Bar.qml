@@ -1,11 +1,19 @@
 import QtQuick
 import QtTest
 import ".."
+import "../SettingsModel.js" as Settings
 
 Item {
     id: scene
     width: 1366; height: 80
     Bar { id: bar; width: parent.width; clockText: "Oct 08   12:34 PM   Thu" }
+    SettingsBarEditor {
+        id: editor
+        visible: false
+        width: 700
+        settings: ({adaptiveColors:true, clockFormat:"hh:mm"})
+        onEdited: (key, value) => settings = Object.assign({}, settings, {[key]:value})
+    }
     TestCase {
         name: "BarRegressions"
         when: windowShown
@@ -14,6 +22,66 @@ Item {
             bar.width = position === "left" || position === "right" ? 40 : scene.width;
             return {bar:Object.assign({position:position, background:"on", spacing:20}, options || {}),
                 items:Object.keys(bar.moduleItems).map(id => Object.assign({id:id, side:"left", enabled:!!items[id]}, items[id] || {}))};
+        }
+        function test_compactSpacingAndWorkspaceGaps() {
+            bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}], audio:{}, network:{}, bluetooth:{}, battery:{}};
+            for (let edge of ["top", "bottom", "left", "right"]) {
+                for (let enabled of [true, false, true]) {
+                    bar.settings = connectorConfig(edge, {audio:{},wifi:{},workspaces:{}}, {spacing:20,compactSpacing:3,hyprknots:enabled});
+                    wait(0);
+                    let audio = bar.moduleItems.audio, wifi = bar.moduleItems.wifi;
+                    compare(bar.vertical ? wifi.y - audio.y - audio.height : wifi.x - audio.x - audio.width, enabled ? 20 : 3);
+                    compare(bar.moduleItems.workspaces.spacing, enabled ? 20 : 3);
+                    compare(bar.settings.bar.spacing, 20);
+                }
+            }
+        }
+        function test_fourSideMarginsAndInnerPadding() {
+            for (let edge of ["top", "bottom", "left", "right"]) {
+                let config = {position:edge,marginTop:5,marginSide:10};
+                let margins = Settings.screenMargins(config);
+                compare(margins[edge], 5);
+                let vertical = edge === "left" || edge === "right";
+                compare(margins[vertical ? "top" : "left"], 10);
+                Object.assign(config, {screenMarginTop:11,screenMarginBottom:12,screenMarginLeft:13,screenMarginRight:14});
+                compare(Settings.screenMargins(config), {top:11,bottom:12,left:13,right:14});
+                bar.settings = connectorConfig(edge, {audio:{},wifi:{side:"right"}}, {verticalPresentation:"compact",hyprknots:false});
+                wait(0);
+                let beforeWidth = bar.implicitWidth, beforeHeight = bar.implicitHeight;
+                let beforeX = bar.moduleItems.audio.x, beforeY = bar.moduleItems.audio.y;
+                bar.settings = Object.assign({}, bar.settings, {bar:Object.assign({},bar.settings.bar,
+                    {contentPaddingTop:7,contentPaddingBottom:11,contentPaddingLeft:13,contentPaddingRight:17})});
+                if (vertical) bar.width = bar.implicitWidth;
+                wait(0);
+                compare(bar.moduleItems.audio.x, beforeX + 13 + (vertical ? (bar.width - 40 - 30) / 2 : 0));
+                compare(bar.moduleItems.audio.y, beforeY + 7);
+                compare(bar.implicitHeight, beforeHeight + 18);
+                if (vertical) compare(bar.implicitWidth, beforeWidth + 30);
+                let last = bar.moduleItems.wifi;
+                if (!vertical) compare(last.x + last.width, bar.width - 17);
+                else compare(last.y + last.height, bar.height - 11);
+                verify(bar.menuRect("audio").x === bar.moduleItems.audio.x);
+            }
+        }
+        function test_spacingControlsAndIndependentReset() {
+            editor.settings = {spacing:18, hyprknots:false,adaptiveColors:true,clockFormat:"hh:mm"};
+            findChild(editor,"compactSpacingControl").commitDisplayValue(5);
+            compare(editor.settings.compactSpacing,5);
+            compare(editor.settings.spacing,18);
+            for (let side of ["Top","Bottom","Left","Right"]) {
+                let margin = findChild(editor,"screenMargin" + side + "Control");
+                verify(margin.inherited);
+                margin.commitDisplayValue(23);
+                compare(editor.settings["screenMargin" + side],23);
+                margin.edited("");
+                compare(editor.settings["screenMargin" + side],null);
+                verify(margin.inherited);
+                let padding = findChild(editor,"contentPadding" + side + "Control");
+                padding.commitDisplayValue(9);
+                compare(editor.settings["contentPadding" + side],9);
+                padding.edited("");
+                compare(editor.settings["contentPadding" + side],0);
+            }
         }
         function test_hyprknotsBareNeighbors() {
             let links = findChild(bar, "panelConnectors");

@@ -180,7 +180,8 @@ ColumnLayout {
                 model: [
                     {key: "height", label: "Hyprpane thickness", min: 28, max: 80, fallback: 32},
                     {key: "groupSpacing", label: "Inside shared pills", min: 0, max: 30, fallback: 3},
-                    {key: "spacing", label: "Between items / pills", min: 0, max: 30, fallback: 3},
+                    {key: "spacing", label: "Between items / pills with Hyprknots", min: 0, max: 30, fallback: 3},
+                    {key: "compactSpacing", label: "Between items / pills without Hyprknots", min: 0, max: 30, fallback: 3},
                     {key: "marginTop", label: "Edge margin", min: 0, max: 100, fallback: 5},
                     {key: "paddingBottom", label: "Gap toward windows", min: 0, max: 100, fallback: 0},
                     {key: "marginSide", label: "End margins", min: 0, max: 200, fallback: 10}
@@ -190,10 +191,64 @@ ColumnLayout {
                     objectName: modelData.key + "Control"
                     Layout.fillWidth: true
                     label: modelData.label
-                    settingValue: root.settings[modelData.key]
+                    settingValue: root.settings[modelData.key] ?? modelData.fallback
                     from: modelData.min; to: modelData.max; suffix: " px"
                     resetDescription: "Restore default " + modelData.label.toLowerCase()
                     onEdited: value => root.edited(modelData.key, value === "" ? modelData.fallback : value)
+                }
+            }
+        }
+    }
+    SettingsCard {
+        Layout.fillWidth: true
+        title: "Outer margins"
+        subtitle: "Space around Hyprpane. The side facing windows adds a gap toward windows. Reset a side to follow Edge margin and End margins."
+        GridLayout {
+            Layout.fillWidth: true
+            columns: root.width >= 600 ? 2 : 1
+            uniformCellWidths: true
+            columnSpacing: 28; rowSpacing: 20
+            Repeater {
+                model: [{side:"Top", label:"Top margin"}, {side:"Bottom", label:"Bottom margin"},
+                    {side:"Left", label:"Left margin"}, {side:"Right", label:"Right margin"}]
+                delegate: SettingsSlider {
+                    required property var modelData
+                    readonly property string settingKey: "screenMargin" + modelData.side
+                    objectName: settingKey + "Control"
+                    Layout.fillWidth: true
+                    label: modelData.label
+                    settingValue: root.settings[settingKey] ?? undefined
+                    defaultValue: Model.screenMargins(root.settings)[modelData.side.toLowerCase()]
+                    inheritedText: "Follow layout (" + defaultValue + " px)"
+                    resetDescription: "Follow Edge margin and End margins"
+                    from: 0; to: 200; suffix: " px"
+                    onEdited: value => root.edited(settingKey, value === "" ? null : value)
+                }
+            }
+        }
+    }
+    SettingsCard {
+        Layout.fillWidth: true
+        title: "Inner padding"
+        subtitle: "Space between the panel boundary and its items. Each side is independent on every screen edge."
+        GridLayout {
+            Layout.fillWidth: true
+            columns: root.width >= 600 ? 2 : 1
+            uniformCellWidths: true
+            columnSpacing: 28; rowSpacing: 20
+            Repeater {
+                model: [{side:"Top", label:"Top padding"}, {side:"Bottom", label:"Bottom padding"},
+                    {side:"Left", label:"Left padding"}, {side:"Right", label:"Right padding"}]
+                delegate: SettingsSlider {
+                    required property var modelData
+                    readonly property string settingKey: "contentPadding" + modelData.side
+                    objectName: settingKey + "Control"
+                    Layout.fillWidth: true
+                    label: modelData.label
+                    settingValue: root.settings[settingKey] ?? 0
+                    from: 0; to: 100; suffix: " px"
+                    resetDescription: "Remove this side's inner padding"
+                    onEdited: value => root.edited(settingKey, value === "" ? 0 : value)
                 }
             }
         }

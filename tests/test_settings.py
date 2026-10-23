@@ -16,6 +16,29 @@ spec.loader.exec_module(backend)
 
 
 class SettingsTests(unittest.TestCase):
+    def test_panel_spacing_and_four_sides_validate_and_persist(self):
+        defaults = backend.validate({'version': 1})['bar']
+        self.assertEqual(defaults['compactSpacing'], 3)
+        data = copy.deepcopy(self.data)
+        data['bar'].update(spacing=18, compactSpacing=4, hyprknots=False)
+        for index, side in enumerate(('Top', 'Bottom', 'Left', 'Right')):
+            self.assertIsNone(defaults['screenMargin' + side])
+            self.assertEqual(defaults['contentPadding' + side], 0)
+            data['bar']['screenMargin' + side] = 10 + index
+            data['bar']['contentPadding' + side] = 2 + index
+        backend.save(data)
+        saved = json.loads(self.path.read_text())['bar']
+        for key, value in data['bar'].items():
+            self.assertEqual(saved[key], value)
+        for key, limit in [('compactSpacing', 30)] + [(prefix + side, limit)
+                for prefix, limit in [('screenMargin', 200), ('contentPadding', 100)]
+                for side in ('Top', 'Bottom', 'Left', 'Right')]:
+            for value in (-1, limit + 1, 1.5, True, '3'):
+                bad = copy.deepcopy(data)
+                bad['bar'][key] = value
+                with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                    backend.validate(bad)
+
     def test_hyprknots_size_validation_and_persistence(self):
         defaults = backend.validate({'version': 1})['bar']
         self.assertEqual(defaults['hyprknotsLineWidth'], 1.8)

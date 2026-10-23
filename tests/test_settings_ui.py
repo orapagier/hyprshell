@@ -25,6 +25,10 @@ class AutosaveTests(unittest.TestCase):
     def test_bar_positions_autosave_and_survive_reopening(self):
         settings = self.run_ui_scenario('SettingsBarPosition', 'BAR_POSITION_OK', ('right', '', 1))
         self.assertEqual(settings['bar']['position'], 'top')
+        self.assertEqual(settings['bar']['compactSpacing'], 4)
+        for side in ('Top', 'Bottom', 'Left', 'Right'):
+            self.assertEqual(settings['bar']['screenMargin' + side], 12)
+            self.assertEqual(settings['bar']['contentPadding' + side], 6)
 
     def test_workspace_shortcut_queues_with_autosave_and_survives_reopening(self):
         settings = self.run_ui_scenario('SettingsWorkspaceVisibility', 'WORKSPACE_VISIBILITY_OK', ('right', '', 1))

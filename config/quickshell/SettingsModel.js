@@ -21,6 +21,17 @@ function wallpaperPalette(source) {
 var vibrantIds = ['launcher', 'settings', 'workspaces', 'media', 'calendar', 'tray',
     'notifications', 'audio', 'wifi', 'bluetooth', 'battery', 'power'];
 
+// Physical outer margins; unset sides retain the legacy edge/end controls.
+function screenMargins(bar) {
+    let edge = bar.position || 'top', vertical = edge === 'left' || edge === 'right';
+    let result = {};
+    for (let side of ['top', 'bottom', 'left', 'right']) {
+        let key = 'screenMargin' + side[0].toUpperCase() + side.slice(1);
+        let end = vertical ? side === 'top' || side === 'bottom' : side === 'left' || side === 'right';
+        result[side] = bar[key] ?? (edge === side ? (bar.marginTop ?? 5) : end ? (bar.marginSide ?? 10) : 0);
+    }
+    return result;
+}
 function copy(value) { return JSON.parse(JSON.stringify(value)); }
 function hoverPopdownsEnabled(bar, workspace) {
     let overrides = bar.hoverPopdownOverrides || {};

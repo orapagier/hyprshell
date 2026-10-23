@@ -19,14 +19,21 @@ Item {
             let style = Settings.appearance(settings, id);
             return Math.max(style.iconSize || 16, style.fontSize || 12) + 12 + Math.max(0, style.paddingLeft || 0) + Math.max(0, style.paddingRight || 0);
         }))
-    readonly property real sectionGap: Math.max(12, settings.bar?.spacing ?? 3)
+    readonly property real itemSpacing: settings.bar?.hyprknots === false ? (settings.bar?.compactSpacing ?? 3) : (settings.bar?.spacing ?? 3)
+    readonly property real insetTop: settings.bar?.contentPaddingTop ?? 0
+    readonly property real insetBottom: settings.bar?.contentPaddingBottom ?? 0
+    readonly property real insetLeft: settings.bar?.contentPaddingLeft ?? 0
+    readonly property real insetRight: settings.bar?.contentPaddingRight ?? 0
+    readonly property real contentWidth: Math.max(0, width - insetLeft - insetRight)
+    readonly property real contentHeight: Math.max(0, height - insetTop - insetBottom)
+    readonly property real sectionGap: settings.bar?.hyprknots === false ? itemSpacing : Math.max(12, itemSpacing)
     readonly property real minimumVerticalLength: {
         let sizes = ["left", "center", "right"].map(side => groupLength(side)).filter(size => size > 0);
         return sizes.reduce((total, size) => total + size, 0) + Math.max(0, sizes.length - 1) * sectionGap;
     }
-    readonly property real layoutLength: vertical ? Math.max(height, minimumVerticalLength) : width
+    readonly property real layoutLength: vertical ? Math.max(contentHeight, minimumVerticalLength) : contentWidth
     readonly property real scrollOffset: layoutViewport.contentY
-    readonly property bool overflowing: vertical && minimumVerticalLength > height
+    readonly property bool overflowing: vertical && minimumVerticalLength > contentHeight
     function itemRect(id) {
         let item = moduleItems[id];
         // Explicit offset dependency makes menu anchors follow a scrolling rail.
@@ -34,7 +41,7 @@ Item {
         return Qt.rect(item.x, item.y - (vertical ? offset : 0), item.width, item.height);
     }
     function gapBetween(first, second) {
-        let base = pillName(first) && pillName(first) === pillName(second) ? (settings.bar?.groupSpacing ?? 3) : (settings.bar?.spacing ?? 3);
+        let base = pillName(first) && pillName(first) === pillName(second) ? (settings.bar?.groupSpacing ?? 3) : itemSpacing;
         return Math.max(0, base + (Settings.item(settings, first).spacingRight || 0) + (Settings.item(settings, second).spacingLeft || 0));
     }
     function groupLength(sideName) {
@@ -75,8 +82,8 @@ Item {
         layoutViewport.contentY = Math.max(0, Math.min(layoutViewport.contentHeight - height, layoutViewport.contentY - delta));
         event.accepted = true;
     }
-    function itemX(id) { return vertical ? (width - moduleItems[id].width) / 2 : itemPosition(id); }
-    function itemY(id) { return vertical ? itemPosition(id) : (height - moduleItems[id].height) / 2; }
+    function itemX(id) { return insetLeft + (vertical ? (contentWidth - moduleItems[id].width) / 2 : itemPosition(id)); }
+    function itemY(id) { return insetTop + (vertical ? itemPosition(id) : (contentHeight - moduleItems[id].height) / 2); }
     readonly property var moduleItems: ({
             launcher: distroLogo,
             settings: settingsCog,
@@ -148,10 +155,10 @@ Item {
         let first = moduleItems[ids[0]], last = moduleItems[ids[ids.length - 1]];
         if (vertical) {
             let w = Math.max(...ids.map(id => moduleItems[id].width));
-            return Qt.rect((width-w)/2, first.y, w, last.y + last.height - first.y);
+            return Qt.rect(insetLeft + (contentWidth-w)/2, first.y, w, last.y + last.height - first.y);
         }
         let h = Math.max(...ids.map(id => moduleItems[id].height));
-        return Qt.rect(first.x, (height-h)/2, last.x + last.width - first.x, h);
+        return Qt.rect(first.x, insetTop + (contentHeight-h)/2, last.x + last.width - first.x, h);
     }
     function appearance(id) {
         let style = Settings.appearance(settings, id, wallpaperSource.toString());
@@ -186,14 +193,14 @@ Item {
             return cursor;
         }
         let group = orderedItems(side(id));
-        let spacing = settings.bar ? (settings.bar.spacing ?? 3) : 3;
+        let spacing = itemSpacing;
         let left = k => Settings.item(settings, k).spacingLeft || 0;
         let right = k => Settings.item(settings, k).spacingRight || 0;
         let leading = group.length ? Math.max(0, left(group[0])) : 0;
         let trailing = group.length ? Math.max(0, right(group[group.length - 1])) : 0;
         let gap = i => Math.max(0, (pillName(group[i]) && pillName(group[i]) === pillName(group[i + 1]) ? (settings.bar?.groupSpacing ?? 3) : spacing) + right(group[i]) + left(group[i + 1]));
         let total = leading + trailing + group.reduce((n, k, i) => n + (vertical ? moduleItems[k].height : moduleItems[k].width) + (i < group.length - 1 ? gap(i) : 0), 0);
-        let length = vertical ? height : width;
+        let length = vertical ? contentHeight : contentWidth;
         let cursor = (side(id) === "right" ? length - total : side(id) === "center" ? (length - total) / 2 : 0) + leading;
         for (let i = 0; i < group.length; i++) {
             let k = group[i];
@@ -315,17 +322,17 @@ Item {
     function rgba(hex, alpha) {
         return Qt.rgba(parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255, alpha);
     }
-    implicitWidth: vertical ? verticalThickness : 0
-    implicitHeight: vertical ? Math.max(1, Math.min(Math.max(1, screenHeight - 2 * (settings.bar?.marginSide ?? 10)), compact ? minimumVerticalLength : Infinity))
+    implicitWidth: vertical ? verticalThickness + insetLeft + insetRight : 0
+    implicitHeight: vertical ? Math.max(1, Math.min(Math.max(1, screenHeight - Settings.screenMargins(settings.bar || {}).top - Settings.screenMargins(settings.bar || {}).bottom), compact ? minimumVerticalLength + insetTop + insetBottom : Infinity))
         : Math.max(settings.bar?.height || 32,
-            ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => moduleItems[id].height + 4))
+            ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => moduleItems[id].height + 4)) + insetTop + insetBottom
     height: implicitHeight
     Flickable {
         id: layoutViewport
         objectName: "panelViewport"
         anchors.fill: parent
         contentWidth: width
-        contentHeight: bar.vertical ? bar.layoutLength : height
+        contentHeight: bar.vertical ? bar.layoutLength + bar.insetTop + bar.insetBottom : height
         interactive: bar.vertical && bar.overflowing
         clip: bar.vertical
         boundsBehavior: Flickable.StopAtBounds
@@ -532,7 +539,7 @@ Item {
             let top = Math.min(...items.map(item => item.y));
             let right = Math.max(...items.map(item => item.x + item.width));
             let bottom = Math.max(...items.map(item => item.y + item.height));
-            return Qt.rect(left, top, right - left, bottom - top);
+            return Qt.rect(left - bar.insetLeft, top - bar.insetTop, right - left + bar.insetLeft + bar.insetRight, bottom - top + bar.insetTop + bar.insetBottom);
         }
         visible: !bar.statusIconsOnly && fullPill.memberIds.length > 0 && fullPill.backgroundShown
         x: fullPill.bounds.x; y: fullPill.bounds.y; width: fullPill.bounds.width; height: fullPill.bounds.height
@@ -670,7 +677,7 @@ Item {
         horizontalItemAlignment: Grid.AlignHCenter
         verticalItemAlignment: Grid.AlignVCenter
         height: Math.max(28, implicitHeight)
-        spacing: bar.statusIconsOnly ? 2 : Math.max(18, bar.settings.bar?.spacing ?? 18)
+        spacing: bar.statusIconsOnly ? 2 : bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
         leftPadding: Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
         rightPadding: Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
         Repeater {

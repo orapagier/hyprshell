@@ -157,6 +157,11 @@ def validate(data):
         raise ValueError('Invalid shared background')
     for key, low, high in [('height', 28, 80), ('marginTop', 0, 100), ('paddingBottom', 0, 100), ('marginSide', 0, 200), ('spacing', 0, 30), ('groupSpacing', 0, 30)]:
         number(bar[key], low, high, True)
+    number(bar['compactSpacing'], 0, 30, True)
+    for side in ('Top', 'Bottom', 'Left', 'Right'):
+        number(bar['contentPadding' + side], 0, 100, True)
+        if bar['screenMargin' + side] is not None:
+            number(bar['screenMargin' + side], 0, 200, True)
     if not isinstance(bar['clockFormat'], str) or not 1 <= len(bar['clockFormat']) <= 100:
         raise ValueError('Clock format must contain 1–100 characters')
     items = data.get('items', [])
