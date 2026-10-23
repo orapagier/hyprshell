@@ -55,6 +55,13 @@ ShellRoot {
                 glass.cacheFullWallpaper = true;
                 let list=[];root.samplers(glass,list);root.samplers(dashboard,list);
                 test.tryVerify(()=>list.every(item=>item.ready),3000);
+                for (let sampler of list) {
+                    let image = sampler.children.find(child => typeof child.sourceSize !== 'undefined');
+                    if (!image || image.sourceSize.width > 1920 || image.implicitWidth > 1920)
+                        throw new Error('Wallpaper decode exceeds output width');
+                    if (Math.abs(image.implicitWidth / image.implicitHeight - 16 / 9) > 0.01)
+                        throw new Error('Wallpaper decode changed aspect ratio');
+                }
                 test.wait(100);
                 for (let sampler of list) sampler.pixelsChanged.connect(()=>root.captures++);
                 let start=Date.now();

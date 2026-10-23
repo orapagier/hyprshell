@@ -13,6 +13,7 @@ ColumnLayout {
     required property var inbox
     required property var store
     property bool active: false
+    readonly property bool busy: writer.running
     property url wallpaperSource: ""
     property real screenWidth: 1366
     property real screenHeight: 768

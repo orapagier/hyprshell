@@ -99,15 +99,32 @@ Item {
     Image {
         id: wallpaper
         source: sampler.source
+        // All samplers on one output use the same decode size, allowing Qt's
+        // image cache to share it. Keep the aspect ratio for the crop below.
+        // Sampling colors needs no more than output resolution, even for a
+        // much larger original. The desktop wallpaper itself is unchanged.
+        sourceSize.width: Math.min(4096, Math.max(1, Math.ceil(sampler.screenWidth)))
         asynchronous: true
         visible: false
         onStatusChanged: {
             sampler.pixels = [];
-            if (status === Image.Ready) strip.requestPaint();
+            strip.prepareImage();
         }
     }
     Canvas {
         id: strip
+        property url loadedSource: ""
+        function prepareImage() {
+            if (loadedSource.toString()) unloadImage(loadedSource);
+            loadedSource = wallpaper.source;
+            if (wallpaper.status === Image.Ready) {
+                // Canvas has its own URL cache: passing the Image to drawImage
+                // otherwise decodes the full original again, ignoring sourceSize.
+                loadImage(loadedSource, Qt.size(wallpaper.implicitWidth, wallpaper.implicitHeight));
+                requestPaint();
+            }
+        }
+        onImageLoaded: requestPaint()
         // Preserve small bright/dark details instead of averaging them away
         // before bare-glyph contrast is measured.
         width: sampler.sampleWidth > 0 ? sampler.sampleWidth : Math.min(4096, Math.max(1, Math.ceil(sampler.bandWidth)))
@@ -116,7 +133,8 @@ Item {
         onWidthChanged: sampler.invalidate()
         onHeightChanged: sampler.invalidate()
         onPaint: {
-            if (wallpaper.status !== Image.Ready || sampler.screenWidth <= 0 || sampler.screenHeight <= 0
+            if (wallpaper.status !== Image.Ready || !isImageLoaded(loadedSource)
+                    || sampler.screenWidth <= 0 || sampler.screenHeight <= 0
                     || sampler.bandWidth <= 0 || sampler.bandHeight <= 0) return;
             let iw = wallpaper.implicitWidth, ih = wallpaper.implicitHeight;
             if (!iw || !ih) return;
@@ -132,7 +150,7 @@ Item {
             let sh = Math.min(ih - sy, sampler.bandHeight / scale);
             let ctx = getContext("2d");
             ctx.clearRect(0, 0, width, height);
-            ctx.drawImage(wallpaper, sx, sy, sw, sh, 0, 0, width, height);
+            ctx.drawImage(loadedSource, sx, sy, sw, sh, 0, 0, width, height);
             let data = ctx.getImageData(0, 0, width, height).data;
             // Canvas channels are bytes. A typed copy preserves every channel
             // without retaining a large garbage-collected JS number array.

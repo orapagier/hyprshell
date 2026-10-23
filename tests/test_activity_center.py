@@ -25,13 +25,14 @@ class ActivityCenterTests(unittest.TestCase):
             (payload / 'Dashboard.qml').write_text(source)
             # A fake writer verifies arguments without changing desktop preferences.
             (payload / 'settings').mkdir()
-            (payload / 'settings/backend.py').write_text('''import json, sys
+            (payload / 'settings/backend.py').write_text('''import json, sys, time
 args = sys.argv
 before = json.loads(args[args.index('--expected-json') + 1])
 after = json.loads(args[args.index('--save-json') + 1])
 assert before['notifications']['doNotDisturb'] is False
 assert after['notifications']['doNotDisturb'] is True
 assert after['bar'] == before['bar']
+time.sleep(3)
 print(json.dumps({'ok': True}))
 ''')
             entry = root / 'Check.qml'
@@ -98,6 +99,11 @@ ShellRoot {
         interval: 500; running: true
         onTriggered: {
             try {
+                drawer.close();
+                input.mouseMove(drawer.contentItem, 1, 1);
+                input.tryVerify(() => test.find(drawer.contentItem, 'activityContent') === null, 3000);
+                test.check(test.find(drawer.contentItem, 'activityContent') === null, "Closed activity page is unloaded");
+                drawer.enterCorner(null);
                 let page = test.find(drawer.contentItem, 'activityContent');
                 test.check(page !== null, "Activity page loads");
                 let popover = test.find(drawer.contentItem, 'dashboardPopover');
@@ -184,11 +190,17 @@ ShellRoot {
                 test.check(mockInbox.rows.length === 0 && test.find(page,'activityEmpty').visible, "Clear all shows empty state");
                 let quiet = test.find(page,'activityDnd');
                 test.click(quiet);
-                input.wait(500);
-                test.check(mockStore.reloads === 1, 'DND writer completes: ' + page.error);
-                test.check(page.error === '', "Do Not Disturb saves through isolated writer");
+                input.tryVerify(() => page.busy, 500);
+                test.check(page.busy, "Settings writer starts");
+                popover.instant = true;
                 page.dismissRequested();
                 test.check(!drawer.opened, "Escape/dismiss closes drawer");
+                input.tryVerify(() => !popover.rendering, 2000);
+                test.check(popover.pageItem !== null, "Pending save retains closed contents");
+                input.tryVerify(() => mockStore.reloads === 1, 4000);
+                test.check(mockStore.reloads === 1, "DND save completes after close");
+                input.tryVerify(() => popover.pageItem === null, 1000);
+                test.check(popover.pageItem === null, "Contents release after save handlers finish");
                 drawer.reveal(null);
                 input.mouseMove(drawer.contentItem, popover.bodyX + 50, popover.bodyY + 50);
                 input.mouseMove(drawer.contentItem, 1, 1);

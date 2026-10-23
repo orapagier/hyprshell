@@ -12,6 +12,7 @@ ColumnLayout {
     property var resourceData: ({})
     readonly property var usage: resourceData.usage || ({})
     property bool active: false
+    readonly property bool busy: weatherCard.busy || weatherCard.reloadAfterSave
     property url wallpaperSource: ""
     property real screenWidth: 1366
     property real screenHeight: 768

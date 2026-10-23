@@ -23,6 +23,7 @@ ColumnLayout {
         Qt.callLater(() => { if (page.active) search.forceActiveFocus(); });
     }
     onActiveChanged: if (active) prepare()
+    Component.onCompleted: if (active) prepare()
     readonly property var sortedEntries: applicationService ? applicationService.entries : DesktopEntries.applications.values.slice().sort((a,b) => a.name.localeCompare(b.name))
     readonly property var entries: sortedEntries.filter(a => (a.name + " " + a.genericName).toLowerCase().includes(search.text.toLowerCase()))
     onEntriesChanged: {

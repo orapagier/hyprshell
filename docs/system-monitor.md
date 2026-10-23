@@ -9,8 +9,10 @@ Configuration lives in `~/.config/hyprmonitor/config.toml`. Legacy Hyprshell
 monitor preferences are imported when no standalone configuration exists.
 
 The native executable is installed directly to `~/.local/bin/hyprmonitor`.
-Hyprland startup launches it independently of Quickshell. Alt+I invokes
-`hyprmonitor --toggle-workspace` directly. On other Linux desktops, configure a
+It starts on demand rather than at login. Alt+I invokes
+`hyprmonitor --toggle-workspace` directly, starting it when needed; its application
+entry also launches it. Hiding pauses collection, while `hyprmonitor --quit`
+releases the process completely. On other Linux desktops, configure a
 shortcut for `hyprmonitor --toggle` or `hyprmonitor --settings` as desired.
 
 The app selects a layer-shell overlay when available and otherwise uses a normal

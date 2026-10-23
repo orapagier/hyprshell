@@ -15,7 +15,7 @@ Item {
     property bool cacheWallpaperPalette: false
     GlassSurface {
         id: glass
-        wallpaperSource: popover.wallpaperSource
+        wallpaperSource: popover.rendering ? popover.wallpaperSource : ""
         screenWidth: popover.width; screenHeight: popover.height
         region: Qt.rect(popover.bodyX, popover.bodyY, popover.bodyWidth, popover.bodyHeight)
         accent: popover.accent; translucency: popover.translucency
@@ -57,6 +57,28 @@ Item {
     property Component page: null
     property Component persistentPage: null
     property bool persistentSelected: false
+    // Keep the mapped input surfaces, but create their contents on demand.
+    // Release on the next event turn so process exit handlers can finish saves.
+    function updatePersistentPage() {
+        if (rendering && persistentSelected) persistentLoader.active = true;
+        else releasePersistent.restart();
+    }
+    onRenderingChanged: updatePersistentPage()
+    onPersistentSelectedChanged: updatePersistentPage()
+    Component.onCompleted: updatePersistentPage()
+    Timer {
+        id: releasePersistent
+        interval: 0
+        onTriggered: {
+            if (!(popover.rendering && popover.persistentSelected) && !persistentLoader.item?.busy)
+                persistentLoader.active = false;
+        }
+    }
+    Connections {
+        target: persistentLoader.item
+        ignoreUnknownSignals: true
+        function onBusyChanged() { releasePersistent.restart(); }
+    }
     property bool instant: false
     readonly property var pageItem: persistentSelected ? persistentLoader.item : pageLoader.item
     property bool opened: false
@@ -374,7 +396,8 @@ Item {
             Loader {
                 id: persistentLoader
                 Layout.fillWidth: true
-                visible: popover.persistentSelected
+                active: false
+                visible: active && popover.persistentSelected
                 sourceComponent: popover.persistentPage
             }
             // An inactive Loader retains its last height. Hide it so the layout
