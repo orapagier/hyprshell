@@ -219,48 +219,61 @@ Rectangle {
                 }
             }
         }
-        ColumnLayout {
-            visible: card.snapshot.weather === undefined && !card.choosingCity
-            Layout.topMargin: 30; Layout.fillWidth: true; spacing: 12
-            WeatherGlyph { code: 3; cloudColor: card.textColor; accentColor: card.accentColor; opacity: 0.45; Layout.preferredWidth: 76; Layout.preferredHeight: 68 }
-            Label { text: card.busy ? "Getting the forecast…" : "Weather unavailable"; font.pixelSize: 18; font.weight: Font.Medium; Layout.fillWidth: true }
-            Label { text: card.snapshot.error || "Your weather will appear here."; color: card.secondaryColor; font.pixelSize: 12; Layout.fillWidth: true }
-        }
-        RowLayout {
-            visible: card.snapshot.weather !== undefined && !card.choosingCity
-            Layout.topMargin: 22; Layout.fillWidth: true; spacing: 8
+        Rectangle {
+            objectName: "weatherCurrentConditions"
+            visible: !card.choosingCity
+            Layout.topMargin: 22; Layout.fillWidth: true
+            implicitHeight: currentDetails.implicitHeight + 32
+            color: Colors.alpha(card.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
+            border.width: Style.Theme.highContrast ? 1 : 0; border.color: card.textColor
             ColumnLayout {
-                Layout.fillWidth: true; spacing: 0
-                RowLayout {
-                    spacing: 2
-                    Label {
-                        objectName: "weatherTemperature"
-                        text: card.number(card.current.temperature_2m, "")
-                        font.pixelSize: card.width < 320 ? 60 : 72; font.weight: Font.Light; font.letterSpacing: -3
-                    }
-                    Label { text: "°C"; font.pixelSize: 22; color: card.secondaryColor; Layout.alignment: Qt.AlignTop; Layout.topMargin: 14 }
+                id: currentDetails
+                anchors.fill: parent; anchors.margins: 16; spacing: 0
+                ColumnLayout {
+                    visible: card.snapshot.weather === undefined
+                    Layout.fillWidth: true; spacing: 12
+                    WeatherGlyph { code: 3; cloudColor: card.textColor; accentColor: card.accentColor; opacity: 0.45; Layout.preferredWidth: 76; Layout.preferredHeight: 68 }
+                    Label { text: card.busy ? "Getting the forecast…" : "Weather unavailable"; font.pixelSize: 18; font.weight: Font.Medium; Layout.fillWidth: true }
+                    Label { text: card.snapshot.error || "Your weather will appear here."; color: card.secondaryColor; font.pixelSize: 12; Layout.fillWidth: true }
                 }
-                Label { text: card.condition(card.current.weather_code); font.pixelSize: 16; font.weight: Font.Medium; Layout.fillWidth: true }
+                RowLayout {
+                    visible: card.snapshot.weather !== undefined && !card.choosingCity
+                    Layout.fillWidth: true; spacing: 8
+                    ColumnLayout {
+                        Layout.fillWidth: true; spacing: 0
+                        RowLayout {
+                            spacing: 2
+                            Label {
+                                objectName: "weatherTemperature"
+                                text: card.number(card.current.temperature_2m, "")
+                                font.pixelSize: card.width < 320 ? 60 : 72; font.weight: Font.Light; font.letterSpacing: -3
+                            }
+                            Label { text: "°C"; font.pixelSize: 22; color: card.secondaryColor; Layout.alignment: Qt.AlignTop; Layout.topMargin: 14 }
+                        }
+                        Label { text: card.condition(card.current.weather_code); font.pixelSize: 16; font.weight: Font.Medium; Layout.fillWidth: true }
+                    }
+                    WeatherGlyph {
+                        code: card.current.weather_code === undefined ? 3 : card.current.weather_code
+                        daylight: !card.current.time || !card.daily.sunrise?.[0] || (card.current.time >= card.daily.sunrise[0] && card.current.time < card.daily.sunset[0])
+                        cloudColor: card.textColor; accentColor: card.accentColor
+                        Layout.preferredWidth: card.width < 320 ? 76 : 112
+                        Layout.preferredHeight: card.width < 320 ? 76 : 100
+                    }
+                }
+                RowLayout {
+                    visible: card.snapshot.weather !== undefined && !card.choosingCity
+                    Layout.topMargin: 12; Layout.fillWidth: true; spacing: 8
+                    Label { text: "Feels like " + card.number(card.current.apparent_temperature, "°"); color: card.secondaryColor; font.pixelSize: 12; Layout.fillWidth: true }
+                    Label { text: "High " + card.number(card.daily.temperature_2m_max?.[0], "°") + "  Low " + card.number(card.daily.temperature_2m_min?.[0], "°"); font.pixelSize: 11; color: card.secondaryColor }
+                }
             }
-            WeatherGlyph {
-                code: card.current.weather_code === undefined ? 3 : card.current.weather_code
-                daylight: !card.current.time || !card.daily.sunrise?.[0] || (card.current.time >= card.daily.sunrise[0] && card.current.time < card.daily.sunset[0])
-                cloudColor: card.textColor; accentColor: card.accentColor
-                Layout.preferredWidth: card.width < 320 ? 76 : 112
-                Layout.preferredHeight: card.width < 320 ? 76 : 100
-            }
-        }
-        RowLayout {
-            visible: card.snapshot.weather !== undefined && !card.choosingCity
-            Layout.topMargin: 12; Layout.fillWidth: true; spacing: 8
-            Label { text: "Feels like " + card.number(card.current.apparent_temperature, "°"); color: card.secondaryColor; font.pixelSize: 12; Layout.fillWidth: true }
-            Label { text: "High " + card.number(card.daily.temperature_2m_max?.[0], "°") + "  Low " + card.number(card.daily.temperature_2m_min?.[0], "°"); font.pixelSize: 11; color: card.secondaryColor }
         }
         Rectangle {
             visible: card.snapshot.weather !== undefined && !card.choosingCity
-            Layout.topMargin: 24; Layout.fillWidth: true
+            Layout.topMargin: 14; Layout.fillWidth: true
             implicitHeight: metrics.implicitHeight + 32
             color: Colors.alpha(card.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
+            border.width: Style.Theme.highContrast ? 1 : 0; border.color: card.textColor
             GridLayout {
                 id: metrics
                 anchors.fill: parent; anchors.margins: 16

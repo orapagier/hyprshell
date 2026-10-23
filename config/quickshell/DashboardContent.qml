@@ -78,25 +78,35 @@ ColumnLayout {
                     Layout.topMargin: 12; Layout.fillWidth: true; elide: Text.ElideRight
                 }
                 Label { text: page.resourceData.system?.os || "Reading system information…"; color: page.secondaryColor; font.pixelSize: 12; Layout.topMargin: 4; Layout.fillWidth: true }
-                Divider { Layout.topMargin: 20; Layout.bottomMargin: 18 }
-                Label { text: "PROCESSOR"; color: page.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.2 }
-                Label { text: page.resourceData.system?.cpuModel || "—"; font.pixelSize: 12; Layout.topMargin: 6; Layout.fillWidth: true }
-                Label { text: "KERNEL"; color: page.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.2; Layout.topMargin: 14 }
-                Label { text: page.resourceData.system?.kernel || "—"; font.pixelSize: 11; color: page.secondaryColor; Layout.topMargin: 5; Layout.fillWidth: true; wrapMode: Text.WrapAnywhere }
-                Divider { Layout.topMargin: 18; Layout.bottomMargin: 12 }
-                InfoRow {
-                    title: "Memory"
-                    valueName: "dashboardMemoryDetails"
-                    value: page.resourceData.system?.memoryTotal ? (page.resourceData.system.memoryTotal / 1073741824).toFixed(1) + " GiB" : "—"
-                }
-                InfoRow { title: "Uptime"; valueName: "dashboardUptime"; value: page.uptimeText(page.resourceData.system?.uptimeSeconds); Layout.topMargin: 10 }
-                InfoRow {
-                    title: "OS age (est.)"; valueName: "dashboardOsAge"; Layout.topMargin: 10
-                    value: page.resourceData.system?.osAgeDays !== null && page.resourceData.system?.osAgeDays !== undefined ? page.resourceData.system.osAgeDays + " days" : "Unavailable"
+                Rectangle {
+                    objectName: "dashboardDeviceDetails"
+                    Layout.fillWidth: true; Layout.topMargin: 18
+                    implicitHeight: deviceDetails.implicitHeight + 28
+                    color: Colors.alpha(page.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
+                    border.width: Style.Theme.highContrast ? 1 : 0; border.color: page.textColor
+                    ColumnLayout {
+                        id: deviceDetails
+                        anchors.fill: parent; anchors.margins: 14; spacing: 0
+                        Label { text: "PROCESSOR"; color: page.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.2 }
+                        Label { text: page.resourceData.system?.cpuModel || "—"; font.pixelSize: 12; Layout.topMargin: 6; Layout.fillWidth: true }
+                        Label { text: "KERNEL"; color: page.secondaryColor; font.pixelSize: 10; font.letterSpacing: 1.2; Layout.topMargin: 14 }
+                        Label { text: page.resourceData.system?.kernel || "—"; font.pixelSize: 11; color: page.secondaryColor; Layout.topMargin: 5; Layout.fillWidth: true; wrapMode: Text.WrapAnywhere }
+                        Divider { Layout.topMargin: 12; Layout.bottomMargin: 12 }
+                        InfoRow {
+                            title: "Memory"
+                            valueName: "dashboardMemoryDetails"
+                            value: page.resourceData.system?.memoryTotal ? (page.resourceData.system.memoryTotal / 1073741824).toFixed(1) + " GiB" : "—"
+                        }
+                        InfoRow { title: "Uptime"; valueName: "dashboardUptime"; value: page.uptimeText(page.resourceData.system?.uptimeSeconds); Layout.topMargin: 10 }
+                        InfoRow {
+                            title: "OS age (est.)"; valueName: "dashboardOsAge"; Layout.topMargin: 10
+                            value: page.resourceData.system?.osAgeDays !== null && page.resourceData.system?.osAgeDays !== undefined ? page.resourceData.system.osAgeDays + " days" : "Unavailable"
+                        }
+                    }
                 }
                 Rectangle {
                     objectName: "dashboardResourceUsage"
-                    Layout.fillWidth: true; Layout.topMargin: 20
+                    Layout.fillWidth: true; Layout.topMargin: 14
                     implicitHeight: resourceDetails.implicitHeight + 28
                     color: Colors.alpha(page.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
                     border.width: Style.Theme.highContrast ? 1 : 0; border.color: page.textColor
@@ -122,17 +132,28 @@ ColumnLayout {
                     }
                 }
                 Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
-                RowLayout {
-                    Layout.fillWidth: true; spacing: 9
-                    Rectangle { implicitWidth: 5; implicitHeight: 5; radius: 3; color: page.accentColor }
-                    Label { text: page.services.statusData.network.tooltip; color: page.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true }
+                Rectangle {
+                    objectName: "dashboardConnectionStatus"
+                    Layout.fillWidth: true
+                    implicitHeight: connectionDetails.implicitHeight + 28
+                    color: Colors.alpha(page.accentColor, Style.Theme.highContrast ? 0 : 0.04); radius: 16
+                    border.width: Style.Theme.highContrast ? 1 : 0; border.color: page.textColor
+                    ColumnLayout {
+                        id: connectionDetails
+                        anchors.fill: parent; anchors.margins: 14; spacing: 0
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 9
+                            Rectangle { implicitWidth: 5; implicitHeight: 5; radius: 3; color: page.accentColor }
+                            Label { text: page.services.statusData.network.tooltip; color: page.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true }
+                        }
+                        Label {
+                            text: page.services.batteryInfo.present ? page.services.batteryInfo.percentage + "% battery · " + (page.services.batteryInfo.pluggedIn ? "Plugged in" : "On battery") : "Desktop power"
+                            font.pixelSize: 11; color: page.secondaryColor; Layout.topMargin: 7; Layout.fillWidth: true
+                        }
+                    }
                 }
-                Label {
-                    text: page.services.batteryInfo.present ? page.services.batteryInfo.percentage + "% battery · " + (page.services.batteryInfo.pluggedIn ? "Plugged in" : "On battery") : "Desktop power"
-                    font.pixelSize: 11; color: page.secondaryColor; Layout.topMargin: 7; Layout.fillWidth: true
-                }
                 RowLayout {
-                    Layout.topMargin: 18; Layout.fillWidth: true; spacing: 8
+                    Layout.topMargin: 12; Layout.fillWidth: true; spacing: 8
                     Action { objectName: "dashboardSettings"; text: "Settings"; Layout.fillWidth: true; onClicked: page.settingsRequested() }
                     Action { objectName: "dashboardLock"; text: "Lock"; Layout.fillWidth: true; onClicked: page.lockRequested() }
                 }
