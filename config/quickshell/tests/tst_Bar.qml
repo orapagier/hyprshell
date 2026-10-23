@@ -97,10 +97,10 @@ Item {
                 let first = findChild(bar,"workspace1"), second = findChild(bar,"workspace12");
                 compare(first.shownText,"1"); compare(second.shownText,"12");
                 compare(first.shownIcon,""); compare(second.shownIcon,"");
-                compare(first.content.font.pixelSize,first.effectiveIconSize);
-                compare(second.content.font.pixelSize,second.effectiveIconSize);
-                compare(first.width,bar.moduleItems.audio.width);
-                compare(second.width,bar.moduleItems.audio.width);
+                verify(first.content.font.pixelSize < first.effectiveIconSize);
+                verify(second.content.font.pixelSize < second.effectiveIconSize);
+                verify(first.height < bar.moduleItems.audio.height);
+                verify(second.height < bar.moduleItems.audio.height);
                 verify(first.content.implicitWidth <= first.width);
                 verify(second.content.implicitWidth <= second.width);
                 compare(bar.moduleItems.media.item.shownText,"");
@@ -115,6 +115,27 @@ Item {
                 compare(bar.moduleItems.media.item.shownText,"Artist — A song");
                 verify(findChild(bar,"notificationBadge").visible);
                 compare(JSON.stringify(bar.settings.items),saved);
+            }
+        }
+        function test_centeredWorkspacePillsMatchNormalCompactDimensions() {
+            bar.statusData = {workspaces:[{id:1,name:"1",active:true},{id:12,name:"12"}],audio:{},network:{},bluetooth:{},battery:{}};
+            for (let edge of ["top","bottom"]) {
+                bar.settings = connectorConfig(edge,{workspaces:{},calendar:{side:"center"}},{centerItems:false,iconSize:15});
+                wait(0);
+                let dimensions = [1,12].map(id => {
+                    let pill=findChild(bar,"workspace"+id);
+                    return {width:pill.width,height:pill.height,font:pill.content.font.pixelSize};
+                });
+                bar.settings = Object.assign({},bar.settings,{bar:Object.assign({},bar.settings.bar,{centerItems:true})});
+                wait(0);
+                [1,12].forEach((id,i) => {
+                    let pill=findChild(bar,"workspace"+id);
+                    compare(pill.shownText,String(id));
+                    fuzzyCompare(pill.width,dimensions[i].width,0.01);
+                    fuzzyCompare(pill.height,dimensions[i].height,0.01);
+                    compare(pill.content.font.pixelSize,dimensions[i].font);
+                    verify(!pill.vertical);
+                });
             }
         }
         function test_centeredGapReachesEveryGroupWorkspaceAndTray() {

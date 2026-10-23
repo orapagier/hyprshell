@@ -714,7 +714,6 @@ Item {
                         appearance.text = String(modelData.id);
                         appearance.hideText = false;
                         appearance.hideIcon = true;
-                        appearance.fontSize = appearance.iconSize || 16;
                     }
                     if (active && appearance.vibrantColor) {
                         let base = Qt.color(appearance.vibrantColor);
@@ -727,13 +726,13 @@ Item {
                 colorRoot: bar
                 required property var modelData
                 property bool active: modelData.active || false
-                vertical: bar.iconsOnly
+                vertical: bar.vertical
                 maximumWidth: bar.vertical ? Math.max(1, bar.verticalThickness - 4 - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
-                width: bar.vertical ? maximumWidth : bar.centerItems ? bar.verticalThickness - 4 : implicitWidth
+                width: bar.vertical ? maximumWidth : implicitWidth
                 onActiveFocusChanged: if (activeFocus) bar.ensureItemVisible(workspaceButton)
                 iconOnly: false
                 Accessible.name: "Workspace " + (modelData.name || String(modelData.id))
-                height: bar.iconsOnly ? width : Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
+                height: bar.vertical ? width : Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
                 text: modelData.name || String(modelData.id)
                 leftPadding: 7
                 rightPadding: 7

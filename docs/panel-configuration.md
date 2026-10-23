@@ -73,8 +73,9 @@ menu alignment. Hidden-panel shortcuts and the application launcher overlay
 retain their existing placement.
 
 Centered layouts display icons with small workspace numbers, including a calendar
-icon for date/time and a compact media spectrum. Workspace digits use the icon
-size and the same compact slots as other controls, including two-digit numbers.
+icon for date/time and a compact media spectrum. Horizontal workspace pills keep
+the ordinary layout’s compact text-sized width, height, padding and number font,
+including two-digit numbers; centering does not enlarge them into icon circles.
 Normal-mode workspace names and custom appearance remain saved. Notification
 counts and status text remain available in their menus. The normal text layout
 returns when centering is disabled; saved item text, icons and appearance are
