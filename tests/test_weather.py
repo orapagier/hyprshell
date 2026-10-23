@@ -63,12 +63,15 @@ root = pathlib.Path(os.environ['WEATHER_TEST_ROOT'])
 with (root / 'calls').open('a') as f: f.write(sys.argv[-1] + '\\n')
 if (root / 'fail').exists(): sys.exit(6)
 if 'geocoding-api' in sys.argv[-1]:
-    print(json.dumps({'results': [{'name': 'Miagao', 'admin2': 'Iloilo', 'admin1': 'Western Visayas',
-        'country': 'Philippines', 'latitude': 10.64, 'longitude': 122.23}]}))
+    print((root / 'geocoding.json').read_text())
 else:
     print((root / 'forecast.json').read_text())
 ''')
         curl.chmod(0o755)
+        (self.root / 'geocoding.json').write_text(json.dumps({'results': [
+            {'name': 'Miagao', 'admin2': 'Iloilo', 'admin1': 'Western Visayas',
+             'admin3': 'Municipality of Miagao', 'country_code': 'PH',
+             'country': 'Philippines', 'latitude': 10.64, 'longitude': 122.23}]}))
         (self.root / 'forecast.json').write_text(json.dumps(FORECAST))
         runtime = self.root / 'runtime'; runtime.mkdir(mode=0o700)
         self.env = dict(os.environ, XDG_CONFIG_HOME=str(self.root / 'config'),
@@ -129,6 +132,20 @@ else:
         self.assertTrue(rows[0]['stale'])
         self.assertEqual(rows[1]['weather']['hourly'], FORECAST['hourly'])
         self.assertFalse(rows[1]['stale'])
+
+    def test_city_and_municipality_labels_survive_selection_and_cached_forecast(self):
+        for name, admin, title in [('Butuan', 'Butuan City', 'Butuan City'),
+                                   ('Buenavista', 'Municipality of Buenavista', 'Buenavista')]:
+            with self.subTest(name=name):
+                (self.root / 'geocoding.json').write_text(json.dumps({'results': [
+                    {'name': name, 'admin3': admin, 'admin2': 'Province of Agusan del Norte',
+                     'admin1': 'Caraga', 'country': 'Philippines', 'country_code': 'PH',
+                     'latitude': 9.0, 'longitude': 125.5}]}))
+                found = self.cli('search', name, 'PH')[0]['results'][0]
+                self.assertEqual(found['name'], title + ', Province of Agusan del Norte, Caraga, Philippines')
+                self.cli('select', json.dumps(found))
+                self.assertEqual(self.cli()[0]['location'], found)
+                self.assertEqual(self.cli()[0]['location'], found)
 
     @unittest.skipUnless(shutil.which('quickshell'), 'Native Quickshell is needed')
     def test_native_picker_and_snapshot_lifecycle(self):

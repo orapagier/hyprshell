@@ -13,12 +13,16 @@ in both package manifests. Binary and build outputs are excluded from Git/sync.
 On each dashboard opening the helper emits cached JSON immediately, then fetches
 only if older than 15 minutes. It exits after the request. No automatic retries
 or scheduled network work while closed; an in-flight request may finish after closing. Search and explicit location changes are
-user-triggered. Failed requests retain stale weather with an error and saved-forecast label.
+user-triggered. Failed requests retain stale weather with a saved-forecast label;
+connection errors stay out of the footer while cached weather is available.
 Legacy caches without hourly data are refreshed on the next opening.
 
 `search NAME [COUNTRY]` uses Open-Meteo geocoding; COUNTRY defaults to PH and an
 empty string enables worldwide results. Province/region names distinguish
-municipalities. GeoNames coverage varies; manual named coordinates support
+municipalities. Philippine city labels use matching GeoNames administrative city
+names; populated-place feature codes alone do not distinguish cities from municipal
+seats. The dashboard shows the place name above a smaller province line.
+GeoNames coverage varies; manual named coordinates support
 locations missing from the index. `select LOCATION_JSON` saves a validated place.
 No automatic IP/GPS location lookup. `weather` prints newline-delimited snapshots.
 

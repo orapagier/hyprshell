@@ -121,6 +121,38 @@ fn request(url: &str) -> Result<Value, String> {
     }
     Ok(value)
 }
+fn place_name(row: &Value) -> String {
+    let name = row["name"].as_str().unwrap_or_default();
+    if row["country_code"] != "PH" {
+        return name.into();
+    }
+    let bare_name = |text: &str| {
+        let text = text.trim().to_lowercase();
+        text.strip_prefix("city of ")
+            .or_else(|| text.strip_prefix("municipality of "))
+            .or_else(|| text.strip_suffix(" city"))
+            .unwrap_or(&text)
+            .to_string()
+    };
+    // GeoNames' populated-place codes also cover municipal seats. Use the
+    // matching administrative name instead of treating every seat as a city.
+    for field in ["name", "admin3", "admin2"] {
+        if let Some(admin) = row[field].as_str() {
+            let lower = admin.to_lowercase();
+            if (lower.starts_with("city of ") || lower.ends_with(" city"))
+                && bare_name(admin) == bare_name(name)
+            {
+                let name = name.strip_prefix("City of ").unwrap_or(name);
+                return if name.to_lowercase().ends_with(" city") {
+                    name.into()
+                } else {
+                    format!("{name} City")
+                };
+            }
+        }
+    }
+    name.strip_prefix("Municipality of ").unwrap_or(name).into()
+}
 fn search(query: &str, country: &str) -> Result<Value, String> {
     if query.trim().chars().count() < 2 {
         return Err("Enter at least two characters".into());
@@ -137,11 +169,11 @@ fn search(query: &str, country: &str) -> Result<Value, String> {
         .into_iter()
         .flatten()
         .filter_map(|row| {
-            let mut names = Vec::new();
-            for field in ["name", "admin2", "admin1", "country"] {
+            let mut names = vec![place_name(row)];
+            for field in ["admin2", "admin1", "country"] {
                 if let Some(text) = row[field].as_str().filter(|s| !s.is_empty()) {
-                    if !names.contains(&text) {
-                        names.push(text);
+                    if !names.iter().any(|name| name == text) {
+                        names.push(text.to_string());
                     }
                 }
             }
@@ -274,5 +306,41 @@ mod tests {
     #[test]
     fn search_is_url_encoded() {
         assert_eq!(encode("Santo Niño &"), "Santo%20Ni%C3%B1o%20%26");
+    }
+    #[test]
+    fn philippine_city_names_use_matching_administrative_names() {
+        for admin in ["Butuan City", "City of Butuan"] {
+            assert_eq!(
+                place_name(&json!({"name":"Butuan", "country_code":"PH",
+                "admin3":admin})),
+                "Butuan City"
+            );
+        }
+        for name in ["Butuan City", "City of Butuan"] {
+            assert_eq!(
+                place_name(&json!({"name":name, "country_code":"PH"})),
+                "Butuan City"
+            );
+        }
+        assert_eq!(
+            place_name(&json!({"name":"Buenavista", "country_code":"PH",
+            "admin3":"Municipality of Buenavista", "feature_code":"PPLA3"})),
+            "Buenavista"
+        );
+        assert_eq!(
+            place_name(&json!({"name":"San Fernando", "country_code":"PH",
+            "admin3":"Municipality of San Fernando"})),
+            "San Fernando"
+        );
+        assert_eq!(
+            place_name(&json!({"name":"Ampayon", "country_code":"PH",
+            "admin3":"Butuan City"})),
+            "Ampayon"
+        );
+        assert_eq!(
+            place_name(&json!({"name":"New York", "country_code":"US",
+            "admin3":"New York City"})),
+            "New York"
+        );
     }
 }

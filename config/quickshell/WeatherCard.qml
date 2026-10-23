@@ -147,7 +147,8 @@ Rectangle {
         }
         Label {
             visible: card.locationParts.length > 1 || !card.snapshot.location
-            text: card.locationParts.slice(1).join(" · ").replace(/^Province of /, "") || "Choose a city or municipality to get started"
+            objectName: "weatherProvince"
+            text: (card.locationParts[1] || "").replace(/^Province of /, "") || "Choose a city or municipality to get started"
             color: card.secondaryColor; font.pixelSize: 11; lineHeight: 1.3
             Layout.topMargin: 5; Layout.fillWidth: true
         }
@@ -324,7 +325,7 @@ Rectangle {
                 }
             }
         }
-        Label { text: card.snapshot.error || card.snapshot.warning || (card.busy && card.operation === "weather" ? "Updating weather…" : ""); visible: text.length > 0 && card.snapshot.weather !== undefined; color: card.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true; Layout.topMargin: visible ? 8 : 0 }
+        Label { objectName: "weatherStatus"; text: card.snapshot.warning || (card.busy && card.operation === "weather" ? "Updating weather…" : ""); visible: text.length > 0 && card.snapshot.weather !== undefined; color: card.secondaryColor; font.pixelSize: 11; Layout.fillWidth: true; Layout.topMargin: visible ? 8 : 0 }
         Item { Layout.fillHeight: true }
     }
     component Label: MenuLabel { color: card.textColor }

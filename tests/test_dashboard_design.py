@@ -33,7 +33,7 @@ ShellRoot {
     property bool interpolated: false
     property bool reducedPhase: false
     property bool reducedInterpolated: false
-    property var data: ({location:{name:"Butuan, Province of Agusan del Norte, Caraga, Philippines"},
+    property var data: ({location:{name:"Butuan City, Province of Agusan del Norte, Caraga, Philippines"},
         fetchedAt:1792533600, stale:false, weather:{current:{temperature_2m:27, apparent_temperature:32,
             relative_humidity_2m:79, precipitation:0, interval:900, weather_code:3, wind_speed_10m:4,
             wind_gusts_10m:7, time:"2026-10-21T06:00"}, daily:{temperature_2m_max:[34],
@@ -102,6 +102,13 @@ ShellRoot {
                 if (Math.abs(hourly.y - metrics.y - metrics.height - 14) > 1) throw new Error('Forecast gap is not compact');
                 const pencil = test.findChild(weather, 'weatherChangeCity');
                 const location = test.findChild(weather, 'weatherLocation');
+                const province = test.findChild(weather, 'weatherProvince');
+                if (location.text !== 'Butuan City' || province.text !== 'Agusan del Norte' || !province.visible || province.font.pixelSize >= location.font.pixelSize)
+                    throw new Error('City title and smaller province line missing');
+                weather.snapshot = Object.assign({}, root.data, {location:{name:'Buenavista, Province of Agusan del Norte, Caraga, Philippines'}});
+                root.capture('municipality'); root.checkBounds(dashboard);
+                if (location.text !== 'Buenavista' || province.text !== 'Agusan del Norte') throw new Error('Municipality province missing');
+                weather.snapshot = root.data;
                 if (Math.abs(pencil.mapToItem(weather, 0, pencil.height / 2).y - location.mapToItem(weather, 0, location.height / 2).y) > 1) throw new Error('Pencil is not aligned with city');
                 test.mouseClick(test.findChild(weather, 'weatherChangeCity'));
                 if (!weather.editing || !test.findChild(weather, 'weatherCitySearch').activeFocus) throw new Error('City editor focus missing');
@@ -129,6 +136,8 @@ ShellRoot {
                 if (system.mapToItem(dashboard,0,0).y < weather.height) throw new Error('Narrow layout must stack');
                 weather.snapshot = Object.assign({}, root.data, {stale:true,error:"Could not reach weather service. Check your connection."});
                 root.capture('offline'); root.checkBounds(dashboard);
+                if (test.findChild(weather, 'weatherStatus').visible || test.findChild(weather, 'weatherStatus').text.length)
+                    throw new Error('Connection error must stay out of the cached-weather footer');
                 weather.snapshot = {location:root.data.location,error:"Could not reach weather service. Check your connection."};
                 root.capture('unavailable'); root.checkBounds(dashboard);
                 weather.snapshot = {needsLocation:true};
