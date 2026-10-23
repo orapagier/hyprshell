@@ -13,11 +13,24 @@ local function keepSettingsFloating(w)
     end
     return true
 end
+local function keepDialogFloating(w)
+    if not w then return false end
+    for _, tag in ipairs(w.tags or {}) do
+        if tag == "hyprshell-dialog*" or tag == "hyprshell-popup" then
+            if w.mapped and w.fullscreen == 0 then
+                hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "disable" }))
+                if not w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "set" })) end
+            end
+            return true
+        end
+    end
+    return false
+end
 hl.window_rule({name = "hyprshell-workspace-float-3", match = {workspace = "3"}, float = true})
 hl.window_rule({name = "hyprshell-workspace-float-4", match = {workspace = "4"}, float = true})
 local floatingWorkspaces = {[3] = true, [4] = true}
 local function floatWorkspaceWindow(w)
-    if keepSettingsFloating(w) then return end
+    if keepSettingsFloating(w) or keepDialogFloating(w) then return end
     if w and w.mapped and w.workspace and floatingWorkspaces[w.workspace.id] and w.fullscreen == 0 then
         if not w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "set" })) end
         local m = w.monitor
@@ -48,7 +61,7 @@ hl.window_rule({name = "hyprshell-workspace-pseudo-1", match = {workspace = "1"}
 hl.window_rule({name = "hyprshell-workspace-pseudo-5", match = {workspace = "5"}, tile = true, pseudo = true})
 local pseudotiledWorkspaces = {[1] = true, [5] = true}
 local function pseudotileWorkspaceWindow(w)
-    if keepSettingsFloating(w) then return end
+    if keepSettingsFloating(w) or keepDialogFloating(w) then return end
     if w and w.mapped and w.workspace and pseudotiledWorkspaces[w.workspace.id] and w.fullscreen == 0 then
         if w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "unset" })) end
         hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "enable" }))
@@ -58,10 +71,13 @@ hl.on("window.open", pseudotileWorkspaceWindow)
 hl.on("config.reloaded", function()
     for _, w in ipairs(hl.get_windows()) do pseudotileWorkspaceWindow(w) end
 end)
+hl.window_rule({name = "hyprshell-popup-candidate-workspace-placement", match = {tag = "hyprshell-popup-candidate"}, float = true, pseudo = false})
+hl.window_rule({name = "hyprshell-popup-workspace-placement", match = {tag = "hyprshell-popup"}, float = true, pseudo = false})
+hl.window_rule({name = "hyprshell-dialog-workspace-placement", match = {tag = "hyprshell-dialog"}, float = true, pseudo = false})
 hl.window_rule({ name = "hyprshell-settings-workspace-placement", match = { initial_title = "^Hyprshell Settings$" }, float = true, pseudo = false })
 local pendingWorkspacePlacement = setmetatable({}, {__mode = "k"})
 local function moveWorkspaceWindow(w)
-    if keepSettingsFloating(w) then return end
+    if keepSettingsFloating(w) or keepDialogFloating(w) then return end
     if not w or not w.mapped or not w.workspace then return end
     if w.workspace.id < 1 or w.workspace.id > 99 then
         pendingWorkspacePlacement[w] = nil

@@ -118,6 +118,23 @@ def render(data):
         '    return true',
         'end',
     ])
+    # Dialog rules tag their windows; native popups get a static tag at map time.
+    # Preserve both across workspace moves, fullscreen exits and config reloads.
+    lines.extend([
+        'local function keepDialogFloating(w)',
+        '    if not w then return false end',
+        '    for _, tag in ipairs(w.tags or {}) do',
+        '        if tag == "hyprshell-dialog*" or tag == "hyprshell-popup" then',
+        '            if w.mapped and w.fullscreen == 0 then',
+        '                hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "disable" }))',
+        '                if not w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "set" })) end',
+        '            end',
+        '            return true',
+        '        end',
+        '    end',
+        '    return false',
+        'end',
+    ])
     floating = [row['id'] for row in data['workspaces'] if row.get('floating', False)]
     if floating:
         # Run after application placement rules, including explicit tile rules.
@@ -127,7 +144,7 @@ def render(data):
         lines.extend([
             'local floatingWorkspaces = {' + ', '.join('[' + str(ident) + '] = true' for ident in floating) + '}',
             'local function floatWorkspaceWindow(w)',
-            '    if keepSettingsFloating(w) then return end',
+            '    if keepSettingsFloating(w) or keepDialogFloating(w) then return end',
             '    if w and w.mapped and w.workspace and floatingWorkspaces[w.workspace.id] and w.fullscreen == 0 then',
             '        if not w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "set" })) end',
             '        local m = w.monitor',
@@ -164,7 +181,7 @@ def render(data):
         lines.extend([
             'local pseudotiledWorkspaces = {' + ', '.join('[' + str(ident) + '] = true' for ident in pseudotiled) + '}',
             'local function pseudotileWorkspaceWindow(w)',
-            '    if keepSettingsFloating(w) then return end',
+            '    if keepSettingsFloating(w) or keepDialogFloating(w) then return end',
             '    if w and w.mapped and w.workspace and pseudotiledWorkspaces[w.workspace.id] and w.fullscreen == 0 then',
             '        if w.floating then hl.dispatch(hl.dsp.window.float({ window = w, action = "unset" })) end',
             '        hl.dispatch(hl.dsp.window.pseudo({ window = w, action = "enable" }))',
@@ -175,13 +192,17 @@ def render(data):
             '    for _, w in ipairs(hl.get_windows()) do pseudotileWorkspaceWindow(w) end',
             'end)',
         ])
+    # These come last so app/workspace tile rules cannot retile popups at map time.
+    for tag in ('hyprshell-popup-candidate', 'hyprshell-popup', 'hyprshell-dialog'):
+        lines.append('hl.window_rule(' + encode({'name': tag + '-workspace-placement',
+            'match': {'tag': tag}, 'float': True, 'pseudo': False}) + ')')
     lines.append('hl.window_rule({ name = "hyprshell-settings-workspace-placement", match = { initial_title = "^Hyprshell Settings$" }, float = true, pseudo = false })')
     # Moves reset both placement flags, even when no auto-mode is configured.
     # Keep map/reload application rules and manual placement changes intact.
     lines.extend([
         'local pendingWorkspacePlacement = setmetatable({}, {__mode = "k"})',
         'local function moveWorkspaceWindow(w)',
-        '    if keepSettingsFloating(w) then return end',
+        '    if keepSettingsFloating(w) or keepDialogFloating(w) then return end',
         '    if not w or not w.mapped or not w.workspace then return end',
         '    if w.workspace.id < 1 or w.workspace.id > 99 then',
         '        pendingWorkspacePlacement[w] = nil',

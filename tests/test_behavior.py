@@ -309,6 +309,91 @@ end
         result = subprocess.run(['lua', '-'], input=harness, text=True, capture_output=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_dialogs_and_native_popups_keep_floating_without_workspace_resizing(self):
+        data = self.sample()
+        data['workspaces'] = [
+            {'id': 2, 'name': '', 'layout': 'inherit', 'persistent': False, 'pseudotiled': True},
+            {'id': 3, 'name': '', 'layout': 'inherit', 'persistent': False, 'floating': True},
+        ]
+        windows_source = (ROOT / 'config/hyprshell/hyprland/windows.lua').read_text()
+        harness = r'''local callbacks, rules, windows, actions = {}, {}, {}, {}
+hl = {
+    config=function() end, workspace_rule=function() end, layer_rule=function() end,
+    window_rule=function(r) table.insert(rules,r) end,
+    on=function(name,fn)
+        callbacks[name]=callbacks[name] or {}
+        table.insert(callbacks[name],fn)
+    end,
+    get_windows=function() return windows end,
+    dsp={window={
+        float=function(a) a.kind="float"; return a end,
+        pseudo=function(a) a.kind="pseudo"; return a end,
+        tag=function(a) a.kind="tag"; return a end,
+    }},
+    dispatch=function(a)
+        table.insert(actions,a)
+        if a.kind=="float" then a.window.floating=a.action=="set"
+        elseif a.kind=="pseudo" then a.window.pseudo=a.action=="enable"
+        elseif a.kind=="tag" then
+            assert(a.tag=="+hyprshell-popup")
+            a.window.tags={"hyprshell-popup"}
+        else error("unexpected dispatch") end
+    end,
+}
+local function emit(event,w)
+    for _, fn in ipairs(callbacks[event] or {}) do fn(w) end
+end
+''' + windows_source + behavior.render(data) + r'''
+local names={}
+for _, r in ipairs(rules) do names[r.name]=r end
+for _, name in ipairs({"float-modal-dialogs", "float-app-dialogs", "float-thunar-dialogs",
+                       "float-file-chooser-portals", "compact-file-pickers", "float-browser-dialogs"}) do
+    assert(names[name].tag=="+hyprshell-dialog")
+end
+assert(names["detect-native-popups"].match.float)
+for _, tag in ipairs({"hyprshell-popup-candidate", "hyprshell-popup", "hyprshell-dialog"}) do
+    local r=names[tag .. "-workspace-placement"]
+    assert(r.match.tag==tag and r.float and r.pseudo==false)
+end
+-- Snapshot native hints before layout insertion; tags survive title changes/reloads.
+local popup={mapped=true, workspace={id=2}, fullscreen=0, floating=true,
+             tags={"hyprshell-popup-candidate*"}, title="Arbitrary OAuth page"}
+emit("window.open_early",popup)
+assert(popup.tags[1]=="hyprshell-popup")
+-- Every workspace mode and every automation path must leave dialogs compact.
+for _, tag in ipairs({"hyprshell-dialog*", "hyprshell-popup"}) do
+    for _, id in ipairs({1,2,3,99}) do
+        for _, event in ipairs({"window.open", "window.move_to_workspace", "window.fullscreen", "config.reloaded"}) do
+            local w={mapped=true, workspace={id=id}, fullscreen=0, floating=false, pseudo=true,
+                     tags={tag}, class="test-app", title="Choose a document", size={860,560}}
+            windows={w}; actions={}
+            emit(event,w)
+            assert(w.floating and not w.pseudo, event .. " workspace " .. id)
+            assert(w.size[1]==860 and w.size[2]==560)
+            for _, a in ipairs(actions) do assert(a.window==w) end
+        end
+    end
+end
+-- A normal window's later float state/candidate tag must not exempt it from modes.
+local normal={mapped=true, workspace={id=2}, fullscreen=0, floating=false, pseudo=false,
+              tags={}, class="test-app", title="Normal document"}
+emit("window.open_early",normal)
+normal.tags={"hyprshell-popup-candidate*"}
+emit("window.open",normal)
+assert(not normal.floating and normal.pseudo)
+-- Fullscreen and unmapped dialogs are left alone until they can be placed.
+for _, w in ipairs({
+    {mapped=true, workspace={id=2}, fullscreen=2, floating=false, tags={"hyprshell-popup"}},
+    {mapped=false, workspace={id=3}, fullscreen=0, floating=false, tags={"hyprshell-dialog*"}},
+}) do
+    actions={}; windows={w}
+    emit("window.open",w); emit("window.move_to_workspace",w); emit("config.reloaded")
+    assert(#actions==0)
+end
+'''
+        result = subprocess.run(['lua', '-'], input=harness, text=True, capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_moves_apply_every_destination_mode_and_defer_fullscreen(self):
         data = self.sample()
         data['workspaces'] = [

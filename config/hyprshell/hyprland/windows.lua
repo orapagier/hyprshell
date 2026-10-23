@@ -142,6 +142,24 @@ hl.on("window.title", routeOpenPresentations)
 hl.on("monitor.layout_changed", routeOpenPresentations)
 hl.on("config.reloaded", routeOpenPresentations)
 
+-- At initial rule evaluation, floating reflects Hyprland's native dialog,
+-- transient, popup-role and fixed-size hints. Freeze that result before the
+-- layout inserts the window; later workspace/manual floats are not popups.
+hl.window_rule({
+    name = "detect-native-popups",
+    match = { float = true },
+    tag = "+hyprshell-popup-candidate",
+})
+hl.on("window.open_early", function(w)
+    if not w then return end
+    for _, tag in ipairs(w.tags or {}) do
+        if tag == "hyprshell-popup-candidate*" then
+            hl.dispatch(hl.dsp.window.tag({ window = w, tag = "+hyprshell-popup" }))
+            return
+        end
+    end
+end)
+
 -- Hyprview is a normal movable, resizable window, floating on first open.
 hl.window_rule({
     name = "hyprshell-hyprview-placement",
@@ -174,6 +192,7 @@ hl.window_rule({
 hl.window_rule({
     name  = "float-modal-dialogs",
     match = { modal = true },
+    tag = "+hyprshell-dialog",
     float = true,
     center = true,
 })
@@ -194,6 +213,7 @@ local dialogTitles = {
 hl.window_rule({
     name = "float-app-dialogs",
     match = { title = "(?i)^(" .. table.concat(dialogTitles, "|") .. ")$" },
+    tag = "+hyprshell-dialog",
     float = true,
     center = true,
 })
@@ -211,6 +231,7 @@ hl.window_rule({
         class = "(?i)^(thunar|org\\.xfce\\.thunar)$",
         title = '^((Rename "[^"]*")|(Create (New )?(Folder|File))|(.* - Properties)|(Confirm to replace files)|(Replace the (link|folder|file) in ".*")|(File Operation Progress))$',
     },
+    tag = "+hyprshell-dialog",
     float = true,
     center = true,
 })
@@ -219,6 +240,7 @@ hl.window_rule({
 hl.window_rule({
     name  = "float-file-chooser-portals",
     match = { class = "^(xdg-desktop-portal-(gtk|gnome|kde)|org\\.freedesktop\\.impl\\.portal\\.desktop\\.(gtk|gnome|kde))$" },
+    tag = "+hyprshell-dialog",
     float = true,
     center = true,
     size = { "min(860,monitor_w*0.9)", "min(560,monitor_h*0.8)" },
@@ -235,9 +257,25 @@ local filePickerTitles = {
 hl.window_rule({
     name = "compact-file-pickers",
     match = { initial_title = "(?i)^(" .. table.concat(filePickerTitles, "|") .. ")$" },
+    tag = "+hyprshell-dialog",
     float = true,
     center = true,
     size = { "min(860,monitor_w*0.9)", "min(560,monitor_h*0.8)" },
+})
+
+-- Brave's Wayland login popup can omit all modal/transient hints. Its observed
+-- initial title stays stable when the page loads or navigates during sign-in.
+hl.window_rule({
+    name = "float-brave-login-popups",
+    match = {
+        initial_class = "^brave-browser$",
+        initial_title = "^Untitled - Brave$",
+    },
+    tag = "+hyprshell-dialog",
+    float = true,
+    pseudo = false,
+    center = true,
+    size = { "min(600,monitor_w*0.9)", "min(760,monitor_h*0.85)" },
 })
 
 -- Match browser dialog titles exactly, so regular browser windows stay tiled.
@@ -247,6 +285,7 @@ hl.window_rule({
         class = "(?i)^(brave-browser(-beta|-nightly)?|brave|chromium(-browser)?|google-chrome(-beta|-unstable)?|firefox(-esr)?|org\\.mozilla\\.firefox)$",
         title = "^(Open|Open File|Open Files|Save|Save As|Save File|Select File|Select Folder|Choose File|Choose Files|Choose Folder|Picture-in-Picture)$",
     },
+    tag = "+hyprshell-dialog",
     float = true,
     center = true,
 })
