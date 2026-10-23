@@ -72,7 +72,7 @@ Item {
             verify(geometrySlider.settingValue >= value);
         }
         function test_centeredIconsHideLabelsAndRestoreNormalText() {
-            bar.statusData = {workspaces:[{id:1,name:"Dev",active:true},{id:2,name:"Chat"}],
+            bar.statusData = {workspaces:[{id:1,name:"Dev",active:true},{id:12,name:"Chat"}],
                 audio:{icon:"󰕾",text:"48%"},network:{text:"󰤨"},bluetooth:{text:"󰂯"},battery:{present:true,text:"󰁹 82%"}};
             bar.mediaData = {playing:true,title:"Artist — A song",levels:[0.2,0.8,0.4]};
             bar.notificationData = {count:42};
@@ -94,10 +94,15 @@ Item {
                 compare(bar.moduleItems.calendar.shownIcon,"󰃭");
                 verify(findChild(bar,"distroGlassLogo").visible);
                 verify(findChild(bar,"settingsGlassCog").visible);
-                let first = findChild(bar,"workspace1"), second = findChild(bar,"workspace2");
-                compare(first.shownText,""); compare(second.shownText,"");
-                verify(first.shownIcon.length > 0 && second.shownIcon.length > 0);
-                verify(first.shownIcon !== second.shownIcon);
+                let first = findChild(bar,"workspace1"), second = findChild(bar,"workspace12");
+                compare(first.shownText,"1"); compare(second.shownText,"12");
+                compare(first.shownIcon,""); compare(second.shownIcon,"");
+                compare(first.content.font.pixelSize,first.effectiveIconSize);
+                compare(second.content.font.pixelSize,second.effectiveIconSize);
+                compare(first.width,bar.moduleItems.audio.width);
+                compare(second.width,bar.moduleItems.audio.width);
+                verify(first.content.implicitWidth <= first.width);
+                verify(second.content.implicitWidth <= second.width);
                 compare(bar.moduleItems.media.item.shownText,"");
                 compare(findChild(bar,"mediaSpectrum").barCount,5);
                 verify(!findChild(bar,"notificationBadge").visible);

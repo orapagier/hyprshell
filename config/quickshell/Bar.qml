@@ -710,6 +710,12 @@ Item {
                 objectName: "workspace" + modelData.id
                 settings: {
                     let appearance = Object.assign({}, bar.appearance("workspaces"), {paddingLeft:0, paddingRight:0});
+                    if (bar.centerItems) {
+                        appearance.text = String(modelData.id);
+                        appearance.hideText = false;
+                        appearance.hideIcon = true;
+                        appearance.fontSize = appearance.iconSize || 16;
+                    }
                     if (active && appearance.vibrantColor) {
                         let base = Qt.color(appearance.vibrantColor);
                         // Use the opposite hue while preserving the existing pill styling.
@@ -725,8 +731,7 @@ Item {
                 maximumWidth: bar.vertical ? Math.max(1, bar.verticalThickness - 4 - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
                 width: bar.vertical ? maximumWidth : bar.centerItems ? bar.verticalThickness - 4 : implicitWidth
                 onActiveFocusChanged: if (activeFocus) bar.ensureItemVisible(workspaceButton)
-                iconOnly: bar.centerItems
-                compactIcon: active ? "" : ""
+                iconOnly: false
                 Accessible.name: "Workspace " + (modelData.name || String(modelData.id))
                 height: bar.iconsOnly ? width : Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
                 text: modelData.name || String(modelData.id)
