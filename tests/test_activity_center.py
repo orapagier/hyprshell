@@ -136,7 +136,7 @@ ShellRoot {
                 media.players = [];
                 test.check(!media.visible, "Card hides when no player exists");
                 mockInbox.rows = [
-                    {id:'1',app:'Mail',appKey:'mail',summary:'One',body:'Body',received:Date.now(),unread:true,active:true,actions:[]},
+                    {id:'1',app:'Mail',appKey:'mail',summary:'One',body:'Body',received:Date.now(),unread:true,active:true,actions:[{id:'open',text:'Open'}]},
                     {id:'2',app:'Chat',appKey:'chat',summary:'Two',body:'Body',received:Date.now(),unread:true,active:true,actions:[]},
                     {id:'3',app:'Mail',appKey:'mail',summary:'Three',body:'Body',received:Date.now(),unread:true,active:true,actions:[]}
                 ];
@@ -144,6 +144,33 @@ ShellRoot {
                 input.wait(30);
                 test.check(mockInbox.unread === 0, 'Read state after event loop: ' + drawer.opened);
                 test.check(mockInbox.unread === 0, "Visible inbox marks notifications read");
+                test.check(page.expandedGroups.length === 0, "App groups start collapsed");
+                test.check(test.find(page,'activityNotification-1') === null && test.find(page,'activityNotification-2') === null, "Collapsed groups hide their notification lists");
+                let mail = test.find(page,'activityGroup-mail');
+                test.check(mail.text.includes('Mail · 2'), "Collapsed header shows app name and count");
+                test.click(mail);
+                input.wait(30);
+                let card = test.find(page,'activityNotification-1');
+                test.check(card !== null && !card.expanded, "Opening app group retains compact notification previews");
+                test.check(test.find(page,'activityNotification-3') !== null && test.find(page,'activityNotification-2') === null, "Opening one group leaves other groups collapsed");
+                test.click(test.find(card,'notificationHeader'));
+                input.wait(30);
+                test.check(card.expanded && test.find(card,'notificationDetails').visible, "Individual details still expand");
+                card.actionRequested('open');
+                test.check(mockInbox.actionCalls === 1, "Expanded notification actions remain connected");
+                test.click(test.find(page,'activityGroup-mail'));
+                input.wait(30);
+                test.check(test.find(page,'activityNotification-1') === null && page.expanded === '', "Group collapses and clears expanded details");
+                test.click(test.find(page,'activityGroup-mail'));
+                input.wait(30);
+                test.check(!test.find(page,'activityNotification-1').expanded, "Reopened group returns to compact previews");
+                test.click(test.find(page,'activityGroup-chat'));
+                input.wait(30);
+                test.check(test.find(page,'activityNotification-1') !== null && test.find(page,'activityNotification-2') !== null, "Groups expand independently");
+                test.find(page,'activityNotification-2').dismissRequested();
+                input.wait(30);
+                test.check(mockInbox.rows.length === 2 && test.find(page,'activityGroup-chat') === null, "Dismiss still removes the notification and empty app group");
+                test.check(test.find(page,'activityNotification-1') !== null, "History updates retain expanded group state");
                 drawer.close();
                 mockInbox.rows = mockInbox.rows.concat([{id:'4',app:'Mail',summary:'Unread',body:'',unread:true,actions:[]}]);
                 test.check(mockInbox.unread === 1, "Closed drawer preserves unread state");
@@ -151,6 +178,7 @@ ShellRoot {
                 input.wait(30);
                 test.check(mockInbox.unread === 0, 'Read state after event loop: ' + drawer.opened);
                 test.check(mockInbox.unread === 0, "Reopening marks history read");
+                test.check(page.expandedGroups.length === 0 && test.find(page,'activityNotification-1') === null, "Reopening the panel resets groups to collapsed");
                 input.wait(350);
                 test.click(test.find(page,'activityClear'));
                 test.check(mockInbox.rows.length === 0 && test.find(page,'activityEmpty').visible, "Clear all shows empty state");

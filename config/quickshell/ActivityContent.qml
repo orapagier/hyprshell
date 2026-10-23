@@ -34,11 +34,18 @@ ColumnLayout {
         return Array.from(grouped.values());
     }
     property string expanded: ""
+    property var expandedGroups: []
     property string error: ""
     signal dismissRequested()
     function focusFirst() { quiet.forceActiveFocus(); }
     function markRead() { if (active && inbox.unread > 0) inbox.markRead(); }
-    onActiveChanged: Qt.callLater(markRead)
+    onActiveChanged: {
+        if (active) {
+            expandedGroups = [];
+            expanded = "";
+        }
+        Qt.callLater(markRead);
+    }
     Connections { target: page.inbox; function onUnreadChanged() { Qt.callLater(page.markRead); } }
     Keys.onEscapePressed: dismissRequested()
     spacing: 12
@@ -135,17 +142,27 @@ ColumnLayout {
         delegate: ColumnLayout {
             id: group
             required property var modelData
+            readonly property bool expanded: page.expandedGroups.includes(modelData.key)
             Layout.fillWidth: true
             spacing: 6
-            MenuLabel {
-                text: group.modelData.name + " · " + group.modelData.rows.length
-                color: page.secondaryColor; font.pixelSize: 12
-                Layout.fillWidth: true; elide: Text.ElideRight
+            MenuButton {
+                objectName: "activityGroup-" + group.modelData.key
+                text: (group.expanded ? "▾ " : "▸ ") + group.modelData.name + " · " + group.modelData.rows.length
+                accent: page.secondaryColor; font.pixelSize: 12
+                Layout.fillWidth: true
+                Accessible.name: (group.expanded ? "Collapse " : "Expand ") + group.modelData.name + " notifications"
+                onClicked: {
+                    page.expandedGroups = group.expanded
+                        ? page.expandedGroups.filter(key => key !== group.modelData.key)
+                        : page.expandedGroups.concat([group.modelData.key]);
+                    if (!group.expanded && group.modelData.rows.some(row => String(row.id) === page.expanded)) page.expanded = "";
+                }
             }
             Repeater {
-                model: group.modelData.rows
+                model: group.expanded ? group.modelData.rows : []
                 delegate: NotificationCard {
                     required property var modelData
+                    objectName: "activityNotification-" + String(modelData.id)
                     Layout.fillWidth: true; Layout.minimumWidth: 0
                     notification: modelData
                     expanded: page.expanded === String(modelData.id)
