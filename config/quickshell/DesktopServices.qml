@@ -107,17 +107,20 @@ Item {
     readonly property var audioStreams: outputLinks.linkGroups.filter(g => g.state === PwLinkState.Active && g.source && g.source.isStream).map(g => g.source)
     readonly property var stream: audioStreams.length ? audioStreams[audioStreams.length - 1] : null
     readonly property string fullTitle: player ? [player.trackArtist, player.trackTitle || player.identity].filter(Boolean).join(" — ") : stream ? (stream.properties["media.name"] || stream.properties["application.name"] || stream.description || "Audio playing") : "Audio playing"
-    property real soundedAt: 0
-    property real now: Date.now()
-    readonly property bool playing: !!player || (!!stream && now - soundedAt < 900)
+    MediaActivity {
+        id: mediaActivity
+        hasPlayer: !!services.player
+        hasStream: !!services.stream
+        peak: meter.peak
+        fullTitle: services.fullTitle
+    }
+    readonly property bool playing: mediaActivity.playing
     AudioSpectrum {
         id: spectrum
         sinkName: services.sink ? services.sink.name : ""
         enabled: services.playing
     }
-    property string marqueeKey: ""
-    property real marqueeStarted: 0
-    property string marquee: ""
+    readonly property string marquee: mediaActivity.marquee
     readonly property QtObject mediaData: MediaState {
         playing: services.playing
         levels: spectrum.levels
@@ -130,22 +133,5 @@ Item {
         appId: services.player ? services.player.desktopEntry : services.stream ? services.stream.properties["application.id"] || "" : ""
         appName: services.player ? services.player.identity : services.stream ? services.stream.properties["application.name"] || "" : ""
         processId: !services.player && services.stream ? Number(services.stream.properties["application.process.id"] || 0) : 0
-    }
-    Timer {
-        interval: 67; running: true; repeat: true
-        onTriggered: {
-            services.now = Date.now();
-            let peak = meter.peak;
-            if (peak > 0.00015) services.soundedAt = services.now;
-            if (!services.playing) { services.marquee = ""; services.marqueeKey = ""; return; }
-            let title = services.fullTitle;
-            if (services.marqueeKey !== title) { services.marqueeKey = title; services.marqueeStarted = services.now; }
-            let chars = Array.from(title);
-            if (chars.length <= 28) { services.marquee = title; return; }
-            let ring = chars.concat(Array.from("   •   "));
-            let elapsed = ((services.now - services.marqueeStarted) / 1000) % (2 + ring.length * 0.3);
-            let offset = elapsed < 2 ? 0 : Math.floor((elapsed - 2) / 0.3);
-            services.marquee = Array.from({length: 28}, (_,i) => ring[(offset+i) % ring.length]).join("");
-        }
     }
 }

@@ -51,6 +51,10 @@ int main(int argc, char **argv) {
         hann[i] = 0.5 - 0.5 * cos(2.0 * M_PI * i / (WINDOW - 1));
     for (int i = 0; i <= BANDS; ++i)
         edges[i] = (int)ceil(40.0 * pow(7600.0 / 40.0, (double)i / BANDS) * WINDOW / RATE);
+    // Frequency compensation depends only on the fixed band edges, not audio.
+    double band_gain[BANDS];
+    for (int band = 0; band < BANDS; ++band)
+        band_gain[band] = pow(sqrt(edges[band] * edges[band+1]) * RATE / WINDOW / 120.0, 0.2);
     // Slow gain recovery preserves differences between soft and loud passages.
     double reference = 0.02;
     int primed = 0;
@@ -98,7 +102,7 @@ int main(int argc, char **argv) {
             for (int bin = edges[band]; bin < edges[band+1]; ++bin)
                 magnitude = fmax(magnitude, hypot(output[bin][0], output[bin][1]) * 4.0 / WINDOW);
             // A gentle treble lift balances the logarithmic bass-to-treble bands.
-            magnitudes[band] = magnitude * pow(sqrt(edges[band] * edges[band+1]) * RATE / WINDOW / 120.0, 0.2);
+            magnitudes[band] = magnitude * band_gain[band];
             strongest = fmax(strongest, magnitudes[band]);
         }
         reference = fmax(0.02, fmax(reference * 0.999, strongest * 1.12));
