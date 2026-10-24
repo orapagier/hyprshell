@@ -129,9 +129,12 @@ ShellRoot {
         PanelWindow {
             id: panel
             required property var modelData
-            MenuController { id: menuState; hoverEnabled: Settings.hoverPopdownsEnabled(preferences.config.bar, panel.workspace); dismissPinnedOnLeave: (!panel.visible || openedByShortcut) && !panelDropdown.managingApplications }
+            MenuController { id: menuState; hoverEnabled: Settings.hoverPopdownsEnabled(preferences.config.bar, panel.workspace); dismissPinnedOnLeave: (!panel.shown || openedByShortcut) && !panelDropdown.managingApplications }
             screen: modelData
-            visible: {
+            // Keep the Wayland surface and scene graph ready, as Dashboard does.
+            // Mapping a previously hidden window synchronously stalls the IPC handler.
+            visible: true
+            readonly property bool shown: {
                 // The window's resolved screen can change while hiding/showing.
                 // Read the stable Variants model instead of feeding that change
                 // back into the window's own visibility binding.
@@ -140,10 +143,10 @@ ShellRoot {
                 return Settings.panelVisible(panelVisibility.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
             }
             exclusiveZone: autoHide ? 0 : (vertical ? width : height) + (preferences.panelConfig.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
-            exclusionMode: visible ? ExclusionMode.Normal : ExclusionMode.Ignore
-            onVisibleChanged: {
-                console.info("HYPRPANE_TIMING", Date.now(), "visible-request", visible);
-                if (!visible) menuState.close();
+            exclusionMode: shown ? ExclusionMode.Normal : ExclusionMode.Ignore
+            onShownChanged: {
+                console.info("HYPRPANE_TIMING", Date.now(), "visible-request", shown);
+                if (!shown) panel.closeMenu();
             }
             onBackingWindowVisibleChanged: console.info("HYPRPANE_TIMING", Date.now(), "surface-visible", backingWindowVisible)
             readonly property string edge: preferences.config.bar.position || "top"
@@ -152,11 +155,13 @@ ShellRoot {
             readonly property real revealProgress: panelReveal.progress
             mask: Region {
                 x: panelReveal.inputRect.x; y: panelReveal.inputRect.y
-                width: panelReveal.inputRect.width; height: panelReveal.inputRect.height
+                width: panel.shown ? panelReveal.inputRect.width : 0; height: panel.shown ? panelReveal.inputRect.height : 0
             }
             PanelReveal {
                 id: panelReveal
                 anchors.fill: parent
+                opacity: panel.shown ? 1 : 0
+                enabled: panel.shown
                 edge: panel.edge
                 autoHide: panel.autoHide
                 menuOpen: menuState.section.length > 0 || keybindings.opened
@@ -255,7 +260,7 @@ ShellRoot {
                 screen: panel.screen
                 barEdge: connected ? panel.edge : "top"
                 barRect: connected ? Qt.rect(panel.originX, panel.originY, panel.width, panel.height) : Qt.rect(0,0,0,0)
-                connected: panel.visible && bar.menuHasTrigger(menuState.displayedSection)
+                connected: panel.shown && bar.menuHasTrigger(menuState.displayedSection)
                 pointed: bar.menuPointed(menuState.displayedSection)
                 movePointerOnOpen: !connected || menuState.openedByShortcut
                 section: menuState.section
@@ -281,7 +286,7 @@ ShellRoot {
             KeybindingsPopup { id: keybindings; screen: panel.screen; wallpaperSource: bar.wallpaperSource; translucency: preferences.config.bar.popdownTranslucency ?? 0.06 }
             function closeMenu() { menuState.close(); keybindings.opened = false; }
             function refreshSettings() {
-                if (!panel.visible || (menuState.section && !bar.itemEnabled(bar.menuItemId(menuState.section)))) menuState.close();
+                if (!panel.shown || (menuState.section && !bar.itemEnabled(bar.menuItemId(menuState.section)))) menuState.close();
             }
             function toggleMenu(name) { keybindings.opened = false; menuState.activate(name, true); }
             function toggleLauncher() { toggleMenu("launcher"); }
@@ -313,7 +318,7 @@ ShellRoot {
         function restoreDesktop(): void { applications.desktop.run('restore'); }
         function ready(): bool {
             if (panels.instances.length === 0) return false;
-            for (let panel of panels.instances) if (panel.visible && !panel.backingWindowVisible) return false;
+            for (let panel of panels.instances) if (panel.shown && !panel.backingWindowVisible) return false;
             return true;
         }
         function reload(): void {
