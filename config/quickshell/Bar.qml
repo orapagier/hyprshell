@@ -392,7 +392,10 @@ Item {
     }
     implicitWidth: vertical ? verticalThickness + insetLeft + insetRight : 0
     implicitHeight: vertical ? Math.max(1, Math.min(Math.max(1, screenHeight - Settings.screenMargins(settings.bar || {}).top - Settings.screenMargins(settings.bar || {}).bottom), compact ? minimumVerticalLength + insetTop + insetBottom : Infinity))
-        : verticalThickness + insetTop + insetBottom
+        : (settings.bar?.edgeAttached === true && fullBackgroundEnabled
+            ? Math.max(verticalThickness - 6,
+                ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => moduleItems[id].height + 4))
+            : verticalThickness) + insetTop + insetBottom
     height: implicitHeight
     Flickable {
         id: layoutViewport

@@ -786,6 +786,26 @@ Item {
                 if (!centered) compare(bar.moduleItems.audio.shownText,"48%");
             }
         }
+        function test_attachedHorizontalFullPillSpacing() {
+            for (let edge of ["top", "bottom"]) {
+                bar.settings = connectorConfig(edge, {audio:{},calendar:{side:"center"}},
+                    {height:32,uniformItems:true,fullBackground:"on"});
+                wait(0);
+                let originalHeight = bar.height;
+                let itemHeight = bar.moduleItems.audio.height;
+                bar.settings = connectorConfig(edge, {audio:{},calendar:{side:"center"}},
+                    {height:32,uniformItems:true,fullBackground:"on",edgeAttached:true});
+                wait(0);
+                compare(bar.height, originalHeight - 6);
+                compare(bar.moduleItems.audio.height, itemHeight);
+                let surface = findChild(bar,"attachedPanelSurface");
+                verify(surface.visible);
+                let full = findChild(bar,"fullPanelPill");
+                fuzzyCompare(full.y + full.height / 2,bar.height / 2,0.01);
+                verify(bar.moduleItems.audio.y >= 2);
+                verify(bar.moduleItems.audio.y + itemHeight <= bar.height - 2);
+            }
+        }
         function test_smallWorkspacesKeepFullPillVerticallyCentered() {
             bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}],audio:{text:"48%"},
                 network:{},bluetooth:{},battery:{}};
