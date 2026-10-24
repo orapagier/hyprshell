@@ -1046,7 +1046,7 @@ Item {
         // Center the visible glyph rather than the font's advance box.
         content.horizontalAlignment: bar.vertical ? Text.AlignHCenter : Text.AlignLeft
         content.elide: Text.ElideNone
-        content.x: bar.uniformItems && !bar.vertical ? effectiveLeftPadding - wifiGlyphMetrics.tightBoundingRect.x : bar.vertical ? effectiveLeftPadding : (wifi.width - wifiGlyphMetrics.tightBoundingRect.width) / 2
+        content.x: bar.uniformItems && !bar.vertical && !circular ? effectiveLeftPadding - wifiGlyphMetrics.tightBoundingRect.x : bar.vertical ? effectiveLeftPadding : (wifi.width - wifiGlyphMetrics.tightBoundingRect.width) / 2
                    - wifiGlyphMetrics.tightBoundingRect.x
         TextMetrics {
             id: wifiGlyphMetrics

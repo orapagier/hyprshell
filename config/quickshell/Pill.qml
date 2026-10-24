@@ -97,11 +97,12 @@ Item {
     readonly property int effectiveGlyphSize: settings.iconSize || settings.fontSize || pixelSize
     readonly property int effectiveTextSize: settings.fontSize || Math.max(8, Math.round(pixelSize * (settings.iconSize || 16) / 16))
     readonly property real iconWidth: shownIcon.length ? (uniformItems && !vertical ? compactGlyphMetrics.tightBoundingRect.width + (shownText.length ? 4 : 0) : effectiveIconSize + 5) : 0
+    readonly property real uniformContentWidth: (shownText.length ? (labelIsIcon ? labelMetrics.tightBoundingRect.width : label.implicitWidth) : shownIcon.length ? 0 : minimumTextWidth) + iconWidth
     readonly property real naturalWidth: uniformItems && !vertical
-        ? Math.min(maximumWidth, (shownText.length ? (labelIsIcon ? labelMetrics.tightBoundingRect.width : label.implicitWidth) : shownIcon.length ? 0 : minimumTextWidth) + iconWidth + effectiveLeftPadding + effectiveRightPadding)
+        ? Math.min(maximumWidth, Math.max(circular && (labelIsIcon || shownIcon.length) ? Math.max(28, effectiveIconSize + 8) : 0, uniformContentWidth + effectiveLeftPadding + effectiveRightPadding))
         : Math.min(maximumWidth, Math.max(minimumTextWidth, label.implicitWidth, vertical && shownIcon.length ? effectiveIconSize : 0) + (vertical ? 0 : iconWidth) + effectiveLeftPadding + effectiveRightPadding)
     implicitWidth: naturalWidth
-    readonly property real naturalHeight: iconOnly ? (iconOnlyHeight > 0 ? iconOnlyHeight : width) : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
+    readonly property real naturalHeight: uniformItems && !vertical ? Math.max(28, effectiveIconSize + 8) : iconOnly ? (iconOnlyHeight > 0 ? iconOnlyHeight : width) : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
     implicitHeight: naturalHeight
     activeFocusOnTab: interactive
     Keys.onReturnPressed: if (interactive) clicked(null)
@@ -148,7 +149,7 @@ Item {
     }
     Text {
         id: iconLabel
-        x: pill.vertical ? (parent.width - compactGlyphMetrics.tightBoundingRect.width) / 2 - compactGlyphMetrics.tightBoundingRect.x : pill.effectiveLeftPadding - (pill.uniformItems ? compactGlyphMetrics.tightBoundingRect.x : 0)
+        x: pill.vertical ? (parent.width - compactGlyphMetrics.tightBoundingRect.width) / 2 - compactGlyphMetrics.tightBoundingRect.x : pill.uniformItems && pill.circular ? (parent.width - compactGlyphMetrics.tightBoundingRect.width) / 2 - compactGlyphMetrics.tightBoundingRect.x : pill.effectiveLeftPadding - (pill.uniformItems ? compactGlyphMetrics.tightBoundingRect.x : 0)
         y: pill.vertical && !pill.shownText.length
             ? (parent.height - compactGlyphMetrics.tightBoundingRect.height) / 2 - baselineOffset - compactGlyphMetrics.tightBoundingRect.y
             : pill.vertical ? 4 : (parent.height - height) / 2
@@ -167,7 +168,9 @@ Item {
     Text {
         id: label
         opacity: pill.glyphOpacity
-        x: pill.effectiveLeftPadding + (pill.vertical ? 0 : pill.iconWidth) - (pill.uniformItems && !pill.vertical && pill.labelIsIcon ? labelMetrics.tightBoundingRect.x : 0)
+        x: pill.uniformItems && !pill.vertical && pill.circular && pill.labelIsIcon
+            ? (parent.width - labelMetrics.tightBoundingRect.width) / 2 - labelMetrics.tightBoundingRect.x
+            : pill.effectiveLeftPadding + (pill.vertical ? 0 : pill.iconWidth) - (pill.uniformItems && !pill.vertical && pill.labelIsIcon ? labelMetrics.tightBoundingRect.x : 0)
         y: (parent.height - height + (pill.vertical && pill.shownIcon.length ? pill.effectiveIconSize + 4 : 0)) / 2
         width: Math.max(1, parent.width - pill.effectiveLeftPadding - pill.effectiveRightPadding - (pill.vertical ? 0 : pill.iconWidth))
         wrapMode: Text.NoWrap
@@ -179,7 +182,7 @@ Item {
         font.family: pill.family
         font.pixelSize: pill.labelIsIcon ? pill.effectiveGlyphSize : pill.effectiveTextSize
         font.bold: pill.bold
-        horizontalAlignment: pill.uniformItems && !pill.vertical ? Text.AlignLeft : Text.AlignHCenter
+        horizontalAlignment: pill.uniformItems && !pill.vertical && (!pill.circular || pill.labelIsIcon) ? Text.AlignLeft : Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         elide: pill.vertical || (pill.uniformItems && pill.labelIsIcon) ? Text.ElideNone : Text.ElideRight
         renderType: Text.QtRendering

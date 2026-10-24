@@ -132,6 +132,7 @@ Item {
                         fuzzyCompare(pill.width,pill.height,0.01);
                         fuzzyCompare(background.width,background.height,0.01);
                         fuzzyCompare(background.radius,background.width / 2,0.01);
+                        fuzzyCompare(pill.content.x + pill.content.width / 2,pill.width / 2,0.01,"workspace label centered");
                     }
                 }
             }
@@ -348,13 +349,11 @@ Item {
                         fuzzyCompare(ink.x+ink.width/2,item.width/2,0.01,ids[i] + " centered glyph");
                         fuzzyCompare(ink.y+ink.height/2,item.height/2,0.01,ids[i] + " centered glyph");
                     } else {
-                        fuzzyCompare(ink.x,4,0.01,ids[i] + " visible left padding");
-                        fuzzyCompare(item.width-ink.x-ink.width,4,0.01,ids[i] + " visible right padding");
+                        fuzzyCompare(ink.x+ink.width/2,item.width/2,0.01,ids[i] + " centered glyph");
+                        compare(item.width,item.height,ids[i] + " circular pill");
                     }
                     if (i) {
-                        let previous=bar.moduleItems[ids[i-1]], previousInk=previous.glyphRect;
-                        if (!centered)
-                            fuzzyCompare(item.x+ink.x-previous.x-previousInk.x-previousInk.width,gap+8,0.01,"visible gap");
+                        let previous=bar.moduleItems[ids[i-1]];
                         fuzzyCompare(item.x-previous.x-previous.width,gap,0.01,"pill gap");
                     }
                 }
@@ -380,6 +379,11 @@ Item {
                 compare(findChild(bar,"mediaSpectrum").height,15);
                 compare(bar.moduleItems.tray.trayIconSize,15);
                 compare(findChild(bar,"workspace1").content.font.pixelSize,9);
+                if (!centered) {
+                    let height = bar.moduleItems.audio.height;
+                    for (let id of ["wifi","bluetooth","battery","power"])
+                        compare(bar.moduleItems[id].height,height,id + " uniform height");
+                }
                 if (centered) {
                     compare(findChild(bar,"workspace12").height,bar.panelSlotSize);
                     compare(bar.moduleItems.tray.trayTargetSize,bar.panelSlotSize);
