@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class SettingsSearchNativeTests(unittest.TestCase):
     def test_heading_subheading_control_and_unopened_page_search(self):
         source = r'''import QtQuick
+import QtQuick.Window
 import Quickshell
 import "."
 ShellRoot {
@@ -31,6 +32,23 @@ ShellRoot {
         if (!prefs.loaded || !editor.searchIndexLoaded) return;
         if (test.phase === 0) {
             editor.open(); editor.firstRunPending = false; editor.section = -1;
+            let pane = test.find(editor.contentItem, "hyprpaneSettingsEditor");
+            function shown(name) { return test.find(editor.contentItem, name).visible; }
+            if (pane.category !== "layout" || !shown("barPositionControl") || shown("hyprknotsControl")) { test.fail("default category"); return; }
+            for (let key of ["spacing", "appearance", "menus", "all"]) {
+                test.find(editor.contentItem, "hyprpaneCategory_" + key).clicked();
+                if (pane.category !== key) { test.fail("category button " + key); return; }
+                if (shown("barPositionControl") !== (key === "all")
+                    || shown("centerItemsControl") !== ["spacing", "all"].includes(key)
+                    || shown("hyprknotsControl") !== ["appearance", "all"].includes(key)
+                    || shown("hoverPopdownsDefaultControl") !== ["menus", "all"].includes(key)) { test.fail("category visibility " + key); return; }
+            }
+            test.find(editor.contentItem, "hyprpaneCategory_spacing").clicked();
+            test.find(editor.contentItem, "hyprpaneItem_0").clicked();
+            if (editor.section !== 0 || !editor.barItemsExpanded) { test.fail("item shortcut"); return; }
+            test.find(editor.contentItem, "hyprpaneBackToSettings").clicked();
+            if (editor.section !== -1 || pane.category !== "spacing") { test.fail("return to category"); return; }
+            test.find(editor.contentItem, "hyprpaneCategory_appearance").clicked();
             let search = test.find(editor.contentItem, "settingsSearch");
             if (editor.searchResultIndex !== -1) { test.fail("empty search selected a sidebar result"); return; }
             search.text = "system updates";
@@ -46,6 +64,10 @@ ShellRoot {
         } else if (test.phase === 2) {
             if (editor.section !== -1) { test.fail("Enter did not open Hyprpane"); return; }
             let search = test.find(editor.contentItem, "settingsSearch");
+            search.text = "hyprpane thickness";
+            if (!test.find(editor.contentItem, "heightControl").visible) { test.fail("search hid another category"); return; }
+            search.clear();
+            if (!test.find(editor.contentItem, "hyprknotsControl").visible || test.find(editor.contentItem, "heightControl").visible) { test.fail("search did not restore category"); return; }
             search.text = "hyprpane thickness";
             let thickness = test.find(editor.contentItem, "heightControl");
             let card = thickness;
@@ -80,6 +102,17 @@ ShellRoot {
             search.text = "default tiling layout";
             if (!editor.searchResults.some(row => row.section === -19) || editor.searchResultIndex !== 0) { test.fail("actual workspace setting did not match"); return; }
             if (editor.dirty || editor.saving) { test.fail("search changed preferences"); return; }
+            search.clear(); editor.section = -1;
+            editor.contentItem.Window.window.width = 720;
+            test.phase++;
+        } else if (test.phase === 5 || test.phase === 6) {
+            let pane = test.find(editor.contentItem, "hyprpaneSettingsEditor");
+            for (let key of ["layout", "spacing", "appearance", "menus", "all"]) {
+                let button = test.find(editor.contentItem, "hyprpaneCategory_" + key);
+                if (button.x < 0 || button.x + button.width > pane.width + 1) { test.fail("category overflow"); return; }
+            }
+            if (test.phase === 5) { editor.contentItem.Window.window.width = 1280; test.phase++; return; }
+            if (editor.dirty || editor.saving) { test.fail("category navigation changed preferences"); return; }
             console.log("CAPTION_SEARCH_OK"); Qt.quit();
         }
     } }
