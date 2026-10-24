@@ -156,19 +156,20 @@ ColumnLayout {
             objectName: "edgeAttachedControl"
             Layout.fillWidth: true
             text: "Attach to screen edge"
+            enabled: Model.fullBackgroundEnabled(root.settings)
             checked: root.settings.edgeAttached === true
             onToggled: root.edited("edgeAttached", checked)
         }
         Label {
             Layout.fillWidth: true
-            text: "Join Hyprpane directly to the screen with curved feet, in centered and spread layouts. Edge and end margins apply only while detached."
+            text: "Join the full background pill to the screen with curved feet. Requires the full pill to be on; turning it off also disables attachment and autohide. Edge and end margins apply while detached."
             wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
         SettingsSwitch {
             objectName: "autoHideControl"
             Layout.fillWidth: true
             text: "Autohide attached Hyprpane"
-            enabled: root.settings.edgeAttached === true
+            enabled: Model.edgeAttachmentEnabled(root.settings)
             checked: root.settings.autoHide === true
             onToggled: root.edited("autoHide", checked)
         }

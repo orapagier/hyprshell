@@ -21,6 +21,14 @@ function wallpaperPalette(source) {
 var vibrantIds = ['launcher', 'settings', 'workspaces', 'media', 'calendar', 'tray',
     'notifications', 'audio', 'wifi', 'bluetooth', 'battery', 'power'];
 
+function fullBackgroundEnabled(bar) {
+    return bar.fullBackground === "on"
+        || (bar.fullBackground === "inherit" && bar.background !== "off");
+}
+function edgeAttachmentEnabled(bar) {
+    return bar.edgeAttached === true && fullBackgroundEnabled(bar);
+}
+
 // Physical outer margins; unset sides retain the legacy edge/end controls.
 function screenMargins(bar) {
     let edge = bar.position || 'top', vertical = edge === 'left' || edge === 'right';
@@ -30,7 +38,7 @@ function screenMargins(bar) {
         let end = vertical ? side === 'top' || side === 'bottom' : side === 'left' || side === 'right';
         result[side] = bar[key] ?? (edge === side ? (bar.marginTop ?? 5) : end ? (bar.marginSide ?? 10) : 0);
     }
-    if (bar.edgeAttached === true) {
+    if (edgeAttachmentEnabled(bar)) {
         // Attached surfaces already inset their contents around the curved feet.
         result[edge] = 0;
         result[vertical ? 'top' : 'left'] = 0;

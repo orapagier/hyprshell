@@ -151,7 +151,7 @@ ShellRoot {
             onBackingWindowVisibleChanged: console.info("HYPRPANE_TIMING", Date.now(), "surface-visible", backingWindowVisible)
             readonly property string edge: preferences.panelConfig.bar.position || "top"
             readonly property bool vertical: edge === "left" || edge === "right"
-            readonly property bool autoHide: preferences.panelConfig.bar.edgeAttached === true && preferences.panelConfig.bar.autoHide === true
+            readonly property bool autoHide: Settings.edgeAttachmentEnabled(preferences.panelConfig.bar) && preferences.panelConfig.bar.autoHide === true
             readonly property real revealProgress: panelReveal.progress
             mask: Region {
                 x: panelReveal.inputRect.x; y: panelReveal.inputRect.y

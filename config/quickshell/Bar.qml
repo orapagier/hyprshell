@@ -15,8 +15,8 @@ Item {
     readonly property bool centerItems: settings.bar?.centerItems === true
     readonly property bool iconsOnly: vertical || centerItems
     readonly property bool uniformItems: settings.bar?.uniformItems === true
-    readonly property bool fullBackgroundEnabled: !statusIconsOnly && (settings.bar?.fullBackground === "on"
-        || (settings.bar?.fullBackground === "inherit" && settings.bar?.background !== "off"))
+    readonly property bool fullBackgroundEnabled: !statusIconsOnly && Settings.fullBackgroundEnabled(settings.bar || {})
+    readonly property bool edgeAttached: fullBackgroundEnabled && settings.bar?.edgeAttached === true
     readonly property real fullPillInset: fullBackgroundEnabled ? 5 : 0
     readonly property real baseThickness: settings.bar?.height || 32
     readonly property real panelIconSize: settings.bar?.iconSize || baseThickness * (uniformItems ? 12 / 30 : 0.6 * 0.8)
@@ -34,7 +34,7 @@ Item {
             return Math.max(style.iconSize || 0, style.fontSize || 0) / 0.48;
         }))
     readonly property real itemSpacing: settings.bar?.hyprknots === false ? (settings.bar?.compactSpacing ?? 3) : (settings.bar?.spacing ?? 3)
-    readonly property real attachmentInset: settings.bar?.edgeAttached === true ? (vertical ? 16 : 11) : 0
+    readonly property real attachmentInset: edgeAttached ? (vertical ? 16 : 11) : 0
     readonly property real insetTop: (settings.bar?.contentPaddingTop ?? 0) + (vertical ? attachmentInset + fullPillInset : 0)
     readonly property real insetBottom: (settings.bar?.contentPaddingBottom ?? 0) + (vertical ? attachmentInset + fullPillInset : 0)
     readonly property real insetLeft: (settings.bar?.contentPaddingLeft ?? 0) + (vertical ? 0 : attachmentInset + fullPillInset)
@@ -392,7 +392,7 @@ Item {
     }
     implicitWidth: vertical ? verticalThickness + insetLeft + insetRight : 0
     implicitHeight: vertical ? Math.max(1, Math.min(Math.max(1, screenHeight - Settings.screenMargins(settings.bar || {}).top - Settings.screenMargins(settings.bar || {}).bottom), compact ? minimumVerticalLength + insetTop + insetBottom : Infinity))
-        : (settings.bar?.edgeAttached === true && fullBackgroundEnabled
+        : (edgeAttached
             ? Math.max(verticalThickness - 6,
                 ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => moduleItems[id].height + 4))
             : verticalThickness) + insetTop + insetBottom
@@ -674,12 +674,12 @@ Item {
         width: bar.width
         height: bar.vertical ? bar.height : fullPill.bounds.y + fullPill.bounds.height
         z: -3
-        visible: !bar.statusIconsOnly && bar.settings.bar?.edgeAttached === true && fullPill.memberIds.length > 0
-        surfaceColor: fullPill.backgroundShown ? fullPill.backgroundFill : "#242437"
-        raised: fullPill.backgroundShown && fullPill.raised
-        outlineColor: fullPill.backgroundShown ? fullPill.settings.outlineColor
-            || (fullPill.adaptivePalette ? fullPill.adaptivePalette.outline : fullPill.outline) : "transparent"
-        opacity: fullPill.backgroundShown ? fullPill.backgroundAlpha : 1
+        visible: bar.edgeAttached && fullPill.backgroundShown && fullPill.memberIds.length > 0
+        surfaceColor: fullPill.backgroundFill
+        raised: fullPill.raised
+        outlineColor: fullPill.settings.outlineColor
+            || (fullPill.adaptivePalette ? fullPill.adaptivePalette.outline : fullPill.outline)
+        opacity: fullPill.backgroundAlpha
         edge: bar.position
         start: bar.vertical ? Math.max(12, fullPill.bounds.y + bar.insetTop - 4 - bar.scrollOffset) : fullPill.bounds.x + bar.insetLeft - 4
         end: bar.vertical ? Math.min(bar.height - 12, fullPill.bounds.y + fullPill.bounds.height - bar.insetBottom + 4 - bar.scrollOffset)
@@ -688,7 +688,7 @@ Item {
     Pill {
         id: fullPill
         objectName: "fullPanelPill"
-        drawBackground: bar.settings.bar?.edgeAttached !== true
+        drawBackground: !bar.edgeAttached
         readonly property var memberIds: bar.orderedItems("left").concat(bar.orderedItems("center"), bar.orderedItems("right"))
         readonly property string leader: fullPill.memberIds[0] || "launcher"
         readonly property var bounds: {

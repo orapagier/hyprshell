@@ -633,7 +633,7 @@ Item {
         }
         function test_attachedEndMargins() {
             for (let edge of ["top", "bottom", "left", "right"]) {
-                let config = {position:edge, marginTop:10, marginSide:10,
+                let config = {position:edge, fullBackground:"on", marginTop:10, marginSide:10,
                     screenMarginTop:10, screenMarginBottom:10,
                     screenMarginLeft:10, screenMarginRight:10};
                 let vertical = edge === "left" || edge === "right";
@@ -829,6 +829,24 @@ Item {
                 compare(circle.radius,circle.width / 2);
                 compare(bar.moduleItems.audio.circular,centered);
                 if (!centered) compare(bar.moduleItems.audio.shownText,"48%");
+            }
+        }
+        function test_attachmentFollowsFullPill() {
+            for (let edge of ["top", "bottom", "left", "right"]) {
+                for (let mode of ["on", "off", "inherit"]) {
+                    for (let background of ["on", "off"]) {
+                        let enabled = mode === "on" || (mode === "inherit" && background === "on");
+                        bar.settings = connectorConfig(edge, {audio:{},calendar:{side:"center"}},
+                            {edgeAttached:true, fullBackground:mode, background:background,
+                                screenMarginTop:9,screenMarginBottom:9,screenMarginLeft:9,screenMarginRight:9});
+                        wait(0);
+                        compare(bar.edgeAttached, enabled);
+                        compare(findChild(bar,"attachedPanelSurface").visible, enabled);
+                        compare(bar.attachmentInset, enabled ? (bar.vertical ? 16 : 11) : 0);
+                        compare(Settings.screenMargins(bar.settings.bar)[edge], enabled ? 0 : 9);
+                        compare(bar.settings.bar.edgeAttached, true, "preserve saved attachment choice");
+                    }
+                }
             }
         }
         function test_attachedHorizontalFullPillSpacing() {
