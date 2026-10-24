@@ -99,10 +99,10 @@ Item {
     readonly property real iconWidth: shownIcon.length ? (uniformItems && !vertical ? compactGlyphMetrics.tightBoundingRect.width + (shownText.length ? 4 : 0) : effectiveIconSize + 5) : 0
     readonly property real uniformContentWidth: (shownText.length ? (labelIsIcon ? labelMetrics.tightBoundingRect.width : label.implicitWidth) : shownIcon.length ? 0 : minimumTextWidth) + iconWidth
     readonly property real naturalWidth: uniformItems && !vertical
-        ? Math.min(maximumWidth, Math.max(circular && (labelIsIcon || shownIcon.length) ? Math.max(28, effectiveIconSize + 8) : 0, uniformContentWidth + effectiveLeftPadding + effectiveRightPadding))
+        ? Math.min(maximumWidth, Math.max(circular && (labelIsIcon || shownIcon.length) ? Math.max(24, effectiveIconSize + 8) : 0, uniformContentWidth + effectiveLeftPadding + effectiveRightPadding))
         : Math.min(maximumWidth, Math.max(minimumTextWidth, label.implicitWidth, vertical && shownIcon.length ? effectiveIconSize : 0) + (vertical ? 0 : iconWidth) + effectiveLeftPadding + effectiveRightPadding)
     implicitWidth: naturalWidth
-    readonly property real naturalHeight: uniformItems && !vertical ? Math.max(28, effectiveIconSize + 8) : iconOnly ? (iconOnlyHeight > 0 ? iconOnlyHeight : width) : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
+    readonly property real naturalHeight: uniformItems && !vertical ? Math.max(24, effectiveIconSize + 8) : iconOnly ? (iconOnlyHeight > 0 ? iconOnlyHeight : width) : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
     implicitHeight: naturalHeight
     activeFocusOnTab: interactive
     Keys.onReturnPressed: if (interactive) clicked(null)
