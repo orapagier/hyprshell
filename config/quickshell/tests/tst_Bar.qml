@@ -615,6 +615,30 @@ Item {
                 compare(editor.settings["contentPadding" + side],0);
             }
         }
+        function test_bareKnotsUseVisibleContentAndLeaveClearance() {
+            let links = findChild(bar, "panelConnectors");
+            bar.statusData = {workspaces:[],audio:{icon:"󰕾",text:"100%"},network:{text:"󰤨"},bluetooth:{},battery:{}};
+            for (let edge of ["top","bottom","left","right"]) {
+                bar.settings = connectorConfig(edge,{audio:{background:"off"},wifi:{background:"off"}},
+                    {height:30,uniformItems:true,fullBackground:"on",spacing:8,hyprknotsKnotSize:60});
+                if (bar.vertical) bar.width = bar.implicitWidth;
+                wait(0);
+                let audio = bar.moduleItems.audio, wifi = bar.moduleItems.wifi;
+                let segment = links.segments[0];
+                let audioEnd = bar.vertical ? audio.y + audio.iconGlyphRect.y + audio.iconGlyphRect.height
+                    : audio.x + audio.textGlyphRect.x + audio.textGlyphRect.width;
+                let wifiStart = bar.vertical ? wifi.y + wifi.iconGlyphRect.y : wifi.x + wifi.textGlyphRect.x;
+                fuzzyCompare(segment.start,audioEnd + 2,0.01,"line clears trailing visible content");
+                fuzzyCompare(segment.end,wifiStart - 2,0.01,"line clears leading visible content");
+                let size = links.knotSizeFor(segment.end - segment.start);
+                verify(size * 2.5 + 1.6 * links.knotScale + 1.2 + 2 <= segment.end - segment.start + 0.01,
+                    "knot stroke has clearance at both ends");
+            }
+            for (let length of [3,6,8,10,20]) {
+                let size = links.knotSizeFor(length);
+                if (size > 0) verify(size * 2.5 + 1.6 * links.knotScale + 1.2 + 2 <= length + 0.01);
+            }
+        }
         function test_hyprknotsBareNeighbors() {
             let links = findChild(bar, "panelConnectors");
             for (let position of ["top", "bottom", "left", "right"]) {

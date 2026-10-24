@@ -416,7 +416,8 @@ Item {
         onKnotScaleChanged: requestPaint()
         function knotSizeFor(length) {
             // Keep enlarged knots within their gap instead of covering icons.
-            return Math.min(4.8 * knotScale, length / 3.6);
+            let stroke = 1.6 * knotScale + 1.2;
+            return Math.max(0, Math.min(4.8 * knotScale, length / 3.6, (length - stroke - 2) / 2.5));
         }
         function endpointHasPill(id, trailing) {
             if (fullPill.visible) return true;
@@ -428,6 +429,29 @@ Item {
             else if (id === "tray" && bar.vertical)
                 item = trayIcons.itemAt(trailing ? trayIcons.count - 1 : 0);
             return !!item && item.bare === false;
+        }
+        function itemEdge(id, trailing) {
+            let container = bar.moduleItems[id], item = container;
+            let offset = bar.vertical ? container.y : container.x;
+            if (id === "workspaces") {
+                item = workspaceRepeater.itemAt(trailing ? workspaceRepeater.count - 1 : 0);
+                if (item) offset += bar.vertical ? item.y : item.x;
+            } else if (id === "media") item = mediaSlot.item;
+            if (!item) return offset;
+            let extent = bar.vertical ? item.height : item.width;
+            if (!item.bare || !item.glyphRect)
+                return offset + (trailing ? extent : 0);
+            // Use both halves of icon-and-text items; glyphRect alone is the icon.
+            let rects = [item.glyphRect];
+            if (item.shownText?.length) rects.push(item.textGlyphRect);
+            if (item.shownIcon?.length) rects.push(item.iconGlyphRect);
+            if (item === bell && badge.visible) rects.push(badge.glyphRect);
+            rects = rects.filter(rect => rect && rect.width > 0 && rect.height > 0);
+            if (!rects.length) return offset + (trailing ? extent : 0);
+            let edge = trailing ? Math.max(...rects.map(rect => bar.vertical ? rect.y + rect.height : rect.x + rect.width))
+                : Math.min(...rects.map(rect => bar.vertical ? rect.y : rect.x));
+            // Leave the same clear space at either end of a bare connection.
+            return offset + Math.max(0, Math.min(extent, edge)) + (trailing ? 2 : -2);
         }
         property int patternSeed: Math.floor(Math.random() * 0x7fffffff) || 1
         function reshuffleKnots() {
@@ -522,9 +546,8 @@ Item {
                 let knotted = bar.centerItems || centerBoundary || (endpointHasPill(first, true) && endpointHasPill(second, false));
                 if (!bar.centerItems && bar.side(first) === bar.side(second) && bar.pillName(first)
                     && bar.pillName(first) === bar.pillName(second) && knotted) continue;
-                let a = bar.moduleItems[first], b = bar.moduleItems[second];
-                let start = bar.vertical ? a.y + a.height : a.x + a.width;
-                let end = bar.vertical ? b.y : b.x;
+                let start = itemEdge(first, true);
+                let end = itemEdge(second, false);
                 if (end - start < 2) continue;
                 let cross = bar.vertical ? bar.insetLeft + bar.contentWidth / 2 : bar.insetTop + bar.contentHeight / 2;
                 result.push(segmentFor(start, end, cross, false, knotted));
