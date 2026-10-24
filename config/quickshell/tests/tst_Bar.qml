@@ -568,6 +568,25 @@ Item {
                 if (!centered) compare(bar.moduleItems.audio.shownText,"48%");
             }
         }
+        function test_smallWorkspacesKeepFullPillVerticallyCentered() {
+            bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}],audio:{text:"48%"},
+                network:{},bluetooth:{},battery:{}};
+            for (let edge of ["top","bottom"]) {
+                bar.settings = connectorConfig(edge, {workspaces:{fontSize:9,iconSize:9},
+                    audio:{side:"right"},calendar:{side:"center"}}, {fullBackground:"on"});
+                wait(0);
+                let full = findChild(bar,"fullPanelPill");
+                let center = full.y + full.height / 2;
+                fuzzyCompare(center,bar.height / 2,0.01,"full pill vertical center");
+                for (let id of ["workspaces","audio","calendar"]) {
+                    let item = bar.moduleItems[id];
+                    fuzzyCompare(item.y + item.height / 2,center,0.01,id + " vertical center");
+                }
+                let row = bar.moduleItems.workspaces;
+                let workspace = findChild(bar,"workspace1");
+                fuzzyCompare(row.y + workspace.y + workspace.height / 2,center,0.01,"workspace button center");
+            }
+        }
         function test_fullPillBoundsAndStyle() {
             let pill = findChild(bar, "fullPanelPill");
             verify(!pill.visible);

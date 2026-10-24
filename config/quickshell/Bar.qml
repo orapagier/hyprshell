@@ -778,14 +778,14 @@ Item {
     Grid {
         id: workspaceRow
         x: bar.itemX("workspaces")
-        y: bar.itemY("workspaces") + (bar.vertical ? 0 : Math.max(0, (height - implicitHeight) / 2))
+        y: bar.itemY("workspaces")
         opacity: Settings.item(bar.settings, "workspaces").opacity ?? 1
         visible: bar.itemEnabled("workspaces")
         objectName: "workspacesSlot"
         columns: bar.vertical ? 1 : Math.max(1, workspaceRepeater.count)
         horizontalItemAlignment: Grid.AlignHCenter
         verticalItemAlignment: Grid.AlignVCenter
-        height: Math.max(bar.centerItems && !bar.vertical ? bar.panelSlotSize : 28, implicitHeight)
+        height: Math.max(bar.centerItems && !bar.vertical ? bar.panelSlotSize : bar.vertical ? 28 : 0, implicitHeight)
         spacing: bar.statusIconsOnly ? 2 : bar.uniformItems || bar.centerItems || bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
         leftPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
         rightPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
