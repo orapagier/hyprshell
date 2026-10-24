@@ -205,6 +205,7 @@ Item {
         style.outlineFree = true;
         style.uniformItems = uniformItems;
         style.panelItemPadding = 5;
+        style.backgroundVerticalInset = fullBackgroundEnabled && !vertical && side(id) !== "left" ? 2 : 0;
         style.panelPillHeight = id === "workspaces" ? workspacePillSize : panelSlotSize;
         style.fitGlyphWidth = id === "workspaces";
         let itemSize = style.iconSize || panelIconSize;
