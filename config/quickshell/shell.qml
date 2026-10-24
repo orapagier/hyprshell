@@ -38,7 +38,6 @@ ShellRoot {
     ApplicationService {
         id: applications; store: preferences
     }
-    ScreenCorners {}
     Dashboard {
         id: dashboardWindow
         services: desktopServices

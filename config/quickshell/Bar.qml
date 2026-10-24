@@ -814,12 +814,14 @@ Item {
                 required property var modelData
                 property bool active: modelData.active || false
                 vertical: bar.iconsOnly
+                circular: true
+                implicitWidth: Math.max(naturalWidth, 20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
                 maximumWidth: bar.vertical ? Math.max(1, bar.panelSlotSize - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
                 width: bar.vertical ? maximumWidth : bar.centerItems ? bar.panelSlotSize : implicitWidth
                 onActiveFocusChanged: if (activeFocus) bar.ensureItemVisible(workspaceButton)
                 iconOnly: false
                 Accessible.name: "Workspace " + (modelData.name || String(modelData.id))
-                height: bar.iconsOnly ? width : Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
+                height: width
                 text: modelData.name || String(modelData.id)
                 leftPadding: 7
                 rightPadding: 7

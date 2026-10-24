@@ -120,6 +120,22 @@ Item {
                 compare(JSON.stringify(bar.settings.items),saved);
             }
         }
+        function test_workspacePillsStayCircularAcrossLabelsAndEdges() {
+            bar.statusData = {workspaces:[{id:1,name:"1",active:true},{id:12,name:"12"},{id:123,name:"Dev"}],audio:{},network:{},bluetooth:{},battery:{}};
+            for (let edge of ["top","bottom","left","right"]) {
+                for (let uniform of [false,true]) {
+                    bar.settings = connectorConfig(edge,{workspaces:{radius:0,fontSize:9}},{uniformItems:uniform});
+                    wait(0);
+                    for (let id of [1,12,123]) {
+                        let pill = findChild(bar,"workspace" + id);
+                        let background = findChild(pill,"pillBackground");
+                        fuzzyCompare(pill.width,pill.height,0.01);
+                        fuzzyCompare(background.width,background.height,0.01);
+                        fuzzyCompare(background.radius,background.width / 2,0.01);
+                    }
+                }
+            }
+        }
         function test_centeredWorkspacePillsUseUniformIconSlots() {
             bar.statusData = {workspaces:[{id:1,name:"1",active:true},{id:12,name:"12"}],audio:{},network:{},bluetooth:{},battery:{}};
             for (let edge of ["top","bottom"]) {
@@ -368,7 +384,9 @@ Item {
                     compare(findChild(bar,"workspace12").height,bar.panelSlotSize);
                     compare(bar.moduleItems.tray.trayTargetSize,bar.panelSlotSize);
                 } else {
-                    verify(findChild(bar,"workspace12").height<=20);
+                    let workspace = findChild(bar,"workspace12");
+                    compare(workspace.height,workspace.width);
+                    verify(workspace.height < bar.panelSlotSize);
                 }
                 compare(bar.moduleItems.workspaces.spacing,5);
                 compare(findChild(bar.moduleItems.tray,"trayIcon").parent.spacing,5);
