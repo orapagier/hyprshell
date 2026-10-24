@@ -80,15 +80,15 @@ retain their existing placement.
 
 Centered layouts place ordinary icons in equal square slots, including a calendar
 icon for date/time and a compact media spectrum. Workspace numbers use their
-saved compact font and use circular pills at 70% of panel thickness, smaller
+saved compact font and use circular pills at 40% of panel thickness, smaller
 than other item pills. One- and two-digit workspaces keep identical spacing.
 Normal-mode workspace names and custom appearance remain saved. Notification counts and status text remain
 available in their menus. The normal text layout returns when centering is
 disabled; saved item text, icons and appearance are retained. With background
 pills enabled, icons and numbers stay centered inside their pills. Item pills
-occupy 80% of Full Pill's thickness, leaving 10% on each side. Default icon and
-text ink height is 80% of its own pill (64% of the full thickness). Workspace
-pills occupy 70%, leaving 15% on each side; default numbers fit within 80% of
+occupy 60% of Full Pill's thickness, leaving 20% on each side. Default icon and
+text ink height is 80% of its own pill (48% of the full thickness). Workspace
+pills occupy 40%, leaving 30% on each side; default numbers fit within 80% of
 that pill in both dimensions. These proportions follow panel thickness on all
 four edges, with Full Pill enabled or disabled. A size of 0 selects automatic
 sizing; explicit icon/font sizes remain available.
@@ -108,7 +108,7 @@ square width or font-bearing space. Centered layouts use equal square slots
 for ordinary items and smaller workspace slots. Each keeps the same footprint
 whether backgrounds are shown or hidden. Text labels remain available
 in the ordinary layout, and workspace numbers retain independent font overrides
-and their smaller 70% pills.
+and their smaller 40% pills.
 
 The active item gap applies to every group, shared pill, workspace button and
 tray icon in either layout. Individual size/padding/gap overrides remain saved;

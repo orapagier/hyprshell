@@ -85,7 +85,9 @@ Item {
     // and icons differ visibly even when their calculated bounds match.
     readonly property int uniformFontSize: 128
     readonly property real iconInkScale: uniformGlyphHeight > 0 && compactGlyphMetrics.tightBoundingRect.height > 0 ? uniformGlyphHeight / compactGlyphMetrics.tightBoundingRect.height : 1
-    readonly property real textInkScale: uniformGlyphHeight > 0 && labelMetrics.tightBoundingRect.height > 0 ? Math.min(uniformGlyphHeight / labelMetrics.tightBoundingRect.height, settings.fitGlyphWidth ? width * 0.8 / Math.max(1, labelMetrics.tightBoundingRect.width) : Infinity) : 1
+    readonly property real textInkScale: uniformGlyphHeight > 0 && labelMetrics.tightBoundingRect.height > 0
+        ? Math.min(uniformGlyphHeight / labelMetrics.tightBoundingRect.height, settings.fitGlyphWidth ? width * 0.8 / Math.max(1, labelMetrics.tightBoundingRect.width) : Infinity)
+        : settings.fitGlyphWidth ? Math.min(1, width * 0.8 / Math.max(1, labelMetrics.tightBoundingRect.width), height * 0.8 / Math.max(1, labelMetrics.tightBoundingRect.height)) : 1
     readonly property real normalizedTextY: (height - labelMetrics.tightBoundingRect.height * textInkScale) / 2 - (label.baselineOffset + labelMetrics.tightBoundingRect.y) * textInkScale
     // Ink bounds exclude the pill padding and font line box. Bare popdowns
     // attach to the visible icon (or text when there is no separate icon).
@@ -180,10 +182,10 @@ Item {
         id: label
         transform: Scale { xScale: pill.textInkScale; yScale: pill.textInkScale }
         opacity: pill.glyphOpacity
-        x: pill.uniformGlyphHeight > 0 && (pill.settings.fitGlyphWidth || (!pill.vertical && pill.circular && pill.labelIsIcon))
+        x: pill.settings.fitGlyphWidth || (pill.uniformGlyphHeight > 0 && !pill.vertical && pill.circular && pill.labelIsIcon)
             ? (parent.width - labelMetrics.tightBoundingRect.width * pill.textInkScale) / 2 - labelMetrics.tightBoundingRect.x * pill.textInkScale
             : pill.effectiveLeftPadding + (pill.vertical ? 0 : pill.iconWidth) - (pill.uniformGlyphHeight > 0 && !pill.vertical && pill.labelIsIcon ? labelMetrics.tightBoundingRect.x * pill.textInkScale : 0)
-        y: pill.uniformGlyphHeight > 0 ? pill.normalizedTextY : (parent.height - height + (pill.vertical && pill.shownIcon.length ? pill.effectiveIconSize + 4 : 0)) / 2
+        y: pill.uniformGlyphHeight > 0 || pill.settings.fitGlyphWidth ? pill.normalizedTextY : (parent.height - height + (pill.vertical && pill.shownIcon.length ? pill.effectiveIconSize + 4 : 0)) / 2
         width: Math.max(1, parent.width - pill.effectiveLeftPadding - pill.effectiveRightPadding - (pill.vertical ? 0 : pill.iconWidth)) / pill.textInkScale
         wrapMode: Text.NoWrap
         text: pill.displayText
@@ -194,7 +196,7 @@ Item {
         font.family: pill.family
         font.pixelSize: pill.uniformGlyphHeight > 0 ? pill.uniformFontSize : pill.labelIsIcon ? pill.effectiveGlyphSize : pill.effectiveTextSize
         font.bold: pill.bold
-        horizontalAlignment: pill.uniformGlyphHeight > 0 && (pill.settings.fitGlyphWidth || (!pill.vertical && (!pill.circular || pill.labelIsIcon))) ? Text.AlignLeft : Text.AlignHCenter
+        horizontalAlignment: pill.settings.fitGlyphWidth || (pill.uniformGlyphHeight > 0 && !pill.vertical && (!pill.circular || pill.labelIsIcon)) ? Text.AlignLeft : Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         elide: pill.vertical || (pill.uniformItems && pill.labelIsIcon) ? Text.ElideNone : Text.ElideRight
         renderType: Text.QtRendering

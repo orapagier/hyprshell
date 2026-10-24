@@ -19,17 +19,17 @@ Item {
         || (settings.bar?.fullBackground === "inherit" && settings.bar?.background !== "off"))
     readonly property real fullPillInset: fullBackgroundEnabled ? 5 : 0
     readonly property real baseThickness: settings.bar?.height || 32
-    readonly property real panelIconSize: settings.bar?.iconSize || baseThickness * 0.8 * 0.8
+    readonly property real panelIconSize: settings.bar?.iconSize || baseThickness * 0.6 * 0.8
     readonly property bool iconPills: vertical || centerItems
-    readonly property real panelSlotSize: verticalThickness * 0.8
-    readonly property real workspacePillSize: verticalThickness * 0.7
-    readonly property real panelItemInset: verticalThickness * 0.1
+    readonly property real panelSlotSize: verticalThickness * 0.6
+    readonly property real workspacePillSize: verticalThickness * 0.4
+    readonly property real panelItemInset: verticalThickness * 0.2
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Resolve thickness from settings, independently of child geometry.
-    readonly property real verticalThickness: uniformItems ? Math.max(baseThickness, panelIconSize / 0.64) : Math.max(baseThickness,
+    readonly property real verticalThickness: uniformItems ? Math.max(baseThickness, panelIconSize / 0.48) : Math.max(baseThickness,
         ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => {
             let style = Settings.appearance(settings, id);
-            return Math.max(style.iconSize || 0, style.fontSize || 0) / 0.64;
+            return Math.max(style.iconSize || 0, style.fontSize || 0) / 0.48;
         }))
     readonly property real itemSpacing: settings.bar?.hyprknots === false ? (settings.bar?.compactSpacing ?? 3) : (settings.bar?.spacing ?? 3)
     readonly property real attachmentInset: settings.bar?.edgeAttached === true ? 16 : 0
@@ -808,7 +808,7 @@ Item {
                 objectName: "workspace" + modelData.id
                 settings: {
                     let appearance = Object.assign({}, bar.appearance("workspaces"), {paddingLeft:0, paddingRight:0});
-                    if (bar.uniformItems) appearance.compactPadding = true;
+                    appearance.compactPadding = true;
                     if (bar.centerItems) {
                         appearance.text = String(modelData.id);
                         appearance.hideText = false;

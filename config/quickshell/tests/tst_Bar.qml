@@ -77,7 +77,7 @@ Item {
                 fuzzyCompare(crossSize,data.thickness,0.01,"panel thickness");
                 for (let id of ["launcher","settings","audio","wifi","calendar","power"]) {
                     let item = bar.moduleItems[id], background = findChild(item,"pillBackground");
-                    fuzzyCompare(background.height,data.thickness * 0.8,0.01,id + " own pill height");
+                    fuzzyCompare(background.height,data.thickness * 0.6,0.01,id + " own pill height");
                     fuzzyCompare(item.glyphRect.height,background.height * 0.8,0.01,id + " ink height");
                     let cross = bar.vertical ? item.x + item.width / 2 : item.y + item.height / 2;
                     fuzzyCompare(cross,crossSize / 2,0.01,id + " cross-axis center");
@@ -94,16 +94,16 @@ Item {
                 fuzzyCompare(trailing,full === "on" ? 5 : 0,0.01,"trailing content inset");
                 for (let number of [1,12]) {
                     let workspace = findChild(bar,"workspace" + number);
-                    fuzzyCompare(workspace.height,data.thickness * 0.7,0.01,"workspace pill height");
+                    fuzzyCompare(workspace.height,data.thickness * 0.4,0.01,"workspace pill height");
                     let ink = workspace.textGlyphRect;
                     verify(ink.height <= workspace.height * 0.8 + 0.01,"number fits vertically");
                     verify(ink.width <= workspace.width * 0.8 + 0.01,"number fits horizontally");
                     fuzzyCompare(ink.x + ink.width / 2,workspace.width / 2,0.5,"number centered");
                 }
-                fuzzyCompare(findChild(bar,"mediaSpectrum").height,data.thickness * 0.64,0.01,"media ink height");
-                fuzzyCompare(bar.moduleItems.media.height,data.thickness * 0.8,0.01,"media pill height");
-                fuzzyCompare(bar.moduleItems.tray.trayIconSize,data.thickness * 0.64,0.01,"tray artwork height");
-                fuzzyCompare(findChild(bar.moduleItems.tray,"trayIcon").height,data.thickness * 0.8,0.01,"tray pill height");
+                fuzzyCompare(findChild(bar,"mediaSpectrum").height,data.thickness * 0.48,0.01,"media ink height");
+                fuzzyCompare(bar.moduleItems.media.height,data.thickness * 0.6,0.01,"media pill height");
+                fuzzyCompare(bar.moduleItems.tray.trayIconSize,data.thickness * 0.48,0.01,"tray artwork height");
+                fuzzyCompare(findChild(bar.moduleItems.tray,"trayIcon").height,data.thickness * 0.6,0.01,"tray pill height");
             }
         }
         function test_asymmetricPaddingConnectorsAndSymmetricCentering() {
@@ -176,8 +176,8 @@ Item {
                 compare(second.width,bar.workspacePillSize);
                 compare(first.height,bar.workspacePillSize);
                 compare(second.height,bar.workspacePillSize);
-                verify(first.content.implicitWidth <= first.width);
-                verify(second.content.implicitWidth <= second.width);
+                verify(first.textGlyphRect.width <= first.width * 0.8 + 0.01);
+                verify(second.textGlyphRect.width <= second.width * 0.8 + 0.01);
                 compare(bar.moduleItems.media.item.shownText,"");
                 compare(findChild(bar,"mediaSpectrum").barCount,5);
                 verify(!findChild(bar,"notificationBadge").visible);
@@ -204,7 +204,10 @@ Item {
                         fuzzyCompare(pill.width,pill.height,0.01);
                         fuzzyCompare(background.width,background.height,0.01);
                         fuzzyCompare(background.radius,background.width / 2,0.01);
-                        fuzzyCompare(pill.content.x + pill.content.width / 2,pill.width / 2,0.01,"workspace label centered");
+                        fuzzyCompare(pill.textGlyphRect.x + pill.textGlyphRect.width / 2,pill.width / 2,0.01,"workspace label centered");
+                        verify(pill.textGlyphRect.width <= pill.width * 0.8 + 0.01,"explicit font fits width");
+                        verify(pill.textGlyphRect.height <= pill.height * 0.8 + 0.01,"explicit font fits height");
+                        verify(pill.content.width >= pill.content.implicitWidth,"workspace label is not elided");
                     }
                 }
             }
@@ -294,7 +297,7 @@ Item {
                 }
                 let full = findChild(bar,"fullPanelPill");
                 verify(full.visible);
-                fuzzyCompare(bar.panelSlotSize / full.height,0.8,0.01,"inner pills occupy 80% of full pill height");
+                fuzzyCompare(bar.panelSlotSize / full.height,0.6,0.01,"inner pills occupy 60% of full pill height");
                 fuzzyCompare(full.x + full.width / 2,bar.width / 2,0.01,"full pill center");
                 fuzzyCompare(bar.moduleItems[ids[0]].x - full.x,bar.fullPillInset,0.01,"full pill leading cap");
                 fuzzyCompare(full.x + full.width - bar.moduleItems[ids[ids.length - 1]].x
