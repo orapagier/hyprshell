@@ -853,6 +853,7 @@ Item {
                         appearance.hideText = false;
                         appearance.hideIcon = true;
                     }
+                    appearance.textSizeReference = /^\d+$/.test(appearance.text || modelData.name || String(modelData.id)) ? "1" : "";
                     if (active && appearance.vibrantColor) {
                         let base = Qt.color(appearance.vibrantColor);
                         // Use the opposite hue while preserving the existing pill styling.

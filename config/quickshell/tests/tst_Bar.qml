@@ -904,6 +904,21 @@ Item {
                 compare(editor.settings[key],-1);
             }
         }
+        function test_workspaceDigitsShareWorkspaceOneSize() {
+            bar.statusData = {workspaces:Array.from({length:9},(_,i) => ({id:i+1,name:String(i+1),active:i===0})),audio:{},network:{},bluetooth:{},battery:{}};
+            for (let edge of ["top","bottom","left","right"]) {
+                bar.settings = connectorConfig(edge,{workspaces:{}},{uniformItems:true});
+                wait(0);
+                let first = findChild(bar,"workspace1");
+                for (let number = 2; number <= 9; ++number) {
+                    let workspace = findChild(bar,"workspace"+number);
+                    compare(workspace.width,first.width,"same circle width");
+                    compare(workspace.height,first.height,"same circle height");
+                    fuzzyCompare(workspace.textInkScale,first.textInkScale,0.0001,"same font scale as 1");
+                    fuzzyCompare(workspace.glyphRect.x + workspace.glyphRect.width / 2,workspace.width / 2,0.01,"number centered");
+                }
+            }
+        }
         function test_workspaceColorFollowsActiveWorkspace() {
             bar.statusData = {workspaces: [{id:1, name:"1", active:true}, {id:2, name:"2", active:false}], audio: {}, network: {}, bluetooth: {}, battery: {}};
             let first = findChild(bar, "workspace1"), second = findChild(bar, "workspace2");

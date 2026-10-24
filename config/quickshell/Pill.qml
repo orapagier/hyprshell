@@ -87,7 +87,7 @@ Item {
     readonly property int uniformFontSize: 128
     readonly property real iconInkScale: uniformGlyphHeight > 0 && compactGlyphMetrics.tightBoundingRect.height > 0 ? uniformGlyphHeight / compactGlyphMetrics.tightBoundingRect.height : 1
     readonly property real textInkScale: uniformGlyphHeight > 0 && labelMetrics.tightBoundingRect.height > 0
-        ? Math.min(uniformTextHeight / labelMetrics.tightBoundingRect.height, settings.fitGlyphWidth ? width * 0.8 / Math.max(1, labelMetrics.tightBoundingRect.width) : Infinity)
+        ? Math.min(uniformTextHeight / labelSizeMetrics.tightBoundingRect.height, settings.fitGlyphWidth ? width * 0.8 / Math.max(1, labelMetrics.tightBoundingRect.width) : Infinity)
         : settings.fitGlyphWidth ? Math.min(1, width * 0.8 / Math.max(1, labelMetrics.tightBoundingRect.width), height * 0.8 / Math.max(1, labelMetrics.tightBoundingRect.height)) : 1
     readonly property real normalizedTextY: (height - labelMetrics.tightBoundingRect.height * textInkScale) / 2 - (label.baselineOffset + labelMetrics.tightBoundingRect.y) * textInkScale
     // Ink bounds exclude the pill padding and font line box. Bare popdowns
@@ -154,6 +154,12 @@ Item {
         id: compactGlyphMetrics
         font: iconLabel.font
         text: iconLabel.text
+    }
+    // Numeric workspace labels share the font scale of workspace 1.
+    TextMetrics {
+        id: labelSizeMetrics
+        font: label.font
+        text: pill.settings.textSizeReference || label.text
     }
     TextMetrics {
         id: labelMetrics
