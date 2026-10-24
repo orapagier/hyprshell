@@ -192,7 +192,7 @@ Item {
         return Qt.rect(first.x, insetTop + (contentHeight-h)/2, last.x + last.width - first.x, h);
     }
     function backingPills(id) {
-        let result = fullPill.visible ? [fullPill] : [];
+        let result = fullPill.participating ? [fullPill] : [];
         if (!vertical) for (let i = 0; i < sharedPillRepeater.count; ++i) {
             let surface = sharedPillRepeater.itemAt(i);
             if (surface && surface.modelData.ids.includes(id)) result.push(surface);
@@ -219,7 +219,7 @@ Item {
         }
         style.panelAdaptive = true;
         style.backingPills = backingPills(id);
-        style.glassSurface = fullPill.visible;
+        style.glassSurface = fullPill.participating;
         style.pillTransparency = settings.bar?.individualPillTransparency ?? -1;
         style.circularIcons = true;
         if (uniformItems || id !== "workspaces") {
@@ -239,7 +239,7 @@ Item {
     }
     function sharedStyle(id) {
         let style = bar.appearance(id);
-        style.backingPills = fullPill.visible ? [fullPill] : [];
+        style.backingPills = fullPill.participating ? [fullPill] : [];
         style.background = Settings.sharedBackground(settings, id);
         style.pillTransparency = settings.bar?.groupPillTransparency ?? -1;
         style.hideText = true;
@@ -371,7 +371,7 @@ Item {
     function menuAnchorRect(name) {
         // Pill stems meet the outside of the item;
         // only bare items move the attachment inward to the visible glyph.
-        if (!menuPointed(name) || !menuTargets[name].bare || fullPill.visible) return menuRect(name);
+        if (!menuPointed(name) || !menuTargets[name].bare || fullPill.participating) return menuRect(name);
         let bounds = menuRect(name), rect = menuTargets[name].glyphRect;
         return Qt.rect(bounds.x + rect.x, bounds.y + rect.y, rect.width, rect.height);
     }
@@ -429,7 +429,7 @@ Item {
             return Math.max(0, Math.min(4.8 * knotScale, length / 3.6, (length - stroke - 2) / 2.5));
         }
         function endpointHasPill(id, trailing) {
-            if (fullPill.visible) return true;
+            if (fullPill.participating) return true;
             let item = bar.moduleItems[id];
             // Container items use the actual button facing this gap.
             if (id === "workspaces")
@@ -454,7 +454,7 @@ Item {
             let rects = [item.glyphRect];
             if (item.shownText?.length) rects.push(item.textGlyphRect);
             if (item.shownIcon?.length) rects.push(item.iconGlyphRect);
-            if (item === bell && badge.visible) rects.push(badge.glyphRect);
+            if (item === bell && badge.participating) rects.push(badge.glyphRect);
             rects = rects.filter(rect => rect && rect.width > 0 && rect.height > 0);
             if (!rects.length) return offset + (trailing ? extent : 0);
             let edge = trailing ? Math.max(...rects.map(rect => bar.vertical ? rect.y + rect.height : rect.x + rect.width))
@@ -499,7 +499,7 @@ Item {
         readonly property var knotVariants: arrangeKnots(segments, patternSeed)
         onKnotVariantsChanged: requestPaint()
         function surfaceContains(surface, x, y) {
-            if (!surface || !surface.visible || surface.backgroundAlpha <= 0) return false;
+            if (!surface || !surface.participating || surface.backgroundAlpha <= 0) return false;
             let localX = x - surface.x, localY = y - surface.y;
             if (localX < 0 || localY < 0 || localX > surface.width || localY > surface.height) return false;
             let radius = Math.max(0, Math.min(surface.width / 2, surface.height / 2,
@@ -579,7 +579,7 @@ Item {
                     let start = bar.vertical ? workspaceRow.y + a.y + a.height : workspaceRow.x + a.x + a.width;
                     let end = bar.vertical ? workspaceRow.y + b.y : workspaceRow.x + b.x;
                     let cross = bar.vertical ? workspaceRow.x + a.x + a.width / 2 : workspaceRow.y + a.y + a.height / 2;
-                    let knotted = bar.centerItems || fullPill.visible || (!a.bare && !b.bare);
+                    let knotted = bar.centerItems || fullPill.participating || (!a.bare && !b.bare);
                     if (end - start >= 2) result.push(segmentFor(start, end, cross, true, knotted));
                 }
             }
@@ -707,7 +707,10 @@ Item {
             return Qt.rect(left - bar.insetLeft, surfaceTop,
                 right - left + bar.insetLeft + bar.insetRight, surfaceBottom - surfaceTop);
         }
-        visible: !bar.statusIconsOnly && fullPill.memberIds.length > 0 && fullPill.backgroundShown
+        // Keep appearance dependencies independent of ancestor/window visibility.
+        // A reveal reuses the prepared palette instead of rebuilding every pill.
+        readonly property bool participating: !bar.statusIconsOnly && memberIds.length > 0 && backgroundShown
+        visible: participating
         x: fullPill.bounds.x; y: fullPill.bounds.y; width: fullPill.bounds.width; height: fullPill.bounds.height
         z: -2
         interactive: false
@@ -738,7 +741,8 @@ Item {
         delegate: Pill {
             required property var modelData
             objectName: "sharedPill_" + modelData.name
-            visible: !bar.vertical
+            readonly property bool participating: !bar.vertical
+            visible: participating
             readonly property var bounds: bar.sharedRect(modelData.ids)
             readonly property string leader: modelData.ids[0]
             x: bounds.x; y: bounds.y; width: bounds.width; height: bounds.height
@@ -1049,10 +1053,10 @@ Item {
         pixelSize: 15
         minimumTextWidth: 12
         leftPadding: 7
-        rightPadding: bar.vertical ? 6 : badge.visible ? Math.max(11, badge.implicitWidth + 1) : 11
-        effectiveRightPadding: bar.uniformItems ? Math.max(5, badge.visible ? 2 * (badge.implicitWidth - 2) : 0) : bar.compactItemPadding && !bar.vertical
-            ? Math.max(0, (badge.visible ? 2 * (badge.implicitWidth + 1) : 0) + (settings.paddingRight || 0))
-            : Math.max(0, 5 + (badge.visible ? 2 * (badge.implicitWidth - 2) : 0) + (settings.paddingRight || 0))
+        rightPadding: bar.vertical ? 6 : badge.participating ? Math.max(11, badge.implicitWidth + 1) : 11
+        effectiveRightPadding: bar.uniformItems ? Math.max(5, badge.participating ? 2 * (badge.implicitWidth - 2) : 0) : bar.compactItemPadding && !bar.vertical
+            ? Math.max(0, (badge.participating ? 2 * (badge.implicitWidth + 1) : 0) + (settings.paddingRight || 0))
+            : Math.max(0, 5 + (badge.participating ? 2 * (badge.implicitWidth - 2) : 0) + (settings.paddingRight || 0))
         implicitHeight: bar.panelSlotSize
         content.y: uniformGlyphHeight > 0 ? normalizedTextY : (height - content.height) / 2
         foreground: bar.notificationData && bar.notificationData.count > 0 ? "#f9e2af" : "#a6adc8"
@@ -1080,7 +1084,8 @@ Item {
             // the pill width or number of digits in the count.
             x: bar.vertical ? (bell.width - width) / 2 : bell.uniformGlyphHeight > 0 ? bell.textGlyphRect.x + bell.textGlyphRect.width - 2 : bell.content.x + (bell.content.width + bell.content.implicitWidth) / 2 - 2
             y: bar.vertical ? bell.height - height - 4 : bell.uniformGlyphHeight > 0 ? bell.textGlyphRect.y - 2 : bell.content.y - 2
-            visible: !bar.iconsOnly && !bar.statusIconsOnly && !!bar.notificationData && bar.notificationData.count > 0
+            readonly property bool participating: !bar.iconsOnly && !bar.statusIconsOnly && !!bar.notificationData && bar.notificationData.count > 0
+            visible: participating
             text: {
                 let count = bar.notificationData ? String(bar.notificationData.count || "") : "";
                 return bar.vertical ? Array.from(count).join("\n") : count;

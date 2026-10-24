@@ -41,6 +41,34 @@ Item {
         name: "BarRegressions"
         when: windowShown
         function cleanup() { inkBackground.visible = false; geometrySlider.visible = false; bar.settings = {}; bar.statusIconsOnly = false; bar.width = scene.width; bar.mediaData = {playing: false}; bar.trayModel = []; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
+        function test_visibilityRetainsPreparedAppearance_data() {
+            let rows = [];
+            for (let edge of ["top", "bottom", "left", "right"])
+                for (let full of ["on", "off"])
+                    rows.push({tag:edge + "-" + full, edge:edge, full:full});
+            return rows;
+        }
+        function test_visibilityRetainsPreparedAppearance(data) {
+            bar.settings = connectorConfig(data.edge, {launcher:{pillGroup:"controls"}, settings:{pillGroup:"controls"}, workspaces:{}, calendar:{side:"center"}, notifications:{side:"right"}, power:{side:"right"}}, {fullBackground:data.full});
+            bar.notificationData = {count:7};
+            bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}], audio:{}, network:{}, bluetooth:{}, battery:{}};
+            wait(0);
+            let power = bar.moduleItems.power;
+            let glass = power.settings.glassSurface;
+            let backings = power.settings.backingPills.length;
+            let connectors = findChild(bar, "panelConnectors");
+            let segments = JSON.stringify(connectors.segments);
+            try {
+                bar.visible = false;
+                compare(power.settings.glassSurface, glass, "Hiding must retain the prepared glass surface");
+                compare(power.settings.backingPills.length, backings, "Hiding must retain the prepared backing surfaces");
+                compare(JSON.stringify(connectors.segments), segments, "Hiding must retain connector geometry and colors");
+                bar.visible = true;
+                compare(power.settings.glassSurface, glass);
+                compare(power.settings.backingPills.length, backings);
+                compare(JSON.stringify(connectors.segments), segments);
+            } finally { bar.visible = true; }
+        }
         function connectorConfig(position, items, options) {
             bar.width = position === "left" || position === "right" ? 40 : scene.width;
             return {bar:Object.assign({position:position, background:"on", spacing:20}, options || {}),
