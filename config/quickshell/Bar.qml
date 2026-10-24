@@ -18,6 +18,7 @@ Item {
     readonly property real panelIconSize: settings.bar?.iconSize || 16
     readonly property bool iconPills: vertical || centerItems
     readonly property real panelSlotSize: Math.max(1, verticalThickness - 4)
+    readonly property real panelItemInset: centerItems && !vertical ? 3 : 2
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Length never affects width. Explicit icon/font sizing and thickness still do.
     readonly property real verticalThickness: uniformItems ? Math.max(32, settings.bar?.height || 32, panelIconSize + 12) : Math.max(32, settings.bar?.height || 32,
@@ -354,7 +355,7 @@ Item {
     implicitWidth: vertical ? verticalThickness + insetLeft + insetRight : 0
     implicitHeight: vertical ? Math.max(1, Math.min(Math.max(1, screenHeight - Settings.screenMargins(settings.bar || {}).top - Settings.screenMargins(settings.bar || {}).bottom), compact ? minimumVerticalLength + insetTop + insetBottom : Infinity))
         : Math.max(settings.bar?.height || 32,
-            ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => moduleItems[id].height + 4)) + insetTop + insetBottom
+            ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => moduleItems[id].height + 2 * panelItemInset)) + insetTop + insetBottom
     height: implicitHeight
     Flickable {
         id: layoutViewport
@@ -581,7 +582,9 @@ Item {
             // Centered full pills get end caps even with zero content padding.
             let leading = bar.centerItems && !bar.vertical ? Math.max(5, bar.insetLeft) : bar.insetLeft;
             let trailing = bar.centerItems && !bar.vertical ? Math.max(5, bar.insetRight) : bar.insetRight;
-            return Qt.rect(left - leading, top - bar.insetTop, right - left + leading + trailing, bottom - top + bar.insetTop + bar.insetBottom);
+            let verticalInset = bar.centerItems && !bar.vertical ? bar.panelItemInset : 0;
+            return Qt.rect(left - leading, top - bar.insetTop - verticalInset,
+                right - left + leading + trailing, bottom - top + bar.insetTop + bar.insetBottom + 2 * verticalInset);
         }
         visible: !bar.statusIconsOnly && fullPill.memberIds.length > 0 && fullPill.backgroundShown
         x: fullPill.bounds.x; y: fullPill.bounds.y; width: fullPill.bounds.width; height: fullPill.bounds.height

@@ -80,7 +80,10 @@ and custom appearance remain saved. Notification counts and status text remain
 available in their menus. The normal text layout returns when centering is
 disabled; saved item text, icons and appearance are retained. With background
 pills enabled, each slot uses the same circular pill and the icon or number is
-centered inside it. A full Hyprpane pill keeps the complete row centered.
+centered inside it. A full Hyprpane pill keeps the complete row centered and
+reserves a small vertical inset around the circular slots, so their outlines stay
+visibly separated from the outer capsule instead of sharing its top and bottom
+edges.
 
 The active item-gap control (with or without Hyprknots) applies to centered
 items in every group, workspace buttons, tray icons, shared-pill members and

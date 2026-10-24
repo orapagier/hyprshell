@@ -208,6 +208,14 @@ Item {
                 fuzzyCompare(bar.moduleItems[ids[0]].x - full.x,5,0.01,"full pill leading cap");
                 fuzzyCompare(full.x + full.width - bar.moduleItems[ids[ids.length - 1]].x
                     - bar.moduleItems[ids[ids.length - 1]].width,5,0.01,"full pill trailing cap");
+                fuzzyCompare(full.height,bar.panelSlotSize + 2 * bar.panelItemInset,0.01,"full pill vertical inset");
+                fuzzyCompare(full.y,0,0.01,"full pill top");
+                for (let id of ids) {
+                    let item = bar.moduleItems[id];
+                    fuzzyCompare(item.y - full.y,bar.panelItemInset,0.01,id + " top inset");
+                    fuzzyCompare(full.y + full.height - item.y - item.height,
+                        bar.panelItemInset,0.01,id + " bottom inset");
+                }
             }
         }
         function test_centeredGapReachesEveryGroupWorkspaceAndTray() {
