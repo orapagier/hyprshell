@@ -666,7 +666,10 @@ Item {
     AttachedPanelSurface {
         objectName: "attachedPanelSurface"
         parent: bar
-        anchors.fill: parent
+        // Keep the screen-edge join, but fit the inward edge to the full pill.
+        y: bar.position === "bottom" ? bar.height - height : 0
+        width: bar.width
+        height: bar.vertical ? bar.height : fullPill.bounds.y + fullPill.bounds.height
         z: -3
         visible: !bar.statusIconsOnly && bar.settings.bar?.edgeAttached === true && fullPill.memberIds.length > 0
         surfaceColor: fullPill.backgroundShown ? fullPill.backgroundFill : "#242437"
