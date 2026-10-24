@@ -24,7 +24,7 @@ Item {
     readonly property real panelTextSize: panelIconSize * 10 / 12
     readonly property bool iconPills: vertical || centerItems
     readonly property real panelSlotSize: verticalThickness * 0.6
-    readonly property real workspacePillSize: panelSlotSize
+    readonly property real workspacePillSize: panelSlotSize * 0.72
     readonly property real panelItemInset: verticalThickness * 0.2
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Resolve thickness from settings, independently of child geometry.
@@ -207,10 +207,10 @@ Item {
         style.panelItemPadding = 5;
         style.panelPillHeight = id === "workspaces" ? workspacePillSize : panelSlotSize;
         style.fitGlyphWidth = id === "workspaces";
-        style.uniformGlyphHeight = uniformItems ? panelIconSize : id === "workspaces"
+        style.uniformGlyphHeight = uniformItems ? (id === "workspaces" ? Math.min(panelIconSize, workspacePillSize * 0.65) : panelIconSize) : id === "workspaces"
             ? (style.iconSize || style.fontSize ? 0 : workspacePillSize * 0.8)
             : style.iconSize || style.fontSize || panelSlotSize * 0.8;
-        if (uniformItems) style.uniformTextHeight = id === "workspaces" ? panelIconSize : panelTextSize;
+        if (uniformItems) style.uniformTextHeight = id === "workspaces" ? style.uniformGlyphHeight : panelTextSize;
         style.panelAdaptive = true;
         style.backingPills = backingPills(id);
         style.glassSurface = fullPill.visible;

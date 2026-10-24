@@ -94,13 +94,13 @@ Item {
                 fuzzyCompare(trailing,full === "on" ? 5 : 0,0.01,"trailing content inset");
                 for (let number of [1,12]) {
                     let workspace = findChild(bar,"workspace" + number);
-                    fuzzyCompare(workspace.height,data.thickness * 0.6,0.01,"workspace matches status control height");
+                    fuzzyCompare(workspace.height,data.thickness * 0.6 * 0.72,0.01,"workspace is smaller than status controls");
                     let ink = workspace.textGlyphRect;
                     verify(ink.height <= workspace.height * 0.8 + 0.01,"number fits vertically");
                     verify(ink.width <= workspace.width * 0.8 + 0.01,"number fits horizontally");
                     fuzzyCompare(ink.x + ink.width / 2,workspace.width / 2,0.5,"number centered");
                     if (data.uniform && number === 1)
-                        fuzzyCompare(ink.height,data.thickness * 12 / 30,0.01,"workspace number matches icon ink");
+                        fuzzyCompare(ink.height,workspace.height * 0.65,0.01,"workspace number fits smaller circle");
                 }
                 fuzzyCompare(findChild(bar,"mediaSpectrum").height,data.thickness * (data.uniform ? 0.4 : 0.48),0.01,"media ink height");
                 fuzzyCompare(bar.moduleItems.media.height,data.thickness * 0.6,0.01,"media pill height");
@@ -471,7 +471,9 @@ Item {
                 } else {
                     let workspace = findChild(bar,"workspace12");
                     compare(workspace.height,workspace.width);
-                    compare(workspace.height,bar.panelSlotSize);
+                    compare(workspace.height,bar.workspacePillSize);
+                    verify(workspace.height < bar.moduleItems.media.height,"workspace circle is smaller than media pill");
+                    verify(workspace.glyphRect.height < findChild(bar,"mediaSpectrum").height,"workspace number is smaller than spectrum");
                 }
                 compare(bar.moduleItems.workspaces.spacing,5);
                 compare(findChild(bar.moduleItems.tray,"trayIcon").parent.spacing,5);
