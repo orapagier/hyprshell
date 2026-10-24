@@ -19,10 +19,12 @@ Item {
         || (settings.bar?.fullBackground === "inherit" && settings.bar?.background !== "off"))
     readonly property real fullPillInset: fullBackgroundEnabled ? 5 : 0
     readonly property real baseThickness: settings.bar?.height || 32
-    readonly property real panelIconSize: settings.bar?.iconSize || baseThickness * 0.6 * 0.8
+    readonly property real panelIconSize: settings.bar?.iconSize || baseThickness * (uniformItems ? 12 / 30 : 0.6 * 0.8)
+    // Reference ink heights in the 30 px Full Pill: clock 13 px, Wi-Fi 12 px.
+    readonly property real panelTextSize: panelIconSize * 13 / 12
     readonly property bool iconPills: vertical || centerItems
     readonly property real panelSlotSize: verticalThickness * 0.6
-    readonly property real workspacePillSize: verticalThickness * 0.4
+    readonly property real workspacePillSize: verticalThickness * (uniformItems ? 0.55 : 0.4)
     readonly property real panelItemInset: verticalThickness * 0.2
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Resolve thickness from settings, independently of child geometry.
@@ -205,14 +207,16 @@ Item {
         style.panelItemPadding = 5;
         style.panelPillHeight = id === "workspaces" ? workspacePillSize : panelSlotSize;
         style.fitGlyphWidth = id === "workspaces";
-        style.uniformGlyphHeight = id === "workspaces" ? (style.iconSize || style.fontSize ? 0 : workspacePillSize * 0.8) : uniformItems ? panelIconSize
+        style.uniformGlyphHeight = uniformItems ? panelIconSize : id === "workspaces"
+            ? (style.iconSize || style.fontSize ? 0 : workspacePillSize * 0.8)
             : style.iconSize || style.fontSize || panelSlotSize * 0.8;
+        if (uniformItems) style.uniformTextHeight = panelTextSize;
         style.panelAdaptive = true;
         style.backingPills = backingPills(id);
         style.glassSurface = fullPill.visible;
         style.pillTransparency = settings.bar?.individualPillTransparency ?? -1;
         style.circularIcons = true;
-        if (id !== "workspaces") {
+        if (uniformItems || id !== "workspaces") {
             if (uniformItems || !style.iconSize) style.iconSize = uniformItems ? panelIconSize : style.fontSize || panelSlotSize * 0.8;
         }
         if (compactItemPadding) style.compactPadding = true;
@@ -997,8 +1001,23 @@ Item {
         foreground: bar.notificationData && bar.notificationData.count > 0 ? "#f9e2af" : "#a6adc8"
         tint: bar.rgba("#a6adc8", 0.18)
         outline: bar.rgba("#a6adc8", 0.26)
+        TextMetrics {
+            id: badgeMetrics
+            font.family: "DejaVu Sans"
+            font.pixelSize: 128
+            font.bold: true
+            text: badge.text
+        }
+        TextMetrics {
+            id: badgeInkMetrics
+            font: badge.font
+            text: badge.text
+        }
         Text {
             id: badge
+            readonly property rect glyphRect: Qt.rect(x + badgeInkMetrics.tightBoundingRect.x,
+                y + baselineOffset + badgeInkMetrics.tightBoundingRect.y,
+                badgeInkMetrics.tightBoundingRect.width, badgeInkMetrics.tightBoundingRect.height)
             objectName: "notificationBadge"
             // Attach to the glyph's upper-right corner, independently of
             // the pill width or number of digits in the count.
@@ -1014,7 +1033,8 @@ Item {
             styleColor: bell.glyphHalo ? bell.textEdge : bell.glyphShadow
             renderType: Text.QtRendering
             font.family: "DejaVu Sans"
-            font.pixelSize: Math.max(8, Math.round(8 * bell.effectiveGlyphSize / 15))
+            font.pixelSize: bar.uniformItems ? Math.max(1, Math.round(128 * bar.panelTextSize / Math.max(1, badgeMetrics.tightBoundingRect.height)))
+                : Math.max(8, Math.round(8 * bell.effectiveGlyphSize / 15))
             font.bold: true
         }
     }
