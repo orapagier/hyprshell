@@ -9,6 +9,15 @@ Item {
     AttachedPanelSurface { id: surface; width: 500; height: 40; start: 40; end: 460 }
     Bar { id: attachedBar; x: 0; y: 150; width: 700; screenHeight: 150 }
     PanelReveal { id: reveal; x: 550; y: 50; width: 150; height: 40; autoHide: true; motionEnabled: false }
+    Pill {
+        id: hoverControl
+        parent: reveal
+        x: 40; y: 0; width: 40; height: 40
+        icon: "X"
+        visible: false
+        property int clicks: 0
+        onClicked: clicks++
+    }
     TestCase {
         name: "PanelAttachment"
         when: windowShown
@@ -131,6 +140,39 @@ Item {
             compare(reveal.progress, 1);
             reveal.menuOpen = false;
             compare(reveal.progress, 0);
+        }
+        function test_controlsRetainHoverWithoutBlockingClicks() {
+            try {
+                hoverControl.visible = true;
+                for (let edge of ["top", "bottom", "left", "right"]) {
+                    mouseMove(reveal, -20, -20);
+                    wait(450);
+                    reveal.edge = edge;
+                    reveal.autoHide = true;
+                    reveal.menuOpen = false;
+                    reveal.motionEnabled = true;
+                    // Enter at the edge, then move onto a foreground control.
+                    mouseMove(reveal, edge === "right" ? reveal.width - 1 : 1,
+                        edge === "bottom" ? reveal.height - 1 : 1);
+                    tryCompare(reveal, "hoverHeld", true);
+                    mouseMove(hoverControl, 20, 20);
+                    tryCompare(hoverControl, "hovered", true);
+                    wait(1100); // longer than hide delay and reveal animation
+                    verify(reveal.hoverHeld);
+                    fuzzyCompare(reveal.progress, 1, 0.001);
+                    let before = hoverControl.clicks;
+                    mouseClick(hoverControl, 20, 20);
+                    compare(hoverControl.clicks, before + 1);
+                    mouseMove(reveal, -20, -20);
+                    tryCompare(reveal, "hoverHeld", false);
+                    tryCompare(reveal, "progress", 0);
+                }
+            } finally {
+                hoverControl.visible = false;
+                reveal.motionEnabled = false;
+                mouseMove(reveal, -20, -20);
+                reveal.hoverHeld = false;
+            }
         }
         function test_hiddenInputStripAndDisabledMode() {
             mouseMove(reveal, -20, -20);

@@ -185,6 +185,9 @@ ShellRoot {
             WlrLayershell.namespace: "hyprshell"
             Bar {
                 id: bar
+                // Keep controls beneath the hover tracker so their MouseAreas
+                // cannot make auto-hide lose the pointer over the panel itself.
+                parent: panelReveal
                 settings: preferences.panelConfig
                 hoverPopdowns: menuState.hoverEnabled
                 anchors.fill: parent
