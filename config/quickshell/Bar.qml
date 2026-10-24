@@ -316,6 +316,21 @@ Item {
         regionOffsetX: bar.vertical ? bar.screenOffsetX + bar.insetLeft : 0
         regionOffsetY: bar.screenOffsetY + (bar.vertical ? 0 : bar.insetTop)
     }
+    // Use the whole wallpaper so every link shares one ink, independent of
+    // panel position, pill colors, and the local texture under a segment.
+    WallpaperColors {
+        id: knotsWallpaper
+        objectName: "hyprknotsWallpaper"
+        source: bar.wallpaperSource
+        screenWidth: bar.screenWidth
+        screenHeight: bar.screenHeight
+        bandWidth: bar.screenWidth
+        bandHeight: bar.screenHeight
+        regionOffsetX: 0
+        regionOffsetY: 0
+        sampleWidth: 32
+        sampleHeight: 32
+    }
     property var trayModel: []
     property string clockText: ""
     property string activeMenu: ""
@@ -413,7 +428,7 @@ Item {
             policy: bar.overflowing ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
             active: bar.overflowing
         }
-    // Angular steel links adapt their stroke color to the local wallpaper.
+    // Angular links share one monochrome ink for the wallpaper.
     Canvas {
         id: connectors
         objectName: "panelConnectors"
@@ -499,48 +514,16 @@ Item {
         }
         readonly property var knotVariants: arrangeKnots(segments, patternSeed)
         onKnotVariantsChanged: requestPaint()
-        function surfaceContains(surface, x, y) {
-            if (!surface || !surface.participating || surface.backgroundAlpha <= 0) return false;
-            let localX = x - surface.x, localY = y - surface.y;
-            if (localX < 0 || localY < 0 || localX > surface.width || localY > surface.height) return false;
-            let radius = Math.max(0, Math.min(surface.width / 2, surface.height / 2,
-                surface.vertical ? Math.min(surface.width, surface.height) / 2
-                    : surface.settings.radius >= 0 ? surface.settings.radius : surface.height / 2));
-            let dx = Math.max(radius - localX, 0, localX - (surface.width - radius));
-            let dy = Math.max(radius - localY, 0, localY - (surface.height - radius));
-            return dx * dx + dy * dy <= radius * radius;
+        function monochromeInk(sample) {
+            let white = Qt.color("#ffffff"), black = Qt.color("#000000");
+            return Colors.contrast(white, sample) >= Colors.contrast(black, sample) ? white : black;
         }
-        function regionAt(along, cross, span) {
-            let region = bar.wallpaperColors.sampleRect(bar.vertical
-                ? Qt.rect(bar.screenOffsetX + cross - 3, bar.screenOffsetY + along - span / 2 - bar.scrollOffset, 6, span)
-                : Qt.rect(bar.screenOffsetX + along - span / 2, bar.screenOffsetY + cross - 3, span, 6), true);
-            let x = bar.vertical ? cross : along, y = bar.vertical ? along : cross;
-            let layers = [];
-            if (surfaceContains(fullPill, x, y))
-                layers.push({color:fullPill.backgroundFill, opacity:fullPill.backgroundAlpha});
-            if (!bar.vertical) for (let i = 0; i < sharedPillRepeater.count; ++i) {
-                let surface = sharedPillRepeater.itemAt(i);
-                if (surfaceContains(surface, x, y))
-                    layers.push({color:surface.backgroundFill, opacity:surface.backgroundAlpha});
-            }
-            return Colors.compositeRegion(region, layers);
+        readonly property color ink: {
+            let pixels = knotsWallpaper.pixels;
+            let sample = knotsWallpaper.sampleRect(Qt.rect(0, 0, bar.screenWidth, bar.screenHeight), false);
+            return monochromeInk(sample);
         }
-        function colorAt(along, cross, span, neutral) {
-            let region = regionAt(along, cross, span);
-            return contrastingInk(region, along, neutral);
-        }
-        function contrastingInk(region, along, neutral) {
-            // Wallpaper-seeded hues stay vivid even over a muted glass surface.
-            // Spatial color changes keep long chains lively; contrast follows
-            // the actual wallpaper and pill layers underneath each stroke.
-            let palette = Settings.wallpaperPalette(bar.wallpaperSource.toString());
-            let accent = Qt.color(palette[Math.floor(Math.abs(along) / 42) % palette.length]);
-            let hue = accent.hslHue >= 0 ? accent.hslHue
-                : region.average.hslHue >= 0 ? (region.average.hslHue + 0.5) % 1 : 0.55;
-            let vivid = Qt.hsla(hue, neutral ? 0.85 : 1, 0.65, 1);
-            return Colors.readableForeground(region.average, vivid,
-                region.minimum, region.maximum, 4.6);
-        }
+        function colorAt(along, cross, span, neutral) { return ink; }
         function segmentFor(start, end, cross, workspace, knotted) {
             let geometry = {start:start, end:end, cross:cross, workspace:workspace, knotted:knotted};
             let sampled = null;
@@ -559,9 +542,7 @@ Item {
         function sampleSegment(segment) {
             let {start, end, cross, workspace, knotted} = segment;
             let length = end - start;
-            let steps = Math.max(1, Math.ceil(length / 16)), stops = [];
-            for (let i = 0; i <= steps; ++i)
-                stops.push(colorAt(start + length * i / steps, cross, 8, true));
+            let stops = [ink, ink];
             let count = knotted ? (workspace || bar.centerItems ? 1 : Math.max(1, Math.floor(length / 42))) : 0, knots = [];
             for (let i = 0; i < count; ++i)
                 knots.push(colorAt(start + length * (i + 0.5) / count, cross, 12));
@@ -613,19 +594,8 @@ Item {
             }
             return result;
         }
-        // Invalidate cached colors when wallpaper or backing material changes,
-        // including hover/selection, without solving contrast during layout.
-        readonly property var colorInputs: {
-            let surfaces = [fullPill];
-            for (let i = 0; i < sharedPillRepeater.count; ++i) {
-                let surface = sharedPillRepeater.itemAt(i);
-                if (surface) surfaces.push(surface);
-            }
-            return [bar.wallpaperColors.pixels, bar.wallpaperSource,
-                bar.screenOffsetX, bar.screenOffsetY, bar.scrollOffset,
-                surfaces.map(surface => [surface.participating, surface.x, surface.y,
-                    surface.width, surface.height, surface.settings.radius, surface.backgroundFill, surface.backgroundAlpha])];
-        }
+        // Repaint all links together when the wallpaper's shared ink changes.
+        readonly property var colorInputs: [ink]
         onAvailableChanged: if (available) requestPaint()
         onSegmentsChanged: requestPaint()
         onWidthChanged: requestPaint()
@@ -657,10 +627,7 @@ Item {
                     move(0.15, -0.7); line(0.85, 0); line(0.15, 0.7);
                 }
             }
-            function strokeMetal(ink, width, edge) {
-                // A narrow opposite-polarity edge preserves the silhouette on
-                // textured wallpaper where no single ink can contrast everywhere.
-                ctx.strokeStyle = Colors.glyphEdge(edge || ink); ctx.lineWidth = width + 1.2; ctx.stroke();
+            function strokeMetal(ink, width) {
                 ctx.strokeStyle = ink; ctx.lineWidth = width; ctx.stroke();
             }
             for (let segmentIndex = 0; segmentIndex < segments.length; ++segmentIndex) {
@@ -671,7 +638,7 @@ Item {
                 let gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
                 for (let i = 0; i < segment.stops.length; ++i)
                     gradient.addColorStop(i / (segment.stops.length - 1), segment.stops[i]);
-                strokeMetal(gradient, connectors.lineWidth, segment.ink);
+                strokeMetal(gradient, connectors.lineWidth);
                 let length = segment.end - segment.start;
                 // One joint per icon gap, and one every ~42 px on the open rail.
                 let count = segment.knots.length;

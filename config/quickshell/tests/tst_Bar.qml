@@ -923,56 +923,49 @@ Item {
             bar.settings = {bar:{fullBackground:"on"}, items:Object.keys(bar.moduleItems).map(id => ({id:id,enabled:false}))};
             verify(!pill.visible);
         }
-        function test_hyprknotsRetainVividAdaptiveHues() {
+        function test_hyprknotsMonochromeContrast() {
             let links = findChild(bar,"panelConnectors");
-            let previous = bar.wallpaperSource;
-            for (let backdrop of ["#080c14","#567485","#ffffff"]) {
-                let sample = Qt.color(backdrop), region = {average:sample,minimum:sample,maximum:sample};
-                for (let neutral of [false,true]) {
-                    bar.wallpaperSource = "wallpaper-a.jpg";
-                    let first = links.contrastingInk(region,0,neutral);
-                    verify(first.hslSaturation > 0.7,"chain and knots retain color");
-                    verify(Colors.contrast(first,sample) >= 4.5,"visible on dark, medium and light surfaces");
-                    let colors = [];
-                    for (let i=0; i<12; ++i) colors.push(String(links.contrastingInk(region,i*42,neutral)));
-                    verify(new Set(colors).size > 3,"spatial hue variety");
-                    bar.wallpaperSource = "wallpaper-b.jpg";
-                    let changed = [];
-                    for (let i=0; i<12; ++i) changed.push(String(links.contrastingInk(region,i*42,neutral)));
-                    verify(JSON.stringify(colors) !== JSON.stringify(changed),"palette changes with wallpaper");
-                }
+            for (let backdrop of ["#000000","#080c14","#567485","#cccccc","#ffffff"]) {
+                let sample = Qt.color(backdrop), ink = links.monochromeInk(sample);
+                compare(ink.r,ink.g);
+                compare(ink.g,ink.b);
+                compare(ink.a,1);
+                verify(Colors.contrast(ink,sample) >= 4.5);
             }
-            bar.wallpaperSource = previous;
+            compare(links.monochromeInk(Qt.color("#000000")),Qt.color("#ffffff"));
+            compare(links.monochromeInk(Qt.color("#ffffff")),Qt.color("#000000"));
         }
-        function test_hyprknotsAdaptToPillColorAndTransparency() {
+        function test_hyprknotsOneInkAcrossAllLinks() {
             let links = findChild(bar,"panelConnectors");
-            for (let edge of ["top","bottom","left","right"]) {
-                let modules = {launcher:{backgroundColor:"#ffffff"},
-                    audio:{pillGroup:"pair",backgroundColor:"#000000"},wifi:{pillGroup:"pair"}};
-                let options = {fullBackground:"on",fullPillTransparency:0,groupPillTransparency:0,spacing:20};
-                bar.settings = connectorConfig(edge,modules,options);
-                wait(0);
-                let first = bar.moduleItems.launcher, audio = bar.moduleItems.audio, wifi = bar.moduleItems.wifi;
-                let cross = bar.vertical ? bar.insetLeft+bar.contentWidth/2 : bar.insetTop+bar.contentHeight/2;
-                let gap = bar.vertical ? (first.y+first.height+audio.y)/2 : (first.x+first.width+audio.x)/2;
-                let region = links.regionAt(gap,cross,4);
-                fuzzyCompare(region.average,Qt.color("#ffffff"),0.001);
-                let ink = links.colorAt(gap,cross,4,true);
-                verify(Colors.contrast(ink,region.average) >= 4.5);
-                let groupGap = bar.vertical ? (audio.y+audio.height+wifi.y)/2 : (audio.x+audio.width+wifi.x)/2;
-                region = links.regionAt(groupGap,cross,4);
-                fuzzyCompare(region.average,Qt.color(bar.vertical ? "#ffffff" : "#000000"),0.001);
-                let previousSegments = JSON.stringify(links.segments);
-                options.fullPillTransparency = 100;
-                options.groupPillTransparency = 100;
-                bar.settings = connectorConfig(edge,modules,options);
-                wait(0);
-                verify(JSON.stringify(links.segments) !== previousSegments);
-                let transparentInk = links.colorAt(gap,cross,4,true);
-                verify(Colors.luminance(transparentInk) > Colors.luminance(ink));
-                compare(links.surfaceContains(findChild(bar,"fullPanelPill"),bar.vertical ? cross : gap,
-                    bar.vertical ? gap : cross),false);
-            }
+            let sampler = findChild(bar,"hyprknotsWallpaper");
+            let previous = sampler.pixels;
+            try {
+                for (let backdrop of [0,255]) {
+                    let pixels = new Uint8Array(32*32*4);
+                    for (let i=0; i<pixels.length; i+=4) {
+                        pixels[i]=backdrop; pixels[i+1]=backdrop; pixels[i+2]=backdrop; pixels[i+3]=255;
+                    }
+                    sampler.pixels = pixels;
+                    let expected = Qt.color(backdrop === 0 ? "#ffffff" : "#000000");
+                    for (let edge of ["top","bottom","left","right"]) {
+                        bar.settings = connectorConfig(edge,{launcher:{backgroundColor:"#ffffff"},
+                            audio:{pillGroup:"pair",backgroundColor:"#000000"},wifi:{pillGroup:"pair"}},
+                            {fullBackground:"on",fullPillTransparency:0,groupPillTransparency:0,spacing:20});
+                        wait(0);
+                        sampler.pixels = pixels;
+                        compare(links.ink,expected);
+                        for (let segment of links.segments) {
+                            compare(segment.ink,expected);
+                            for (let color of segment.stops.concat(segment.knots)) compare(color,expected);
+                        }
+                        let ink = links.ink;
+                        bar.settings = connectorConfig(edge,{launcher:{},audio:{},wifi:{}},
+                            {fullBackground:"off",fullPillTransparency:100,groupPillTransparency:100,spacing:30});
+                        wait(0);
+                        compare(links.ink,ink,"Pills and position cannot change the wallpaper's ink");
+                    }
+                }
+            } finally { sampler.pixels = previous; }
         }
         function test_pillTransparencyIsIndependentAndPreservesGlyphs() {
             for (let edge of ["top", "bottom", "left", "right"]) {
