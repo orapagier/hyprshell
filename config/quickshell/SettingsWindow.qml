@@ -33,19 +33,21 @@ FloatingWindow {
         value: {
             if (!window.editingSession || !window.success || window.store.error) return {};
             let preview = {};
-            for (let key of ["height", "spacing", "compactSpacing", "groupSpacing", "centerItems", "uniformItems", "iconSize", "marginTop", "marginSide", "paddingBottom",
-                    "screenMarginTop", "screenMarginBottom", "screenMarginLeft", "screenMarginRight",
-                    "contentPaddingTop", "contentPaddingBottom", "contentPaddingLeft", "contentPaddingRight"]) {
-                if (window.visible && window.draft.bar[key] !== window.initial.bar[key]) preview[key] = window.draft.bar[key];
-            }
-            // Shortcut visibility is immediate, including while a closing
-            // editor flushes its last background save.
-            for (let key of ["visible", "workspaceScope", "workspaceList", "workspaceOverrides"]) {
-                if (JSON.stringify(window.draft.bar[key]) !== JSON.stringify(window.initial.bar[key]))
+            // Keep the latest appearance through close-flush and queued saves.
+            for (let key of Object.keys(window.draft.bar)) {
+                if (JSON.stringify(window.draft.bar[key]) !== JSON.stringify(window.store.config.bar[key]))
                     preview[key] = window.draft.bar[key];
             }
             return preview;
         }
+        restoreMode: Binding.RestoreBindingOrValue
+    }
+    Binding {
+        target: window.store
+        property: "itemPreview"
+        value: window.editingSession && window.success && !window.store.error
+            && JSON.stringify(window.draft.items) !== JSON.stringify(window.store.config.items)
+            ? Model.previewItems(window.draft.items, window.store.config.items) : null
         restoreMode: Binding.RestoreBindingOrValue
     }
     readonly property bool saving: writer.running
@@ -357,7 +359,7 @@ FloatingWindow {
     }
     Timer {
         id: autoSave
-        interval: 500
+        interval: 200
         onTriggered: window.apply()
     }
     Timer {
@@ -384,8 +386,7 @@ FloatingWindow {
                         window.savedNotice = window.submittedNotice;
                         savedNoticeTimer.restart();
                         window.initial = Model.copy(window.submitted);
-                        window.store.config = Model.copy(window.submitted);
-                        window.store.reload();
+                        window.store.acceptConfig(window.submitted);
                     }
                 } catch (e) {
                     window.success = false;

@@ -271,8 +271,15 @@ previews continue to revert when leaving their page. Changing application colors
 preserves unapplied font/cursor choices. Cleanup preview waits for schedule edits
 to be saved or discarded, so its preview uses the settings shown on screen.
 
-The editor keeps a draft and saves it automatically after 500 ms without an
-edit. A bottom status message names the settings in the successfully saved
+The editor keeps a draft and saves it automatically after 200 ms without an
+edit. Hyprpane appearance, placement, visibility and item edits preview immediately
+on the running panel, including while a previous snapshot is saving. Previews do
+not replace the saved snapshot used for conflict detection; failed saves revert
+the running panel to saved preferences. Incomplete color input retains the saved
+color until a valid color is entered. Closing keeps the preview until the pending
+save finishes. Identical writer/file-watcher snapshots do not refresh the panel
+again, and save completion does not request a redundant file reload.
+A bottom status message names the settings in the successfully saved
 snapshot (for example, “Bluetooth settings saved!”) and clears after two seconds.
 Opening the window shows no save confirmation; save errors remain visible.
 Closing the window flushes pending edits. Native window closes also reset

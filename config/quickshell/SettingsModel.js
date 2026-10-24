@@ -39,6 +39,17 @@ function screenMargins(bar) {
     return result;
 }
 function copy(value) { return JSON.parse(JSON.stringify(value)); }
+// A partially typed color stays in the editor until validation. Keep the last
+// saved color on the running panel rather than assigning an invalid Qt color.
+function previewItems(draft, saved) {
+    return draft.map(entry => {
+        let next = Object.assign({}, entry);
+        let previous = saved.find(i => i.id === entry.id) || {};
+        for (let key of ['textColor', 'iconColor', 'backgroundColor', 'outlineColor'])
+            if (next[key] && !/^#[0-9a-fA-F]{6}$/.test(next[key])) next[key] = previous[key] || '';
+        return next;
+    });
+}
 function hoverPopdownsEnabled(bar, workspace) {
     let overrides = bar.hoverPopdownOverrides || {};
     let choice = overrides[String(workspace)];

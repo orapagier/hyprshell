@@ -43,7 +43,7 @@ ShellRoot {
         id: dashboardWindow
         services: desktopServices
         wallpaperSource: wallpapers.sources[dashboardWindow.screen?.name] || ""
-        translucency: preferences.config.bar.popdownTranslucency ?? 0.06
+        translucency: preferences.panelConfig.bar.popdownTranslucency ?? 0.06
         onOpenedChanged: if (opened) {
             activityWindow.close();
             for (let panel of panels.instances) panel.closeMenu();
@@ -62,7 +62,7 @@ ShellRoot {
         services: desktopServices
         rightCorner: true
         wallpaperSource: wallpapers.sources[activityWindow.screen?.name] || ""
-        translucency: preferences.config.bar.popdownTranslucency ?? 0.06
+        translucency: preferences.panelConfig.bar.popdownTranslucency ?? 0.06
         onOpenedChanged: if (opened) {
             dashboardWindow.close();
             for (let panel of panels.instances) panel.closeMenu();
@@ -111,7 +111,7 @@ ShellRoot {
     }
     function updateClock() {
         let now = new Date();
-        clockText = Qt.formatDateTime(now, preferences.config.bar.clockFormat);
+        clockText = Qt.formatDateTime(now, preferences.panelConfig.bar.clockFormat);
     }
     ClipboardController { id: clipboard; store: preferences }
     LockingController { id: locking; store: preferences; onBattery: desktopServices.batteryInfo.present && !desktopServices.batteryInfo.pluggedIn }
@@ -129,7 +129,7 @@ ShellRoot {
         PanelWindow {
             id: panel
             required property var modelData
-            MenuController { id: menuState; hoverEnabled: Settings.hoverPopdownsEnabled(preferences.config.bar, panel.workspace); dismissPinnedOnLeave: (!panel.shown || openedByShortcut) && !panelDropdown.managingApplications }
+            MenuController { id: menuState; hoverEnabled: Settings.hoverPopdownsEnabled(preferences.panelConfig.bar, panel.workspace); dismissPinnedOnLeave: (!panel.shown || openedByShortcut) && !panelDropdown.managingApplications }
             screen: modelData
             // Keep the Wayland surface and scene graph ready, as Dashboard does.
             // Mapping a previously hidden window synchronously stalls the IPC handler.
@@ -149,9 +149,9 @@ ShellRoot {
                 if (!shown) panel.closeMenu();
             }
             onBackingWindowVisibleChanged: console.info("HYPRPANE_TIMING", Date.now(), "surface-visible", backingWindowVisible)
-            readonly property string edge: preferences.config.bar.position || "top"
+            readonly property string edge: preferences.panelConfig.bar.position || "top"
             readonly property bool vertical: edge === "left" || edge === "right"
-            readonly property bool autoHide: preferences.config.bar.edgeAttached === true && preferences.config.bar.autoHide === true
+            readonly property bool autoHide: preferences.panelConfig.bar.edgeAttached === true && preferences.panelConfig.bar.autoHide === true
             readonly property real revealProgress: panelReveal.progress
             mask: Region {
                 x: panelReveal.inputRect.x; y: panelReveal.inputRect.y
@@ -173,7 +173,7 @@ ShellRoot {
             onMenuBoundsChanged: closeMenu()
             readonly property var outerMargins: Settings.screenMargins(preferences.panelConfig.bar)
             readonly property real availableHeight: Math.max(1, modelData.height)
-            readonly property bool compact: vertical && preferences.config.bar.verticalPresentation === "compact"
+            readonly property bool compact: vertical && preferences.panelConfig.bar.verticalPresentation === "compact"
             anchors {
                 top: edge !== "bottom"
                 bottom: edge !== "top" && !compact
@@ -256,7 +256,7 @@ ShellRoot {
                 panelBounds: panel.menuBounds
                 onManagingApplicationsChanged: if (managingApplications) menuState.pinned = true
                 wallpaperSource: bar.wallpaperSource
-                translucency: Settings.popdownTranslucency(preferences.config, bar.menuItemId(menuState.displayedSection))
+                translucency: Settings.popdownTranslucency(preferences.panelConfig, bar.menuItemId(menuState.displayedSection))
                 screen: panel.screen
                 barEdge: connected ? panel.edge : "top"
                 barRect: connected ? Qt.rect(panel.originX, panel.originY, panel.width, panel.height) : Qt.rect(0,0,0,0)
@@ -283,7 +283,7 @@ ShellRoot {
                 onSettingsRequested: settingsController.open()
                 onHoverChanged: inside => menuState.retain(inside)
             }
-            KeybindingsPopup { id: keybindings; screen: panel.screen; wallpaperSource: bar.wallpaperSource; translucency: preferences.config.bar.popdownTranslucency ?? 0.06 }
+            KeybindingsPopup { id: keybindings; screen: panel.screen; wallpaperSource: bar.wallpaperSource; translucency: preferences.panelConfig.bar.popdownTranslucency ?? 0.06 }
             function closeMenu() { menuState.close(); keybindings.opened = false; }
             function refreshSettings() {
                 if (!panel.shown || (menuState.section && !bar.itemEnabled(bar.menuItemId(menuState.section)))) menuState.close();
@@ -295,7 +295,7 @@ ShellRoot {
     }
     Connections {
         target: preferences
-        function onConfigChanged() {
+        function onPanelConfigChanged() {
             shell.updateClock();
             for (let panel of panels.instances) panel.refreshSettings();
         }
