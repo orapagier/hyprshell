@@ -78,7 +78,9 @@ Item {
                 for (let id of ["launcher","settings","audio","wifi","calendar","power"]) {
                     let item = bar.moduleItems[id], background = findChild(item,"pillBackground");
                     fuzzyCompare(background.height,data.thickness * 0.6,0.01,id + " own pill height");
-                    fuzzyCompare(item.glyphRect.height,data.thickness * (data.uniform ? (!bar.iconsOnly && !item.labelIsIcon && !item.shownIcon.length ? 10 / 30 : 12 / 30) : 0.48),0.01,id + " ink height");
+                    if (data.uniform && !bar.iconsOnly && !item.labelIsIcon && !item.shownIcon.length)
+                        fuzzyCompare(item.uniformTextHeight,data.thickness * 10 / 30,0.01,id + " text scale");
+                    else fuzzyCompare(item.glyphRect.height,data.thickness * (data.uniform ? 12 / 30 : 0.48),0.01,id + " ink height");
                     let cross = bar.vertical ? item.x + item.width / 2 : item.y + item.height / 2;
                     fuzzyCompare(cross,crossSize / 2,0.01,id + " cross-axis center");
                 }
@@ -105,7 +107,7 @@ Item {
                 fuzzyCompare(findChild(bar,"mediaSpectrum").height,data.thickness * (data.uniform ? 0.4 : 0.48),0.01,"media ink height");
                 fuzzyCompare(bar.moduleItems.media.height,data.thickness * 0.6,0.01,"media pill height");
                 if (data.uniform && !bar.iconsOnly)
-                    fuzzyCompare(bar.moduleItems.media.item.textGlyphRect.height,data.thickness * 10 / 30,0.01,"media matches clock text");
+                    fuzzyCompare(bar.moduleItems.media.item.uniformTextHeight,data.thickness * 10 / 30,0.01,"media matches clock text");
                 fuzzyCompare(bar.moduleItems.tray.trayIconSize,data.thickness * (data.uniform ? 0.4 : 0.48),0.01,"tray artwork height");
                 fuzzyCompare(findChild(bar.moduleItems.tray,"trayIcon").height,data.thickness * 0.6,0.01,"tray pill height");
             }
@@ -422,7 +424,7 @@ Item {
                 let ids=bar.orderedItems("left");
                 for (let i=0; i<ids.length; ++i) {
                     let item=bar.moduleItems[ids[i]], ink=item.glyphRect;
-                    compare(item.effectiveIconSize,15,ids[i] + " common icon size");
+                    compare(item.effectiveIconSize,Settings.item(bar.settings,ids[i]).iconSize,ids[i] + " individual icon size");
                     if (centered) {
                         fuzzyCompare(item.width,bar.panelSlotSize,0.01,ids[i] + " icon slot width");
                         fuzzyCompare(item.height,bar.panelSlotSize,0.01,ids[i] + " icon slot height");
@@ -438,7 +440,7 @@ Item {
                         fuzzyCompare(item.x-previous.x-previous.width,gap,0.01,"pill gap");
                     }
                 }
-                compare(bar.appearance("bluetooth").iconSize,15);
+                compare(bar.appearance("bluetooth").iconSize,32);
                 bar.settings=Object.assign({},bar.settings,{bar:Object.assign({},bar.settings.bar,{uniformItems:false})});
                 compare(bar.appearance("bluetooth").iconSize,32,"individual setting remains saved");
             }
@@ -448,7 +450,7 @@ Item {
             bar.mediaData={playing:true,title:"Song",levels:[0.2,0.8]};
             bar.trayModel=[{icon:Qt.resolvedUrl("../icons/preview-tray.svg")},{icon:Qt.resolvedUrl("../icons/preview-tray.svg")}];
             for (let centered of [false,true]) {
-                let modules={}; for(let id of Object.keys(bar.moduleItems)) modules[id]={iconSize:30};
+                let modules={}; for(let id of Object.keys(bar.moduleItems)) modules[id]={};
                 modules.workspaces={iconSize:9,fontSize:9};
                 bar.settings=connectorConfig("top",modules,{uniformItems:true,centerItems:centered,iconSize:15,hyprknots:false,compactSpacing:5});
                 wait(0);
@@ -477,6 +479,35 @@ Item {
                 }
                 compare(bar.moduleItems.workspaces.spacing,5);
                 compare(findChild(bar.moduleItems.tray,"trayIcon").parent.spacing,5);
+            }
+        }
+        function test_uniformIndividualSizesAndMatchingClockAudioFonts() {
+            bar.statusData = {workspaces:[],audio:{icon:"󰕾",text:"100%"},network:{text:"󰤨"},bluetooth:{},battery:{}};
+            for (let edge of ["top","bottom","left","right"]) {
+                bar.settings = connectorConfig(edge,{calendar:{fontSize:10},audio:{fontSize:10},
+                    wifi:{iconSize:24},power:{}},{height:30,uniformItems:true,iconSize:12});
+                if (bar.vertical) bar.width = bar.implicitWidth;
+                wait(0);
+                let clock = bar.moduleItems.calendar, audio = bar.moduleItems.audio;
+                if (!bar.vertical) {
+                    fuzzyCompare(clock.textInkScale,audio.textInkScale,0.0001,"clock and percentage use the same font scale");
+                    compare(clock.content.font.family,audio.content.font.family);
+                    compare(clock.content.font.bold,audio.content.font.bold);
+                    compare(clock.uniformTextHeight,10);
+                }
+                fuzzyCompare(bar.moduleItems.wifi.glyphRect.height,24,0.01,"individual size applies in uniform mode");
+                fuzzyCompare(bar.moduleItems.power.glyphRect.height,12,0.01,"other items retain global size");
+                verify(bar.verticalThickness >= 24 / 0.48,"panel grows for individual size");
+                let updated = Settings.copy(bar.settings);
+                Settings.item(updated,"wifi").iconSize = 0;
+                Settings.item(updated,"calendar").fontSize = 18;
+                bar.settings = updated;
+                wait(0);
+                fuzzyCompare(bar.moduleItems.wifi.glyphRect.height,12,0.01,"reset follows global size");
+                if (!bar.vertical) {
+                    compare(clock.uniformTextHeight,18,"text override applies independently");
+                    compare(audio.uniformTextHeight,10,"other text remains unchanged");
+                }
             }
         }
         function test_uniformNotificationBadgeFollowsVisibleBell() {
@@ -530,17 +561,19 @@ Item {
             bar.mediaData = {playing:true,title:"Artist — Song",levels:[1,0.8]};
             for (let centered of [false,true]) for (let edge of ["top","bottom","left","right"]) {
                 let modules = {};
-                for (let id of Object.keys(bar.moduleItems)) modules[id] = {background:"off",fontSize:11};
+                for (let id of Object.keys(bar.moduleItems)) modules[id] = {background:"off"};
                 modules.workspaces = {background:"on",iconSize:9,fontSize:9};
                 bar.settings = connectorConfig(edge,modules,{uniformItems:true,centerItems:centered,iconSize:16});
                 if (bar.vertical) bar.width = bar.implicitWidth;
                 wait(0);
                 for (let id of ["launcher","settings","calendar","audio","wifi","bluetooth","notifications","battery","power"]) {
                     let item = bar.moduleItems[id], ink = item.glyphRect;
-                    fuzzyCompare(ink.height,!bar.iconsOnly && !item.labelIsIcon && !item.shownIcon.length ? 16 * 10 / 12 : 16,0.01,id + " visible height " + edge);
+                    if (!bar.iconsOnly && !item.labelIsIcon && !item.shownIcon.length)
+                        fuzzyCompare(item.uniformTextHeight,16 * 10 / 12,0.01,id + " text scale " + edge);
+                    else fuzzyCompare(ink.height,16,0.01,id + " visible height " + edge);
                     fuzzyCompare(ink.y + ink.height / 2,item.height / 2,0.01,id + " visible vertical center " + edge);
                     if (!bar.iconsOnly && item.shownText.length && !item.labelIsIcon) {
-                        fuzzyCompare(item.textGlyphRect.height,16 * 10 / 12,0.01,id + " label height");
+                        fuzzyCompare(item.uniformTextHeight,16 * 10 / 12,0.01,id + " label scale");
                         fuzzyCompare(item.textGlyphRect.y + item.textGlyphRect.height / 2,ink.y + ink.height / 2,0.01,id + " text and icon centers");
                     }
                 }

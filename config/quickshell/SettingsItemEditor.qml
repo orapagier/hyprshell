@@ -162,9 +162,9 @@ ColumnLayout {
             SettingsCheckBox { text: "Hide icon"; checked: root.settings.hideIcon || false; onToggled: root.edited("hideIcon", checked) }
         }
         SettingsIconSize {
+            objectName: "itemIconSizeControl"
             Layout.fillWidth: true
             individual: true
-            enabled: root.barSettings.uniformItems !== true || root.settings.id === "workspaces"
             settingValue: root.settings.iconSize
             inheritedSize: root.barSettings.iconSize
             onEdited: value => root.edited("iconSize", value)

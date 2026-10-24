@@ -101,7 +101,10 @@ Only the applicable gap control is enabled for the current mode.
 
 **Uniform icon size & spacing** (`bar.uniformItems`, default true) uses the
 General icon size for launcher/settings marks, status icons, calendar, media
-spectrum and tray artwork. Workspace number font choices remain independent.
+spectrum and tray artwork as the default. Individual icon and text sizes take
+priority, including workspace number fonts. Text labels share the same font
+scale using a percentage reference, so dates and audio percentages match when
+their text sizes match.
 Ordinary horizontal layouts size pills around visible glyph bounds with 5 px
 padding on either side; Bluetooth and Wi-Fi no longer reserve an unrelated
 square width or font-bearing space. Centered layouts use equal square slots
@@ -111,8 +114,8 @@ in the ordinary layout, and workspace numbers retain independent font overrides
 and their smaller 40% pills.
 
 The active item gap applies to every group, shared pill, workspace button and
-tray icon in either layout. Individual size/padding/gap overrides remain saved;
-turn uniform mode off to use them again. Side panels retain their circular
+tray icon in either layout. Individual sizes apply immediately; padding/gap overrides remain saved and
+apply when uniform mode is off. Side panels retain their circular
 controls and use the same icon size and item gap. Group positions still follow
 the selected centered or ordinary layout.
 

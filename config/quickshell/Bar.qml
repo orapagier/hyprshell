@@ -28,7 +28,7 @@ Item {
     readonly property real panelItemInset: verticalThickness * 0.2
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Resolve thickness from settings, independently of child geometry.
-    readonly property real verticalThickness: uniformItems ? Math.max(baseThickness, panelIconSize / 0.48) : Math.max(baseThickness,
+    readonly property real verticalThickness: Math.max(baseThickness, uniformItems ? panelIconSize / 0.48 : 0,
         ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => {
             let style = Settings.appearance(settings, id);
             return Math.max(style.iconSize || 0, style.fontSize || 0) / 0.48;
@@ -207,17 +207,22 @@ Item {
         style.panelItemPadding = 5;
         style.panelPillHeight = id === "workspaces" ? workspacePillSize : panelSlotSize;
         style.fitGlyphWidth = id === "workspaces";
-        style.uniformGlyphHeight = uniformItems ? (id === "workspaces" ? Math.min(panelIconSize, workspacePillSize * 0.65) : panelIconSize) : id === "workspaces"
+        let itemSize = style.iconSize || panelIconSize;
+        style.uniformGlyphHeight = uniformItems ? (id === "workspaces" ? Math.min(itemSize, workspacePillSize * 0.65) : itemSize) : id === "workspaces"
             ? (style.iconSize || style.fontSize ? 0 : workspacePillSize * 0.8)
             : style.iconSize || style.fontSize || panelSlotSize * 0.8;
-        if (uniformItems) style.uniformTextHeight = id === "workspaces" ? style.uniformGlyphHeight : panelTextSize;
+        if (uniformItems) {
+            style.uniformTextHeight = style.fontSize || (id === "workspaces" ? style.uniformGlyphHeight : itemSize * 10 / 12);
+            // Share one font scale for dates, percentages and other text labels.
+            if (id !== "workspaces") style.textSizeReference = "100%";
+        }
         style.panelAdaptive = true;
         style.backingPills = backingPills(id);
         style.glassSurface = fullPill.visible;
         style.pillTransparency = settings.bar?.individualPillTransparency ?? -1;
         style.circularIcons = true;
         if (uniformItems || id !== "workspaces") {
-            if (uniformItems || !style.iconSize) style.iconSize = uniformItems ? panelIconSize : style.fontSize || panelSlotSize * 0.8;
+            if (!style.iconSize) style.iconSize = uniformItems ? itemSize : style.fontSize || panelSlotSize * 0.8;
         }
         if (compactItemPadding) style.compactPadding = true;
         let group = sharedPills.find(group => group.ids.includes(id));

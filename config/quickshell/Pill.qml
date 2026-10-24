@@ -159,7 +159,7 @@ Item {
     TextMetrics {
         id: labelSizeMetrics
         font: label.font
-        text: pill.settings.textSizeReference || label.text
+        text: pill.labelIsIcon ? label.text : pill.settings.textSizeReference || label.text
     }
     TextMetrics {
         id: labelMetrics

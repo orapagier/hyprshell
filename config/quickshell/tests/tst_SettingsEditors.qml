@@ -70,6 +70,22 @@ Item {
             verify(Model.barVisible(barPage.settings, 3));
             verify(!Model.barVisible(barPage.settings, 1));
         }
+        function test_individualSizeControlsRemainEnabledWithUniformSizing() {
+            barPage.visible = false; itemPage.visible = true;
+            barPage.settings = Object.assign({}, barPage.settings, {uniformItems:true,iconSize:12});
+            itemPage.settings = Object.assign({}, itemPage.settings, {iconSize:16,fontSize:10});
+            let size = track(itemPage,"itemIconSize");
+            verify(size.enabled);
+            size.forceActiveFocus(); keyClick(Qt.Key_Right);
+            compare(itemPage.settings.iconSize,17);
+            let text = track(itemPage,"fontSize");
+            verify(text.enabled);
+            text.forceActiveFocus(); keyClick(Qt.Key_Right);
+            compare(itemPage.settings.fontSize,11);
+            mouseClick(findChild(control(itemPage,"itemIconSize"),"sliderReset"));
+            compare(itemPage.settings.iconSize,0);
+            verify(barPage.settings.uniformItems);
+        }
         function test_itemPercentagesAndResetUseOriginalSentinels() {
             barPage.visible = false; itemPage.visible = true;
             itemPage.settings = Object.assign({}, itemPage.settings, {opacity: 0.6, backgroundOpacity: 0.4, radius: 8, fontSize: 14});

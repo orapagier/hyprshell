@@ -186,7 +186,7 @@ ColumnLayout {
         }
         Label {
             Layout.fillWidth: true
-            text: "Align the visible tops and bottoms of icons and text to the general icon size, with equal padding and the active item gap. Workspace pills match that height while their numbers stay small. Switch off to restore individual sizes, padding and spacing."
+            text: "Align the visible tops and bottoms of icons and text to the general icon size, with equal padding and the active item gap. Workspace pills match that height while their numbers stay small. Individual icon and text sizes take priority. Switch off to restore individual padding and spacing."
             wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
         SettingsSwitch {
