@@ -17,8 +17,8 @@ Item {
     readonly property bool uniformItems: settings.bar?.uniformItems === true
     readonly property real panelIconSize: settings.bar?.iconSize || 16
     readonly property bool iconPills: vertical || centerItems
-    readonly property real panelSlotSize: Math.max(1, verticalThickness - 4)
-    readonly property real panelItemInset: centerItems && !vertical ? 3 : 2
+    readonly property real panelSlotSize: Math.max(1, verticalThickness - (centerItems && !vertical ? 8 : 4))
+    readonly property real panelItemInset: centerItems && !vertical ? 6 : 2
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Length never affects width. Explicit icon/font sizing and thickness still do.
     readonly property real verticalThickness: uniformItems ? Math.max(32, settings.bar?.height || 32, panelIconSize + 12) : Math.max(32, settings.bar?.height || 32,
@@ -580,8 +580,8 @@ Item {
             let right = Math.max(...items.map(item => item.x + item.width));
             let bottom = Math.max(...items.map(item => item.y + item.height));
             // Centered full pills get end caps even with zero content padding.
-            let leading = bar.centerItems && !bar.vertical ? Math.max(5, bar.insetLeft) : bar.insetLeft;
-            let trailing = bar.centerItems && !bar.vertical ? Math.max(5, bar.insetRight) : bar.insetRight;
+            let leading = bar.centerItems && !bar.vertical ? Math.max(bar.panelItemInset, bar.insetLeft) : bar.insetLeft;
+            let trailing = bar.centerItems && !bar.vertical ? Math.max(bar.panelItemInset, bar.insetRight) : bar.insetRight;
             let verticalInset = bar.centerItems && !bar.vertical ? bar.panelItemInset : 0;
             return Qt.rect(left - leading, top - bar.insetTop - verticalInset,
                 right - left + leading + trailing, bottom - top + bar.insetTop + bar.insetBottom + 2 * verticalInset);
@@ -721,7 +721,7 @@ Item {
         columns: bar.vertical ? 1 : Math.max(1, workspaceRepeater.count)
         horizontalItemAlignment: Grid.AlignHCenter
         verticalItemAlignment: Grid.AlignVCenter
-        height: Math.max(28, implicitHeight)
+        height: Math.max(bar.centerItems && !bar.vertical ? bar.panelSlotSize : 28, implicitHeight)
         spacing: bar.statusIconsOnly ? 2 : bar.uniformItems || bar.centerItems || bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
         leftPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
         rightPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
@@ -798,7 +798,7 @@ Item {
             onClicked: bar.action("media", null)
             onEntered: bar.menuHovered("media")
             onExited: bar.menuLeft("media")
-            width: bar.iconPills ? bar.verticalThickness - 4 : implicitWidth
+            width: bar.iconPills ? bar.panelSlotSize : implicitWidth
         }
     }
     BarMenuButton {
@@ -838,7 +838,7 @@ Item {
         interactive: false
         visible: bar.itemEnabled("tray") && trayIcons.count > 0
         width: bar.vertical ? bar.verticalThickness - 4 : trayRow.width + (bar.uniformItems || bar.centerItems ? 0 : effectiveLeftPadding + effectiveRightPadding)
-        implicitHeight: bar.centerItems ? Math.max(28, settings.hideIcon ? 0 : trayRow.height) : bar.vertical ? Math.max(32, settings.hideIcon ? 0 : trayRow.height) : Math.max(28, trayRow.height + 8)
+        implicitHeight: bar.centerItems ? Math.max(bar.vertical ? 28 : bar.panelSlotSize, settings.hideIcon ? 0 : trayRow.height) : bar.vertical ? Math.max(32, settings.hideIcon ? 0 : trayRow.height) : Math.max(28, trayRow.height + 8)
         content.y: bar.vertical ? 4 : (height - content.height) / 2
         leftPadding: bar.vertical ? 4 : 11
         rightPadding: bar.vertical ? 4 : 11

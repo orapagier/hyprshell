@@ -88,7 +88,7 @@ Item {
                 for (let id of ["launcher","settings","calendar","audio","wifi","bluetooth","notifications","battery","power"]) {
                     let item = bar.moduleItems[id];
                     compare(item.shownText,"",id + " text");
-                    compare(item.width,bar.verticalThickness - 4,id + " icon slot");
+                    compare(item.width,bar.panelSlotSize,id + " icon slot");
                     if (id !== "launcher" && id !== "settings") verify(item.shownIcon.length > 0,id + " icon");
                 }
                 compare(bar.moduleItems.calendar.shownIcon,"󰃭");
@@ -204,10 +204,11 @@ Item {
                 }
                 let full = findChild(bar,"fullPanelPill");
                 verify(full.visible);
+                verify(bar.panelSlotSize / full.height <= 0.7, "inner pills occupy at most 70% of full pill height");
                 fuzzyCompare(full.x + full.width / 2,bar.width / 2,0.01,"full pill center");
-                fuzzyCompare(bar.moduleItems[ids[0]].x - full.x,5,0.01,"full pill leading cap");
+                fuzzyCompare(bar.moduleItems[ids[0]].x - full.x,bar.panelItemInset,0.01,"full pill leading cap");
                 fuzzyCompare(full.x + full.width - bar.moduleItems[ids[ids.length - 1]].x
-                    - bar.moduleItems[ids[ids.length - 1]].width,5,0.01,"full pill trailing cap");
+                    - bar.moduleItems[ids[ids.length - 1]].width,bar.panelItemInset,0.01,"full pill trailing cap");
                 fuzzyCompare(full.height,bar.panelSlotSize + 2 * bar.panelItemInset,0.01,"full pill vertical inset");
                 fuzzyCompare(full.y,0,0.01,"full pill top");
                 for (let id of ids) {
@@ -243,7 +244,7 @@ Item {
                     let icons = tray.children.filter(child => child.objectName === "trayIcon");
                     if (!bar.vertical) {
                         fuzzyCompare(icons[1].x-icons[0].x-icons[0].width,gap,0.01);
-                        compare(bar.moduleItems.tray.height,bar.verticalThickness - 4);
+                        compare(bar.moduleItems.tray.height,bar.panelSlotSize);
                     }
                 }
             }
@@ -511,8 +512,8 @@ Item {
                 bar.settings = connectorConfig(edge, {audio:{},wifi:{side:"right"}},
                     {centerItems:true,fullBackground:"on",contentPaddingLeft:padding,contentPaddingRight:padding});
                 wait(0);
-                fuzzyCompare(bar.moduleItems.audio.x - pill.x, Math.max(5,padding), 0.01);
-                fuzzyCompare(pill.x + pill.width - bar.moduleItems.wifi.x - bar.moduleItems.wifi.width, Math.max(5,padding), 0.01);
+                fuzzyCompare(bar.moduleItems.audio.x - pill.x, Math.max(bar.panelItemInset,padding), 0.01);
+                fuzzyCompare(pill.x + pill.width - bar.moduleItems.wifi.x - bar.moduleItems.wifi.width, Math.max(bar.panelItemInset,padding), 0.01);
                 fuzzyCompare(pill.x + pill.width / 2, bar.width / 2, 0.01);
             }
         }

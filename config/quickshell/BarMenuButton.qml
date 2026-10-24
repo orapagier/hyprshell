@@ -12,7 +12,7 @@ Pill {
     objectName: menu + "Trigger"
     colorSampler: Settings.adaptive(bar.settings, menu) ? bar.wallpaperColors : null
     colorRoot: bar
-    width: vertical ? bar.verticalThickness - 4 : implicitWidth
+    width: vertical ? bar.panelSlotSize : implicitWidth
     height: vertical ? width : implicitHeight
     compactIcon: {
         if ((menu === "launcher" || menu === "settings") && !settings.text && !settings.icon) return "";
