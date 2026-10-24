@@ -361,17 +361,17 @@ Item {
                     let ids = ["left","center","right"].reduce((ids,side) => ids.concat(bar.orderedItems(side)),[]);
                     for (let i = 1; i < ids.length; ++i) {
                         let a=bar.moduleItems[ids[i-1]], b=bar.moduleItems[ids[i]];
-                        fuzzyCompare(bar.vertical ? b.y-a.y-a.height : b.x-a.x-a.width,gap,0.01,ids[i-1] + " to " + ids[i]);
+                        fuzzyCompare(bar.vertical ? b.y-a.y-a.height : b.x-a.x-a.width,knots ? Math.max(gap,bar.minimumKnotGap) : gap,0.01,ids[i-1] + " to " + ids[i]);
                     }
                     let row = bar.moduleItems.workspaces;
-                    compare(row.spacing,gap);
+                    compare(row.spacing,knots ? Math.max(gap,bar.minimumKnotGap) : gap);
                     let first = findChild(bar,"workspace1"), second = findChild(bar,"workspace2");
-                    fuzzyCompare(bar.vertical ? second.y-first.y-first.height : second.x-first.x-first.width,gap,0.01);
+                    fuzzyCompare(bar.vertical ? second.y-first.y-first.height : second.x-first.x-first.width,knots ? Math.max(gap,bar.minimumKnotGap) : gap,0.01);
                     let tray = findChild(bar.moduleItems.tray,"trayIcon").parent;
-                    compare(tray.spacing,gap);
+                    compare(tray.spacing,knots ? Math.max(gap,bar.minimumKnotGap) : gap);
                     let icons = tray.children.filter(child => child.objectName === "trayIcon");
                     if (!bar.vertical) {
-                        fuzzyCompare(icons[1].x-icons[0].x-icons[0].width,gap,0.01);
+                        fuzzyCompare(icons[1].x-icons[0].x-icons[0].width,knots ? Math.max(gap,bar.minimumKnotGap) : gap,0.01);
                         compare(bar.moduleItems.tray.height,bar.panelSlotSize);
                     }
                 }
@@ -465,7 +465,7 @@ Item {
                     }
                     if (i) {
                         let previous=bar.moduleItems[ids[i-1]];
-                        fuzzyCompare(item.x-previous.x-previous.width,gap,0.01,"pill gap");
+                        fuzzyCompare(item.x-previous.x-previous.width,knots ? Math.max(gap,bar.minimumKnotGap) : gap,0.01,"pill gap");
                     }
                 }
                 compare(bar.appearance("bluetooth").iconSize,32);
@@ -625,8 +625,8 @@ Item {
                     bar.settings = connectorConfig(edge, {audio:{},wifi:{},workspaces:{}}, {spacing:20,compactSpacing:3,hyprknots:enabled});
                     wait(0);
                     let audio = bar.moduleItems.audio, wifi = bar.moduleItems.wifi;
-                    compare(bar.vertical ? wifi.y - audio.y - audio.height : wifi.x - audio.x - audio.width, enabled ? 20 : 3);
-                    compare(bar.moduleItems.workspaces.spacing, enabled ? 20 : 3);
+                    compare(bar.vertical ? wifi.y - audio.y - audio.height : wifi.x - audio.x - audio.width, enabled ? Math.max(20,bar.minimumKnotGap) : 3);
+                    compare(bar.moduleItems.workspaces.spacing, enabled ? Math.max(20,bar.minimumKnotGap) : 3);
                     compare(bar.settings.bar.spacing, 20);
                 }
             }
@@ -714,10 +714,8 @@ Item {
                 verify(size * 2.5 + 1.6 * links.knotScale + 1.2 + 2 <= segment.end - segment.start + 0.01,
                     "knot stroke has clearance at both ends");
             }
-            for (let length of [3,6,8,10,20]) {
-                let size = links.knotSizeFor(length);
-                if (size > 0) verify(size * 2.5 + 1.6 * links.knotScale + 1.2 + 2 <= length + 0.01);
-            }
+            for (let length of [3,6,8,10,20,200])
+                fuzzyCompare(links.knotSizeFor(length),bar.knotSize,0.001,"All spans keep the configured knot size");
         }
         function test_hyprknotsBareNeighbors() {
             let links = findChild(bar, "panelConnectors");
@@ -776,10 +774,34 @@ Item {
                 compare(links.lineWidth, 6);
                 compare(links.knotScale, 2);
                 compare(links.knotSizeFor(100), 9.6);
-                verify(links.knotSizeFor(3) <= 3 / 3.6);
+                compare(links.knotSizeFor(3),9.6);
                 bar.settings = {bar:{position:position, hyprknotsLineWidth:0.5, hyprknotsKnotSize:50}};
                 compare(links.lineWidth, 0.5);
                 compare(links.knotSizeFor(100), 2.4);
+            }
+        }
+        function test_knotSizeExpandsSpacing() {
+            let links = findChild(bar,"panelConnectors");
+            bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}],audio:{},network:{},bluetooth:{},battery:{}};
+            bar.trayModel = [{icon:Qt.resolvedUrl("../icons/preview-tray.svg")},{icon:Qt.resolvedUrl("../icons/preview-tray.svg")}];
+            for (let edge of ["top","bottom","left","right"]) {
+                let previousGap = 0;
+                for (let size of [50,100,200]) {
+                    bar.settings = connectorConfig(edge,{workspaces:{},audio:{spacingRight:-30},wifi:{spacingLeft:-30},tray:{}},
+                        {centerItems:true,fullBackground:"on",spacing:0,hyprknotsKnotSize:size});
+                    if (bar.vertical) bar.width = bar.implicitWidth;
+                    wait(0);
+                    verify(bar.itemSpacing > previousGap,"Growing knots expand the layout");
+                    previousGap = bar.itemSpacing;
+                    for (let segment of links.segments) {
+                        compare(links.knotSizeFor(segment.end-segment.start),4.8*size/100);
+                        verify(segment.end-segment.start >= 2.5*bar.knotSize+1.6*size/100+2,
+                            "Full-size knots fit module, workspace and tray gaps");
+                    }
+                    compare(bar.settings.bar.spacing,0,"Saved spacing remains intact");
+                }
+                bar.settings = connectorConfig(edge,{audio:{},wifi:{}},{hyprknots:false,compactSpacing:3});
+                compare(bar.itemSpacing,3);
             }
         }
         function test_hyprknotsToggle() {

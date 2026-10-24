@@ -33,7 +33,13 @@ Item {
             let style = Settings.appearance(settings, id);
             return Math.max(style.iconSize || 0, style.fontSize || 0) / 0.48;
         }))
-    readonly property real itemSpacing: settings.bar?.hyprknots === false ? (settings.bar?.compactSpacing ?? 3) : (settings.bar?.spacing ?? 3)
+    readonly property bool knotsEnabled: !statusIconsOnly && settings.bar?.hyprknots !== false
+    readonly property real knotSize: 4.8 * ((settings.bar?.hyprknotsKnotSize ?? 100) / 100)
+    // Reserve the full motif, its stroke, and clearance from bare icon ink.
+    readonly property real minimumKnotGap: Math.ceil(Math.max(3.6 * knotSize,
+        2.5 * knotSize + 1.6 * ((settings.bar?.hyprknotsKnotSize ?? 100) / 100) + 2) + 4)
+    readonly property real itemSpacing: settings.bar?.hyprknots === false ? (settings.bar?.compactSpacing ?? 3)
+        : Math.max(settings.bar?.spacing ?? 3, knotsEnabled ? minimumKnotGap : 0)
     readonly property real attachmentInset: edgeAttached ? (vertical ? 16 : 11) : 0
     readonly property real insetTop: (settings.bar?.contentPaddingTop ?? 0) + (vertical ? attachmentInset + fullPillInset : 0)
     readonly property real insetBottom: (settings.bar?.contentPaddingBottom ?? 0) + (vertical ? attachmentInset + fullPillInset : 0)
@@ -58,7 +64,9 @@ Item {
     function spacingOffset(id, key) { return uniformItems ? 0 : (Settings.item(settings, id)[key] || 0); }
     function gapBetween(first, second) {
         let base = !uniformItems && !centerItems && pillName(first) && pillName(first) === pillName(second) ? (settings.bar?.groupSpacing ?? 3) : itemSpacing;
-        return Math.max(0, base + spacingOffset(first, "spacingRight") + spacingOffset(second, "spacingLeft"));
+        let shared = !centerItems && pillName(first) && pillName(first) === pillName(second);
+        return Math.max(knotsEnabled && !shared ? minimumKnotGap : 0,
+            base + spacingOffset(first, "spacingRight") + spacingOffset(second, "spacingLeft"));
     }
     function groupLength(sideName) {
         let ids = orderedItems(sideName);
@@ -439,11 +447,7 @@ Item {
         readonly property real knotScale: (bar.settings.bar?.hyprknotsKnotSize ?? 100) / 100
         onLineWidthChanged: requestPaint()
         onKnotScaleChanged: requestPaint()
-        function knotSizeFor(length) {
-            // Keep enlarged knots within their gap instead of covering icons.
-            let stroke = 1.6 * knotScale + 1.2;
-            return Math.max(0, Math.min(4.8 * knotScale, length / 3.6, (length - stroke - 2) / 2.5));
-        }
+        function knotSizeFor(length) { return bar.knotSize; }
         function endpointHasPill(id, trailing) {
             if (fullPill.participating) return true;
             let item = bar.moduleItems[id];
