@@ -161,7 +161,7 @@ ColumnLayout {
         }
         Label {
             Layout.fillWidth: true
-            text: "Join Hyprpane directly to the screen with curved feet, in centered and spread layouts. The edge margin is ignored while attached."
+            text: "Join Hyprpane directly to the screen with curved feet, in centered and spread layouts. Edge and end margins apply only while detached."
             wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
         SettingsSwitch {

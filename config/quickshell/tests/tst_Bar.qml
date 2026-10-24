@@ -631,6 +631,23 @@ Item {
                 }
             }
         }
+        function test_attachedEndMargins() {
+            for (let edge of ["top", "bottom", "left", "right"]) {
+                let config = {position:edge, marginTop:10, marginSide:10,
+                    screenMarginTop:10, screenMarginBottom:10,
+                    screenMarginLeft:10, screenMarginRight:10};
+                let vertical = edge === "left" || edge === "right";
+                let ends = vertical ? ["top", "bottom"] : ["left", "right"];
+                for (let attached of [false, true, false]) {
+                    config.edgeAttached = attached;
+                    let margins = Settings.screenMargins(config);
+                    compare(margins[edge], attached ? 0 : 10);
+                    for (let end of ends) compare(margins[end], attached ? 0 : 10);
+                    let opposite = {top:"bottom", bottom:"top", left:"right", right:"left"}[edge];
+                    compare(margins[opposite], 10);
+                }
+            }
+        }
         function test_fourSideMarginsAndInnerPadding() {
             for (let edge of ["top", "bottom", "left", "right"]) {
                 let config = {position:edge,marginTop:5,marginSide:10};
