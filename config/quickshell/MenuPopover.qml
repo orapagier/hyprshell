@@ -28,10 +28,9 @@ Item {
     readonly property bool vertical: edge === "left" || edge === "right"
     property color accent: "#b4befe"
     readonly property var menuColors: glass.menuColors
-    // Bar accents can be dark on a bright wallpaper. Measure against the
-    // card's own gradient, and include the extra tint behind its header icon.
+    // Keep the header text and glyph identical to the panel trigger icon.
     readonly property color headerColor: headerIconColor
-    readonly property color headerIconColor: headerForeground(0.14)
+    readonly property color headerIconColor: accent
     function headerForeground(tint) {
         let top = Colors.mix(Colors.mix(glass.sample, glass.topColor, glass.topColor.a), menuColors.accent, tint);
         let bottom = Colors.mix(Colors.mix(glass.sample, glass.bottomColor, glass.bottomColor.a), menuColors.accent, tint);
