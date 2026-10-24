@@ -20,11 +20,11 @@ Item {
     readonly property real fullPillInset: fullBackgroundEnabled ? 5 : 0
     readonly property real baseThickness: settings.bar?.height || 32
     readonly property real panelIconSize: settings.bar?.iconSize || baseThickness * (uniformItems ? 12 / 30 : 0.6 * 0.8)
-    // Reference ink heights in the 30 px Full Pill: clock 13 px, Wi-Fi 12 px.
-    readonly property real panelTextSize: panelIconSize * 13 / 12
+    // Compact October appearance: 10 px text ink and 12 px icon ink at 30 px.
+    readonly property real panelTextSize: panelIconSize * 10 / 12
     readonly property bool iconPills: vertical || centerItems
     readonly property real panelSlotSize: verticalThickness * 0.6
-    readonly property real workspacePillSize: verticalThickness * (uniformItems ? 0.55 : 0.4)
+    readonly property real workspacePillSize: verticalThickness * (uniformItems ? 0.48 : 0.4)
     readonly property real panelItemInset: verticalThickness * 0.2
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Resolve thickness from settings, independently of child geometry.
@@ -210,7 +210,7 @@ Item {
         style.uniformGlyphHeight = uniformItems ? panelIconSize : id === "workspaces"
             ? (style.iconSize || style.fontSize ? 0 : workspacePillSize * 0.8)
             : style.iconSize || style.fontSize || panelSlotSize * 0.8;
-        if (uniformItems) style.uniformTextHeight = panelTextSize;
+        if (uniformItems) style.uniformTextHeight = panelTextSize * (id === "workspaces" ? 0.9 : 1);
         style.panelAdaptive = true;
         style.backingPills = backingPills(id);
         style.glassSurface = fullPill.visible;

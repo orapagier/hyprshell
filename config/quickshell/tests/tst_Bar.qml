@@ -78,7 +78,7 @@ Item {
                 for (let id of ["launcher","settings","audio","wifi","calendar","power"]) {
                     let item = bar.moduleItems[id], background = findChild(item,"pillBackground");
                     fuzzyCompare(background.height,data.thickness * 0.6,0.01,id + " own pill height");
-                    fuzzyCompare(item.glyphRect.height,data.thickness * (data.uniform ? (!bar.iconsOnly && !item.labelIsIcon && !item.shownIcon.length ? 13 / 30 : 12 / 30) : 0.48),0.01,id + " ink height");
+                    fuzzyCompare(item.glyphRect.height,data.thickness * (data.uniform ? (!bar.iconsOnly && !item.labelIsIcon && !item.shownIcon.length ? 10 / 30 : 12 / 30) : 0.48),0.01,id + " ink height");
                     let cross = bar.vertical ? item.x + item.width / 2 : item.y + item.height / 2;
                     fuzzyCompare(cross,crossSize / 2,0.01,id + " cross-axis center");
                 }
@@ -94,18 +94,18 @@ Item {
                 fuzzyCompare(trailing,full === "on" ? 5 : 0,0.01,"trailing content inset");
                 for (let number of [1,12]) {
                     let workspace = findChild(bar,"workspace" + number);
-                    fuzzyCompare(workspace.height,data.thickness * (data.uniform ? 0.55 : 0.4),0.01,"workspace pill height");
+                    fuzzyCompare(workspace.height,data.thickness * (data.uniform ? 0.48 : 0.4),0.01,"workspace pill height");
                     let ink = workspace.textGlyphRect;
                     verify(ink.height <= workspace.height * 0.8 + 0.01,"number fits vertically");
                     verify(ink.width <= workspace.width * 0.8 + 0.01,"number fits horizontally");
                     fuzzyCompare(ink.x + ink.width / 2,workspace.width / 2,0.5,"number centered");
                     if (data.uniform && number === 1)
-                        fuzzyCompare(ink.height,data.thickness * 13 / 30,0.01,"workspace matches clock text");
+                        fuzzyCompare(ink.height,data.thickness * 9 / 30,0.01,"workspace text is slightly smaller");
                 }
                 fuzzyCompare(findChild(bar,"mediaSpectrum").height,data.thickness * (data.uniform ? 0.4 : 0.48),0.01,"media ink height");
                 fuzzyCompare(bar.moduleItems.media.height,data.thickness * 0.6,0.01,"media pill height");
                 if (data.uniform && !bar.iconsOnly)
-                    fuzzyCompare(bar.moduleItems.media.item.textGlyphRect.height,data.thickness * 13 / 30,0.01,"media matches clock text");
+                    fuzzyCompare(bar.moduleItems.media.item.textGlyphRect.height,data.thickness * 10 / 30,0.01,"media matches clock text");
                 fuzzyCompare(bar.moduleItems.tray.trayIconSize,data.thickness * (data.uniform ? 0.4 : 0.48),0.01,"tray artwork height");
                 fuzzyCompare(findChild(bar.moduleItems.tray,"trayIcon").height,data.thickness * 0.6,0.01,"tray pill height");
             }
@@ -535,10 +535,10 @@ Item {
                 wait(0);
                 for (let id of ["launcher","settings","calendar","audio","wifi","bluetooth","notifications","battery","power"]) {
                     let item = bar.moduleItems[id], ink = item.glyphRect;
-                    fuzzyCompare(ink.height,!bar.iconsOnly && !item.labelIsIcon && !item.shownIcon.length ? 16 * 13 / 12 : 16,0.01,id + " visible height " + edge);
+                    fuzzyCompare(ink.height,!bar.iconsOnly && !item.labelIsIcon && !item.shownIcon.length ? 16 * 10 / 12 : 16,0.01,id + " visible height " + edge);
                     fuzzyCompare(ink.y + ink.height / 2,item.height / 2,0.01,id + " visible vertical center " + edge);
                     if (!bar.iconsOnly && item.shownText.length && !item.labelIsIcon) {
-                        fuzzyCompare(item.textGlyphRect.height,16 * 13 / 12,0.01,id + " label height");
+                        fuzzyCompare(item.textGlyphRect.height,16 * 10 / 12,0.01,id + " label height");
                         fuzzyCompare(item.textGlyphRect.y + item.textGlyphRect.height / 2,ink.y + ink.height / 2,0.01,id + " text and icon centers");
                     }
                 }
