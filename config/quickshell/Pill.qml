@@ -77,16 +77,22 @@ Item {
         ? (selected ? adaptivePalette.selected : hovered || activeFocus ? adaptivePalette.hover : adaptivePalette.tint)
         : selected ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.32) : hovered || activeFocus ? hoverTint : tint)
     property alias content: label
+    // Normalize ink, rather than font line boxes: symbols have different bearings
+    // and heights even at the same pixel size. Workspace labels opt out.
+    readonly property real uniformGlyphHeight: settings.uniformGlyphHeight || 0
+    readonly property real iconInkScale: uniformGlyphHeight > 0 && compactGlyphMetrics.tightBoundingRect.height > 0 ? uniformGlyphHeight / compactGlyphMetrics.tightBoundingRect.height : 1
+    readonly property real textInkScale: uniformGlyphHeight > 0 && labelMetrics.tightBoundingRect.height > 0 ? uniformGlyphHeight / labelMetrics.tightBoundingRect.height : 1
+    readonly property real normalizedTextY: (height - labelMetrics.tightBoundingRect.height * textInkScale) / 2 - (label.baselineOffset + labelMetrics.tightBoundingRect.y) * textInkScale
     // Ink bounds exclude the pill padding and font line box. Bare popdowns
     // attach to the visible icon (or text when there is no separate icon).
     readonly property rect textGlyphRect: Qt.rect(
-        label.x + (label.horizontalAlignment === Text.AlignLeft ? 0 : label.horizontalAlignment === Text.AlignRight ? label.width - label.implicitWidth : (label.width - label.implicitWidth) / 2) + labelMetrics.tightBoundingRect.x,
-        label.y + label.baselineOffset + labelMetrics.tightBoundingRect.y,
-        labelMetrics.tightBoundingRect.width, labelMetrics.tightBoundingRect.height)
+        label.x + ((label.horizontalAlignment === Text.AlignLeft ? 0 : label.horizontalAlignment === Text.AlignRight ? label.width - label.implicitWidth : (label.width - label.implicitWidth) / 2) + labelMetrics.tightBoundingRect.x) * textInkScale,
+        label.y + (label.baselineOffset + labelMetrics.tightBoundingRect.y) * textInkScale,
+        labelMetrics.tightBoundingRect.width * textInkScale, labelMetrics.tightBoundingRect.height * textInkScale)
     readonly property rect iconGlyphRect: Qt.rect(
-        iconLabel.x + (vertical || uniformItems ? 0 : (iconLabel.width - iconLabel.implicitWidth) / 2) + compactGlyphMetrics.tightBoundingRect.x,
-        iconLabel.y + iconLabel.baselineOffset + compactGlyphMetrics.tightBoundingRect.y,
-        compactGlyphMetrics.tightBoundingRect.width, compactGlyphMetrics.tightBoundingRect.height)
+        iconLabel.x + ((vertical || uniformItems ? 0 : (iconLabel.width - iconLabel.implicitWidth) / 2) + compactGlyphMetrics.tightBoundingRect.x) * iconInkScale,
+        iconLabel.y + (iconLabel.baselineOffset + compactGlyphMetrics.tightBoundingRect.y) * iconInkScale,
+        compactGlyphMetrics.tightBoundingRect.width * iconInkScale, compactGlyphMetrics.tightBoundingRect.height * iconInkScale)
     property rect glyphRect: shownIcon.length ? iconGlyphRect : textGlyphRect
     signal clicked(var mouse)
     signal wheel(var event)
@@ -96,10 +102,10 @@ Item {
     readonly property int effectiveIconSize: settings.iconSize || settings.fontSize || iconSize
     readonly property int effectiveGlyphSize: settings.iconSize || settings.fontSize || pixelSize
     readonly property int effectiveTextSize: settings.fontSize || Math.max(8, Math.round(pixelSize * (settings.iconSize || 16) / 16))
-    readonly property real iconWidth: shownIcon.length ? (uniformItems && !vertical ? compactGlyphMetrics.tightBoundingRect.width + (shownText.length ? 4 : 0) : effectiveIconSize + 5) : 0
-    readonly property real uniformContentWidth: (shownText.length ? (labelIsIcon ? labelMetrics.tightBoundingRect.width : label.implicitWidth) : shownIcon.length ? 0 : minimumTextWidth) + iconWidth
+    readonly property real iconWidth: shownIcon.length ? (uniformItems && !vertical ? compactGlyphMetrics.tightBoundingRect.width * iconInkScale + (shownText.length ? 4 : 0) : effectiveIconSize + 5) : 0
+    readonly property real uniformContentWidth: (shownText.length ? (labelIsIcon ? labelMetrics.tightBoundingRect.width : label.implicitWidth) * textInkScale : shownIcon.length ? 0 : minimumTextWidth) + iconWidth
     readonly property real naturalWidth: uniformItems && !vertical
-        ? Math.min(maximumWidth, Math.max(circular && (labelIsIcon || shownIcon.length) ? Math.max(24, effectiveIconSize + 8) : 0, uniformContentWidth + effectiveLeftPadding + effectiveRightPadding))
+        ? Math.min(maximumWidth, Math.max(circular && (labelIsIcon || shownIcon.length) ? Math.max(24, effectiveIconSize + 8) : 0, Math.ceil(uniformContentWidth + effectiveLeftPadding + effectiveRightPadding)))
         : Math.min(maximumWidth, Math.max(minimumTextWidth, label.implicitWidth, vertical && shownIcon.length ? effectiveIconSize : 0) + (vertical ? 0 : iconWidth) + effectiveLeftPadding + effectiveRightPadding)
     implicitWidth: naturalWidth
     readonly property real naturalHeight: uniformItems && !vertical ? Math.max(24, effectiveIconSize + 8) : iconOnly ? (iconOnlyHeight > 0 ? iconOnlyHeight : width) : Math.max(28, shownIcon.length ? effectiveIconSize + 8 : 0, shownText.length ? label.implicitHeight + 8 : 0)
@@ -149,8 +155,9 @@ Item {
     }
     Text {
         id: iconLabel
-        x: pill.vertical ? (parent.width - compactGlyphMetrics.tightBoundingRect.width) / 2 - compactGlyphMetrics.tightBoundingRect.x : pill.uniformItems && pill.circular ? (parent.width - compactGlyphMetrics.tightBoundingRect.width) / 2 - compactGlyphMetrics.tightBoundingRect.x : pill.effectiveLeftPadding - (pill.uniformItems ? compactGlyphMetrics.tightBoundingRect.x : 0)
-        y: pill.vertical && !pill.shownText.length
+        transform: Scale { xScale: pill.iconInkScale; yScale: pill.iconInkScale }
+        x: pill.vertical || (pill.uniformItems && pill.circular) ? (parent.width - compactGlyphMetrics.tightBoundingRect.width * pill.iconInkScale) / 2 - compactGlyphMetrics.tightBoundingRect.x * pill.iconInkScale : pill.effectiveLeftPadding - (pill.uniformItems ? compactGlyphMetrics.tightBoundingRect.x * pill.iconInkScale : 0)
+        y: pill.uniformGlyphHeight > 0 ? (parent.height - compactGlyphMetrics.tightBoundingRect.height * pill.iconInkScale) / 2 - (baselineOffset + compactGlyphMetrics.tightBoundingRect.y) * pill.iconInkScale : pill.vertical && !pill.shownText.length
             ? (parent.height - compactGlyphMetrics.tightBoundingRect.height) / 2 - baselineOffset - compactGlyphMetrics.tightBoundingRect.y
             : pill.vertical ? 4 : (parent.height - height) / 2
         objectName: "pillIcon"
@@ -167,12 +174,13 @@ Item {
     }
     Text {
         id: label
+        transform: Scale { xScale: pill.textInkScale; yScale: pill.textInkScale }
         opacity: pill.glyphOpacity
         x: pill.uniformItems && !pill.vertical && pill.circular && pill.labelIsIcon
-            ? (parent.width - labelMetrics.tightBoundingRect.width) / 2 - labelMetrics.tightBoundingRect.x
-            : pill.effectiveLeftPadding + (pill.vertical ? 0 : pill.iconWidth) - (pill.uniformItems && !pill.vertical && pill.labelIsIcon ? labelMetrics.tightBoundingRect.x : 0)
-        y: (parent.height - height + (pill.vertical && pill.shownIcon.length ? pill.effectiveIconSize + 4 : 0)) / 2
-        width: Math.max(1, parent.width - pill.effectiveLeftPadding - pill.effectiveRightPadding - (pill.vertical ? 0 : pill.iconWidth))
+            ? (parent.width - labelMetrics.tightBoundingRect.width * pill.textInkScale) / 2 - labelMetrics.tightBoundingRect.x * pill.textInkScale
+            : pill.effectiveLeftPadding + (pill.vertical ? 0 : pill.iconWidth) - (pill.uniformItems && !pill.vertical && pill.labelIsIcon ? labelMetrics.tightBoundingRect.x * pill.textInkScale : 0)
+        y: pill.uniformGlyphHeight > 0 ? pill.normalizedTextY : (parent.height - height + (pill.vertical && pill.shownIcon.length ? pill.effectiveIconSize + 4 : 0)) / 2
+        width: Math.max(1, parent.width - pill.effectiveLeftPadding - pill.effectiveRightPadding - (pill.vertical ? 0 : pill.iconWidth)) / pill.textInkScale
         wrapMode: Text.NoWrap
         text: pill.displayText
         textFormat: pill.textFormat

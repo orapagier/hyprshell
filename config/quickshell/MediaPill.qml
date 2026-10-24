@@ -19,7 +19,7 @@ Pill {
     effectiveLeftPadding: uniformItems && !vertical ? 4 + spectrumWidth + (shownText.length ? 4 : 0) : Math.max(0, (vertical ? 4 : 9) + (settings.paddingLeft || 0)) + (vertical ? 0 : spectrumWidth + 8)
     interactive: false
     clip: true
-    content.y: vertical ? (settings.hideIcon ? 4 : 16 * spectrumScale + 8) : (height - content.height) / 2
+    content.y: uniformGlyphHeight > 0 && !vertical ? normalizedTextY : vertical ? (settings.hideIcon ? 4 : 16 * spectrumScale + 8) : (height - content.height) / 2
     content.horizontalAlignment: vertical ? Text.AlignHCenter : Text.AlignLeft
     AudioSpectrumBars {
         id: spectrum

@@ -197,6 +197,7 @@ Item {
         style.lightForeground = true;
         style.outlineFree = true;
         style.uniformItems = uniformItems;
+        style.uniformGlyphHeight = uniformItems && id !== "workspaces" ? panelIconSize : 0;
         style.panelAdaptive = true;
         style.backingPills = backingPills(id);
         style.glassSurface = fullPill.visible;
@@ -755,12 +756,13 @@ Item {
             // and offset glass layer, then follow the hover scale around center.
             let half = settingsGlyph.iconSize * (10 / 24 + 0.009), scale = settingsGlyph.scale;
             return Qt.rect(settingsGlyph.x + settingsGlyph.width / 2 - half * scale,
-                height / 2 - half * scale, (2 * half + 0.6) * scale, (2 * half + 1.2) * scale);
+                settingsGlyph.y + height / 2 - half * scale, (2 * half + 0.6) * scale, (2 * half + 1.2) * scale);
         }
         GlassCog {
             id: settingsGlyph
             objectName: "settingsGlassCog"
-            iconSize: settingsCog.settings.iconSize || settingsCog.settings.fontSize || 22
+            iconSize: bar.uniformItems ? Math.max(1, bar.panelIconSize - 1.2) / (20 / 24 + 0.018) : settingsCog.settings.iconSize || settingsCog.settings.fontSize || 22
+            y: bar.uniformItems ? -0.6 : 0
             visible: !settingsCog.settings.text && !settingsCog.settings.icon && (bar.iconsOnly || !settingsCog.settings.hideText) && !settingsCog.settings.hideIcon
             x: bar.iconsOnly ? (settingsCog.width - iconSize) / 2 : bar.uniformItems && !bar.vertical ? 4 : settingsCog.content.x
             width: bar.iconsOnly || (bar.uniformItems && !bar.vertical) ? iconSize : settingsCog.content.width
@@ -785,7 +787,7 @@ Item {
         columns: bar.vertical ? 1 : Math.max(1, workspaceRepeater.count)
         horizontalItemAlignment: Grid.AlignHCenter
         verticalItemAlignment: Grid.AlignVCenter
-        height: Math.max(bar.centerItems && !bar.vertical ? bar.panelSlotSize : bar.vertical ? 28 : 0, implicitHeight)
+        height: Math.max(bar.uniformItems && !bar.vertical ? 0 : bar.centerItems && !bar.vertical ? bar.panelSlotSize : bar.vertical ? 28 : 0, implicitHeight)
         spacing: bar.statusIconsOnly ? 2 : bar.uniformItems || bar.centerItems || bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
         leftPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
         rightPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
@@ -797,6 +799,7 @@ Item {
                 objectName: "workspace" + modelData.id
                 settings: {
                     let appearance = Object.assign({}, bar.appearance("workspaces"), {paddingLeft:0, paddingRight:0});
+                    if (bar.uniformItems) appearance.compactPadding = true;
                     if (bar.centerItems) {
                         appearance.text = String(modelData.id);
                         appearance.hideText = false;
@@ -817,7 +820,7 @@ Item {
                 circular: true
                 implicitWidth: Math.max(naturalWidth, 20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
                 maximumWidth: bar.vertical ? Math.max(1, bar.panelSlotSize - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
-                width: bar.vertical ? maximumWidth : bar.centerItems ? bar.panelSlotSize : implicitWidth
+                width: bar.uniformItems ? bar.panelIconSize : bar.vertical ? maximumWidth : bar.centerItems ? bar.panelSlotSize : implicitWidth
                 onActiveFocusChanged: if (activeFocus) bar.ensureItemVisible(workspaceButton)
                 iconOnly: false
                 Accessible.name: "Workspace " + (modelData.name || String(modelData.id))
@@ -981,7 +984,7 @@ Item {
             ? Math.max(0, (badge.visible ? badge.implicitWidth + 1 : 0) + (settings.paddingRight || 0))
             : Math.max(0, (bar.vertical ? Math.min(4, rightPadding) : rightPadding) + (settings.paddingRight || 0))
         implicitHeight: !vertical && iconOnly ? Math.max(28, effectiveIconSize + 8) : naturalHeight
-        content.y: (height - content.height) / 2
+        content.y: uniformGlyphHeight > 0 ? normalizedTextY : (height - content.height) / 2
         foreground: bar.notificationData && bar.notificationData.count > 0 ? "#f9e2af" : "#a6adc8"
         tint: bar.rgba("#a6adc8", 0.18)
         outline: bar.rgba("#a6adc8", 0.26)
@@ -1044,9 +1047,9 @@ Item {
         leftPadding: 4
         rightPadding: 4
         // Center the visible glyph rather than the font's advance box.
-        content.horizontalAlignment: bar.vertical ? Text.AlignHCenter : Text.AlignLeft
+        content.horizontalAlignment: bar.vertical && !bar.uniformItems ? Text.AlignHCenter : Text.AlignLeft
         content.elide: Text.ElideNone
-        content.x: bar.uniformItems && !bar.vertical && !circular ? effectiveLeftPadding - wifiGlyphMetrics.tightBoundingRect.x : bar.vertical ? effectiveLeftPadding : (wifi.width - wifiGlyphMetrics.tightBoundingRect.width) / 2
+        content.x: bar.uniformItems ? (circular || bar.vertical ? (wifi.width - wifiGlyphMetrics.tightBoundingRect.width * textInkScale) / 2 : effectiveLeftPadding) - wifiGlyphMetrics.tightBoundingRect.x * textInkScale : bar.vertical ? effectiveLeftPadding : (wifi.width - wifiGlyphMetrics.tightBoundingRect.width) / 2
                    - wifiGlyphMetrics.tightBoundingRect.x
         TextMetrics {
             id: wifiGlyphMetrics

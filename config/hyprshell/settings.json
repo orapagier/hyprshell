@@ -47,7 +47,7 @@
     "centerItems": false,
     "edgeAttached": false,
     "autoHide": false,
-    "uniformItems": false,
+    "uniformItems": true,
     "screenMarginTop": 2,
     "screenMarginBottom": null,
     "screenMarginLeft": null,
