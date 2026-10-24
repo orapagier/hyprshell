@@ -2,6 +2,7 @@ import QtQuick
 import QtTest
 import ".."
 import "../SettingsModel.js" as Settings
+import "../AdaptiveColors.js" as Colors
 
 Item {
     width: 800; height: 300
@@ -55,7 +56,9 @@ Item {
                     verify(pill.visible); // material remains available to foreground adaptation
                     verify(!rounded.visible);
                     verify(attached.visible);
-                    compare(attached.surfaceColor, pill.backgroundFill);
+                    tryCompare(attached, "surfaceColor", pill.backgroundFill);
+                    verify(attached.raised);
+                    compare(attached.outlineColor, pill.outline);
                     fuzzyCompare(attached.opacity, 0.65, 0.001);
                     attachedBar.settings = {bar:{position:edge, centerItems:centered, edgeAttached:false,
                         fullBackground:"on", adaptiveColors:false, fullPillTransparency:35}, items:items};
@@ -64,6 +67,39 @@ Item {
                     verify(!attached.visible);
                     fuzzyCompare(rounded.opacity, 0.65, 0.001);
                 }
+            }
+        }
+        function test_attachedGlassFollowsWallpaperAndTransparency() {
+            try {
+                attachedBar.width = 100;
+                attachedBar.screenWidth = 800;
+                attachedBar.screenHeight = 400;
+                attachedBar.screenOffsetY = 5;
+                attachedBar.screenOffsetX = 0;
+                attachedBar.wallpaperSource = Qt.resolvedUrl("fixtures/wallpaper-regions.svg");
+                let items = Object.keys(attachedBar.moduleItems).map(id => ({id:id, enabled:id === "launcher", side:"left"}));
+                let config = {bar:{edgeAttached:true, fullBackground:"on", adaptiveColors:true,
+                    centerItems:true, fullPillTransparency:35}, items:items};
+                attachedBar.settings = config;
+                let pill = findChild(attachedBar, "fullPanelPill");
+                let attached = findChild(attachedBar, "attachedPanelSurface");
+                tryCompare(attachedBar.wallpaperColors, "ready", true);
+                tryVerify(() => Colors.luminance(attached.surfaceColor) > 0.8);
+                compare(attached.outlineColor, pill.adaptivePalette.outline);
+                attachedBar.screenOffsetX = 220;
+                tryVerify(() => Colors.luminance(attached.surfaceColor) < 0.05);
+                tryCompare(attached, "surfaceColor", pill.backgroundFill);
+                for (let transparency of [0,50,100]) {
+                    config = JSON.parse(JSON.stringify(config));
+                    config.bar.fullPillTransparency = transparency;
+                    attachedBar.settings = config;
+                    fuzzyCompare(attached.opacity, 1 - transparency / 100, 0.001);
+                    compare(attached.opacity, findChild(pill, "pillBackground").opacity);
+                }
+            } finally {
+                attachedBar.wallpaperSource = "";
+                attachedBar.screenOffsetX = 10;
+                attachedBar.width = 700;
             }
         }
         function test_fourEdgeGeometry() {

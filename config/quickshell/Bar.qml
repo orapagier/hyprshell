@@ -616,6 +616,9 @@ Item {
         z: -3
         visible: !bar.statusIconsOnly && bar.settings.bar?.edgeAttached === true && fullPill.memberIds.length > 0
         surfaceColor: fullPill.backgroundShown ? fullPill.backgroundFill : "#242437"
+        raised: fullPill.backgroundShown && fullPill.raised
+        outlineColor: fullPill.backgroundShown ? fullPill.settings.outlineColor
+            || (fullPill.adaptivePalette ? fullPill.adaptivePalette.outline : fullPill.outline) : "transparent"
         opacity: fullPill.backgroundShown ? fullPill.backgroundAlpha : 1
         edge: bar.position
         start: bar.vertical ? Math.max(12, fullPill.bounds.y + bar.insetTop - 4 - bar.scrollOffset) : fullPill.bounds.x + bar.insetLeft - 4
