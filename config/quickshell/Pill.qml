@@ -80,6 +80,10 @@ Item {
     // Normalize ink, rather than font line boxes: symbols have different bearings
     // and heights even at the same pixel size. Workspace labels opt out.
     readonly property real uniformGlyphHeight: settings.uniformGlyphHeight || 0
+    // Measure and render a shared outline size before scaling to panel pixels.
+    // Small, independently hinted fonts overestimate symbol ink and make labels
+    // and icons differ visibly even when their calculated bounds match.
+    readonly property int uniformFontSize: 128
     readonly property real iconInkScale: uniformGlyphHeight > 0 && compactGlyphMetrics.tightBoundingRect.height > 0 ? uniformGlyphHeight / compactGlyphMetrics.tightBoundingRect.height : 1
     readonly property real textInkScale: uniformGlyphHeight > 0 && labelMetrics.tightBoundingRect.height > 0 ? uniformGlyphHeight / labelMetrics.tightBoundingRect.height : 1
     readonly property real normalizedTextY: (height - labelMetrics.tightBoundingRect.height * textInkScale) / 2 - (label.baselineOffset + labelMetrics.tightBoundingRect.y) * textInkScale
@@ -168,7 +172,7 @@ Item {
         color: pill.iconColor
         style: pill.settings.outlineFree ? Text.Normal : pill.glyphHalo ? Text.Outline : pill.bare ? Text.Raised : Text.Normal
         styleColor: pill.glyphHalo ? pill.iconEdge : pill.glyphShadow
-        font.family: "GoMono Nerd Font"; font.pixelSize: pill.effectiveIconSize
+        font.family: "GoMono Nerd Font"; font.pixelSize: pill.uniformGlyphHeight > 0 ? pill.uniformFontSize : pill.effectiveIconSize
         horizontalAlignment: pill.vertical || pill.uniformItems ? Text.AlignLeft : Text.AlignHCenter
         renderType: Text.QtRendering
     }
@@ -188,7 +192,7 @@ Item {
         style: pill.settings.outlineFree ? Text.Normal : pill.glyphHalo ? Text.Outline : pill.bare ? Text.Raised : Text.Normal
         styleColor: pill.glyphHalo ? pill.textEdge : pill.glyphShadow
         font.family: pill.family
-        font.pixelSize: pill.labelIsIcon ? pill.effectiveGlyphSize : pill.effectiveTextSize
+        font.pixelSize: pill.uniformGlyphHeight > 0 ? pill.uniformFontSize : pill.labelIsIcon ? pill.effectiveGlyphSize : pill.effectiveTextSize
         font.bold: pill.bold
         horizontalAlignment: pill.uniformItems && !pill.vertical && (!pill.circular || pill.labelIsIcon) ? Text.AlignLeft : Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter

@@ -7,7 +7,7 @@ Pill {
     readonly property real spectrumScale: (settings.iconSize || 16) / 16
     readonly property int spectrumWidth: settings.hideIcon ? 0 : uniformItems ? (settings.iconSize || 16) : Math.ceil(58 * spectrumScale)
     glyphRect: settings.hideIcon ? textGlyphRect : Qt.rect(spectrum.x, spectrum.y, spectrum.width, spectrum.height)
-    implicitHeight: vertical ? width : Math.max(28, settings.hideIcon ? 0 : (settings.iconSize || 16) + 8, shownText.length ? content.implicitHeight + 8 : 0)
+    implicitHeight: uniformItems ? naturalHeight : vertical ? width : Math.max(28, settings.hideIcon ? 0 : (settings.iconSize || 16) + 8, shownText.length ? content.implicitHeight + 8 : 0)
     foreground: "#cba6f7"
     tint: "#2ef5c2e7"
     outline: "#42f5c2e7"

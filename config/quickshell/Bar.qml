@@ -711,7 +711,7 @@ Item {
         pixelSize: 20
         bold: false
         minimumTextWidth: settings.iconSize || settings.fontSize || 22
-        implicitHeight: Math.max(28, (settings.iconSize || settings.fontSize || 22) + 6, content.implicitHeight + 8)
+        implicitHeight: bar.uniformItems ? naturalHeight : Math.max(28, (settings.iconSize || settings.fontSize || 22) + 6, content.implicitHeight + 8)
         leftPadding: 2
         rightPadding: 2
         backgroundVisible: false
@@ -747,7 +747,7 @@ Item {
         family: "GoMono Nerd Font"; pixelSize: 16
         backgroundVisible: false
         minimumTextWidth: Math.max(16, settings.iconSize || settings.fontSize || 22)
-        implicitHeight: Math.max(28, (settings.iconSize || settings.fontSize || 22) + 6, content.implicitHeight + 8)
+        implicitHeight: bar.uniformItems ? naturalHeight : Math.max(28, (settings.iconSize || settings.fontSize || 22) + 6, content.implicitHeight + 8)
         content.opacity: settingsCog.settings.text || settingsCog.settings.icon ? 1 : 0
         glyphRect: {
             if (!settingsGlyph.visible)
@@ -907,7 +907,7 @@ Item {
         interactive: false
         visible: bar.itemEnabled("tray") && trayIcons.count > 0
         width: bar.vertical ? bar.verticalThickness - 4 : trayRow.width + (bar.uniformItems || bar.centerItems ? 0 : effectiveLeftPadding + effectiveRightPadding)
-        implicitHeight: bar.centerItems ? Math.max(bar.vertical ? 28 : bar.panelSlotSize, settings.hideIcon ? 0 : trayRow.height) : bar.vertical ? Math.max(32, settings.hideIcon ? 0 : trayRow.height) : Math.max(28, trayRow.height + 8)
+        implicitHeight: bar.uniformItems && !bar.iconsOnly ? Math.max(24, trayRow.height) : bar.centerItems ? Math.max(bar.vertical ? 28 : bar.panelSlotSize, settings.hideIcon ? 0 : trayRow.height) : bar.vertical ? Math.max(32, settings.hideIcon ? 0 : trayRow.height) : Math.max(28, trayRow.height + 8)
         content.y: bar.vertical ? 4 : (height - content.height) / 2
         leftPadding: bar.vertical ? 4 : 11
         rightPadding: bar.vertical ? 4 : 11
@@ -983,7 +983,7 @@ Item {
         effectiveRightPadding: bar.uniformItems ? Math.max(4, badge.visible ? badge.implicitWidth - 2 : 0) : bar.compactItemPadding && !bar.vertical
             ? Math.max(0, (badge.visible ? badge.implicitWidth + 1 : 0) + (settings.paddingRight || 0))
             : Math.max(0, (bar.vertical ? Math.min(4, rightPadding) : rightPadding) + (settings.paddingRight || 0))
-        implicitHeight: !vertical && iconOnly ? Math.max(28, effectiveIconSize + 8) : naturalHeight
+        implicitHeight: !vertical && iconOnly ? Math.max(uniformItems ? 24 : 28, effectiveIconSize + 8) : naturalHeight
         content.y: uniformGlyphHeight > 0 ? normalizedTextY : (height - content.height) / 2
         foreground: bar.notificationData && bar.notificationData.count > 0 ? "#f9e2af" : "#a6adc8"
         tint: bar.rgba("#a6adc8", 0.18)
@@ -993,8 +993,8 @@ Item {
             objectName: "notificationBadge"
             // Attach to the glyph's upper-right corner, independently of
             // the pill width or number of digits in the count.
-            x: bar.vertical ? (bell.width - width) / 2 : bell.content.x + (bell.content.width + bell.content.implicitWidth) / 2 - 2
-            y: bar.vertical ? bell.height - height - 4 : bell.content.y - 2
+            x: bar.vertical ? (bell.width - width) / 2 : bell.uniformGlyphHeight > 0 ? bell.textGlyphRect.x + bell.textGlyphRect.width - 2 : bell.content.x + (bell.content.width + bell.content.implicitWidth) / 2 - 2
+            y: bar.vertical ? bell.height - height - 4 : bell.uniformGlyphHeight > 0 ? bell.textGlyphRect.y - 2 : bell.content.y - 2
             visible: !bar.iconsOnly && !bar.statusIconsOnly && !!bar.notificationData && bar.notificationData.count > 0
             text: {
                 let count = bar.notificationData ? String(bar.notificationData.count || "") : "";

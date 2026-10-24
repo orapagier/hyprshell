@@ -24,11 +24,23 @@ Item {
         settingValue: 0
         onEdited: value => settingValue = value
     }
+    Rectangle {
+        id: inkBackground
+        visible: false
+        width: 400; height: 40
+        color: "black"
+        Pill {
+            id: inkSample
+            anchors.fill: parent
+            settings: ({uniformItems:true, uniformGlyphHeight:12, background:"off", outlineFree:true,
+                textColor:"#ffffff", iconColor:"#ffffff"})
+        }
+    }
     SignalSpy { id: dragEdits; target: geometrySlider; signalName: "edited" }
     TestCase {
         name: "BarRegressions"
         when: windowShown
-        function cleanup() { geometrySlider.visible = false; bar.settings = {}; bar.statusIconsOnly = false; bar.width = scene.width; bar.mediaData = {playing: false}; bar.trayModel = []; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
+        function cleanup() { inkBackground.visible = false; geometrySlider.visible = false; bar.settings = {}; bar.statusIconsOnly = false; bar.width = scene.width; bar.mediaData = {playing: false}; bar.trayModel = []; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
         function connectorConfig(position, items, options) {
             bar.width = position === "left" || position === "right" ? 40 : scene.width;
             return {bar:Object.assign({position:position, background:"on", spacing:20}, options || {}),
@@ -383,7 +395,7 @@ Item {
                 compare(findChild(bar,"workspace1").content.font.pixelSize,9);
                 if (!centered) {
                     let height = bar.moduleItems.audio.height;
-                    for (let id of ["wifi","bluetooth","battery","power"])
+                    for (let id of ["launcher","settings","calendar","tray","media","notifications","wifi","bluetooth","battery","power"])
                         compare(bar.moduleItems[id].height,height,id + " uniform height");
                 }
                 if (centered) {
@@ -396,6 +408,51 @@ Item {
                 }
                 compare(bar.moduleItems.workspaces.spacing,5);
                 compare(findChild(bar.moduleItems.tray,"trayIcon").parent.spacing,5);
+            }
+        }
+        function test_uniformNotificationBadgeFollowsVisibleBell() {
+            bar.settings = connectorConfig("top",{notifications:{}},{uniformItems:true,iconSize:12});
+            for (let count of [1,12,999]) {
+                bar.notificationData = {count:count};
+                let bell = bar.moduleItems.notifications, badge = findChild(bell,"notificationBadge");
+                verify(badge.visible);
+                fuzzyCompare(badge.x,bell.textGlyphRect.x + bell.textGlyphRect.width - 2,0.01);
+                fuzzyCompare(badge.y,bell.textGlyphRect.y - 2,0.01);
+                verify(badge.y >= 0 && badge.y + badge.height <= bell.height);
+            }
+        }
+        function test_uniformRenderedInkHasMatchingHeightAndCenter() {
+            inkBackground.visible = true;
+            for (let size of [12,16,24]) {
+                inkSample.settings = {uniformItems:true,uniformGlyphHeight:size,background:"off",
+                    outlineFree:true,textColor:"#ffffff",iconColor:"#ffffff"};
+                for (let sample of [
+                    {text:"October 24 Saturday",family:"DejaVu Sans"},
+                    {text:"100%",family:"DejaVu Sans"},
+                    {text:"80%",family:"DejaVu Sans"},
+                    {text:"󰂯",family:"GoMono Nerd Font"},
+                    {text:"󰤨",family:"GoMono Nerd Font"},
+                    {text:"󰐥",family:"GoMono Nerd Font"},
+                    {text:"",icon:"󰕾",family:"DejaVu Sans"},
+                    {text:"",icon:"󰁹",family:"DejaVu Sans"}
+                ]) {
+                    inkSample.text = sample.text;
+                    inkSample.icon = sample.icon || "";
+                    inkSample.family = sample.family;
+                    waitForRendering(inkSample);
+                    let image = grabImage(inkBackground), top = image.height, bottom = -1;
+                    for (let y = 0; y < image.height; ++y) {
+                        for (let x = 0; x < image.width; ++x) {
+                            if (image.red(x,y) > 32 && image.green(x,y) > 32 && image.blue(x,y) > 32) {
+                                top = Math.min(top,y); bottom = Math.max(bottom,y); break;
+                            }
+                        }
+                    }
+                    let name = (sample.text || sample.icon) + " at " + size;
+                    verify(bottom >= top,name + " renders");
+                    fuzzyCompare(bottom - top + 1,size,1,name + " actual pixel height");
+                    fuzzyCompare((top + bottom + 1) / 2,inkSample.height / 2,1,name + " actual pixel center");
+                }
             }
         }
         function test_uniformVisibleEdgesMatchWorkspacePills() {
