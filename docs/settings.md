@@ -24,6 +24,14 @@ background alpha while keeping their colors and saved preferences. Reset (the
 default, stored as -1) restores the original theme/item backgrounds. Group
 transparency also applies to grouped circles on side panels.
 
+With wallpaper adaptation enabled, individual, shared and full pills choose a
+light or dark accent-tinted surface for local contrast. Glyphs adapt to the
+composite of the wallpaper and visible pill layers, retaining explicit color
+choices. Hyprknots sample the same wallpaper with full/shared pill layers and
+recalculate when their colors, transparency or geometry change. A narrow opposing
+edge keeps links and knots visible on mixed light/dark textures. Transparency
+values and manual adaptation/color overrides remain respected.
+
 Hyprpane includes a schematic layout preview and four edge presets. Selecting
 previews without saving; Apply layout preset changes the edge while retaining
 appearance and visibility. See [panel layout settings](panel-layout-settings.md).

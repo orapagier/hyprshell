@@ -50,6 +50,46 @@ Item {
             tryCompare(sampler, "ready", true);
         }
         function sample(x) { return sampler.sampleRect(Qt.rect(x, 10, 30, 18)); }
+        function test_panelPillFollowsLocalWallpaperAndRetainsManualColors() {
+            try {
+                pill.settings = {panelAdaptive:true,background:"on",pillTransparency:0};
+                movingRow.x = 20;
+                tryVerify(() => Colors.luminance(pill.backgroundFill) > 0.8);
+                verify(Colors.contrast(pill.effectiveForeground,pill.backgroundFill) >= 4.5);
+                movingRow.x = 240;
+                tryVerify(() => Colors.luminance(pill.backgroundFill) < 0.05);
+                verify(Colors.contrast(pill.effectiveForeground,pill.backgroundFill) >= 4.5);
+                pill.settings = {panelAdaptive:true,background:"on",pillTransparency:0,backgroundColor:"#214987"};
+                compare(pill.backgroundFill,Qt.color("#214987"));
+            } finally { pill.settings = {}; }
+        }
+        function test_panelSurfacesAndGlyphsContrastWithWallpaper() {
+            for (let wallpaper of ["#000000","#ffffff","#808080","#ee4444","#1440dd"]) {
+                let sample = Qt.color(wallpaper), accent = Qt.color("#b4befe");
+                let region = {average:sample,minimum:sample,maximum:sample};
+                for (let transparency of [0,25,60,100]) {
+                    let palette = Colors.panelPalette(region,accent,{shown:true,transparency:transparency,layers:[]});
+                    compare(palette.tint.a,1);
+                    for (let fill of [palette.tint,palette.hover,palette.selected]) {
+                        let rendered = Colors.mix(sample,fill,1-transparency/100);
+                        if (transparency <= 25) verify(Colors.contrast(palette.foreground,rendered) >= 4.5);
+                        if (transparency === 0) verify(Colors.contrast(fill,sample) >= 3.0);
+                    }
+                }
+            }
+            let black = Qt.color("#000000"), white = Qt.color("#ffffff");
+            let region = {average:black,minimum:black,maximum:black};
+            let light = Colors.panelPalette(region,Qt.color("#b4befe"),{shown:true,transparency:0,layers:[]});
+            let dark = Colors.panelPalette({average:white,minimum:white,maximum:white},Qt.color("#b4befe"),
+                {shown:true,transparency:0,layers:[]});
+            verify(Colors.luminance(light.tint) > 0.8);
+            verify(Colors.luminance(dark.tint) < 0.05);
+            let layered = Colors.panelPalette(region,Qt.color("#b4befe"),{shown:false,transparency:100,
+                layers:[{color:white,opacity:1}]});
+            verify(Colors.contrast(layered.foreground,white) >= 4.5);
+            let composite = Colors.compositeRegion(region,[{color:white,opacity:0.5},{color:black,opacity:0.5}]);
+            fuzzyCompare(composite.average,Qt.rgba(0.25,0.25,0.25,1),0.001);
+        }
         function test_pixelsUseExactByteStorage() {
             verify(sampler.pixels instanceof Uint8Array);
             compare(sampler.pixels.byteLength, sampler.pixels.length);

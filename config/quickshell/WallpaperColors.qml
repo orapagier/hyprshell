@@ -87,14 +87,18 @@ Item {
         cache.entries[key] = result;
         return result;
     }
-    function paletteFor(item, root, accent, style) {
+    function regionFor(item, root) {
         let x = offsetX, y = offsetY;
         // Explicitly read ancestor coordinates so bindings follow Row movement,
         // monitor resizing, newly visible controls, and media title changes.
         for (let node = item; node && node !== root; node = node.parent) {
             x += node.x; y += node.y;
         }
-        let region = sampleRect(Qt.rect(x, y, item.width, item.height), true);
+        return sampleRect(Qt.rect(x, y, item.width, item.height), true);
+    }
+    function paletteFor(item, root, accent, style, panelOptions) {
+        let region = regionFor(item, root);
+        if (panelOptions) return Colors.panelPalette(region, accent, panelOptions);
         return Colors.palette(region.average, accent, region.minimum, region.maximum, style, region.distribution);
     }
 

@@ -39,7 +39,11 @@ Item {
     property var colorSampler: null
     property Item colorRoot: null
     property string colorStyle: "normal"
-    readonly property var adaptivePalette: colorSampler ? colorSampler.paletteFor(pill, colorRoot, settings.vibrantColor ? Qt.color(settings.vibrantColor) : foreground, settings.lightForeground ? (bare ? "light-bare" : settings.vibrantColor ? "light" : "light-" + colorStyle) : settings.vibrantColor ? (bare ? "vibrant-bare" : "vibrant") : (bare ? "bare-" + colorStyle : colorStyle)) : null
+    readonly property var adaptivePalette: colorSampler ? colorSampler.paletteFor(pill, colorRoot, settings.vibrantColor ? Qt.color(settings.vibrantColor) : foreground, settings.lightForeground ? (bare ? "light-bare" : settings.vibrantColor ? "light" : "light-" + colorStyle) : settings.vibrantColor ? (bare ? "vibrant-bare" : "vibrant") : (bare ? "bare-" + colorStyle : colorStyle), settings.panelAdaptive ? {
+        shown:backgroundShown, style:colorStyle, transparency:settings.pillTransparency ?? -1,
+        backgroundOpacity:settings.backgroundOpacity ?? -1, backgroundColor:settings.backgroundColor || "",
+        layers:(settings.backingPills || []).map(surface => ({color:surface.backgroundFill, opacity:surface.backgroundAlpha}))
+    } : null) : null
     readonly property color effectiveForeground: adaptivePalette ? adaptivePalette.foreground : settings.vibrantColor || foreground
     property color tint: Qt.rgba(30/255, 30/255, 46/255, 0.28)
     property color outline: Qt.rgba(1, 1, 1, 0.16)
@@ -65,6 +69,10 @@ Item {
     readonly property bool hovered: pointer.containsMouse
     property bool selected: false
     property color hoverTint: Qt.rgba(tint.r, tint.g, tint.b, Math.min(1, tint.a + 0.12))
+    readonly property real backgroundAlpha: backgroundShown ? opacity * (settings.pillTransparency >= 0 ? 1 - settings.pillTransparency / 100 : 1) : 0
+    readonly property color backgroundFill: styledBackground(adaptivePalette
+        ? (selected ? adaptivePalette.selected : hovered || activeFocus ? adaptivePalette.hover : adaptivePalette.tint)
+        : selected ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.32) : hovered || activeFocus ? hoverTint : tint)
     property alias content: label
     // Ink bounds exclude the pill padding and font line box. Bare popdowns
     // attach to the visible icon (or text when there is no separate icon).
@@ -103,9 +111,7 @@ Item {
         width: pill.circular ? Math.min(pill.width, pill.height) : pill.width
         height: pill.circular ? width : pill.height
         radius: pill.circular ? width / 2 : pill.vertical ? Math.min(width, height) / 2 : pill.settings.radius >= 0 ? pill.settings.radius : height / 2
-        color: pill.styledBackground(pill.adaptivePalette
-            ? (pill.selected ? pill.adaptivePalette.selected : pointer.containsMouse || pill.activeFocus ? pill.adaptivePalette.hover : pill.adaptivePalette.tint)
-            : pill.selected ? Qt.rgba(pill.foreground.r, pill.foreground.g, pill.foreground.b, 0.32) : pointer.containsMouse || pill.activeFocus ? pill.hoverTint : pill.tint)
+        color: pill.backgroundFill
         Behavior on color { ColorAnimation { duration: Style.Theme.duration(pill, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
         border.width: 1
         border.color: pill.settings.outlineColor || (pill.adaptivePalette ? (pill.selected ? pill.adaptivePalette.selectedOutline : pill.adaptivePalette.outline)

@@ -183,11 +183,21 @@ Item {
         let h = Math.max(...ids.map(id => moduleItems[id].height));
         return Qt.rect(first.x, insetTop + (contentHeight-h)/2, last.x + last.width - first.x, h);
     }
+    function backingPills(id) {
+        let result = fullPill.visible ? [fullPill] : [];
+        if (!vertical) for (let i = 0; i < sharedPillRepeater.count; ++i) {
+            let surface = sharedPillRepeater.itemAt(i);
+            if (surface && surface.modelData.ids.includes(id)) result.push(surface);
+        }
+        return result;
+    }
     function appearance(id) {
         let style = Settings.appearance(settings, id, wallpaperSource.toString());
         style.lightForeground = true;
         style.outlineFree = true;
         style.uniformItems = uniformItems;
+        style.panelAdaptive = true;
+        style.backingPills = backingPills(id);
         style.pillTransparency = settings.bar?.individualPillTransparency ?? -1;
         style.circularIcons = true;
         if (uniformItems && id !== "workspaces") style.iconSize = panelIconSize;
@@ -205,6 +215,7 @@ Item {
     }
     function sharedStyle(id) {
         let style = bar.appearance(id);
+        style.backingPills = fullPill.visible ? [fullPill] : [];
         style.background = Settings.sharedBackground(settings, id);
         style.pillTransparency = settings.bar?.groupPillTransparency ?? -1;
         style.hideText = true;
@@ -437,14 +448,38 @@ Item {
         }
         readonly property var knotVariants: arrangeKnots(segments, patternSeed)
         onKnotVariantsChanged: requestPaint()
-        function colorAt(along, cross, span, neutral) {
+        function surfaceContains(surface, x, y) {
+            if (!surface || !surface.visible || surface.backgroundAlpha <= 0) return false;
+            let localX = x - surface.x, localY = y - surface.y;
+            if (localX < 0 || localY < 0 || localX > surface.width || localY > surface.height) return false;
+            let radius = Math.max(0, Math.min(surface.width / 2, surface.height / 2,
+                surface.vertical ? Math.min(surface.width, surface.height) / 2
+                    : surface.settings.radius >= 0 ? surface.settings.radius : surface.height / 2));
+            let dx = Math.max(radius - localX, 0, localX - (surface.width - radius));
+            let dy = Math.max(radius - localY, 0, localY - (surface.height - radius));
+            return dx * dx + dy * dy <= radius * radius;
+        }
+        function regionAt(along, cross, span) {
             let region = bar.wallpaperColors.sampleRect(bar.vertical
                 ? Qt.rect(bar.screenOffsetX + cross - 3, bar.screenOffsetY + along - span / 2 - bar.scrollOffset, 6, span)
                 : Qt.rect(bar.screenOffsetX + along - span / 2, bar.screenOffsetY + cross - 3, span, 6), true);
+            let x = bar.vertical ? cross : along, y = bar.vertical ? along : cross;
+            let layers = [];
+            if (surfaceContains(fullPill, x, y))
+                layers.push({color:fullPill.backgroundFill, opacity:fullPill.backgroundAlpha});
+            if (!bar.vertical) for (let i = 0; i < sharedPillRepeater.count; ++i) {
+                let surface = sharedPillRepeater.itemAt(i);
+                if (surfaceContains(surface, x, y))
+                    layers.push({color:surface.backgroundFill, opacity:surface.backgroundAlpha});
+            }
+            return Colors.compositeRegion(region, layers);
+        }
+        function colorAt(along, cross, span, neutral) {
+            let region = regionAt(along, cross, span);
             let vivid = Colors.lightForeground(region.average, region.average);
             return Colors.readableForeground(region.average,
                 neutral ? Colors.mix(vivid, Qt.color("#ffffff"), 0.55) : vivid,
-                region.minimum, region.maximum, 3.2);
+                region.minimum, region.maximum, 4.6);
         }
         function segmentFor(start, end, cross, workspace, knotted) {
             let length = end - start;
@@ -533,7 +568,10 @@ Item {
                     move(0.15, -0.7); line(0.85, 0); line(0.15, 0.7);
                 }
             }
-            function strokeMetal(ink, width) {
+            function strokeMetal(ink, width, edge) {
+                // A narrow opposite-polarity edge preserves the silhouette on
+                // textured wallpaper where no single ink can contrast everywhere.
+                ctx.strokeStyle = Colors.glyphEdge(edge || ink); ctx.lineWidth = width + 1.2; ctx.stroke();
                 ctx.strokeStyle = ink; ctx.lineWidth = width; ctx.stroke();
             }
             for (let segmentIndex = 0; segmentIndex < segments.length; ++segmentIndex) {
@@ -544,7 +582,7 @@ Item {
                 let gradient = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
                 for (let i = 0; i < segment.stops.length; ++i)
                     gradient.addColorStop(i / (segment.stops.length - 1), segment.stops[i]);
-                strokeMetal(gradient, connectors.lineWidth);
+                strokeMetal(gradient, connectors.lineWidth, segment.ink);
                 let length = segment.end - segment.start;
                 // One joint per icon gap, and one every ~42 px on the open rail.
                 let count = segment.knots.length;
@@ -598,6 +636,7 @@ Item {
             let style = Settings.appearance(bar.settings, fullPill.leader, bar.wallpaperSource.toString());
             style.lightForeground = true;
             style.outlineFree = true;
+            style.panelAdaptive = true;
             style.pillTransparency = bar.settings.bar?.fullPillTransparency ?? -1;
             let mode = bar.settings.bar?.fullBackground || "off";
             style.background = mode === "inherit" ? (bar.settings.bar?.background === "off" ? "off" : "on") : mode;
@@ -613,6 +652,7 @@ Item {
         opacity: Settings.item(bar.settings, fullPill.leader).opacity ?? 1
     }
     Repeater {
+        id: sharedPillRepeater
         model: bar.sharedPills
         delegate: Pill {
             required property var modelData

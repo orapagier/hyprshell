@@ -2,6 +2,7 @@ import QtQuick
 import QtTest
 import ".."
 import "../SettingsModel.js" as Settings
+import "../AdaptiveColors.js" as Colors
 
 Item {
     id: scene
@@ -577,6 +578,36 @@ Item {
             bar.statusIconsOnly = false;
             bar.settings = {bar:{fullBackground:"on"}, items:Object.keys(bar.moduleItems).map(id => ({id:id,enabled:false}))};
             verify(!pill.visible);
+        }
+        function test_hyprknotsAdaptToPillColorAndTransparency() {
+            let links = findChild(bar,"panelConnectors");
+            for (let edge of ["top","bottom","left","right"]) {
+                let modules = {launcher:{backgroundColor:"#ffffff"},
+                    audio:{pillGroup:"pair",backgroundColor:"#000000"},wifi:{pillGroup:"pair"}};
+                let options = {fullBackground:"on",fullPillTransparency:0,groupPillTransparency:0,spacing:20};
+                bar.settings = connectorConfig(edge,modules,options);
+                wait(0);
+                let first = bar.moduleItems.launcher, audio = bar.moduleItems.audio, wifi = bar.moduleItems.wifi;
+                let cross = bar.vertical ? bar.insetLeft+bar.contentWidth/2 : bar.insetTop+bar.contentHeight/2;
+                let gap = bar.vertical ? (first.y+first.height+audio.y)/2 : (first.x+first.width+audio.x)/2;
+                let region = links.regionAt(gap,cross,4);
+                fuzzyCompare(region.average,Qt.color("#ffffff"),0.001);
+                let ink = links.colorAt(gap,cross,4,true);
+                verify(Colors.contrast(ink,region.average) >= 4.5);
+                let groupGap = bar.vertical ? (audio.y+audio.height+wifi.y)/2 : (audio.x+audio.width+wifi.x)/2;
+                region = links.regionAt(groupGap,cross,4);
+                fuzzyCompare(region.average,Qt.color(bar.vertical ? "#ffffff" : "#000000"),0.001);
+                let previousSegments = JSON.stringify(links.segments);
+                options.fullPillTransparency = 100;
+                options.groupPillTransparency = 100;
+                bar.settings = connectorConfig(edge,modules,options);
+                wait(0);
+                verify(JSON.stringify(links.segments) !== previousSegments);
+                let transparentInk = links.colorAt(gap,cross,4,true);
+                verify(Colors.luminance(transparentInk) > Colors.luminance(ink));
+                compare(links.surfaceContains(findChild(bar,"fullPanelPill"),bar.vertical ? cross : gap,
+                    bar.vertical ? gap : cross),false);
+            }
         }
         function test_pillTransparencyIsIndependentAndPreservesGlyphs() {
             for (let edge of ["top", "bottom", "left", "right"]) {

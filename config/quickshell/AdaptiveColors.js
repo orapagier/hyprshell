@@ -15,6 +15,58 @@ function contrast(a, b) {
 }
 function alpha(color, opacity) { return Qt.rgba(color.r, color.g, color.b, opacity); }
 
+// Composite sampled wallpaper with the actual visible panel surfaces, back to front.
+function compositeRegion(region, layers) {
+    let average = region.average, minimum = region.minimum, maximum = region.maximum;
+    for (let layer of layers || []) {
+        let amount = layer.color.a * layer.opacity;
+        average = mix(average, layer.color, amount);
+        minimum = mix(minimum, layer.color, amount);
+        maximum = mix(maximum, layer.color, amount);
+    }
+    return {average:average, minimum:minimum, maximum:maximum};
+}
+
+var panelForegroundCache = {entries:Object.create(null), keys:[]};
+function panelPalette(region, accent, options) {
+    let under = compositeRegion(region, options.layers);
+    let dark = mix(Qt.color("#080c14"), accent, 0.06);
+    let light = mix(Qt.color("#f7f9ff"), accent, 0.06);
+    let originalOpacity = options.style === "emphasized" ? 0.94 : options.style === "muted" ? 0.66 : 0.82;
+    let amount = options.shown ? (options.transparency >= 0 ? 1 - options.transparency / 100
+        : options.backgroundOpacity >= 0 ? options.backgroundOpacity : originalOpacity) : 0;
+    function separation(fill) {
+        let composite = mix(under.average, fill, amount);
+        return contrast(composite, under.average);
+    }
+    let fill = options.backgroundColor ? Qt.color(options.backgroundColor)
+        : separation(dark) >= separation(light) ? dark : light;
+    let opacity = options.transparency >= 0 ? 1 : options.backgroundOpacity >= 0 ? options.backgroundOpacity : originalOpacity;
+    // Bound all hover/selection shades and the glass shine once, then solve
+    // foreground lightness against those composite bounds. This avoids running
+    // a separate color search per state on every live slider/hover update.
+    let low = mix(under.minimum, mix(fill, Qt.color("#000000"), 0.05), amount);
+    let high = mix(under.maximum, mix(fill, Qt.color("#ffffff"), 0.05), amount);
+    high = mix(high, Qt.color("#ffffff"), 0.08 * amount);
+    let rendered = mix(under.average, fill, amount);
+    let key = [rendered, accent, low, high].map(color => [color.r,color.g,color.b].join(",")).join(":");
+    let foreground = panelForegroundCache.entries[key];
+    if (foreground === undefined) {
+        foreground = readableForeground(rendered, accent, low, high, 4.6);
+        if (panelForegroundCache.keys.length >= 256)
+            delete panelForegroundCache.entries[panelForegroundCache.keys.shift()];
+        panelForegroundCache.keys.push(key);
+        panelForegroundCache.entries[key] = foreground;
+    }
+    // Truly bare icons retain the existing bright, varied wallpaper palette.
+    if (amount === 0 && !(options.layers || []).some(layer => layer.color.a * layer.opacity > 0))
+        foreground = contrastingBrightForeground(under.average, accent, under.minimum, under.maximum, region.distribution);
+    return {foreground:foreground, tint:alpha(fill, opacity),
+        hover:alpha(mix(fill, foreground, 0.025), opacity),
+        selected:alpha(mix(fill, foreground, 0.05), opacity),
+        outline:alpha(glyphEdge(fill), 0.65), selectedOutline:alpha(foreground, 0.85)};
+}
+
 // Preserve bright hues when a pill can supply the contrasting backing.
 function vibrantForeground(sample, accent) {
     let foreground = Qt.hsva(accent.hsvHue, accent.hsvSaturation,
