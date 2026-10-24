@@ -13,8 +13,15 @@ case "${1:-}" in
     *) printf 'Unknown Hyprshell shortcut.\n' >&2; exit 1 ;;
 esac
 config="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell"
+trace_panel_toggle() {
+    [[ "${1:-}" == topbar ]] || return 0
+    printf '%s %s\n' "$(date +%s%3N)" "$2" >> "${XDG_STATE_HOME:-$HOME/.local/state}/hyprshell/panel-toggle-latency.log"
+}
+trace_panel_toggle "${1:-}" shortcut-entry
 if timeout 3 "$shell_bin" ipc --path "$config" call bar "$method" "${args[@]}" 2>/dev/null; then
+    trace_panel_toggle "${1:-}" ipc-success
     exit 0
 fi
+trace_panel_toggle "${1:-}" ipc-failed-starting-shell
 "$HOME/.local/bin/start-quickshell-bar" --require-quickshell
 exec "$shell_bin" ipc --path "$config" call bar "$method" "${args[@]}"

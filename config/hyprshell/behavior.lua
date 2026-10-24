@@ -26,9 +26,8 @@ local function keepDialogFloating(w)
     end
     return false
 end
-hl.window_rule({name = "hyprshell-workspace-float-3", match = {workspace = "3"}, float = true})
 hl.window_rule({name = "hyprshell-workspace-float-4", match = {workspace = "4"}, float = true})
-local floatingWorkspaces = {[3] = true, [4] = true}
+local floatingWorkspaces = {[4] = true}
 local function floatWorkspaceWindow(w)
     if keepSettingsFloating(w) or keepDialogFloating(w) then return end
     if w and w.mapped and w.workspace and floatingWorkspaces[w.workspace.id] and w.fullscreen == 0 then
@@ -58,8 +57,10 @@ hl.on("config.reloaded", function()
     for _, w in ipairs(hl.get_windows()) do floatWorkspaceWindow(w) end
 end)
 hl.window_rule({name = "hyprshell-workspace-pseudo-1", match = {workspace = "1"}, tile = true, pseudo = true})
+hl.window_rule({name = "hyprshell-workspace-pseudo-2", match = {workspace = "2"}, tile = true, pseudo = true})
 hl.window_rule({name = "hyprshell-workspace-pseudo-5", match = {workspace = "5"}, tile = true, pseudo = true})
-local pseudotiledWorkspaces = {[1] = true, [5] = true}
+hl.window_rule({name = "hyprshell-workspace-pseudo-3", match = {workspace = "3"}, tile = true, pseudo = true})
+local pseudotiledWorkspaces = {[1] = true, [2] = true, [5] = true, [3] = true}
 local function pseudotileWorkspaceWindow(w)
     if keepSettingsFloating(w) or keepDialogFloating(w) then return end
     if w and w.mapped and w.workspace and pseudotiledWorkspaces[w.workspace.id] and w.fullscreen == 0 then

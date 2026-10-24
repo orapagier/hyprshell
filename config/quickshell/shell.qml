@@ -25,7 +25,9 @@ ShellRoot {
             console.warn(component + " toggle needs an active numbered workspace (1–99).");
             return;
         }
+        console.info("HYPRPANE_TIMING", Date.now(), "handler-entry", workspace);
         panelVisibility.toggle(workspace);
+        console.info("HYPRPANE_TIMING", Date.now(), "handler-return", workspace);
     }
     SettingsStore { id: preferences }
     PanelVisibilityController {
@@ -139,7 +141,11 @@ ShellRoot {
             }
             exclusiveZone: autoHide ? 0 : (vertical ? width : height) + (preferences.panelConfig.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
             exclusionMode: visible ? ExclusionMode.Normal : ExclusionMode.Ignore
-            onVisibleChanged: if (!visible) menuState.close()
+            onVisibleChanged: {
+                console.info("HYPRPANE_TIMING", Date.now(), "visible-request", visible);
+                if (!visible) menuState.close();
+            }
+            onBackingWindowVisibleChanged: console.info("HYPRPANE_TIMING", Date.now(), "surface-visible", backingWindowVisible)
             readonly property string edge: preferences.config.bar.position || "top"
             readonly property bool vertical: edge === "left" || edge === "right"
             readonly property bool autoHide: preferences.config.bar.edgeAttached === true && preferences.config.bar.autoHide === true
