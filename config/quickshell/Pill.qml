@@ -20,7 +20,7 @@ Item {
     readonly property color iconColor: settings.iconColor || effectiveForeground
     function styledBackground(base) {
         let c = settings.backgroundColor ? Qt.color(settings.backgroundColor) : base;
-        return Qt.rgba(c.r, c.g, c.b, settings.backgroundOpacity >= 0 ? settings.backgroundOpacity : base.a);
+        return Qt.rgba(c.r, c.g, c.b, settings.pillTransparency >= 0 ? 1 : settings.backgroundOpacity >= 0 ? settings.backgroundOpacity : base.a);
     }
     property string text: ""
     property string icon: ""
@@ -98,7 +98,7 @@ Item {
     Rectangle {
         objectName: "pillBackground"
         visible: pill.backgroundShown
-        opacity: 1 - (pill.settings.pillTransparency ?? 0) / 100
+        opacity: pill.settings.pillTransparency >= 0 ? 1 - pill.settings.pillTransparency / 100 : 1
         anchors.centerIn: parent
         width: pill.circular ? Math.min(pill.width, pill.height) : pill.width
         height: pill.circular ? width : pill.height

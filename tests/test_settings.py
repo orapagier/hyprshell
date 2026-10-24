@@ -19,7 +19,7 @@ class SettingsTests(unittest.TestCase):
     def test_pill_transparency_defaults_validation_and_persistence(self):
         keys = ('individualPillTransparency', 'groupPillTransparency', 'fullPillTransparency')
         defaults = backend.validate({'version': 1})['bar']
-        self.assertEqual([defaults[key] for key in keys], [0, 0, 0])
+        self.assertEqual([defaults[key] for key in keys], [-1, -1, -1])
         data = copy.deepcopy(self.data)
         data['bar'].update(zip(keys, (0, 47, 100)))
         backend.save(data)
@@ -27,7 +27,9 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual([saved['bar'][key] for key in keys], [0, 47, 100])
         self.assertEqual(saved['items'], data['items'])
         for key in keys:
-            for value in (-1, 101, 0.5, True, '50', None):
+            data['bar'][key] = -1
+            self.assertEqual(backend.validate(data)['bar'][key], -1)
+            for value in (-2, 101, 0.5, True, '50', None):
                 bad = copy.deepcopy(data)
                 bad['bar'][key] = value
                 with self.subTest(key=key, value=value), self.assertRaises(ValueError):

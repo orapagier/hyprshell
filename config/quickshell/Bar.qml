@@ -188,7 +188,7 @@ Item {
         style.lightForeground = true;
         style.outlineFree = true;
         style.uniformItems = uniformItems;
-        style.pillTransparency = settings.bar?.individualPillTransparency ?? 0;
+        style.pillTransparency = settings.bar?.individualPillTransparency ?? -1;
         style.circularIcons = true;
         if (uniformItems && id !== "workspaces") style.iconSize = panelIconSize;
         if (compactItemPadding) style.compactPadding = true;
@@ -198,7 +198,7 @@ Item {
                 // Keep group membership/order, drawing its background as separate circles.
                 style.background = Settings.sharedBackground(settings, group.ids[0]);
                 style.sharedBackgroundShown = false;
-                style.pillTransparency = settings.bar?.groupPillTransparency ?? 0;
+                style.pillTransparency = settings.bar?.groupPillTransparency ?? -1;
             } else style.sharedBackgroundShown = Settings.sharedBackground(settings, group.ids[0]) !== "off";
         }
         return style;
@@ -206,7 +206,7 @@ Item {
     function sharedStyle(id) {
         let style = bar.appearance(id);
         style.background = Settings.sharedBackground(settings, id);
-        style.pillTransparency = settings.bar?.groupPillTransparency ?? 0;
+        style.pillTransparency = settings.bar?.groupPillTransparency ?? -1;
         style.hideText = true;
         style.hideIcon = true;
         return style;
@@ -598,7 +598,7 @@ Item {
             let style = Settings.appearance(bar.settings, fullPill.leader, bar.wallpaperSource.toString());
             style.lightForeground = true;
             style.outlineFree = true;
-            style.pillTransparency = bar.settings.bar?.fullPillTransparency ?? 0;
+            style.pillTransparency = bar.settings.bar?.fullPillTransparency ?? -1;
             let mode = bar.settings.bar?.fullBackground || "off";
             style.background = mode === "inherit" ? (bar.settings.bar?.background === "off" ? "off" : "on") : mode;
             style.hideText = true;

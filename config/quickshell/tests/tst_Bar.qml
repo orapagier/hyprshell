@@ -591,6 +591,8 @@ Item {
                 let group = bar.vertical ? bar.moduleItems.audio : findChild(bar,"sharedPill_pair");
                 fuzzyCompare(findChild(group,"pillBackground").opacity,0.4,0.001);
                 compare(group.settings.backgroundOpacity,0.4);
+                compare(group.styledBackground(Qt.rgba(0.2,0.3,0.4,0.01)).a,1);
+                compare(calendar.styledBackground(Qt.rgba(0.2,0.3,0.4,0.01)).a,1);
                 let full = findChild(bar,"fullPanelPill");
                 compare(findChild(full,"pillBackground").opacity,0);
                 compare(bar.moduleItems.audio.opacity,1);
@@ -598,6 +600,17 @@ Item {
                 bar.settings = connectorConfig(edge,{calendar:{}},{fullBackground:"on"});
                 compare(findChild(calendar,"pillBackground").opacity,1);
                 compare(findChild(full,"pillBackground").opacity,1);
+                bar.settings = connectorConfig(edge,{calendar:{backgroundOpacity:0.01}},
+                    {individualPillTransparency:0});
+                wait(0);
+                let background = findChild(calendar,"pillBackground");
+                tryVerify(() => background.color.a === 1);
+                compare(background.color.a,1);
+                compare(background.opacity,1);
+                compare(calendar.settings.backgroundOpacity,0.01);
+                bar.settings = connectorConfig(edge,{calendar:{backgroundOpacity:0.01}},
+                    {individualPillTransparency:-1});
+                fuzzyCompare(calendar.styledBackground(calendar.tint).a,0.01,0.001);
             }
         }
         function test_pillTransparencyControlsEditAndResetIndependently() {
@@ -608,9 +621,9 @@ Item {
                 verify(control !== null);
                 control.commitDisplayValue(70);
                 compare(editor.settings[key],70);
-                for (let other of keys) if (other !== key) compare(editor.settings[other] ?? 0,0);
+                for (let other of keys) if (other !== key) compare(editor.settings[other] ?? -1,-1);
                 control.edited("");
-                compare(editor.settings[key],0);
+                compare(editor.settings[key],-1);
             }
         }
         function test_workspaceColorFollowsActiveWorkspace() {

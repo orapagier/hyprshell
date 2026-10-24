@@ -319,12 +319,13 @@ ColumnLayout {
             objectName: "individualPillTransparencyControl"
             Layout.fillWidth: true
             label: "Individual pill transparency"
-            description: "Fade individual pill backgrounds while keeping icons and text visible. 0% keeps the current style; 100% makes it transparent."
-            settingValue: root.settings.individualPillTransparency ?? 0
+            description: "Fade individual pill backgrounds while keeping icons and text visible. 0% is opaque; 100% is transparent. Overrides item background opacity until reset."
+            settingValue: root.settings.individualPillTransparency >= 0 ? root.settings.individualPillTransparency : undefined
             from: 0; to: 100; suffix: "%"
             editInterval: 32
-            resetDescription: "Restore original pill appearance"
-            onEdited: value => root.edited("individualPillTransparency", value === "" ? 0 : value)
+            inheritedText: "Use item styles"
+            resetDescription: "Restore original item background styles"
+            onEdited: value => root.edited("individualPillTransparency", value === "" ? -1 : value)
         }
         SettingsBackgroundControl {
             objectName: "sharedBackgroundControl"
@@ -340,12 +341,13 @@ ColumnLayout {
             objectName: "groupPillTransparencyControl"
             Layout.fillWidth: true
             label: "Group pill transparency"
-            description: "Fade shared pill backgrounds, including grouped circles on side panels. 0% keeps the current style; 100% makes it transparent."
-            settingValue: root.settings.groupPillTransparency ?? 0
+            description: "Fade shared pill backgrounds, including grouped circles on side panels. 0% is opaque; 100% is transparent. Overrides item background opacity until reset."
+            settingValue: root.settings.groupPillTransparency >= 0 ? root.settings.groupPillTransparency : undefined
             from: 0; to: 100; suffix: "%"
             editInterval: 32
-            resetDescription: "Restore original pill appearance"
-            onEdited: value => root.edited("groupPillTransparency", value === "" ? 0 : value)
+            inheritedText: "Use item styles"
+            resetDescription: "Restore original item background styles"
+            onEdited: value => root.edited("groupPillTransparency", value === "" ? -1 : value)
         }
         SettingsSwitch {
             objectName: "hyprknotsControl"
@@ -396,12 +398,13 @@ ColumnLayout {
             objectName: "fullPillTransparencyControl"
             Layout.fillWidth: true
             label: "Full pill transparency"
-            description: "Fade the background behind the whole panel independently of the other pills. 0% keeps the current style; 100% makes it transparent."
-            settingValue: root.settings.fullPillTransparency ?? 0
+            description: "Fade the background behind the whole panel independently of the other pills. 0% is opaque; 100% is transparent. Overrides item background opacity until reset."
+            settingValue: root.settings.fullPillTransparency >= 0 ? root.settings.fullPillTransparency : undefined
             from: 0; to: 100; suffix: "%"
             editInterval: 32
-            resetDescription: "Restore original pill appearance"
-            onEdited: value => root.edited("fullPillTransparency", value === "" ? 0 : value)
+            inheritedText: "Use item styles"
+            resetDescription: "Restore original item background styles"
+            onEdited: value => root.edited("fullPillTransparency", value === "" ? -1 : value)
         }
         SettingsIconSize {
             Layout.fillWidth: true
