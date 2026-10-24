@@ -578,6 +578,41 @@ Item {
             bar.settings = {bar:{fullBackground:"on"}, items:Object.keys(bar.moduleItems).map(id => ({id:id,enabled:false}))};
             verify(!pill.visible);
         }
+        function test_pillTransparencyIsIndependentAndPreservesGlyphs() {
+            for (let edge of ["top", "bottom", "left", "right"]) {
+                bar.settings = connectorConfig(edge, {audio:{pillGroup:"pair",backgroundOpacity:0.4},
+                    wifi:{pillGroup:"pair"},calendar:{}}, {fullBackground:"on",
+                    individualPillTransparency:25,groupPillTransparency:60,fullPillTransparency:100});
+                wait(0);
+                let calendar = bar.moduleItems.calendar;
+                compare(findChild(calendar,"pillBackground").opacity,0.75);
+                compare(calendar.opacity,1);
+                compare(findChild(calendar,"pillIcon").opacity,1);
+                let group = bar.vertical ? bar.moduleItems.audio : findChild(bar,"sharedPill_pair");
+                fuzzyCompare(findChild(group,"pillBackground").opacity,0.4,0.001);
+                compare(group.settings.backgroundOpacity,0.4);
+                let full = findChild(bar,"fullPanelPill");
+                compare(findChild(full,"pillBackground").opacity,0);
+                compare(bar.moduleItems.audio.opacity,1);
+                compare(bar.moduleItems.audio.settings.pillTransparency,bar.vertical ? 60 : 25);
+                bar.settings = connectorConfig(edge,{calendar:{}},{fullBackground:"on"});
+                compare(findChild(calendar,"pillBackground").opacity,1);
+                compare(findChild(full,"pillBackground").opacity,1);
+            }
+        }
+        function test_pillTransparencyControlsEditAndResetIndependently() {
+            editor.settings = {adaptiveColors:true,clockFormat:"hh:mm"};
+            let keys = ["individualPillTransparency","groupPillTransparency","fullPillTransparency"];
+            for (let key of keys) {
+                let control = findChild(editor,key + "Control");
+                verify(control !== null);
+                control.commitDisplayValue(70);
+                compare(editor.settings[key],70);
+                for (let other of keys) if (other !== key) compare(editor.settings[other] ?? 0,0);
+                control.edited("");
+                compare(editor.settings[key],0);
+            }
+        }
         function test_workspaceColorFollowsActiveWorkspace() {
             bar.statusData = {workspaces: [{id:1, name:"1", active:true}, {id:2, name:"2", active:false}], audio: {}, network: {}, bluetooth: {}, battery: {}};
             let first = findChild(bar, "workspace1"), second = findChild(bar, "workspace2");

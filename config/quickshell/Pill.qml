@@ -98,6 +98,7 @@ Item {
     Rectangle {
         objectName: "pillBackground"
         visible: pill.backgroundShown
+        opacity: 1 - (pill.settings.pillTransparency ?? 0) / 100
         anchors.centerIn: parent
         width: pill.circular ? Math.min(pill.width, pill.height) : pill.width
         height: pill.circular ? width : pill.height

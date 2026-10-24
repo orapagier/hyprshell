@@ -16,6 +16,12 @@ The backend renders only the bundled theme's named appearance tokens to
 **Hyprpane** means Hyprshell's status/menu panel on any edge. This document also
 uses “bar” and “topbar”; IPC methods and configuration keys keep their existing names.
 
+Hyprpane → Default appearance includes Individual pill transparency, Group pill
+transparency, and Full pill transparency (0–100%, default 0%). Each fades its
+background, border, and shine while retaining icon/text opacity and existing
+item background colors and alpha. Group transparency also applies to grouped
+circles on side panels. 0% retains the current style; 100% hides that background.
+
 Hyprpane includes a schematic layout preview and four edge presets. Selecting
 previews without saving; Apply layout preset changes the edge while retaining
 appearance and visibility. See [panel layout settings](panel-layout-settings.md).

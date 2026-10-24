@@ -315,6 +315,17 @@ ColumnLayout {
             inheritDescription: "Original backgrounds · the launcher and settings icons have no pill."
             onEdited: mode => root.edited("background", mode)
         }
+        SettingsSlider {
+            objectName: "individualPillTransparencyControl"
+            Layout.fillWidth: true
+            label: "Individual pill transparency"
+            description: "Fade individual pill backgrounds while keeping icons and text visible. 0% keeps the current style; 100% makes it transparent."
+            settingValue: root.settings.individualPillTransparency ?? 0
+            from: 0; to: 100; suffix: "%"
+            editInterval: 32
+            resetDescription: "Restore original pill appearance"
+            onEdited: value => root.edited("individualPillTransparency", value === "" ? 0 : value)
+        }
         SettingsBackgroundControl {
             objectName: "sharedBackgroundControl"
             Layout.fillWidth: true
@@ -324,6 +335,17 @@ ColumnLayout {
             inheritLabel: "Follow background pills"
             inheritDescription: "Shared pills follow the background switch above. Modules keep their grouping and spacing when the pill is hidden."
             onEdited: mode => root.edited("sharedBackground", mode)
+        }
+        SettingsSlider {
+            objectName: "groupPillTransparencyControl"
+            Layout.fillWidth: true
+            label: "Group pill transparency"
+            description: "Fade shared pill backgrounds, including grouped circles on side panels. 0% keeps the current style; 100% makes it transparent."
+            settingValue: root.settings.groupPillTransparency ?? 0
+            from: 0; to: 100; suffix: "%"
+            editInterval: 32
+            resetDescription: "Restore original pill appearance"
+            onEdited: value => root.edited("groupPillTransparency", value === "" ? 0 : value)
         }
         SettingsSwitch {
             objectName: "hyprknotsControl"
@@ -369,6 +391,17 @@ ColumnLayout {
             inheritLabel: "Follow background pills"
             inheritDescription: "One pill behind all visible items, from the first to the last. Uses the first visible item's style. Individual and shared pills keep their settings."
             onEdited: mode => root.edited("fullBackground", mode)
+        }
+        SettingsSlider {
+            objectName: "fullPillTransparencyControl"
+            Layout.fillWidth: true
+            label: "Full pill transparency"
+            description: "Fade the background behind the whole panel independently of the other pills. 0% keeps the current style; 100% makes it transparent."
+            settingValue: root.settings.fullPillTransparency ?? 0
+            from: 0; to: 100; suffix: "%"
+            editInterval: 32
+            resetDescription: "Restore original pill appearance"
+            onEdited: value => root.edited("fullPillTransparency", value === "" ? 0 : value)
         }
         SettingsIconSize {
             Layout.fillWidth: true
