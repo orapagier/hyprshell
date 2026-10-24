@@ -219,7 +219,8 @@ Item {
         }
         style.panelAdaptive = true;
         style.backingPills = backingPills(id);
-        style.glassSurface = fullPill.participating;
+        // Individual and shared surfaces retain wallpaper-tinted glass in either mode.
+        style.glassSurface = true;
         style.pillTransparency = settings.bar?.individualPillTransparency ?? -1;
         style.circularIcons = true;
         if (uniformItems || id !== "workspaces") {
