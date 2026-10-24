@@ -19,21 +19,20 @@ ShellRoot {
     readonly property var mediaData: desktopServices.mediaData
     readonly property var notificationData: notificationInbox.statusData
     readonly property int currentWorkspace: Hyprland.focusedMonitor && Hyprland.focusedMonitor.activeWorkspace ? Hyprland.focusedMonitor.activeWorkspace.id : 0
-    property var pendingBarToggles: []
     function toggleWorkspacePanel(component) {
         let workspace = shell.currentWorkspace;
         if (workspace < 1 || workspace > 99) {
             console.warn(component + " toggle needs an active numbered workspace (1–99).");
             return;
         }
-        let ui = settingsController.window;
-        if (ui) ui.toggleWorkspacePanel(component, workspace);
-        else {
-            shell.pendingBarToggles.push({component:component, workspace:workspace});
-            barToggleQueue.restart();
-        }
+        panelVisibility.toggle(workspace);
     }
     SettingsStore { id: preferences }
+    PanelVisibilityController {
+        id: panelVisibility
+        store: preferences
+        editor: settingsController.window
+    }
     Binding { target: Style.Theme; property: "preferences"; value: preferences.config.accessibility || ({}) }
     ApplicationService {
         id: applications; store: preferences
@@ -136,7 +135,7 @@ ShellRoot {
                 // back into the window's own visibility binding.
                 let monitor = Hyprland.monitorFor(panel.modelData);
                 let ws = monitor && monitor.activeWorkspace;
-                return Settings.panelVisible(preferences.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
+                return Settings.panelVisible(panelVisibility.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
             }
             exclusiveZone: autoHide ? 0 : (vertical ? width : height) + (preferences.panelConfig.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
             exclusionMode: visible ? ExclusionMode.Normal : ExclusionMode.Ignore
@@ -288,29 +287,6 @@ ShellRoot {
         function onConfigChanged() {
             shell.updateClock();
             for (let panel of panels.instances) panel.refreshSettings();
-        }
-    }
-    Process {
-        id: barVisibilityWriter
-        onExited: barToggleQueue.restart()
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    let result = JSON.parse(text);
-                    if (result.ok) preferences.reload();
-                    else console.warn("Panel toggle: " + result.message);
-                } catch (error) { console.warn("Panel toggle failed: " + error); }
-            }
-        }
-    }
-    Timer {
-        id: barToggleQueue
-        interval: 0
-        onTriggered: {
-            if (barVisibilityWriter.running || shell.pendingBarToggles.length === 0) return;
-            let request = shell.pendingBarToggles.shift();
-            barVisibilityWriter.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/backend.py").toString().replace(/^file:\/\//, "")), "--toggle-panel", request.component, String(request.workspace)];
-            barVisibilityWriter.running = true;
         }
     }
     Process {

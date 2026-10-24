@@ -372,6 +372,26 @@ class SettingsTests(unittest.TestCase):
             self.assertEqual(saved['items'][0]['textColor'], '#abcdef')
             self.assertEqual(saved['bar']['workspaceList'], [1])
 
+    def test_background_visibility_sets_desired_state_and_preserves_current_preferences(self):
+        self.data['bar'].update(workspaceScope='selected', workspaceList=[1], spacing=17)
+        self.data['items'][0]['textColor'] = '#abcdef'
+        backend.save(self.data)
+        for visible in (True, True, False, False, True):
+            result = backend.save(backend.DEFAULTS, workspace_visibility=(3, visible))
+            saved = json.loads(self.path.read_text())
+            self.assertTrue(result['ok'])
+            self.assertEqual(result['settings'], saved)
+            self.assertIs(backend.bar_visible(saved['bar'], 3), visible)
+            self.assertTrue(backend.bar_visible(saved['bar'], 1))
+            self.assertFalse(backend.bar_visible(saved['bar'], 2))
+            self.assertEqual(saved['bar']['spacing'], 17)
+            self.assertEqual(saved['items'], self.data['items'])
+        for invalid in ((0, True), (100, False), (True, True), (3, 1), (3, 'true')):
+            before = self.path.read_bytes()
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                backend.save(backend.DEFAULTS, workspace_visibility=invalid)
+            self.assertEqual(self.path.read_bytes(), before)
+
     def test_workspace_toggle_from_all_visible_and_all_hidden(self):
         for baseline in (True, False):
             self.data['bar'].update(visible=baseline, workspaceOverrides={})

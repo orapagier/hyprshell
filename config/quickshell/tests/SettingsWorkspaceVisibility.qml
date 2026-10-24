@@ -25,6 +25,11 @@ ShellRoot {
                 ui.toggleWorkspaceBar(3);
                 ui.toggleWorkspaceBar(1);
                 ui.updateBar("spacing", 17);
+                Qt.callLater(() => {
+                    if (!test.check(prefs.panelConfig.bar)) {
+                        console.error("WORKSPACE_VISIBILITY_NOT_IMMEDIATE"); Qt.exit(1);
+                    }
+                });
                 test.phase = 2;
             } else if (test.phase === 2 && !ui.dirty && !ui.saving) {
                 if (!test.check(prefs.config.bar)) { console.error("WORKSPACE_VISIBILITY_LOST_EDITS"); Qt.quit(); return; }

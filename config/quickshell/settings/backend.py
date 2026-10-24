@@ -712,8 +712,12 @@ def bar_visible(bar, workspace):
     return bar['visible'] and (bar['workspaceScope'] == 'all' or workspace in bar['workspaceList'])
 
 
-def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpane', app_action=None, toggle_hover=None, monitor_action=None):
+def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpane', workspace_visibility=None, app_action=None, toggle_hover=None, monitor_action=None):
     data = validate(data)
+    if workspace_visibility is not None:
+        workspace, visible = workspace_visibility
+        if type(workspace) is not int or not 1 <= workspace <= 99 or type(visible) is not bool:
+            raise ValueError('Choose a workspace number from 1 to 99 and a visibility boolean')
     if toggle_workspace is not None:
         if toggle_component != 'hyprpane':
             raise ValueError('Choose Hyprpane')
@@ -746,6 +750,10 @@ def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpa
             data = copy.deepcopy(current)
             panel = data['bar']
             panel['workspaceOverrides'][str(toggle_workspace)] = not bar_visible(panel, toggle_workspace)
+        if workspace_visibility is not None:
+            data = copy.deepcopy(current)
+            workspace, visible = workspace_visibility
+            data['bar']['workspaceOverrides'][str(workspace)] = visible
         if toggle_hover is not None:
             data = copy.deepcopy(current)
             bar = data['bar']
@@ -785,7 +793,7 @@ def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpa
         changes[target] = json.dumps(data, indent=2) + '\n'
         changes = {p: text for p, text in changes.items() if not p.exists() or p.read_text() != text}
         if not changes:
-            return {'ok': True, 'message': 'No changes to apply.'}
+            return {'ok': True, 'message': 'No changes to apply.', **({'settings': data} if workspace_visibility is not None else {})}
         backup = state / 'hyprshell/backups' / ('settings-' + datetime.now().strftime('%Y%m%d-%H%M%S-%f'))
         backup.mkdir(parents=True)
         previous = {p: p.read_text() if p.exists() else None for p in changes}
@@ -819,6 +827,8 @@ def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpa
         if toggle_hover is not None:
             return {'ok': True, 'backup': str(backup), 'workspace': toggle_hover, 'enabled': enabled,
                     'message': f"Workspace {toggle_hover}: Hover popdowns {'enabled' if enabled else 'disabled'}"}
+        if workspace_visibility is not None:
+            return {'ok': True, 'settings': data, 'backup': str(backup)}
         return {'ok': True, 'message': 'Settings applied.' + (' Hyprland changes will load next session.' if hypr_changed and not reload_live else ''), 'backup': str(backup)}
 
 
@@ -827,6 +837,7 @@ def main():
     parser.add_argument('--save-json')
     parser.add_argument('--system-monitor-json')
     parser.add_argument('--toggle-bar', type=int, metavar='WORKSPACE')
+    parser.add_argument('--set-bar-visibility', nargs=2, metavar=('WORKSPACE', 'show|hide'))
     parser.add_argument('--toggle-panel', nargs=2, metavar=('COMPONENT', 'WORKSPACE'))
     parser.add_argument('--app-action-json')
     parser.add_argument('--lock', action='store_true')
@@ -841,6 +852,12 @@ def main():
             return run_idle(args.battery)
         if args.system_monitor_json is not None:
             print(json.dumps(save(DEFAULTS, monitor_action=json.loads(args.system_monitor_json))))
+            return 0
+        if args.set_bar_visibility is not None:
+            workspace, action = args.set_bar_visibility
+            if action not in ('show', 'hide'):
+                raise ValueError('Choose show or hide')
+            print(json.dumps(save(DEFAULTS, workspace_visibility=(int(workspace), action == 'show'))))
             return 0
         if args.toggle_panel is not None:
             component, workspace = args.toggle_panel

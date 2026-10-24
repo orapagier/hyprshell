@@ -37,6 +37,10 @@ class AutosaveTests(unittest.TestCase):
         self.assertEqual(settings['bar']['workspaceList'], [1])
         self.assertEqual(settings['bar']['spacing'], 17)
 
+    def test_panel_shortcut_is_immediate_during_slow_saves_and_reverts_failure(self):
+        settings = self.run_ui_scenario('PanelShortcutVisibility', 'PANEL_SHORTCUT_OK', ('right', '', 1))
+        self.assertEqual(settings['bar']['workspaceOverrides'], {'3': False, '4': False})
+
     def test_search_navigation_scroll_and_responsive_layout(self):
         with tempfile.TemporaryDirectory(prefix='hyprshell-navigation-') as directory:
             root = Path(directory)
@@ -89,7 +93,11 @@ class AutosaveTests(unittest.TestCase):
             commands.mkdir()
             # Slow the backend so the QML test can reliably edit while saving.
             wrapper = commands / 'python3'
-            wrapper.write_text(f'#!{sys.executable}\nimport os, sys, time\ntime.sleep(0.3)\nos.execv({sys.executable!r}, [{sys.executable!r}] + sys.argv[1:])\n')
+            failure = ("if '--set-bar-visibility' in sys.argv and sys.argv[-2] == '9':\n"
+                       "    print('{\"ok\": false, \"message\": \"simulated save failure\"}'); sys.exit(1)\n"
+                       if scenario == 'PanelShortcutVisibility' else '')
+            wrapper.write_text(f'#!{sys.executable}\nimport os, sys, time\ntime.sleep(0.3)\n' + failure
+                               + f'os.execv({sys.executable!r}, [{sys.executable!r}] + sys.argv[1:])\n')
             wrapper.chmod(0o755)
             runtime = root / 'runtime'
             runtime.mkdir(mode=0o700)
