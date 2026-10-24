@@ -436,7 +436,7 @@ Item {
             policy: bar.overflowing ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
             active: bar.overflowing
         }
-    // Angular links share one monochrome ink for the wallpaper.
+    // Angular links share one wallpaper-matched ink.
     Canvas {
         id: connectors
         objectName: "panelConnectors"
@@ -522,10 +522,36 @@ Item {
             let white = Qt.color("#ffffff"), black = Qt.color("#000000");
             return Colors.contrast(white, sample) >= Colors.contrast(black, sample) ? white : black;
         }
+        function wallpaperInk(pixels, sample) {
+            // Chroma-weighted hue votes keep gray areas from washing out accents.
+            // Pick one family for the entire wallpaper, never per-link colors.
+            let families = Array.from({length:12}, () => ({weight:0, r:0, g:0, b:0}));
+            for (let i = 0; i + 3 < pixels.length; i += 4) {
+                let r = pixels[i] / 255, g = pixels[i + 1] / 255, b = pixels[i + 2] / 255;
+                let high = Math.max(r, g, b), low = Math.min(r, g, b), chroma = high - low;
+                if (chroma < 0.12 || pixels[i + 3] < 128) continue;
+                let hue = high === r ? ((g - b) / chroma + 6) % 6
+                    : high === g ? (b - r) / chroma + 2 : (r - g) / chroma + 4;
+                let family = families[Math.round(hue * 2) % 12], weight = chroma * chroma;
+                family.weight += weight;
+                family.r += r * weight; family.g += g * weight; family.b += b * weight;
+            }
+            let dominant = families.reduce((best, family) => family.weight > best.weight ? family : best, families[0]);
+            if (dominant.weight === 0) return monochromeInk(sample);
+            let hue = Qt.rgba(dominant.r / dominant.weight, dominant.g / dominant.weight,
+                dominant.b / dominant.weight, 1).hslHue;
+            // Preserve the chosen hue while finding a readable light/dark shade.
+            let light = Qt.hsla(hue, 0.85, 0.68, 1), dark = Qt.hsla(hue, 0.85, 0.30, 1);
+            let useLight = monochromeInk(sample).r === 1;
+            let ink = useLight ? light : dark;
+            for (let step = 1; step <= 10 && Colors.contrast(ink, sample) < 4.5; ++step)
+                ink = Qt.hsla(hue, 0.85, useLight ? Math.min(1, 0.68 + step * 0.035) : Math.max(0, 0.30 - step * 0.035), 1);
+            return ink;
+        }
         readonly property color ink: {
             let pixels = knotsWallpaper.pixels;
             let sample = knotsWallpaper.sampleRect(Qt.rect(0, 0, bar.screenWidth, bar.screenHeight), false);
-            return monochromeInk(sample);
+            return wallpaperInk(pixels, sample);
         }
         function colorAt(along, cross, span, neutral) { return ink; }
         function segmentFor(start, end, cross, workspace, knotted) {

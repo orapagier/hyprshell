@@ -957,18 +957,36 @@ Item {
             compare(links.monochromeInk(Qt.color("#000000")),Qt.color("#ffffff"));
             compare(links.monochromeInk(Qt.color("#ffffff")),Qt.color("#000000"));
         }
+        function test_hyprknotsVibrantWallpaperInk() {
+            let links = findChild(bar,"panelConnectors");
+            for (let backdrop of ["#b52222", "#b57a22", "#22b54a", "#22aab5", "#224ab5", "#a522b5"]) {
+                let sample = Qt.color(backdrop);
+                let pixels = new Uint8Array(32*32*4);
+                for (let i=0; i<pixels.length; i+=4) {
+                    pixels[i]=Math.round(sample.r*255); pixels[i+1]=Math.round(sample.g*255);
+                    pixels[i+2]=Math.round(sample.b*255); pixels[i+3]=255;
+                }
+                let ink = links.wallpaperInk(pixels,sample);
+                fuzzyCompare(ink.hslHue,sample.hslHue,0.01);
+                verify(ink.hslSaturation > 0.8);
+                verify(Colors.contrast(ink,sample) >= 4.5);
+                compare(ink.a,1);
+            }
+        }
         function test_hyprknotsOneInkAcrossAllLinks() {
             let links = findChild(bar,"panelConnectors");
             let sampler = findChild(bar,"hyprknotsWallpaper");
             let previous = sampler.pixels;
             try {
-                for (let backdrop of [0,255]) {
+                for (let backdrop of ["#000000", "#ffffff", "#2255aa", "#aa2255"]) {
+                    let sample = Qt.color(backdrop);
                     let pixels = new Uint8Array(32*32*4);
                     for (let i=0; i<pixels.length; i+=4) {
-                        pixels[i]=backdrop; pixels[i+1]=backdrop; pixels[i+2]=backdrop; pixels[i+3]=255;
+                        pixels[i]=Math.round(sample.r*255); pixels[i+1]=Math.round(sample.g*255);
+                        pixels[i+2]=Math.round(sample.b*255); pixels[i+3]=255;
                     }
                     sampler.pixels = pixels;
-                    let expected = Qt.color(backdrop === 0 ? "#ffffff" : "#000000");
+                    let expected = links.wallpaperInk(pixels,sample);
                     for (let edge of ["top","bottom","left","right"]) {
                         bar.settings = connectorConfig(edge,{launcher:{backgroundColor:"#ffffff"},
                             audio:{pillGroup:"pair",backgroundColor:"#000000"},wifi:{pillGroup:"pair"}},
