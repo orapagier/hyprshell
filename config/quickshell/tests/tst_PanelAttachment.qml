@@ -84,10 +84,13 @@ Item {
                 let pill = findChild(attachedBar, "fullPanelPill");
                 let attached = findChild(attachedBar, "attachedPanelSurface");
                 tryCompare(attachedBar.wallpaperColors, "ready", true);
-                tryVerify(() => Colors.luminance(attached.surfaceColor) > 0.8);
+                tryVerify(() => Colors.luminance(attached.surfaceColor) < 0.05);
+                let darkWallpaperFill = pill.backgroundFill.toString();
+                verify(attached.outlineColor.a < 0.2);
                 compare(attached.outlineColor, pill.adaptivePalette.outline);
                 attachedBar.screenOffsetX = 220;
-                tryVerify(() => Colors.luminance(attached.surfaceColor) < 0.05);
+                tryVerify(() => pill.backgroundFill.toString() !== darkWallpaperFill);
+                tryVerify(() => Colors.luminance(attached.surfaceColor) < 0.25);
                 tryCompare(attached, "surfaceColor", pill.backgroundFill);
                 for (let transparency of [0,50,100]) {
                     config = JSON.parse(JSON.stringify(config));

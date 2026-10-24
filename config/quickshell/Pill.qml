@@ -41,6 +41,7 @@ Item {
     property string colorStyle: "normal"
     readonly property var adaptivePalette: colorSampler ? colorSampler.paletteFor(pill, colorRoot, settings.vibrantColor ? Qt.color(settings.vibrantColor) : foreground, settings.lightForeground ? (bare ? "light-bare" : settings.vibrantColor ? "light" : "light-" + colorStyle) : settings.vibrantColor ? (bare ? "vibrant-bare" : "vibrant") : (bare ? "bare-" + colorStyle : colorStyle), settings.panelAdaptive ? {
         shown:backgroundShown, style:colorStyle, transparency:settings.pillTransparency ?? -1,
+        glassSurface:settings.glassSurface === true,
         backgroundOpacity:settings.backgroundOpacity ?? -1, backgroundColor:settings.backgroundColor || "",
         layers:(settings.backingPills || []).map(surface => ({color:surface.backgroundFill, opacity:surface.backgroundAlpha}))
     } : null) : null

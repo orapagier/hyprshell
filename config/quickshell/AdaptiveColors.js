@@ -39,8 +39,11 @@ function panelPalette(region, accent, options) {
         let composite = mix(under.average, fill, amount);
         return contrast(composite, under.average);
     }
+    // Broad glass surfaces should retain the wallpaper hue. Maximizing their
+    // contrast selects near-white on dark wallpaper and produces a milky slab.
+    let glass = mix(under.average, Qt.color("#101722"), 0.60);
     let fill = options.backgroundColor ? Qt.color(options.backgroundColor)
-        : separation(dark) >= separation(light) ? dark : light;
+        : options.glassSurface ? glass : separation(dark) >= separation(light) ? dark : light;
     let opacity = options.transparency >= 0 ? 1 : options.backgroundOpacity >= 0 ? options.backgroundOpacity : originalOpacity;
     // Bound all hover/selection shades and the glass shine once, then solve
     // foreground lightness against those composite bounds. This avoids running
@@ -64,7 +67,8 @@ function panelPalette(region, accent, options) {
     return {foreground:foreground, tint:alpha(fill, opacity),
         hover:alpha(mix(fill, foreground, 0.025), opacity),
         selected:alpha(mix(fill, foreground, 0.05), opacity),
-        outline:alpha(glyphEdge(fill), 0.65), selectedOutline:alpha(foreground, 0.85)};
+        outline:options.glassSurface ? alpha(Qt.color("#e5eeff"), 0.18) : alpha(glyphEdge(fill), 0.65),
+        selectedOutline:alpha(foreground, 0.85)};
 }
 
 // Preserve bright hues when a pill can supply the contrasting backing.

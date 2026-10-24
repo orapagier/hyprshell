@@ -63,6 +63,25 @@ Item {
                 compare(pill.backgroundFill,Qt.color("#214987"));
             } finally { pill.settings = {}; }
         }
+        function test_fullPanelGlassRetainsWallpaperHueWithoutWhiteBacking() {
+            let accent = Qt.color("#b4befe"), fills = [];
+            for (let wallpaper of ["#000000", "#ffffff", "#184477", "#771844"]) {
+                let sample = Qt.color(wallpaper);
+                let region = {average:sample, minimum:sample, maximum:sample};
+                let palette = Colors.panelPalette(region, accent,
+                    {shown:true, glassSurface:true, transparency:50, layers:[]});
+                verify(Colors.luminance(palette.tint) < 0.25, "Glass must not become a white panel");
+                verify(palette.outline.a < 0.2, "Glass rim must stay subtle");
+                verify(Colors.contrast(palette.foreground, Colors.mix(sample,palette.tint,0.5)) >= 4.5);
+                fills.push(palette.tint);
+            }
+            verify(fills[2].b > fills[2].r, "Blue wallpaper should tint the glass blue");
+            verify(fills[3].r > fills[3].b, "Red wallpaper should tint the glass red");
+            let sample = Qt.color("#184477");
+            let manual = Colors.panelPalette({average:sample,minimum:sample,maximum:sample}, accent,
+                {shown:true,glassSurface:true,transparency:50,backgroundColor:"#214987",layers:[]});
+            compare(manual.tint,Qt.color("#214987"));
+        }
         function test_panelSurfacesAndGlyphsContrastWithWallpaper() {
             for (let wallpaper of ["#000000","#ffffff","#808080","#ee4444","#1440dd"]) {
                 let sample = Qt.color(wallpaper), accent = Qt.color("#b4befe");

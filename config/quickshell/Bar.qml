@@ -199,6 +199,7 @@ Item {
         style.uniformItems = uniformItems;
         style.panelAdaptive = true;
         style.backingPills = backingPills(id);
+        style.glassSurface = fullPill.visible;
         style.pillTransparency = settings.bar?.individualPillTransparency ?? -1;
         style.circularIcons = true;
         if (uniformItems && id !== "workspaces") style.iconSize = panelIconSize;
@@ -655,6 +656,7 @@ Item {
             style.lightForeground = true;
             style.outlineFree = true;
             style.panelAdaptive = true;
+            style.glassSurface = true;
             style.pillTransparency = bar.settings.bar?.fullPillTransparency ?? -1;
             let mode = bar.settings.bar?.fullBackground || "off";
             style.background = mode === "inherit" ? (bar.settings.bar?.background === "off" ? "off" : "on") : mode;
