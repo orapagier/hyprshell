@@ -153,6 +153,31 @@ ColumnLayout {
             wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
         }
         SettingsSwitch {
+            objectName: "edgeAttachedControl"
+            Layout.fillWidth: true
+            text: "Attach to screen edge"
+            checked: root.settings.edgeAttached === true
+            onToggled: root.edited("edgeAttached", checked)
+        }
+        Label {
+            Layout.fillWidth: true
+            text: "Join Hyprpane directly to the screen with curved feet, in centered and spread layouts. The edge margin is ignored while attached."
+            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+        }
+        SettingsSwitch {
+            objectName: "autoHideControl"
+            Layout.fillWidth: true
+            text: "Autohide attached Hyprpane"
+            enabled: root.settings.edgeAttached === true
+            checked: root.settings.autoHide === true
+            onToggled: root.edited("autoHide", checked)
+        }
+        Label {
+            Layout.fillWidth: true
+            text: "Hover the screen edge to reveal Hyprpane with a jelly bounce. Open menus keep it visible. Windows can use the space while autohide is enabled."
+            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+        }
+        SettingsSwitch {
             objectName: "uniformItemsControl"
             Layout.fillWidth: true
             text: "Uniform icon size & spacing"

@@ -30,6 +30,7 @@ function screenMargins(bar) {
         let end = vertical ? side === 'top' || side === 'bottom' : side === 'left' || side === 'right';
         result[side] = bar[key] ?? (edge === side ? (bar.marginTop ?? 5) : end ? (bar.marginSide ?? 10) : 0);
     }
+    if (bar.edgeAttached === true) result[edge] = 0;
     return result;
 }
 function copy(value) { return JSON.parse(JSON.stringify(value)); }

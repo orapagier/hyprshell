@@ -106,3 +106,15 @@ tray icon in either layout. Individual size/padding/gap overrides remain saved;
 turn uniform mode off to use them again. Side panels retain their circular
 controls and use the same icon size and item gap. Group positions still follow
 the selected centered or ordinary layout.
+
+### Screen attachment and autohide
+
+Hyprpane → Layout & spacing → **Attach to screen edge** adds a continuous
+surface with curved feet directly against the selected screen edge. It works
+with centered or spread items and compact side panels, without a screen frame.
+The selected edge margin is temporarily ignored; saved margins remain intact.
+**Autohide attached Hyprpane** reveals it from a 2 px edge strip with an elastic
+animation, delays hiding on pointer exit, and retains it while a menu is open.
+Autohide reserves no space for the panel. Workspace/output visibility still
+applies. Both options default off; autohide takes effect only while attached.
+Preferences are `bar.edgeAttached` and `bar.autoHide`.

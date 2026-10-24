@@ -24,6 +24,8 @@
     "spacing": 3,
     "compactSpacing": 3,
     "centerItems": false,
+    "edgeAttached": false,
+    "autoHide": false,
     "uniformItems": true,
     "screenMarginTop": null,
     "screenMarginBottom": null,

@@ -27,10 +27,11 @@ Item {
             return Math.max(style.iconSize || 16, style.fontSize || 12) + 12 + Math.max(0, style.paddingLeft || 0) + Math.max(0, style.paddingRight || 0);
         }))
     readonly property real itemSpacing: settings.bar?.hyprknots === false ? (settings.bar?.compactSpacing ?? 3) : (settings.bar?.spacing ?? 3)
-    readonly property real insetTop: settings.bar?.contentPaddingTop ?? 0
-    readonly property real insetBottom: settings.bar?.contentPaddingBottom ?? 0
-    readonly property real insetLeft: settings.bar?.contentPaddingLeft ?? 0
-    readonly property real insetRight: settings.bar?.contentPaddingRight ?? 0
+    readonly property real attachmentInset: settings.bar?.edgeAttached === true ? 16 : 0
+    readonly property real insetTop: (settings.bar?.contentPaddingTop ?? 0) + (vertical ? attachmentInset : 0)
+    readonly property real insetBottom: (settings.bar?.contentPaddingBottom ?? 0) + (vertical ? attachmentInset : 0)
+    readonly property real insetLeft: (settings.bar?.contentPaddingLeft ?? 0) + (vertical ? 0 : attachmentInset)
+    readonly property real insetRight: (settings.bar?.contentPaddingRight ?? 0) + (vertical ? 0 : attachmentInset)
     readonly property real contentWidth: Math.max(0, width - insetLeft - insetRight)
     readonly property real contentHeight: Math.max(0, height - insetTop - insetBottom)
     readonly property real sectionGap: uniformItems || centerItems || settings.bar?.hyprknots === false ? itemSpacing : Math.max(12, itemSpacing)
@@ -607,6 +608,17 @@ Item {
                 }
             }
         }
+    }
+    AttachedPanelSurface {
+        objectName: "attachedPanelSurface"
+        parent: bar
+        anchors.fill: parent
+        z: -3
+        visible: bar.settings.bar?.edgeAttached === true && fullPill.memberIds.length > 0
+        edge: bar.position
+        start: bar.vertical ? Math.max(12, fullPill.bounds.y + bar.insetTop - 4 - bar.scrollOffset) : fullPill.bounds.x + bar.insetLeft - 4
+        end: bar.vertical ? Math.min(bar.height - 12, fullPill.bounds.y + fullPill.bounds.height - bar.insetBottom + 4 - bar.scrollOffset)
+            : fullPill.bounds.x + fullPill.bounds.width - bar.insetRight + 4
     }
     Pill {
         id: fullPill

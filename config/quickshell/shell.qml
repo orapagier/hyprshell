@@ -139,11 +139,25 @@ ShellRoot {
                 let ws = monitor && monitor.activeWorkspace;
                 return Settings.panelVisible(preferences.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
             }
-            exclusiveZone: (vertical ? width : height) + (preferences.panelConfig.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
+            exclusiveZone: autoHide ? 0 : (vertical ? width : height) + (preferences.panelConfig.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
             exclusionMode: visible ? ExclusionMode.Normal : ExclusionMode.Ignore
             onVisibleChanged: if (!visible) menuState.close()
             readonly property string edge: preferences.config.bar.position || "top"
             readonly property bool vertical: edge === "left" || edge === "right"
+            readonly property bool autoHide: preferences.config.bar.edgeAttached === true && preferences.config.bar.autoHide === true
+            readonly property real revealProgress: panelReveal.progress
+            mask: Region {
+                x: panelReveal.inputRect.x; y: panelReveal.inputRect.y
+                width: panelReveal.inputRect.width; height: panelReveal.inputRect.height
+            }
+            PanelReveal {
+                id: panelReveal
+                anchors.fill: parent
+                edge: panel.edge
+                autoHide: panel.autoHide
+                menuOpen: menuState.section.length > 0 || keybindings.opened
+                motionEnabled: preferences.config.accessibility?.reducedMotion !== true && preferences.config.hyprland?.animations !== false
+            }
             readonly property var workspace: Hyprland.monitorFor(panel.modelData)?.activeWorkspace?.id ?? null
             readonly property rect menuBounds: Qt.rect(0, 0, modelData.width, modelData.height)
             onWorkspaceChanged: closeMenu()
@@ -174,6 +188,17 @@ ShellRoot {
                 settings: preferences.panelConfig
                 hoverPopdowns: menuState.hoverEnabled
                 anchors.fill: parent
+                transform: [
+                    Translate {
+                        x: panel.vertical ? (panel.edge === "left" ? -1 : 1) * (1 - Math.min(1, panel.revealProgress)) * panel.width : 0
+                        y: panel.vertical ? 0 : (panel.edge === "top" ? -1 : 1) * (1 - Math.min(1, panel.revealProgress)) * panel.height
+                    },
+                    Scale {
+                        origin.x: bar.width / 2; origin.y: bar.height / 2
+                        xScale: panel.vertical ? 1 : 1 + Math.max(0, panel.revealProgress - 1) * 0.15
+                        yScale: panel.vertical ? 1 + Math.max(0, panel.revealProgress - 1) * 0.15 : 1
+                    }
+                ]
                 statusData: shell.statusData
                 mediaData: shell.mediaData
                 notificationData: shell.notificationData
