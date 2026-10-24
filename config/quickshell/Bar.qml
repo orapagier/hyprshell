@@ -694,8 +694,11 @@ Item {
             if (bar.vertical)
                 return Qt.rect(0, top - bar.insetTop, bar.width,
                     bottom - top + bar.insetTop + bar.insetBottom);
-            return Qt.rect(left - bar.insetLeft, 0,
-                right - left + bar.insetLeft + bar.insetRight, bar.height);
+            // Fit the horizontal surface to the items without resizing their layout.
+            let surfaceTop = Math.max(0, top - 2);
+            let surfaceBottom = Math.min(bar.height, bottom + 2);
+            return Qt.rect(left - bar.insetLeft, surfaceTop,
+                right - left + bar.insetLeft + bar.insetRight, surfaceBottom - surfaceTop);
         }
         visible: !bar.statusIconsOnly && fullPill.memberIds.length > 0 && fullPill.backgroundShown
         x: fullPill.bounds.x; y: fullPill.bounds.y; width: fullPill.bounds.width; height: fullPill.bounds.height

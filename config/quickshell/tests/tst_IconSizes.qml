@@ -56,6 +56,26 @@ Item {
             }
             verify(bar.height >= 52);
         }
+        function test_fullPillFitsUnchangedItemsWithSmallHeadroom() {
+            for (let edge of ["top", "bottom"]) {
+                bar.settings = {bar:{position:edge,height:30,uniformItems:true,fullBackground:"off"},
+                    items:[{id:"workspaces",iconSize:21,fontSize:8},{id:"audio",iconSize:14,fontSize:10},
+                        {id:"wifi",iconSize:12},{id:"bluetooth",iconSize:15},{id:"power",iconSize:15}]};
+                let ids = bar.orderedItems("left").concat(bar.orderedItems("center"), bar.orderedItems("right"));
+                let heights = ids.map(id => bar.moduleItems[id].height);
+                let panelHeight = bar.height;
+                bar.settings = Object.assign({}, bar.settings, {bar:Object.assign({}, bar.settings.bar, {fullBackground:"on"})});
+                let surface = findChild(bar,"fullPanelPill");
+                verify(surface.visible);
+                compare(bar.height, panelHeight);
+                for (let i = 0; i < ids.length; ++i) compare(bar.moduleItems[ids[i]].height, heights[i]);
+                let top = Math.min(...ids.map(id => bar.moduleItems[id].y));
+                let bottom = Math.max(...ids.map(id => bar.moduleItems[id].y + bar.moduleItems[id].height));
+                fuzzyCompare(surface.y, top - 2, 0.01);
+                fuzzyCompare(surface.y + surface.height, bottom + 2, 0.01);
+                verify(surface.height < panelHeight);
+            }
+        }
         function test_retiredMotionSettingsDoNotSurviveMerge() {
             let defaults={version:1,bar:{iconSize:0},items:[{id:"audio",iconSize:0}],hyprland:{}};
             let merged=Model.merge(defaults,{version:1,bar:{genieEffect:true,genieOpenDuration:300},items:[{id:"audio",genieEffect:"on",genieCloseDuration:400}]});
