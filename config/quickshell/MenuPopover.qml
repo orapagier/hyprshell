@@ -30,7 +30,7 @@ Item {
     readonly property var menuColors: glass.menuColors
     // Bar accents can be dark on a bright wallpaper. Measure against the
     // card's own gradient, and include the extra tint behind its header icon.
-    readonly property color headerColor: headerForeground(0)
+    readonly property color headerColor: headerIconColor
     readonly property color headerIconColor: headerForeground(0.14)
     function headerForeground(tint) {
         let top = Colors.mix(Colors.mix(glass.sample, glass.topColor, glass.topColor.a), menuColors.accent, tint);
