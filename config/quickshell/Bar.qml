@@ -846,9 +846,15 @@ Item {
         verticalItemAlignment: Grid.AlignVCenter
         height: implicitHeight
         spacing: bar.statusIconsOnly ? 2 : bar.uniformItems || bar.centerItems || bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
-        // Match the power glyph's visible inset at the full panel ends.
-        readonly property real endPadding: bar.uniformItems && bar.fullBackgroundEnabled && !bar.vertical
-            ? Math.max(0, power.width - power.glyphRect.x - power.glyphRect.width) : 0
+        // Match the power circle's visible inset at the full panel ends.
+        readonly property real endPadding: {
+            if (!bar.uniformItems || !bar.fullBackgroundEnabled || bar.vertical || !power.circular) return 0;
+            let surfaceWidth = Math.min(power.width, Math.max(0,
+                power.height - 2 * (power.settings.backgroundVerticalInset || 0)));
+            let extraWidth = power.width - surfaceWidth;
+            // Center anchors round their position to whole pixels.
+            return extraWidth - Math.round(extraWidth / 2);
+        }
         leftPadding: bar.uniformItems || bar.centerItems ? endPadding : Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
         rightPadding: bar.uniformItems || bar.centerItems ? endPadding : Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
         Repeater {
