@@ -125,7 +125,8 @@ ShellRoot {
     Timer { interval: 1000; running: true; repeat: true; onTriggered: shell.updateClock() }
     Variants {
         id: panels
-        model: Quickshell.screens
+        // Create layer surfaces with saved margins and attachment on the first map.
+        model: preferences.loaded ? Quickshell.screens : []
         PanelWindow {
             id: panel
             required property var modelData

@@ -474,7 +474,7 @@ Item {
         function arrangeKnots(spans, seed) {
             let result = spans.map(() => []), slots = [];
             for (let i = 0; i < spans.length; ++i) {
-                let span = spans[i], count = span.knots.length;
+                let span = spans[i], count = span.knotCount ?? span.knots.length;
                 for (let j = 0; j < count; ++j)
                     slots.push({segment:i, knot:j, position:span.start + (span.end - span.start) * (j + 0.5) / count});
             }
@@ -541,6 +541,22 @@ Item {
                 region.minimum, region.maximum, 4.6);
         }
         function segmentFor(start, end, cross, workspace, knotted) {
+            let geometry = {start:start, end:end, cross:cross, workspace:workspace, knotted:knotted};
+            let sampled = null;
+            function colors() {
+                if (sampled === null) sampled = connectors.sampleSegment(geometry);
+                return sampled;
+            }
+            // Geometry stays reactive; expensive contrast is needed only when
+            // the settled segment is painted (or explicitly inspected).
+            return {start:start, end:end, cross:cross, workspace:workspace,
+                knotCount:knotted ? (workspace || bar.centerItems ? 1 : Math.max(1, Math.floor((end - start) / 42))) : 0,
+                get ink() { return colors().ink; },
+                get stops() { return colors().stops; },
+                get knots() { return colors().knots; }};
+        }
+        function sampleSegment(segment) {
+            let {start, end, cross, workspace, knotted} = segment;
             let length = end - start;
             let steps = Math.max(1, Math.ceil(length / 16)), stops = [];
             for (let i = 0; i <= steps; ++i)
@@ -552,6 +568,7 @@ Item {
                 ink:colorAt((start + end) / 2, cross, 8, true), stops:stops, knots:knots};
         }
         readonly property var segments: {
+            let paletteInputs = colorInputs;
             let ids = Object.keys(bar.moduleItems).filter(id => bar.itemShown(id));
             ids.sort((a, b) => bar.vertical
                 ? bar.moduleItems[a].y - bar.moduleItems[b].y
@@ -594,6 +611,19 @@ Item {
                 }
             }
             return result;
+        }
+        // Invalidate cached colors when wallpaper or backing material changes,
+        // including hover/selection, without solving contrast during layout.
+        readonly property var colorInputs: {
+            let surfaces = [fullPill];
+            for (let i = 0; i < sharedPillRepeater.count; ++i) {
+                let surface = sharedPillRepeater.itemAt(i);
+                if (surface) surfaces.push(surface);
+            }
+            return [bar.wallpaperColors.pixels, bar.wallpaperSource,
+                bar.screenOffsetX, bar.screenOffsetY, bar.scrollOffset,
+                surfaces.map(surface => [surface.participating, surface.x, surface.y,
+                    surface.width, surface.height, surface.settings.radius, surface.backgroundFill, surface.backgroundAlpha])];
         }
         onAvailableChanged: if (available) requestPaint()
         onSegmentsChanged: requestPaint()
