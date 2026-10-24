@@ -94,13 +94,13 @@ Item {
                 fuzzyCompare(trailing,full === "on" ? 5 : 0,0.01,"trailing content inset");
                 for (let number of [1,12]) {
                     let workspace = findChild(bar,"workspace" + number);
-                    fuzzyCompare(workspace.height,data.thickness * (data.uniform ? 0.48 : 0.4),0.01,"workspace pill height");
+                    fuzzyCompare(workspace.height,data.thickness * 0.6,0.01,"workspace matches status control height");
                     let ink = workspace.textGlyphRect;
                     verify(ink.height <= workspace.height * 0.8 + 0.01,"number fits vertically");
                     verify(ink.width <= workspace.width * 0.8 + 0.01,"number fits horizontally");
                     fuzzyCompare(ink.x + ink.width / 2,workspace.width / 2,0.5,"number centered");
                     if (data.uniform && number === 1)
-                        fuzzyCompare(ink.height,data.thickness * 9 / 30,0.01,"workspace text is slightly smaller");
+                        fuzzyCompare(ink.height,data.thickness * 12 / 30,0.01,"workspace number matches icon ink");
                 }
                 fuzzyCompare(findChild(bar,"mediaSpectrum").height,data.thickness * (data.uniform ? 0.4 : 0.48),0.01,"media ink height");
                 fuzzyCompare(bar.moduleItems.media.height,data.thickness * 0.6,0.01,"media pill height");
@@ -471,7 +471,7 @@ Item {
                 } else {
                     let workspace = findChild(bar,"workspace12");
                     compare(workspace.height,workspace.width);
-                    verify(workspace.height < bar.panelSlotSize);
+                    compare(workspace.height,bar.panelSlotSize);
                 }
                 compare(bar.moduleItems.workspaces.spacing,5);
                 compare(findChild(bar.moduleItems.tray,"trayIcon").parent.spacing,5);
@@ -802,6 +802,27 @@ Item {
             bar.statusIconsOnly = false;
             bar.settings = {bar:{fullBackground:"on"}, items:Object.keys(bar.moduleItems).map(id => ({id:id,enabled:false}))};
             verify(!pill.visible);
+        }
+        function test_hyprknotsRetainVividAdaptiveHues() {
+            let links = findChild(bar,"panelConnectors");
+            let previous = bar.wallpaperSource;
+            for (let backdrop of ["#080c14","#567485","#ffffff"]) {
+                let sample = Qt.color(backdrop), region = {average:sample,minimum:sample,maximum:sample};
+                for (let neutral of [false,true]) {
+                    bar.wallpaperSource = "wallpaper-a.jpg";
+                    let first = links.contrastingInk(region,0,neutral);
+                    verify(first.hslSaturation > 0.7,"chain and knots retain color");
+                    verify(Colors.contrast(first,sample) >= 4.5,"visible on dark, medium and light surfaces");
+                    let colors = [];
+                    for (let i=0; i<12; ++i) colors.push(String(links.contrastingInk(region,i*42,neutral)));
+                    verify(new Set(colors).size > 3,"spatial hue variety");
+                    bar.wallpaperSource = "wallpaper-b.jpg";
+                    let changed = [];
+                    for (let i=0; i<12; ++i) changed.push(String(links.contrastingInk(region,i*42,neutral)));
+                    verify(JSON.stringify(colors) !== JSON.stringify(changed),"palette changes with wallpaper");
+                }
+            }
+            bar.wallpaperSource = previous;
         }
         function test_hyprknotsAdaptToPillColorAndTransparency() {
             let links = findChild(bar,"panelConnectors");

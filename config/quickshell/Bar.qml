@@ -24,7 +24,7 @@ Item {
     readonly property real panelTextSize: panelIconSize * 10 / 12
     readonly property bool iconPills: vertical || centerItems
     readonly property real panelSlotSize: verticalThickness * 0.6
-    readonly property real workspacePillSize: verticalThickness * (uniformItems ? 0.48 : 0.4)
+    readonly property real workspacePillSize: panelSlotSize
     readonly property real panelItemInset: verticalThickness * 0.2
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Resolve thickness from settings, independently of child geometry.
@@ -210,7 +210,7 @@ Item {
         style.uniformGlyphHeight = uniformItems ? panelIconSize : id === "workspaces"
             ? (style.iconSize || style.fontSize ? 0 : workspacePillSize * 0.8)
             : style.iconSize || style.fontSize || panelSlotSize * 0.8;
-        if (uniformItems) style.uniformTextHeight = panelTextSize * (id === "workspaces" ? 0.9 : 1);
+        if (uniformItems) style.uniformTextHeight = id === "workspaces" ? panelIconSize : panelTextSize;
         style.panelAdaptive = true;
         style.backingPills = backingPills(id);
         style.glassSurface = fullPill.visible;
@@ -517,9 +517,18 @@ Item {
         }
         function colorAt(along, cross, span, neutral) {
             let region = regionAt(along, cross, span);
-            let vivid = Colors.lightForeground(region.average, region.average);
-            return Colors.readableForeground(region.average,
-                neutral ? Colors.mix(vivid, Qt.color("#ffffff"), 0.55) : vivid,
+            return contrastingInk(region, along, neutral);
+        }
+        function contrastingInk(region, along, neutral) {
+            // Wallpaper-seeded hues stay vivid even over a muted glass surface.
+            // Spatial color changes keep long chains lively; contrast follows
+            // the actual wallpaper and pill layers underneath each stroke.
+            let palette = Settings.wallpaperPalette(bar.wallpaperSource.toString());
+            let accent = Qt.color(palette[Math.floor(Math.abs(along) / 42) % palette.length]);
+            let hue = accent.hslHue >= 0 ? accent.hslHue
+                : region.average.hslHue >= 0 ? (region.average.hslHue + 0.5) % 1 : 0.55;
+            let vivid = Qt.hsla(hue, neutral ? 0.85 : 1, 0.65, 1);
+            return Colors.readableForeground(region.average, vivid,
                 region.minimum, region.maximum, 4.6);
         }
         function segmentFor(start, end, cross, workspace, knotted) {
