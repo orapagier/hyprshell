@@ -22,6 +22,12 @@ toggles the current workspace. The enabled flag is a master gate; workspace
 overrides take priority over ordinary scope defaults. An empty monitor list means
 all outputs; disconnected connector names are retained for hotplug.
 
+Default end margins are 10 px. Full Pill adds 5 px between its ends and the
+first/last item. Without Full Pill, items start at the 10 px screen margin.
+Individual items have 5 px base left/right padding, including text. Inner-padding
+controls add space to these defaults; individual padding offsets remain available
+when uniform mode is disabled.
+
 `pins.matches` retains explicit application identity corrections used by the
 launcher/window service. See [application support](application-support.md).
 
@@ -72,18 +78,20 @@ membership continues to control layout; disabling centering restores ordinary
 menu alignment. Hidden-panel shortcuts and the application launcher overlay
 retain their existing placement.
 
-Centered layouts place every icon in the same square slot, including a calendar
+Centered layouts place ordinary icons in equal square slots, including a calendar
 icon for date/time and a compact media spectrum. Workspace numbers use their
-saved compact font but occupy the same slot and circular pill as other icons, so
-one- and two-digit workspaces keep identical spacing. Normal-mode workspace names
-and custom appearance remain saved. Notification counts and status text remain
+saved compact font and use circular pills at 70% of panel thickness, smaller
+than other item pills. One- and two-digit workspaces keep identical spacing.
+Normal-mode workspace names and custom appearance remain saved. Notification counts and status text remain
 available in their menus. The normal text layout returns when centering is
 disabled; saved item text, icons and appearance are retained. With background
-pills enabled, each slot uses the same circular pill and the icon or number is
-centered inside it. A full Hyprpane pill keeps the complete row centered and
-reserves a small vertical inset around the circular slots, so their outlines stay
-visibly separated from the outer capsule instead of sharing its top and bottom
-edges.
+pills enabled, icons and numbers stay centered inside their pills. Item pills
+occupy 80% of Full Pill's thickness, leaving 10% on each side. Default icon and
+text ink height is 80% of its own pill (64% of the full thickness). Workspace
+pills occupy 70%, leaving 15% on each side; default numbers fit within 80% of
+that pill in both dimensions. These proportions follow panel thickness on all
+four edges, with Full Pill enabled or disabled. A size of 0 selects automatic
+sizing; explicit icon/font sizes remain available.
 
 The active item-gap control (with or without Hyprknots) applies to centered
 items in every group, workspace buttons, tray icons, shared-pill members and
@@ -94,12 +102,13 @@ Only the applicable gap control is enabled for the current mode.
 **Uniform icon size & spacing** (`bar.uniformItems`, default true) uses the
 General icon size for launcher/settings marks, status icons, calendar, media
 spectrum and tray artwork. Workspace number font choices remain independent.
-Ordinary horizontal layouts size pills around visible glyph bounds with 4 px
+Ordinary horizontal layouts size pills around visible glyph bounds with 5 px
 padding on either side; Bluetooth and Wi-Fi no longer reserve an unrelated
-square width or font-bearing space. Centered layouts use one square icon slot
-for every item, so icons, circular pills and the active gap share the same
-footprint whether backgrounds are shown or hidden. Text labels remain available
-in the ordinary layout, and workspace numbers keep their saved compact font.
+square width or font-bearing space. Centered layouts use equal square slots
+for ordinary items and smaller workspace slots. Each keeps the same footprint
+whether backgrounds are shown or hidden. Text labels remain available
+in the ordinary layout, and workspace numbers retain independent font overrides
+and their smaller 70% pills.
 
 The active item gap applies to every group, shared pill, workspace button and
 tray icon in either layout. Individual size/padding/gap overrides remain saved;

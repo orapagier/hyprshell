@@ -284,7 +284,7 @@ ColumnLayout {
     SettingsCard {
         Layout.fillWidth: true
         title: "Inner padding"
-        subtitle: "Extra space around the items. Zero adds no extra padding; outer margins and each item’s own padding still apply. Equal left/right values keep the center group centered."
+        subtitle: "Extra space around the items, in addition to Full Pill’s 5 px end insets and 10% cross-axis margins. Items have 5 px base padding. Equal left/right values keep the center group centered."
         GridLayout {
             Layout.fillWidth: true
             columns: root.width >= 600 ? 2 : 1
@@ -434,6 +434,7 @@ ColumnLayout {
         SettingsIconSize {
             Layout.fillWidth: true
             settingValue: root.settings.iconSize
+            inheritedSize: Math.round((root.settings.height || 32) * 0.64)
             onEdited: value => root.edited("iconSize", value)
         }
     }

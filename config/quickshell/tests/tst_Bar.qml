@@ -46,6 +46,66 @@ Item {
             return {bar:Object.assign({position:position, background:"on", spacing:20}, options || {}),
                 items:Object.keys(bar.moduleItems).map(id => Object.assign({id:id, side:"left", enabled:!!items[id]}, items[id] || {}))};
         }
+        function test_requestedDefaultPillProportions_data() {
+            let rows = [];
+            for (let edge of ["top","bottom","left","right"])
+                for (let thickness of [30,40,64])
+                    for (let uniform of [false,true])
+                        for (let centered of [false,true])
+                            rows.push({tag:[edge,thickness,uniform,centered].join("-"),edge:edge,
+                                thickness:thickness,uniform:uniform,centered:centered});
+            return rows;
+        }
+        function test_requestedDefaultPillProportions(data) {
+            bar.statusData = {workspaces:[{id:1,name:"1"},{id:12,name:"12"}],
+                audio:{icon:"󰕾",text:"48%"},network:{text:"󰤨"},bluetooth:{},battery:{}};
+            bar.mediaData = {playing:true,title:"Song",levels:[1,0.8]};
+            bar.trayModel = [{icon:Qt.resolvedUrl("../icons/preview-tray.svg")}];
+            let modules = {launcher:{},settings:{},audio:{},wifi:{},workspaces:{},media:{},
+                calendar:{side:"center"},tray:{side:"right"},power:{side:"right"}};
+            for (let full of ["on","off"]) {
+                bar.settings = connectorConfig(data.edge,modules,{height:data.thickness,iconSize:0,
+                    fullBackground:full,uniformItems:data.uniform,centerItems:data.centered,hyprknots:false});
+                if (bar.vertical) bar.width = bar.implicitWidth;
+                wait(0);
+                let margins = Settings.screenMargins(bar.settings.bar);
+                compare(margins[bar.vertical ? "top" : "left"],10,"outer leading margin");
+                compare(margins[bar.vertical ? "bottom" : "right"],10,"outer trailing margin");
+                let fullPill = findChild(bar,"fullPanelPill");
+                compare(fullPill.visible,full === "on");
+                let crossSize = bar.vertical ? bar.width : bar.height;
+                fuzzyCompare(crossSize,data.thickness,0.01,"panel thickness");
+                for (let id of ["launcher","settings","audio","wifi","calendar","power"]) {
+                    let item = bar.moduleItems[id], background = findChild(item,"pillBackground");
+                    fuzzyCompare(background.height,data.thickness * 0.8,0.01,id + " own pill height");
+                    fuzzyCompare(item.glyphRect.height,background.height * 0.8,0.01,id + " ink height");
+                    let cross = bar.vertical ? item.x + item.width / 2 : item.y + item.height / 2;
+                    fuzzyCompare(cross,crossSize / 2,0.01,id + " cross-axis center");
+                }
+                let audio = bar.moduleItems.audio;
+                compare(audio.effectiveLeftPadding,5,"base left padding");
+                compare(audio.effectiveRightPadding,5,"base right padding");
+                let ends = ["left","center","right"].reduce((all, side) => all.concat(bar.orderedItems(side)), []);
+                let first = bar.moduleItems[ends[0]], last = bar.moduleItems[ends[ends.length - 1]];
+                let leading = bar.vertical ? first.y - fullPill.y : first.x - fullPill.x;
+                let trailing = bar.vertical ? fullPill.y + fullPill.height - last.y - last.height
+                    : fullPill.x + fullPill.width - last.x - last.width;
+                fuzzyCompare(leading,full === "on" ? 5 : 0,0.01,"leading content inset");
+                fuzzyCompare(trailing,full === "on" ? 5 : 0,0.01,"trailing content inset");
+                for (let number of [1,12]) {
+                    let workspace = findChild(bar,"workspace" + number);
+                    fuzzyCompare(workspace.height,data.thickness * 0.7,0.01,"workspace pill height");
+                    let ink = workspace.textGlyphRect;
+                    verify(ink.height <= workspace.height * 0.8 + 0.01,"number fits vertically");
+                    verify(ink.width <= workspace.width * 0.8 + 0.01,"number fits horizontally");
+                    fuzzyCompare(ink.x + ink.width / 2,workspace.width / 2,0.5,"number centered");
+                }
+                fuzzyCompare(findChild(bar,"mediaSpectrum").height,data.thickness * 0.64,0.01,"media ink height");
+                fuzzyCompare(bar.moduleItems.media.height,data.thickness * 0.8,0.01,"media pill height");
+                fuzzyCompare(bar.moduleItems.tray.trayIconSize,data.thickness * 0.64,0.01,"tray artwork height");
+                fuzzyCompare(findChild(bar.moduleItems.tray,"trayIcon").height,data.thickness * 0.8,0.01,"tray pill height");
+            }
+        }
         function test_asymmetricPaddingConnectorsAndSymmetricCentering() {
             let links = findChild(bar, "panelConnectors");
             bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}],audio:{},network:{},bluetooth:{},battery:{}};
@@ -112,10 +172,10 @@ Item {
                 compare(first.shownIcon,""); compare(second.shownIcon,"");
                 verify(first.content.font.pixelSize < first.effectiveIconSize);
                 verify(second.content.font.pixelSize < second.effectiveIconSize);
-                compare(first.width,bar.panelSlotSize);
-                compare(second.width,bar.panelSlotSize);
-                compare(first.height,bar.moduleItems.audio.height);
-                compare(second.height,bar.moduleItems.audio.height);
+                compare(first.width,bar.workspacePillSize);
+                compare(second.width,bar.workspacePillSize);
+                compare(first.height,bar.workspacePillSize);
+                compare(second.height,bar.workspacePillSize);
                 verify(first.content.implicitWidth <= first.width);
                 verify(second.content.implicitWidth <= second.width);
                 compare(bar.moduleItems.media.item.shownText,"");
@@ -163,8 +223,8 @@ Item {
                 [1,12].forEach((id,i) => {
                     let pill=findChild(bar,"workspace"+id);
                     compare(pill.shownText,String(id));
-                    fuzzyCompare(pill.width,bar.panelSlotSize,0.01);
-                    fuzzyCompare(pill.height,bar.panelSlotSize,0.01);
+                    fuzzyCompare(pill.width,bar.workspacePillSize,0.01);
+                    fuzzyCompare(pill.height,bar.workspacePillSize,0.01);
                     compare(pill.content.font.pixelSize,dimensions[i].font);
                 });
                 bar.settings = Object.assign({},bar.settings,{bar:Object.assign({},bar.settings.bar,{centerItems:false})});
@@ -196,7 +256,7 @@ Item {
                 let previous = null;
                 for (let id of ids) {
                     let item = bar.moduleItems[id];
-                    fuzzyCompare(item.height,id === "workspaces" ? bar.panelIconSize : bar.panelSlotSize,0.01,id + " slot height");
+                    fuzzyCompare(item.height,id === "workspaces" ? bar.workspacePillSize : bar.panelSlotSize,0.01,id + " slot height");
                     if (id !== "workspaces" && id !== "tray")
                         fuzzyCompare(item.width,bar.panelSlotSize,0.01,id + " slot width");
                     if (item.glyphRect && item.glyphRect.width > 0) {
@@ -216,8 +276,8 @@ Item {
                     previous = item;
                 }
                 for (let workspace of [findChild(bar,"workspace1"),findChild(bar,"workspace2")]) {
-                    fuzzyCompare(workspace.width,bar.panelIconSize,0.01,"workspace pill matches artwork width");
-                    fuzzyCompare(workspace.height,bar.panelIconSize,0.01,"workspace pill matches artwork height");
+                    fuzzyCompare(workspace.width,bar.workspacePillSize,0.01,"workspace pill width");
+                    fuzzyCompare(workspace.height,bar.workspacePillSize,0.01,"workspace pill height");
                     fuzzyCompare(workspace.x + workspace.width / 2,
                         workspace.x + workspace.glyphRect.x + workspace.glyphRect.width / 2,1,"workspace glyph center");
                 }
@@ -234,16 +294,16 @@ Item {
                 }
                 let full = findChild(bar,"fullPanelPill");
                 verify(full.visible);
-                verify(bar.panelSlotSize / full.height <= 0.7, "inner pills occupy at most 70% of full pill height");
+                fuzzyCompare(bar.panelSlotSize / full.height,0.8,0.01,"inner pills occupy 80% of full pill height");
                 fuzzyCompare(full.x + full.width / 2,bar.width / 2,0.01,"full pill center");
-                fuzzyCompare(bar.moduleItems[ids[0]].x - full.x,bar.panelItemInset,0.01,"full pill leading cap");
+                fuzzyCompare(bar.moduleItems[ids[0]].x - full.x,bar.fullPillInset,0.01,"full pill leading cap");
                 fuzzyCompare(full.x + full.width - bar.moduleItems[ids[ids.length - 1]].x
-                    - bar.moduleItems[ids[ids.length - 1]].width,bar.panelItemInset,0.01,"full pill trailing cap");
+                    - bar.moduleItems[ids[ids.length - 1]].width,bar.fullPillInset,0.01,"full pill trailing cap");
                 fuzzyCompare(full.height,bar.panelSlotSize + 2 * bar.panelItemInset,0.01,"full pill vertical inset");
                 fuzzyCompare(full.y,0,0.01,"full pill top");
                 for (let id of ids) {
                     let item = bar.moduleItems[id];
-                    let inset = bar.panelItemInset + (id === "workspaces" ? (bar.panelSlotSize - bar.panelIconSize) / 2 : 0);
+                    let inset = bar.panelItemInset + (id === "workspaces" ? (bar.panelSlotSize - bar.workspacePillSize) / 2 : 0);
                     fuzzyCompare(item.y - full.y,inset,0.01,id + " top inset");
                     fuzzyCompare(full.y + full.height - item.y - item.height,
                         inset,0.01,id + " bottom inset");
@@ -399,7 +459,7 @@ Item {
                         compare(bar.moduleItems[id].height,height,id + " uniform height");
                 }
                 if (centered) {
-                    compare(findChild(bar,"workspace12").height,bar.panelIconSize);
+                    compare(findChild(bar,"workspace12").height,bar.workspacePillSize);
                     compare(bar.moduleItems.tray.trayTargetSize,bar.panelSlotSize);
                 } else {
                     let workspace = findChild(bar,"workspace12");
@@ -475,13 +535,13 @@ Item {
                     }
                 }
                 let workspace = findChild(bar,"workspace12"), background = findChild(workspace,"pillBackground");
-                compare(background.height,16);
-                compare(background.width,16);
+                compare(background.height,bar.workspacePillSize);
+                compare(background.width,bar.workspacePillSize);
                 compare(workspace.content.font.pixelSize,9);
                 verify(workspace.content.width >= workspace.content.implicitWidth,"two-digit workspace number fits its pill");
                 if (!bar.vertical) {
                     let top = workspace.mapToItem(bar,background.x,background.y).y;
-                    fuzzyCompare(top,bar.moduleItems.audio.y + bar.moduleItems.audio.glyphRect.y,0.01,"workspace pill top matches bare icon");
+                    fuzzyCompare(top + background.height / 2,bar.moduleItems.audio.y + bar.moduleItems.audio.height / 2,0.01,"workspace pill and icon centers match");
                 }
                 let spectrum = findChild(bar,"mediaSpectrum");
                 compare(spectrum.height,16);
@@ -626,8 +686,8 @@ Item {
                 bar.settings = connectorConfig(edge, {audio:{},wifi:{side:"right"}},
                     {centerItems:true,fullBackground:"on",contentPaddingLeft:padding,contentPaddingRight:padding});
                 wait(0);
-                fuzzyCompare(bar.moduleItems.audio.x - pill.x, Math.max(bar.panelItemInset,padding), 0.01);
-                fuzzyCompare(pill.x + pill.width - bar.moduleItems.wifi.x - bar.moduleItems.wifi.width, Math.max(bar.panelItemInset,padding), 0.01);
+                fuzzyCompare(bar.moduleItems.audio.x - pill.x, bar.fullPillInset + padding, 0.01);
+                fuzzyCompare(pill.x + pill.width - bar.moduleItems.wifi.x - bar.moduleItems.wifi.width, bar.fullPillInset + padding, 0.01);
                 fuzzyCompare(pill.x + pill.width / 2, bar.width / 2, 0.01);
             }
         }
@@ -699,7 +759,7 @@ Item {
                 bar.settings = {bar:{position:position, fullBackground:"on"}, items:[{id:"launcher",enabled:false}]};
                 verify(!pill.memberIds.includes("launcher"));
                 compare(pill.leader, "settings");
-                compare(bar.vertical ? pill.y : pill.x, bar.vertical ? bar.moduleItems.settings.y : bar.moduleItems.settings.x);
+                compare(bar.vertical ? pill.y + bar.insetTop : pill.x + bar.insetLeft, bar.vertical ? bar.moduleItems.settings.y : bar.moduleItems.settings.x);
             }
             bar.settings = {bar:{fullBackground:"inherit", background:"off"}};
             verify(!pill.visible);
@@ -823,21 +883,19 @@ Item {
             verify(bell !== null);
             compare(bell.text, "󰂚");
             verify(bell.visible);
-            verify(bell.width >= 30);
+            verify(bell.width >= bar.panelSlotSize);
             bar.notificationData = undefined;
             compare(bell.text, "󰂚");
             verify(bell.visible);
             bar.notificationData = {count: 12, tooltip: "12 unread notifications"};
             compare(bell.text, "󰂚");
-            verify(bell.width > 30);
+            verify(bell.width > bar.panelSlotSize);
             let badge = findChild(bell, "notificationBadge");
-            let glyphRight = bell.content.x + bell.content.width;
-            let glyphX = bell.content.x;
             for (let count of [1, 12, 999]) {
                 bar.notificationData = {count: count};
-                compare(bell.content.x, glyphX);
-                verify(badge.x >= glyphRight - 3 && badge.x <= glyphRight);
-                verify(badge.y < bell.content.y);
+                let glyphRight = bell.textGlyphRect.x + bell.textGlyphRect.width;
+                fuzzyCompare(badge.x,glyphRight - 2,0.01);
+                verify(badge.y < bell.textGlyphRect.y);
                 verify(badge.x + badge.width < bell.width);
             }
             grabImage(bell).save("/tmp/quickshell-bell-badge.png");

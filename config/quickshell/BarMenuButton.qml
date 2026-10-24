@@ -8,7 +8,7 @@ Pill {
     required property string menu
     iconOnlyHeight: bar.verticalThickness - 4
     iconOnly: bar.iconsOnly || (bar.statusIconsOnly && menu !== "calendar")
-    implicitHeight: !vertical && iconOnly ? Math.max(uniformItems ? 24 : 28, effectiveIconSize + 8) : naturalHeight
+    implicitHeight: bar.panelSlotSize
     objectName: menu + "Trigger"
     colorSampler: Settings.adaptive(bar.settings, menu) ? bar.wallpaperColors : null
     colorRoot: bar

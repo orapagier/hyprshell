@@ -15,23 +15,28 @@ Item {
     readonly property bool centerItems: settings.bar?.centerItems === true
     readonly property bool iconsOnly: vertical || centerItems
     readonly property bool uniformItems: settings.bar?.uniformItems === true
-    readonly property real panelIconSize: settings.bar?.iconSize || 16
+    readonly property bool fullBackgroundEnabled: !statusIconsOnly && (settings.bar?.fullBackground === "on"
+        || (settings.bar?.fullBackground === "inherit" && settings.bar?.background !== "off"))
+    readonly property real fullPillInset: fullBackgroundEnabled ? 5 : 0
+    readonly property real baseThickness: settings.bar?.height || 32
+    readonly property real panelIconSize: settings.bar?.iconSize || baseThickness * 0.8 * 0.8
     readonly property bool iconPills: vertical || centerItems
-    readonly property real panelSlotSize: Math.max(1, verticalThickness - (centerItems && !vertical ? 8 : 4))
-    readonly property real panelItemInset: centerItems && !vertical ? 6 : 2
+    readonly property real panelSlotSize: verticalThickness * 0.8
+    readonly property real workspacePillSize: verticalThickness * 0.7
+    readonly property real panelItemInset: verticalThickness * 0.1
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
-    // Length never affects width. Explicit icon/font sizing and thickness still do.
-    readonly property real verticalThickness: uniformItems ? Math.max(32, settings.bar?.height || 32, panelIconSize + 12) : Math.max(32, settings.bar?.height || 32,
+    // Resolve thickness from settings, independently of child geometry.
+    readonly property real verticalThickness: uniformItems ? Math.max(baseThickness, panelIconSize / 0.64) : Math.max(baseThickness,
         ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => {
             let style = Settings.appearance(settings, id);
-            return Math.max(style.iconSize || 16, style.fontSize || 12) + 12 + Math.max(0, style.paddingLeft || 0) + Math.max(0, style.paddingRight || 0);
+            return Math.max(style.iconSize || 0, style.fontSize || 0) / 0.64;
         }))
     readonly property real itemSpacing: settings.bar?.hyprknots === false ? (settings.bar?.compactSpacing ?? 3) : (settings.bar?.spacing ?? 3)
     readonly property real attachmentInset: settings.bar?.edgeAttached === true ? 16 : 0
-    readonly property real insetTop: (settings.bar?.contentPaddingTop ?? 0) + (vertical ? attachmentInset : 0)
-    readonly property real insetBottom: (settings.bar?.contentPaddingBottom ?? 0) + (vertical ? attachmentInset : 0)
-    readonly property real insetLeft: (settings.bar?.contentPaddingLeft ?? 0) + (vertical ? 0 : attachmentInset)
-    readonly property real insetRight: (settings.bar?.contentPaddingRight ?? 0) + (vertical ? 0 : attachmentInset)
+    readonly property real insetTop: (settings.bar?.contentPaddingTop ?? 0) + (vertical ? attachmentInset + fullPillInset : 0)
+    readonly property real insetBottom: (settings.bar?.contentPaddingBottom ?? 0) + (vertical ? attachmentInset + fullPillInset : 0)
+    readonly property real insetLeft: (settings.bar?.contentPaddingLeft ?? 0) + (vertical ? 0 : attachmentInset + fullPillInset)
+    readonly property real insetRight: (settings.bar?.contentPaddingRight ?? 0) + (vertical ? 0 : attachmentInset + fullPillInset)
     readonly property real contentWidth: Math.max(0, width - insetLeft - insetRight)
     readonly property real contentHeight: Math.max(0, height - insetTop - insetBottom)
     readonly property real sectionGap: uniformItems || centerItems || settings.bar?.hyprknots === false ? itemSpacing : Math.max(12, itemSpacing)
@@ -197,13 +202,19 @@ Item {
         style.lightForeground = true;
         style.outlineFree = true;
         style.uniformItems = uniformItems;
-        style.uniformGlyphHeight = uniformItems && id !== "workspaces" ? panelIconSize : 0;
+        style.panelItemPadding = 5;
+        style.panelPillHeight = id === "workspaces" ? workspacePillSize : panelSlotSize;
+        style.fitGlyphWidth = id === "workspaces";
+        style.uniformGlyphHeight = id === "workspaces" ? (style.iconSize || style.fontSize ? 0 : workspacePillSize * 0.8) : uniformItems ? panelIconSize
+            : style.iconSize || style.fontSize || panelSlotSize * 0.8;
         style.panelAdaptive = true;
         style.backingPills = backingPills(id);
         style.glassSurface = fullPill.visible;
         style.pillTransparency = settings.bar?.individualPillTransparency ?? -1;
         style.circularIcons = true;
-        if (uniformItems && id !== "workspaces") style.iconSize = panelIconSize;
+        if (id !== "workspaces") {
+            if (uniformItems || !style.iconSize) style.iconSize = uniformItems ? panelIconSize : style.fontSize || panelSlotSize * 0.8;
+        }
         if (compactItemPadding) style.compactPadding = true;
         let group = sharedPills.find(group => group.ids.includes(id));
         if (group) {
@@ -371,8 +382,7 @@ Item {
     }
     implicitWidth: vertical ? verticalThickness + insetLeft + insetRight : 0
     implicitHeight: vertical ? Math.max(1, Math.min(Math.max(1, screenHeight - Settings.screenMargins(settings.bar || {}).top - Settings.screenMargins(settings.bar || {}).bottom), compact ? minimumVerticalLength + insetTop + insetBottom : Infinity))
-        : Math.max(settings.bar?.height || 32,
-            ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => moduleItems[id].height + 2 * panelItemInset)) + insetTop + insetBottom
+        : verticalThickness + insetTop + insetBottom
     height: implicitHeight
     Flickable {
         id: layoutViewport
@@ -640,12 +650,11 @@ Item {
             let top = Math.min(...items.map(item => item.y));
             let right = Math.max(...items.map(item => item.x + item.width));
             let bottom = Math.max(...items.map(item => item.y + item.height));
-            // Centered full pills get end caps even with zero content padding.
-            let leading = bar.centerItems && !bar.vertical ? Math.max(bar.panelItemInset, bar.insetLeft) : bar.insetLeft;
-            let trailing = bar.centerItems && !bar.vertical ? Math.max(bar.panelItemInset, bar.insetRight) : bar.insetRight;
-            let verticalInset = bar.centerItems && !bar.vertical ? bar.panelItemInset : 0;
-            return Qt.rect(left - leading, top - bar.insetTop - verticalInset,
-                right - left + leading + trailing, bottom - top + bar.insetTop + bar.insetBottom + 2 * verticalInset);
+            if (bar.vertical)
+                return Qt.rect(0, top - bar.insetTop, bar.width,
+                    bottom - top + bar.insetTop + bar.insetBottom);
+            return Qt.rect(left - bar.insetLeft, 0,
+                right - left + bar.insetLeft + bar.insetRight, bar.height);
         }
         visible: !bar.statusIconsOnly && fullPill.memberIds.length > 0 && fullPill.backgroundShown
         x: fullPill.bounds.x; y: fullPill.bounds.y; width: fullPill.bounds.width; height: fullPill.bounds.height
@@ -711,7 +720,7 @@ Item {
         pixelSize: 20
         bold: false
         minimumTextWidth: settings.iconSize || settings.fontSize || 22
-        implicitHeight: bar.uniformItems ? naturalHeight : Math.max(28, (settings.iconSize || settings.fontSize || 22) + 6, content.implicitHeight + 8)
+        implicitHeight: bar.panelSlotSize
         leftPadding: 2
         rightPadding: 2
         backgroundVisible: false
@@ -724,8 +733,8 @@ Item {
             objectName: "distroGlassLogo"
             iconSize: distroLogo.settings.iconSize || distroLogo.settings.fontSize || 22
             visible: !distroLogo.settings.text && !distroLogo.settings.icon && (bar.iconsOnly || !distroLogo.settings.hideText) && !distroLogo.settings.hideIcon
-            x: bar.iconsOnly ? (distroLogo.width - iconSize) / 2 : bar.uniformItems && !bar.vertical ? 4 : distroLogo.content.x
-            width: bar.iconsOnly || (bar.uniformItems && !bar.vertical) ? iconSize : distroLogo.content.width
+            x: bar.iconsOnly || distroLogo.uniformGlyphHeight > 0 ? (distroLogo.width - iconSize) / 2 : distroLogo.content.x
+            width: bar.iconsOnly || distroLogo.uniformGlyphHeight > 0 ? iconSize : distroLogo.content.width
             height: distroLogo.height
             accent: distroLogo.settings.iconColor || distroLogo.settings.textColor || distroLogo.effectiveForeground
             highlighted: distroLogo.hovered || distroLogo.selected
@@ -747,7 +756,7 @@ Item {
         family: "GoMono Nerd Font"; pixelSize: 16
         backgroundVisible: false
         minimumTextWidth: Math.max(16, settings.iconSize || settings.fontSize || 22)
-        implicitHeight: bar.uniformItems ? naturalHeight : Math.max(28, (settings.iconSize || settings.fontSize || 22) + 6, content.implicitHeight + 8)
+        implicitHeight: bar.panelSlotSize
         content.opacity: settingsCog.settings.text || settingsCog.settings.icon ? 1 : 0
         glyphRect: {
             if (!settingsGlyph.visible)
@@ -761,11 +770,11 @@ Item {
         GlassCog {
             id: settingsGlyph
             objectName: "settingsGlassCog"
-            iconSize: bar.uniformItems ? Math.max(1, bar.panelIconSize - 1.2) / (20 / 24 + 0.018) : settingsCog.settings.iconSize || settingsCog.settings.fontSize || 22
-            y: bar.uniformItems ? -0.6 : 0
+            iconSize: settingsCog.uniformGlyphHeight > 0 ? Math.max(1, settingsCog.uniformGlyphHeight - 1.2) / (20 / 24 + 0.018) : settingsCog.settings.iconSize || settingsCog.settings.fontSize || 22
+            y: settingsCog.uniformGlyphHeight > 0 ? -0.6 : 0
             visible: !settingsCog.settings.text && !settingsCog.settings.icon && (bar.iconsOnly || !settingsCog.settings.hideText) && !settingsCog.settings.hideIcon
-            x: bar.iconsOnly ? (settingsCog.width - iconSize) / 2 : bar.uniformItems && !bar.vertical ? 4 : settingsCog.content.x
-            width: bar.iconsOnly || (bar.uniformItems && !bar.vertical) ? iconSize : settingsCog.content.width
+            x: bar.iconsOnly || settingsCog.uniformGlyphHeight > 0 ? (settingsCog.width - iconSize) / 2 : settingsCog.content.x
+            width: bar.iconsOnly || settingsCog.uniformGlyphHeight > 0 ? iconSize : settingsCog.content.width
             height: settingsCog.height
             accent: settingsCog.settings.iconColor || settingsCog.settings.textColor || settingsCog.effectiveForeground
             highlighted: settingsCog.hovered || settingsCog.selected
@@ -787,7 +796,7 @@ Item {
         columns: bar.vertical ? 1 : Math.max(1, workspaceRepeater.count)
         horizontalItemAlignment: Grid.AlignHCenter
         verticalItemAlignment: Grid.AlignVCenter
-        height: Math.max(bar.uniformItems && !bar.vertical ? 0 : bar.centerItems && !bar.vertical ? bar.panelSlotSize : bar.vertical ? 28 : 0, implicitHeight)
+        height: implicitHeight
         spacing: bar.statusIconsOnly ? 2 : bar.uniformItems || bar.centerItems || bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
         leftPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
         rightPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
@@ -820,7 +829,7 @@ Item {
                 circular: true
                 implicitWidth: Math.max(naturalWidth, 20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
                 maximumWidth: bar.vertical ? Math.max(1, bar.panelSlotSize - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
-                width: bar.uniformItems ? bar.panelIconSize : bar.vertical ? maximumWidth : bar.centerItems ? bar.panelSlotSize : implicitWidth
+                width: bar.workspacePillSize
                 onActiveFocusChanged: if (activeFocus) bar.ensureItemVisible(workspaceButton)
                 iconOnly: false
                 Accessible.name: "Workspace " + (modelData.name || String(modelData.id))
@@ -906,18 +915,18 @@ Item {
         foreground: "#cba6f7"
         interactive: false
         visible: bar.itemEnabled("tray") && trayIcons.count > 0
-        width: bar.vertical ? bar.verticalThickness - 4 : trayRow.width + (bar.uniformItems || bar.centerItems ? 0 : effectiveLeftPadding + effectiveRightPadding)
-        implicitHeight: bar.uniformItems && !bar.iconsOnly ? Math.max(24, trayRow.height) : bar.centerItems ? Math.max(bar.vertical ? 28 : bar.panelSlotSize, settings.hideIcon ? 0 : trayRow.height) : bar.vertical ? Math.max(32, settings.hideIcon ? 0 : trayRow.height) : Math.max(28, trayRow.height + 8)
+        width: bar.vertical ? bar.panelSlotSize : trayRow.width
+        implicitHeight: bar.vertical ? Math.max(bar.panelSlotSize, trayRow.height) : bar.panelSlotSize
         content.y: bar.vertical ? 4 : (height - content.height) / 2
         leftPadding: bar.vertical ? 4 : 11
         rightPadding: bar.vertical ? 4 : 11
-        readonly property int trayIconSize: settings.iconSize || 16
-        readonly property int trayTargetSize: bar.iconsOnly ? bar.panelSlotSize : bar.uniformItems ? trayIconSize + 8 : trayIconSize
+        readonly property real trayIconSize: settings.iconSize || bar.panelSlotSize * 0.8
+        readonly property real trayTargetSize: bar.panelSlotSize
         Grid {
             id: trayRow
             columns: bar.vertical ? Math.max(1, Math.floor((bar.verticalThickness - 4 + spacing) / (trayPill.trayTargetSize + spacing))) : Math.max(1, trayIcons.count)
-            x: bar.vertical ? (trayPill.width - width) / 2 : bar.uniformItems || bar.centerItems ? 0 : trayPill.effectiveLeftPadding
-            y: bar.vertical ? 0 : (parent.height - height) / 2
+            x: (trayPill.width - width) / 2
+            y: (parent.height - height) / 2
             visible: !trayPill.settings.hideIcon
             spacing: bar.uniformItems || bar.centerItems ? bar.itemSpacing : bar.vertical ? 4 : 0
             Repeater {
@@ -927,7 +936,7 @@ Item {
                     id: trayIcon
                     vertical: bar.iconPills
                     interactive: false
-                    settings: bar.iconsOnly ? bar.appearance("tray") : ({background:"off"})
+                    settings: bar.iconsOnly ? bar.appearance("tray") : ({background:"off", panelPillHeight:bar.panelSlotSize})
                     colorSampler: trayPill.colorSampler
                     colorRoot: bar
                     foreground: trayPill.foreground
@@ -980,10 +989,10 @@ Item {
         minimumTextWidth: 12
         leftPadding: 7
         rightPadding: bar.vertical ? 6 : badge.visible ? Math.max(11, badge.implicitWidth + 1) : 11
-        effectiveRightPadding: bar.uniformItems ? Math.max(4, badge.visible ? badge.implicitWidth - 2 : 0) : bar.compactItemPadding && !bar.vertical
-            ? Math.max(0, (badge.visible ? badge.implicitWidth + 1 : 0) + (settings.paddingRight || 0))
-            : Math.max(0, (bar.vertical ? Math.min(4, rightPadding) : rightPadding) + (settings.paddingRight || 0))
-        implicitHeight: !vertical && iconOnly ? Math.max(uniformItems ? 24 : 28, effectiveIconSize + 8) : naturalHeight
+        effectiveRightPadding: bar.uniformItems ? Math.max(5, badge.visible ? 2 * (badge.implicitWidth - 2) : 0) : bar.compactItemPadding && !bar.vertical
+            ? Math.max(0, (badge.visible ? 2 * (badge.implicitWidth + 1) : 0) + (settings.paddingRight || 0))
+            : Math.max(0, 5 + (badge.visible ? 2 * (badge.implicitWidth - 2) : 0) + (settings.paddingRight || 0))
+        implicitHeight: bar.panelSlotSize
         content.y: uniformGlyphHeight > 0 ? normalizedTextY : (height - content.height) / 2
         foreground: bar.notificationData && bar.notificationData.count > 0 ? "#f9e2af" : "#a6adc8"
         tint: bar.rgba("#a6adc8", 0.18)
@@ -1049,7 +1058,7 @@ Item {
         // Center the visible glyph rather than the font's advance box.
         content.horizontalAlignment: bar.vertical && !bar.uniformItems ? Text.AlignHCenter : Text.AlignLeft
         content.elide: Text.ElideNone
-        content.x: bar.uniformItems ? (circular || bar.vertical ? (wifi.width - wifiGlyphMetrics.tightBoundingRect.width * textInkScale) / 2 : effectiveLeftPadding) - wifiGlyphMetrics.tightBoundingRect.x * textInkScale : bar.vertical ? effectiveLeftPadding : (wifi.width - wifiGlyphMetrics.tightBoundingRect.width) / 2
+        content.x: uniformGlyphHeight > 0 ? (circular || bar.vertical ? (wifi.width - wifiGlyphMetrics.tightBoundingRect.width * textInkScale) / 2 : effectiveLeftPadding) - wifiGlyphMetrics.tightBoundingRect.x * textInkScale : bar.vertical ? effectiveLeftPadding : (wifi.width - wifiGlyphMetrics.tightBoundingRect.width) / 2
                    - wifiGlyphMetrics.tightBoundingRect.x
         TextMetrics {
             id: wifiGlyphMetrics
