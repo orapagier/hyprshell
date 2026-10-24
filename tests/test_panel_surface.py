@@ -37,6 +37,7 @@ ShellRoot {
         property var panelConfig: config
     }
     QtObject { id: menuState; property string section: "" }
+    QtObject { id: bar; property real windowFacingInset: 8 }
     QtObject { id: keybindings; property bool opened: false }
     // Offscreen has no layer-shell backend; retain the production policy
     // on a native floating surface and model its panel-only properties.
@@ -66,7 +67,8 @@ ShellRoot {
             test.check(panel.mask.width === (test.showPanel ? panelReveal.inputRect.width : 0), "input width");
             test.check(panel.mask.height === (test.showPanel ? panelReveal.inputRect.height : 0), "input height");
             test.check(panel.exclusionMode === (test.showPanel ? ExclusionMode.Normal : ExclusionMode.Ignore), "reserved space");
-            test.check(!panel.autoHide || panel.exclusiveZone === 0, "auto-hide reserved space");
+            let thickness = panel.vertical ? panel.width : panel.height;
+            test.check(panel.exclusiveZone === (panel.autoHide ? 0 : thickness - 8), "visible strip reservation");
             if (!test.showPanel) {
                 test.check(menuState.section === "" && !keybindings.opened, "hidden menus remained open");
             }

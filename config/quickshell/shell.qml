@@ -143,7 +143,7 @@ ShellRoot {
                 let ws = monitor && monitor.activeWorkspace;
                 return Settings.panelVisible(panelVisibility.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
             }
-            exclusiveZone: autoHide ? 0 : (vertical ? width : height) + (preferences.panelConfig.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
+            exclusiveZone: autoHide ? 0 : Math.ceil((vertical ? width : height) - bar.windowFacingInset) + (preferences.panelConfig.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
             exclusionMode: shown ? ExclusionMode.Normal : ExclusionMode.Ignore
             onShownChanged: {
                 console.info("HYPRPANE_TIMING", Date.now(), "visible-request", shown);

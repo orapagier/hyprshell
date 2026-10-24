@@ -420,6 +420,21 @@ Item {
             ? Math.max(verticalThickness - 6,
                 ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => moduleItems[id].height + 4))
             : verticalThickness) + insetTop + insetBottom
+    // Reserve the occupied strip; the compositor supplies the window margin.
+    readonly property real windowFacingInset: {
+        let ids = Object.keys(moduleItems).filter(id => itemShown(id));
+        if (!ids.length) return 0;
+        let rects = ids.map(id => {
+            let item = moduleItems[id];
+            return Qt.rect(item.x, item.y, item.width, item.height);
+        });
+        if (fullPill.participating) rects.push(fullPill.bounds);
+        let clearance = position === "top" ? height - Math.max(...rects.map(r => r.y + r.height)) - insetBottom
+            : position === "bottom" ? Math.min(...rects.map(r => r.y)) - insetTop
+            : position === "left" ? width - Math.max(...rects.map(r => r.x + r.width)) - insetRight
+            : Math.min(...rects.map(r => r.x)) - insetLeft;
+        return Math.max(0, clearance);
+    }
     height: implicitHeight
     Flickable {
         id: layoutViewport

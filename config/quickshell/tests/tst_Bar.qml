@@ -41,6 +41,28 @@ Item {
         name: "BarRegressions"
         when: windowShown
         function cleanup() { inkBackground.visible = false; geometrySlider.visible = false; bar.settings = {}; bar.statusIconsOnly = false; bar.width = scene.width; bar.mediaData = {playing: false}; bar.trayModel = []; bar.notificationData = {count: 0}; bar.statusData = {workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {}}; }
+        function test_windowGapFollowsVisiblePanel() {
+            for (let edge of ["top", "bottom", "left", "right"]) {
+                for (let full of ["off", "on"]) {
+                    bar.settings = {bar:{position:edge, height:40, uniformItems:true,
+                        fullBackground:full, hyprknots:false},
+                        items:[{id:"power", enabled:true, side:"right"}]};
+                    if (bar.vertical) bar.width = bar.implicitWidth;
+                    wait(0);
+                    let items = Object.keys(bar.moduleItems).filter(id => bar.itemShown(id)).map(id => bar.moduleItems[id]);
+                    let thickness = bar.vertical ? bar.width : bar.height;
+                    let start = Math.min(...items.map(i => bar.vertical ? i.x : i.y));
+                    let end = Math.max(...items.map(i => bar.vertical ? i.x + i.width : i.y + i.height));
+                    if (full === "on") {
+                        let pill = findChild(bar, "fullPanelPill");
+                        start = Math.min(start, bar.vertical ? pill.x : pill.y);
+                        end = Math.max(end, bar.vertical ? pill.x + pill.width : pill.y + pill.height);
+                    }
+                    let facing = edge === "top" || edge === "left" ? end : thickness - start;
+                    fuzzyCompare(thickness - bar.windowFacingInset + 10 - facing, 10, 0.01);
+                }
+            }
+        }
         function test_visibilityRetainsPreparedAppearance_data() {
             let rows = [];
             for (let edge of ["top", "bottom", "left", "right"])
