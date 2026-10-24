@@ -44,7 +44,7 @@ ColumnLayout {
         return false;
     }
     Layout.minimumWidth: 0
-    spacing: 10
+    spacing: 6
     ColumnLayout {
         Layout.fillWidth: true
         Layout.leftMargin: 2
@@ -54,8 +54,8 @@ ColumnLayout {
             id: heading
             objectName: "settingsSectionHeader"
             Layout.fillWidth: true
-            implicitHeight: Math.max(40, contentItem.implicitHeight + topPadding + bottomPadding)
-            leftPadding: 10; rightPadding: 10; topPadding: 6; bottomPadding: 6
+            implicitHeight: Math.max(32, contentItem.implicitHeight + topPadding + bottomPadding)
+            leftPadding: 4; rightPadding: 8; topPadding: 4; bottomPadding: 4
             enabled: root.collapsible
             hoverEnabled: true
             activeFocusOnTab: root.collapsible
@@ -76,8 +76,10 @@ ColumnLayout {
                 }
                 Label {
                     visible: root.collapsible
-                    text: root.contentExpanded ? "⌄" : "›"
-                    color: Style.Theme.accentText; font.pixelSize: Style.Theme.sectionSize
+                    text: "⌄"
+                    rotation: root.contentExpanded ? 0 : -90
+                    color: Style.Theme.muted; font.pixelSize: Style.Theme.sectionSize
+                    Behavior on rotation { NumberAnimation { duration: Style.Theme.duration(root, 200); easing.type: Easing.OutCubic } }
                 }
             }
             background: Rectangle {
@@ -94,15 +96,15 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: body.implicitHeight + 36
         color: Style.Theme.surface
-        radius: Style.Theme.radius
-        border.color: Style.Theme.separator
+        radius: 16
+        border.color: Style.Theme.highContrast ? Style.Theme.border : "transparent"
         ColumnLayout {
             id: body
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: 18
-            spacing: 16
+            spacing: 12
         }
     }
 }

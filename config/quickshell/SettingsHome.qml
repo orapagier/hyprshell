@@ -10,10 +10,10 @@ ColumnLayout {
     property bool firstRunPending: false
     signal navigate(int section)
     signal searchRequested()
-    spacing: 22
+    spacing: 24
     Label {
         Layout.fillWidth: true
-        text: "Hyprshell Settings"
+        text: "Make yourself at home"
         color: Style.Theme.text; font.pixelSize: Style.Theme.titleSize; font.bold: true
         wrapMode: Text.WordWrap
     }
@@ -41,8 +41,8 @@ ColumnLayout {
     GridLayout {
         id: categories
         Layout.fillWidth: true
-        columns: width >= 720 ? 3 : 1
-        columnSpacing: 16; rowSpacing: 18
+        columns: width >= 620 ? 2 : 1
+        columnSpacing: 24; rowSpacing: 24
         Repeater {
             model: home.navigation
             delegate: SettingsCard {
@@ -55,7 +55,7 @@ ColumnLayout {
                 collapsible: false
                 GridLayout {
                     Layout.fillWidth: true
-                    columns: width >= 560 ? 2 : 1
+                    columns: 1
                     columnSpacing: 12; rowSpacing: 6
                     Repeater {
                         model: category.modelData.pages

@@ -63,36 +63,49 @@ ColumnLayout {
         Layout.fillWidth: true
         title: "Application windows"
         subtitle: "Choose a system color preference for apps. Hyprpane keeps its own appearance."
-        SettingsSwitch {
-            id: themeToggle
-            objectName: "applicationDarkTheme"
-            text: "Dark theme"
-            enabled: page.loaded && !page.busy
-            checked: page.mode === "dark"
-            onToggled: page.request("save", checked ? "dark" : "light")
+        SettingsRow {
+            title: "Dark theme"
+            stackOnNarrow: false
+            description: page.mode === "dark" ? "Dark" : "Light"
+            SettingsSwitch {
+                id: themeToggle
+                objectName: "applicationDarkTheme"
+                Layout.alignment: Qt.AlignRight
+                Layout.fillWidth: true
+                Accessible.name: "Dark theme"
+                enabled: page.loaded && !page.busy
+                checked: page.mode === "dark"
+                onToggled: page.request("save", checked ? "dark" : "light")
+            }
         }
-        Label { text: page.mode === "dark" ? "Dark" : "Light"; color: Style.Theme.accentText }
         Label { text: "Apps with their own appearance setting should use Follow system. Reopen apps that do not change automatically."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        SettingsButton { text: page.dirty ? "Discard edits & refresh" : "Refresh"; enabled: !page.busy; onClicked: page.request("status", page.mode) }
+        SettingsButton { text: page.dirty ? "Discard edits & refresh" : "Refresh"; flat: true; enabled: !page.busy; onClicked: page.request("status", page.mode) }
     }
     SettingsCard {
         Layout.fillWidth: true
         title: "Application font and cursor"
         subtitle: "GTK apps and Qt apps using GTK integration share these preferences. Reopen apps that do not update automatically."
-        Label { text: "Application font"; color: Style.Theme.text }
-        RowLayout {
-            Layout.fillWidth: true
+        SettingsRow {
+            title: "Application font"
             SettingsComboBox { id: fontPicker; objectName: "applicationFont"; Layout.fillWidth: true; model: page.fonts; enabled: page.loaded && !page.busy }
+        }
+        SettingsRow {
+            title: "Font size"
             SettingsSpinBox { id: fontPoints; objectName: "applicationFontSize"; from: 6; to: 32; value: 11; enabled: page.loaded && !page.busy }
             Label { text: "pt"; color: Style.Theme.muted }
+            Item { Layout.fillWidth: true }
         }
-        Label { text: "Cursor theme and size"; color: Style.Theme.text }
-        RowLayout {
-            Layout.fillWidth: true
+        SettingsRow {
+            title: "Cursor theme"
             SettingsComboBox { id: cursorPicker; objectName: "applicationCursor"; Layout.fillWidth: true; model: page.cursors; enabled: page.loaded && !page.busy }
+        }
+        SettingsRow {
+            title: "Cursor size"
+            separator: false
             SettingsSpinBox { id: cursorPixels; objectName: "applicationCursorSize"; from: 16; to: 64; value: 24; stepSize: 4; enabled: page.loaded && !page.busy }
             Label { text: "px"; color: Style.Theme.muted }
+            Item { Layout.fillWidth: true }
         }
         SettingsButton {
             objectName: "saveApplicationAppearance"

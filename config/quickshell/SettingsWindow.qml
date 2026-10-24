@@ -554,7 +554,7 @@ FloatingWindow {
             RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: false
-                Layout.preferredHeight: 64
+                Layout.preferredHeight: 58
                 Layout.leftMargin: 22
                 Layout.rightMargin: 22
                 ToolButton {
@@ -568,8 +568,7 @@ FloatingWindow {
                     Keys.onEnterPressed: clicked()
                     contentItem: ColumnLayout {
                         spacing: 2
-                        Label { text: "Hyprshell"; font.pixelSize: 18; font.bold: true; color: Style.Theme.text }
-                        Label { text: "Settings"; font.pixelSize: Style.Theme.captionSize; color: Style.Theme.muted }
+                        Label { text: "Hyprsettings"; font.pixelSize: 18; font.bold: true; color: Style.Theme.text }
                     }
                     background: Rectangle {
                         radius: Style.Theme.controlRadius
@@ -582,6 +581,7 @@ FloatingWindow {
                 }
                 SettingsGithubButton {
                     objectName: "githubSyncButton"
+                    flat: true
                     text: githubSync.running ? "Syncing…" : "Sync to GitHub"
                     enabled: window.idle && !window.dirty && !window.manualDirty && window.success && window.store.loaded
                     ToolTip.visible: hovered
@@ -593,6 +593,7 @@ FloatingWindow {
                 }
                 SettingsGithubButton {
                     objectName: "githubUpdateButton"
+                    flat: true
                     text: "Sync from GitHub"
                     enabled: window.idle && !window.dirty && !window.manualDirty && window.success && window.store.loaded
                     ToolTip.visible: hovered
@@ -620,10 +621,10 @@ FloatingWindow {
                 ScrollView {
                     id: sidebar
                     objectName: "settingsSidebar"
-                    Layout.preferredWidth: window.width < 900 ? 228 : 250
+                    Layout.preferredWidth: window.width < 900 ? 220 : 236
                     Layout.fillHeight: true
                     clip: true
-                    padding: 12
+                    padding: 14
                     contentWidth: availableWidth
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     background: Rectangle { color: Style.Theme.sidebar }
@@ -634,8 +635,8 @@ FloatingWindow {
                             id: searchField
                             objectName: "settingsSearch"
                             Layout.fillWidth: true
-                            Layout.bottomMargin: 10
-                            implicitHeight: 38
+                            Layout.bottomMargin: 14
+                            implicitHeight: Style.Theme.controlHeight
                             placeholderText: "Search settings"
                             color: Style.Theme.text
                             placeholderTextColor: Style.Theme.muted
@@ -653,10 +654,10 @@ FloatingWindow {
                                 else event.accepted = false;
                             }
                             background: Rectangle {
-                                radius: Style.Theme.controlRadius
+                                radius: 12
                                 color: Style.Theme.field
                                 border.width: 1
-                                border.color: Style.Theme.border
+                                border.color: searchField.activeFocus ? Style.Theme.accentText : Style.Theme.border
                             }
                             ToolButton {
                                 id: searchClear
@@ -752,7 +753,7 @@ FloatingWindow {
                     Layout.fillHeight: true
                     clip: true
                     contentWidth: availableWidth
-                    padding: window.width < 900 ? 22 : 36
+                    padding: window.width < 900 ? 24 : 40
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     background: Rectangle { color: Style.Theme.background }
                     ColumnLayout {
@@ -760,9 +761,18 @@ FloatingWindow {
                         objectName: "settingsPageContent"
                         // Section folding is scoped to settings pages, outside review dialogs.
                         readonly property string settingsSectionQuery: window.searchQuery
-                        width: Math.min(840, editorScroll.availableWidth)
+                        width: Math.min(780, editorScroll.availableWidth)
                         x: Math.max(0, (editorScroll.availableWidth - width) / 2)
                         spacing: 24
+                        Connections {
+                            target: window
+                            function onSectionChanged() { pageReveal.restart(); }
+                        }
+                        SequentialAnimation {
+                            id: pageReveal
+                            PropertyAction { target: pageContent; property: "opacity"; value: Style.Theme.duration(pageContent, 180) > 0 ? 0.65 : 1 }
+                            NumberAnimation { target: pageContent; property: "opacity"; to: 1; duration: Style.Theme.duration(pageContent, 180); easing.type: Easing.OutCubic }
+                        }
                         Label {
                             objectName: "settingsPageTitle"
                             visible: window.section !== window.homeSection

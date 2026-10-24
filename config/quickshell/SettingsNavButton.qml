@@ -7,7 +7,7 @@ Button {
     property string symbol: "󰒓"
     property bool itemEnabled: true
     property bool keyboardSelected: false
-    implicitHeight: 42
+    implicitHeight: Math.round(40 * Style.Theme.textScale)
     leftPadding: 13; rightPadding: 13
     hoverEnabled: true
     Accessible.name: text
@@ -31,10 +31,12 @@ Button {
         }
     }
     background: Rectangle {
-        radius: 8
-        color: control.highlighted ? Style.Theme.selection : control.hovered ? Style.Theme.button : "transparent"
+        radius: height / 2
+        color: control.highlighted ? Style.Theme.selection : control.hovered ? Style.Theme.hover : "transparent"
         border.width: control.activeFocus || control.keyboardSelected ? 2 : 0
         border.color: (control.activeFocus || control.keyboardSelected) ? Style.Theme.accentText : Style.Theme.border
         Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
+        scale: control.down ? 0.97 : 1
+        Behavior on scale { NumberAnimation { duration: Style.Theme.duration(control, 220); easing.type: Easing.OutBack; easing.overshoot: 0.5 } }
     }
 }

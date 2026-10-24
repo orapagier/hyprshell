@@ -127,6 +127,8 @@ ColumnLayout {
                 color: slider.pressed ? Style.Theme.accentForeground : Style.Theme.text
                 border.width: slider.activeFocus || slider.hovered ? 3 : 2
                 border.color: slider.activeFocus || slider.hovered ? Style.Theme.accentText : Style.Theme.accentForeground
+                scale: slider.pressed ? 1.18 : 1
+                Behavior on scale { NumberAnimation { duration: Style.Theme.duration(root, 220); easing.type: Easing.OutBack; easing.overshoot: 0.5 } }
             }
         }
         SettingsButton {

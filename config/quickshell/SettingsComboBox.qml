@@ -16,9 +16,9 @@ ComboBox {
     }
     indicator: Text { text: "⌄"; color: Style.Theme.muted; font.pixelSize: 18; x: control.width - 26; y: (control.height - height) / 2 - 2 }
     background: Rectangle {
-        radius: Style.Theme.controlRadius; color: control.hovered ? Style.Theme.hover : Style.Theme.field
+        radius: 10; color: control.hovered ? Style.Theme.hover : Style.Theme.field
         border.width: control.activeFocus ? 2 : 1
-        border.color: control.activeFocus ? Style.Theme.accentText : Style.Theme.controlBorder
+        border.color: control.activeFocus ? Style.Theme.accentText : Style.Theme.highContrast ? Style.Theme.controlBorder : Style.Theme.border
         Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, 130) } }
     }
     delegate: ItemDelegate {
@@ -33,7 +33,15 @@ ComboBox {
         y: control.height + 6; width: control.width
         padding: 6
         implicitHeight: Math.min(240, list.contentHeight + 12)
-        background: Rectangle { radius: 10; color: Style.Theme.surface; border.color: Style.Theme.border }
+        transformOrigin: Item.Top
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Style.Theme.duration(control, 120) }
+            NumberAnimation { property: "scale"; from: 0.96; to: 1; duration: Style.Theme.duration(control, 220); easing.type: Easing.OutBack; easing.overshoot: 0.5 }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Style.Theme.duration(control, 90) }
+        }
+        background: Rectangle { radius: 14; color: Style.Theme.surface; border.color: Style.Theme.border }
         contentItem: ListView {
             id: list
             clip: true; implicitHeight: contentHeight
