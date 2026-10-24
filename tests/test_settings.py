@@ -67,7 +67,7 @@ class SettingsTests(unittest.TestCase):
 
     def test_panel_spacing_and_four_sides_validate_and_persist(self):
         defaults = backend.validate({'version': 1})['bar']
-        self.assertEqual(defaults['compactSpacing'], 3)
+        self.assertEqual(defaults['compactSpacing'], 2)
         data = copy.deepcopy(self.data)
         data['bar'].update(spacing=18, compactSpacing=4, hyprknots=False)
         for index, side in enumerate(('Top', 'Bottom', 'Left', 'Right')):
@@ -513,7 +513,7 @@ class SettingsTests(unittest.TestCase):
             del entry['pillGroup']
             del entry['sharedBackground']
         restored = backend.validate(legacy)
-        self.assertEqual(restored['bar']['groupSpacing'], 3)
+        self.assertEqual(restored['bar']['groupSpacing'], 8)
         self.assertTrue(all(i['pillGroup'] == '' for i in restored['items']))
         self.assertEqual(restored['bar']['sharedBackground'], 'inherit')
         self.assertTrue(all(i['sharedBackground'] == 'inherit' for i in restored['items']))
@@ -532,7 +532,10 @@ class SettingsTests(unittest.TestCase):
         for entry in legacy['items']:
             del entry['paddingLeft']
             del entry['paddingRight']
-        self.assertTrue(all(i['paddingLeft'] == i['paddingRight'] == 0 for i in backend.validate(legacy)['items']))
+        expected = {i['id']: i for i in backend.DEFAULTS['items']}
+        for item in backend.validate(legacy)['items']:
+            for key in ('paddingLeft', 'paddingRight'):
+                self.assertEqual(item[key], expected[item['id']][key])
 
     def test_invalid_spacing_and_global_background_are_rejected(self):
         for key in ('spacingLeft', 'spacingRight'):
