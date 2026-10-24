@@ -788,18 +788,20 @@ Item {
         }
         function test_attachedHorizontalFullPillSpacing() {
             for (let edge of ["top", "bottom"]) {
-                bar.settings = connectorConfig(edge, {audio:{},calendar:{side:"center"}},
+                bar.settings = connectorConfig(edge, {audio:{},calendar:{side:"center"},wifi:{side:"right"}},
                     {height:32,uniformItems:true,fullBackground:"on"});
                 wait(0);
                 let originalHeight = bar.height;
                 let itemHeight = bar.moduleItems.audio.height;
-                bar.settings = connectorConfig(edge, {audio:{},calendar:{side:"center"}},
+                bar.settings = connectorConfig(edge, {audio:{},calendar:{side:"center"},wifi:{side:"right"}},
                     {height:32,uniformItems:true,fullBackground:"on",edgeAttached:true});
                 wait(0);
                 compare(bar.height, originalHeight - 6);
                 compare(bar.moduleItems.audio.height, itemHeight);
                 let surface = findChild(bar,"attachedPanelSurface");
                 verify(surface.visible);
+                fuzzyCompare(surface.first - surface.radius,0,0.01,"leading foot reaches panel edge");
+                fuzzyCompare(surface.last + surface.radius,bar.width,0.01,"trailing foot reaches panel edge");
                 let full = findChild(bar,"fullPanelPill");
                 fuzzyCompare(full.y + full.height / 2,bar.height / 2,0.01);
                 verify(bar.moduleItems.audio.y >= 2);

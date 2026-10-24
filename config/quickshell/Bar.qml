@@ -34,7 +34,7 @@ Item {
             return Math.max(style.iconSize || 0, style.fontSize || 0) / 0.48;
         }))
     readonly property real itemSpacing: settings.bar?.hyprknots === false ? (settings.bar?.compactSpacing ?? 3) : (settings.bar?.spacing ?? 3)
-    readonly property real attachmentInset: settings.bar?.edgeAttached === true ? 16 : 0
+    readonly property real attachmentInset: settings.bar?.edgeAttached === true ? (vertical ? 16 : 11) : 0
     readonly property real insetTop: (settings.bar?.contentPaddingTop ?? 0) + (vertical ? attachmentInset + fullPillInset : 0)
     readonly property real insetBottom: (settings.bar?.contentPaddingBottom ?? 0) + (vertical ? attachmentInset + fullPillInset : 0)
     readonly property real insetLeft: (settings.bar?.contentPaddingLeft ?? 0) + (vertical ? 0 : attachmentInset + fullPillInset)
