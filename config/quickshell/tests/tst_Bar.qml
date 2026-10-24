@@ -99,8 +99,10 @@ Item {
                 compare(first.shownIcon,""); compare(second.shownIcon,"");
                 verify(first.content.font.pixelSize < first.effectiveIconSize);
                 verify(second.content.font.pixelSize < second.effectiveIconSize);
-                verify(first.height < bar.moduleItems.audio.height);
-                verify(second.height < bar.moduleItems.audio.height);
+                compare(first.width,bar.panelSlotSize);
+                compare(second.width,bar.panelSlotSize);
+                compare(first.height,bar.moduleItems.audio.height);
+                compare(second.height,bar.moduleItems.audio.height);
                 verify(first.content.implicitWidth <= first.width);
                 verify(second.content.implicitWidth <= second.width);
                 compare(bar.moduleItems.media.item.shownText,"");
@@ -117,7 +119,7 @@ Item {
                 compare(JSON.stringify(bar.settings.items),saved);
             }
         }
-        function test_centeredWorkspacePillsMatchNormalCompactDimensions() {
+        function test_centeredWorkspacePillsUseUniformIconSlots() {
             bar.statusData = {workspaces:[{id:1,name:"1",active:true},{id:12,name:"12"}],audio:{},network:{},bluetooth:{},battery:{}};
             for (let edge of ["top","bottom"]) {
                 bar.settings = connectorConfig(edge,{workspaces:{},calendar:{side:"center"}},{centerItems:false,iconSize:15});
@@ -131,11 +133,81 @@ Item {
                 [1,12].forEach((id,i) => {
                     let pill=findChild(bar,"workspace"+id);
                     compare(pill.shownText,String(id));
+                    fuzzyCompare(pill.width,bar.panelSlotSize,0.01);
+                    fuzzyCompare(pill.height,bar.panelSlotSize,0.01);
+                    compare(pill.content.font.pixelSize,dimensions[i].font);
+                });
+                bar.settings = Object.assign({},bar.settings,{bar:Object.assign({},bar.settings.bar,{centerItems:false})});
+                wait(0);
+                [1,12].forEach((id,i) => {
+                    let pill=findChild(bar,"workspace"+id);
                     fuzzyCompare(pill.width,dimensions[i].width,0.01);
                     fuzzyCompare(pill.height,dimensions[i].height,0.01);
                     compare(pill.content.font.pixelSize,dimensions[i].font);
-                    verify(!pill.vertical);
                 });
+            }
+        }
+        function test_centeredItemsShareSlotsPillsAndGlyphCenters() {
+            bar.statusData = {workspaces:[{id:1,name:"1",active:true},{id:2,name:"2"}],
+                audio:{icon:"󰕾",text:"48%"},network:{text:"󰤨"},bluetooth:{text:"󰂯"},
+                battery:{present:true,text:"󰁹 82%"}};
+            bar.mediaData = {playing:true,title:"Song",levels:[0.2,0.8,0.4]};
+            bar.trayModel = [{icon:Qt.resolvedUrl("../icons/preview-tray.svg")},
+                {icon:Qt.resolvedUrl("../icons/preview-tray.svg")}];
+            bar.notificationData = {count:3};
+            let modules = {launcher:{side:"left"},settings:{side:"left"},workspaces:{side:"left"},
+                media:{side:"left"},calendar:{side:"center"},tray:{side:"right"},notifications:{side:"right"},
+                audio:{side:"right"},wifi:{side:"right"},bluetooth:{side:"right"},battery:{side:"right"},power:{side:"right"}};
+            for (let edge of ["top","bottom"]) for (let mode of ["off","on"]) {
+                bar.settings = connectorConfig(edge,modules,{centerItems:true,uniformItems:true,iconSize:20,
+                    height:30,background:mode,fullBackground:"on",spacing:7,hyprknots:false,compactSpacing:7});
+                wait(0);
+                let ids = ["left","center","right"].reduce((all,side) => all.concat(bar.orderedItems(side)),[]);
+                let previous = null;
+                for (let id of ids) {
+                    let item = bar.moduleItems[id];
+                    fuzzyCompare(item.height,bar.panelSlotSize,0.01,id + " slot height");
+                    if (id !== "workspaces" && id !== "tray")
+                        fuzzyCompare(item.width,bar.panelSlotSize,0.01,id + " slot width");
+                    if (item.glyphRect && item.glyphRect.width > 0) {
+                        let tolerance = id === "settings" ? 1 : 0.01;
+                        fuzzyCompare(item.x + item.glyphRect.x + item.glyphRect.width / 2,
+                            item.x + item.width / 2,tolerance,id + " glyph center x");
+                        fuzzyCompare(item.y + item.glyphRect.y + item.glyphRect.height / 2,
+                            item.y + item.height / 2,tolerance,id + " glyph center y");
+                    }
+                    if (mode === "on" && id !== "tray" && id !== "workspaces") {
+                        let background = findChild(item,"pillBackground");
+                        fuzzyCompare(background.width,bar.panelSlotSize,0.01,id + " pill width");
+                        fuzzyCompare(background.height,bar.panelSlotSize,0.01,id + " pill height");
+                        fuzzyCompare(background.radius,bar.panelSlotSize / 2,0.01,id + " round pill");
+                    }
+                    if (previous) fuzzyCompare(item.x - previous.x - previous.width,7,0.01,id + " gap");
+                    previous = item;
+                }
+                for (let workspace of [findChild(bar,"workspace1"),findChild(bar,"workspace2")]) {
+                    fuzzyCompare(workspace.width,bar.panelSlotSize,0.01,"workspace slot width");
+                    fuzzyCompare(workspace.height,bar.panelSlotSize,0.01,"workspace slot height");
+                    fuzzyCompare(workspace.x + workspace.width / 2,
+                        workspace.x + workspace.glyphRect.x + workspace.glyphRect.width / 2,1,"workspace glyph center");
+                }
+                let trayIcons = findChild(bar.moduleItems.tray,"trayIcon").parent.children.filter(child => child.objectName === "trayIcon");
+                for (let trayIcon of trayIcons) {
+                    fuzzyCompare(trayIcon.width,bar.panelSlotSize,0.01,"tray slot width");
+                    fuzzyCompare(trayIcon.height,bar.panelSlotSize,0.01,"tray slot height");
+                    if (mode === "on") {
+                        let background = findChild(trayIcon,"pillBackground");
+                        fuzzyCompare(background.width,bar.panelSlotSize,0.01,"tray pill width");
+                        fuzzyCompare(background.height,bar.panelSlotSize,0.01,"tray pill height");
+                        fuzzyCompare(background.radius,bar.panelSlotSize / 2,0.01,"tray round pill");
+                    }
+                }
+                let full = findChild(bar,"fullPanelPill");
+                verify(full.visible);
+                fuzzyCompare(full.x + full.width / 2,bar.width / 2,0.01,"full pill center");
+                fuzzyCompare(bar.moduleItems[ids[0]].x - full.x,5,0.01,"full pill leading cap");
+                fuzzyCompare(full.x + full.width - bar.moduleItems[ids[ids.length - 1]].x
+                    - bar.moduleItems[ids[ids.length - 1]].width,5,0.01,"full pill trailing cap");
             }
         }
         function test_centeredGapReachesEveryGroupWorkspaceAndTray() {
@@ -244,11 +316,19 @@ Item {
                 for (let i=0; i<ids.length; ++i) {
                     let item=bar.moduleItems[ids[i]], ink=item.glyphRect;
                     compare(item.effectiveIconSize,15,ids[i] + " common icon size");
-                    fuzzyCompare(ink.x,4,0.01,ids[i] + " visible left padding");
-                    fuzzyCompare(item.width-ink.x-ink.width,4,0.01,ids[i] + " visible right padding");
+                    if (centered) {
+                        fuzzyCompare(item.width,bar.panelSlotSize,0.01,ids[i] + " icon slot width");
+                        fuzzyCompare(item.height,bar.panelSlotSize,0.01,ids[i] + " icon slot height");
+                        fuzzyCompare(ink.x+ink.width/2,item.width/2,0.01,ids[i] + " centered glyph");
+                        fuzzyCompare(ink.y+ink.height/2,item.height/2,0.01,ids[i] + " centered glyph");
+                    } else {
+                        fuzzyCompare(ink.x,4,0.01,ids[i] + " visible left padding");
+                        fuzzyCompare(item.width-ink.x-ink.width,4,0.01,ids[i] + " visible right padding");
+                    }
                     if (i) {
                         let previous=bar.moduleItems[ids[i-1]], previousInk=previous.glyphRect;
-                        fuzzyCompare(item.x+ink.x-previous.x-previousInk.x-previousInk.width,gap+8,0.01,"visible gap");
+                        if (!centered)
+                            fuzzyCompare(item.x+ink.x-previous.x-previousInk.x-previousInk.width,gap+8,0.01,"visible gap");
                         fuzzyCompare(item.x-previous.x-previous.width,gap,0.01,"pill gap");
                     }
                 }
@@ -274,7 +354,12 @@ Item {
                 compare(findChild(bar,"mediaSpectrum").height,15);
                 compare(bar.moduleItems.tray.trayIconSize,15);
                 compare(findChild(bar,"workspace1").content.font.pixelSize,9);
-                verify(findChild(bar,"workspace12").height<=20);
+                if (centered) {
+                    compare(findChild(bar,"workspace12").height,bar.panelSlotSize);
+                    compare(bar.moduleItems.tray.trayTargetSize,bar.panelSlotSize);
+                } else {
+                    verify(findChild(bar,"workspace12").height<=20);
+                }
                 compare(bar.moduleItems.workspaces.spacing,5);
                 compare(findChild(bar.moduleItems.tray,"trayIcon").parent.spacing,5);
             }

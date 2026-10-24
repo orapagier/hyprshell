@@ -72,15 +72,15 @@ membership continues to control layout; disabling centering restores ordinary
 menu alignment. Hidden-panel shortcuts and the application launcher overlay
 retain their existing placement.
 
-Centered layouts display icons with small workspace numbers, including a calendar
-icon for date/time and a compact media spectrum. Horizontal workspace pills keep
-the ordinary layout’s compact text-sized width, height, padding and number font,
-including two-digit numbers; centering does not enlarge them into icon circles.
-Normal-mode workspace names and custom appearance remain saved. Notification
-counts and status text remain available in their menus. The normal text layout
-returns when centering is disabled; saved item text, icons and appearance are
-retained. Uniform mode sizes controls around visible content with equal padding,
-so narrow glyphs do not leave extra blank space.
+Centered layouts place every icon in the same square slot, including a calendar
+icon for date/time and a compact media spectrum. Workspace numbers use their
+saved compact font but occupy the same slot and circular pill as other icons, so
+one- and two-digit workspaces keep identical spacing. Normal-mode workspace names
+and custom appearance remain saved. Notification counts and status text remain
+available in their menus. The normal text layout returns when centering is
+disabled; saved item text, icons and appearance are retained. With background
+pills enabled, each slot uses the same circular pill and the icon or number is
+centered inside it. A full Hyprpane pill keeps the complete row centered.
 
 The active item-gap control (with or without Hyprknots) applies to centered
 items in every group, workspace buttons, tray icons, shared-pill members and
@@ -91,10 +91,12 @@ Only the applicable gap control is enabled for the current mode.
 **Uniform icon size & spacing** (`bar.uniformItems`, default true) uses the
 General icon size for launcher/settings marks, status icons, calendar, media
 spectrum and tray artwork. Workspace number font choices remain independent.
-Both centered and ordinary horizontal layouts size pills around visible glyph
-bounds with 4 px padding on either side; Bluetooth and Wi-Fi no longer reserve
-an unrelated square width or font-bearing space. Text labels remain available
-in the ordinary layout, and workspace pills keep compact text sizing.
+Ordinary horizontal layouts size pills around visible glyph bounds with 4 px
+padding on either side; Bluetooth and Wi-Fi no longer reserve an unrelated
+square width or font-bearing space. Centered layouts use one square icon slot
+for every item, so icons, circular pills and the active gap share the same
+footprint whether backgrounds are shown or hidden. Text labels remain available
+in the ordinary layout, and workspace numbers keep their saved compact font.
 
 The active item gap applies to every group, shared pill, workspace button and
 tray icon in either layout. Individual size/padding/gap overrides remain saved;

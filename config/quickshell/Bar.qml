@@ -16,7 +16,8 @@ Item {
     readonly property bool iconsOnly: vertical || centerItems
     readonly property bool uniformItems: settings.bar?.uniformItems === true
     readonly property real panelIconSize: settings.bar?.iconSize || 16
-    readonly property bool iconPills: vertical || (centerItems && !uniformItems)
+    readonly property bool iconPills: vertical || centerItems
+    readonly property real panelSlotSize: Math.max(1, verticalThickness - 4)
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Length never affects width. Explicit icon/font sizing and thickness still do.
     readonly property real verticalThickness: uniformItems ? Math.max(32, settings.bar?.height || 32, panelIconSize + 12) : Math.max(32, settings.bar?.height || 32,
@@ -655,8 +656,8 @@ Item {
             objectName: "distroGlassLogo"
             iconSize: distroLogo.settings.iconSize || distroLogo.settings.fontSize || 22
             visible: !distroLogo.settings.text && !distroLogo.settings.icon && (bar.iconsOnly || !distroLogo.settings.hideText) && !distroLogo.settings.hideIcon
-            x: bar.uniformItems && !bar.vertical ? 4 : bar.iconsOnly ? 0 : distroLogo.content.x
-            width: bar.uniformItems && !bar.vertical ? iconSize : bar.iconsOnly ? distroLogo.width : distroLogo.content.width
+            x: bar.iconsOnly ? (distroLogo.width - iconSize) / 2 : bar.uniformItems && !bar.vertical ? 4 : distroLogo.content.x
+            width: bar.iconsOnly || (bar.uniformItems && !bar.vertical) ? iconSize : distroLogo.content.width
             height: distroLogo.height
             accent: distroLogo.settings.iconColor || distroLogo.settings.textColor || distroLogo.effectiveForeground
             highlighted: distroLogo.hovered || distroLogo.selected
@@ -694,8 +695,8 @@ Item {
             objectName: "settingsGlassCog"
             iconSize: settingsCog.settings.iconSize || settingsCog.settings.fontSize || 22
             visible: !settingsCog.settings.text && !settingsCog.settings.icon && (bar.iconsOnly || !settingsCog.settings.hideText) && !settingsCog.settings.hideIcon
-            x: bar.uniformItems && !bar.vertical ? 4 : bar.iconsOnly ? 0 : settingsCog.content.x
-            width: bar.uniformItems && !bar.vertical ? iconSize : bar.iconsOnly ? settingsCog.width : settingsCog.content.width
+            x: bar.iconsOnly ? (settingsCog.width - iconSize) / 2 : bar.uniformItems && !bar.vertical ? 4 : settingsCog.content.x
+            width: bar.iconsOnly || (bar.uniformItems && !bar.vertical) ? iconSize : settingsCog.content.width
             height: settingsCog.height
             accent: settingsCog.settings.iconColor || settingsCog.settings.textColor || settingsCog.effectiveForeground
             highlighted: settingsCog.hovered || settingsCog.selected
@@ -745,13 +746,13 @@ Item {
                 colorRoot: bar
                 required property var modelData
                 property bool active: modelData.active || false
-                vertical: bar.vertical
-                maximumWidth: bar.vertical ? Math.max(1, bar.verticalThickness - 4 - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
-                width: bar.vertical ? maximumWidth : implicitWidth
+                vertical: bar.iconsOnly
+                maximumWidth: bar.vertical ? Math.max(1, bar.panelSlotSize - workspaceRow.leftPadding - workspaceRow.rightPadding) : 10000
+                width: bar.vertical ? maximumWidth : bar.centerItems ? bar.panelSlotSize : implicitWidth
                 onActiveFocusChanged: if (activeFocus) bar.ensureItemVisible(workspaceButton)
                 iconOnly: false
                 Accessible.name: "Workspace " + (modelData.name || String(modelData.id))
-                height: bar.vertical ? width : Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
+                height: bar.iconsOnly ? width : Math.max(20, shownText.length ? content.implicitHeight + 6 : 0, shownIcon.length ? effectiveIconSize + 6 : 0)
                 text: modelData.name || String(modelData.id)
                 leftPadding: 7
                 rightPadding: 7
@@ -824,7 +825,7 @@ Item {
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: {
             let style = bar.appearance("tray");
-            if (bar.vertical) style.background = "off";
+            if (bar.iconsOnly) style.background = "off";
             return style;
         }
         opacity: Settings.item(bar.settings, "tray").opacity ?? 1
@@ -839,7 +840,7 @@ Item {
         leftPadding: bar.vertical ? 4 : 11
         rightPadding: bar.vertical ? 4 : 11
         readonly property int trayIconSize: settings.iconSize || 16
-        readonly property int trayTargetSize: bar.vertical ? bar.verticalThickness - 4 : bar.uniformItems ? trayIconSize + 8 : bar.centerItems ? bar.verticalThickness - 4 : trayIconSize
+        readonly property int trayTargetSize: bar.iconsOnly ? bar.panelSlotSize : bar.uniformItems ? trayIconSize + 8 : trayIconSize
         Grid {
             id: trayRow
             columns: bar.vertical ? Math.max(1, Math.floor((bar.verticalThickness - 4 + spacing) / (trayPill.trayTargetSize + spacing))) : Math.max(1, trayIcons.count)
@@ -854,7 +855,7 @@ Item {
                     id: trayIcon
                     vertical: bar.iconPills
                     interactive: false
-                    settings: bar.vertical ? bar.appearance("tray") : ({background:"off"})
+                    settings: bar.iconsOnly ? bar.appearance("tray") : ({background:"off"})
                     colorSampler: trayPill.colorSampler
                     colorRoot: bar
                     foreground: trayPill.foreground
