@@ -41,6 +41,31 @@ Item {
                 }
             }
         }
+        function test_fullPillTransformsIntoAttachedMaterial() {
+            let items = Object.keys(attachedBar.moduleItems).map(id => ({id:id, enabled:id === "launcher" || id === "wifi", side:"left"}));
+            for (let edge of ["top", "bottom", "left", "right"]) {
+                for (let centered of [false, true]) {
+                    attachedBar.width = edge === "left" || edge === "right" ? 40 : 700;
+                    attachedBar.settings = {bar:{position:edge, centerItems:centered, edgeAttached:true,
+                        fullBackground:"on", adaptiveColors:false, fullPillTransparency:35}, items:items};
+                    wait(0);
+                    let pill = findChild(attachedBar, "fullPanelPill");
+                    let rounded = findChild(pill, "pillBackground");
+                    let attached = findChild(attachedBar, "attachedPanelSurface");
+                    verify(pill.visible); // material remains available to foreground adaptation
+                    verify(!rounded.visible);
+                    verify(attached.visible);
+                    compare(attached.surfaceColor, pill.backgroundFill);
+                    fuzzyCompare(attached.opacity, 0.65, 0.001);
+                    attachedBar.settings = {bar:{position:edge, centerItems:centered, edgeAttached:false,
+                        fullBackground:"on", adaptiveColors:false, fullPillTransparency:35}, items:items};
+                    wait(0);
+                    verify(rounded.visible);
+                    verify(!attached.visible);
+                    fuzzyCompare(rounded.opacity, 0.65, 0.001);
+                }
+            }
+        }
         function test_fourEdgeGeometry() {
             for (let edge of ["top", "bottom", "left", "right"]) {
                 surface.edge = edge;

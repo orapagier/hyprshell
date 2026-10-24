@@ -59,6 +59,8 @@ Item {
     property int textFormat: Text.PlainText
     property bool interactive: true
     property bool raised: true
+    // Retain material calculations when a caller supplies a different silhouette.
+    property bool drawBackground: true
     property bool backgroundVisible: true
     readonly property bool backgroundShown: settings.background === "on" || (settings.background !== "off" && backgroundVisible)
     readonly property bool bare: !backgroundShown && !settings.sharedBackgroundShown
@@ -105,7 +107,7 @@ Item {
     Keys.onSpacePressed: if (interactive) clicked(null)
     Rectangle {
         objectName: "pillBackground"
-        visible: pill.backgroundShown
+        visible: pill.backgroundShown && pill.drawBackground
         opacity: pill.settings.pillTransparency >= 0 ? 1 - pill.settings.pillTransparency / 100 : 1
         anchors.centerIn: parent
         width: pill.circular ? Math.min(pill.width, pill.height) : pill.width

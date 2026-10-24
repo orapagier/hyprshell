@@ -614,7 +614,9 @@ Item {
         parent: bar
         anchors.fill: parent
         z: -3
-        visible: bar.settings.bar?.edgeAttached === true && fullPill.memberIds.length > 0
+        visible: !bar.statusIconsOnly && bar.settings.bar?.edgeAttached === true && fullPill.memberIds.length > 0
+        surfaceColor: fullPill.backgroundShown ? fullPill.backgroundFill : "#242437"
+        opacity: fullPill.backgroundShown ? fullPill.backgroundAlpha : 1
         edge: bar.position
         start: bar.vertical ? Math.max(12, fullPill.bounds.y + bar.insetTop - 4 - bar.scrollOffset) : fullPill.bounds.x + bar.insetLeft - 4
         end: bar.vertical ? Math.min(bar.height - 12, fullPill.bounds.y + fullPill.bounds.height - bar.insetBottom + 4 - bar.scrollOffset)
@@ -623,6 +625,7 @@ Item {
     Pill {
         id: fullPill
         objectName: "fullPanelPill"
+        drawBackground: bar.settings.bar?.edgeAttached !== true
         readonly property var memberIds: bar.orderedItems("left").concat(bar.orderedItems("center"), bar.orderedItems("right"))
         readonly property string leader: fullPill.memberIds[0] || "launcher"
         readonly property var bounds: {
