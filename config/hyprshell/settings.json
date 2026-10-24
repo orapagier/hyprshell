@@ -50,6 +50,7 @@
     "popdownTranslucency": 0.05,
     "sharedBackground": "inherit",
     "fullBackground": "off",
+    "fullPillTransparency": 65,
     "hyprknots": true,
     "hyprknotsLineWidth": 1,
     "hyprknotsKnotSize": 100,

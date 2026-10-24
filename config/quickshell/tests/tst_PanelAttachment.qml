@@ -86,7 +86,7 @@ Item {
                 tryCompare(attachedBar.wallpaperColors, "ready", true);
                 tryVerify(() => Colors.luminance(attached.surfaceColor) < 0.05);
                 let darkWallpaperFill = pill.backgroundFill.toString();
-                verify(attached.outlineColor.a < 0.2);
+                verify(attached.outlineColor.a <= 0.31);
                 compare(attached.outlineColor, pill.adaptivePalette.outline);
                 attachedBar.screenOffsetX = 220;
                 tryVerify(() => pill.backgroundFill.toString() !== darkWallpaperFill);

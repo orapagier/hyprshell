@@ -40,14 +40,16 @@ Shape {
         strokeWidth: -1
         fillGradient: LinearGradient {
             x1: 0; y1: 0; x2: 0; y2: surface.depth
-            GradientStop { position: 0; color: Qt.rgba(1, 1, 1, surface.raised ? 0.08 : 0) }
-            GradientStop { position: 1; color: "transparent" }
+            GradientStop { position: 0; color: Qt.rgba(1, 1, 1, surface.raised ? 0.22 : 0) }
+            GradientStop { position: 0.42; color: Qt.rgba(1, 1, 1, surface.raised ? 0.035 : 0) }
+            GradientStop { position: 0.72; color: "transparent" }
+            GradientStop { position: 1; color: Qt.rgba(surface.surfaceColor.r, surface.surfaceColor.g, surface.surfaceColor.b, surface.raised ? 0.16 : 0) }
         }
         PathSvg { path: surface.silhouette }
     }
     ShapePath {
         strokeWidth: surface.raised ? 1 : -1
-        strokeColor: Qt.rgba(1, 1, 1, 0.10)
+        strokeColor: Qt.rgba(1, 1, 1, 0.32)
         fillColor: "transparent"
         // Keep the specular line inside the material, as on individual pills.
         startX: surface.first + surface.radius; startY: 1

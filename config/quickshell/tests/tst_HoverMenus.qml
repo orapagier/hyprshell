@@ -80,6 +80,28 @@ Item {
                 compare(popover.bodyY, popover.neckY + popover.connectorGap);
             }
         }
+        function test_hoverMotionSettlesWithoutRepeatedRebounds() {
+            let motion = popover.fluidMotion;
+            let value = 1.04, velocity = 0;
+            for (let i = 0; i < 90; ++i) {
+                let next = motion.spring(value, velocity, 1, 1 / 60);
+                verify(next.value >= 1 - 0.000001);
+                verify(next.value <= value + 0.000001);
+                value = next.value; velocity = next.velocity;
+            }
+            fuzzyCompare(value, 1, 0.00001);
+            hover("audio");
+            tryVerify(() => !motion.running, 1500);
+            let y = motion.displayY, height = motion.displayHeight;
+            let trigger = findChild(bar, "audioTrigger");
+            for (let offset of [-2, 0, 2, 0]) {
+                mouseMove(trigger, trigger.width / 2 + offset, trigger.height / 2);
+                wait(120);
+                compare(state.section, "audio");
+                fuzzyCompare(motion.displayY, y, 0.01);
+                fuzzyCompare(motion.displayHeight, height, 0.01);
+            }
+        }
         function test_pointerCanCrossBridgeAndUseMenu() {
             hover("audio");
             mouseMove(root, popover.shoulder, popover.bodyY - 8);

@@ -60,40 +60,38 @@ Item {
             id: revealAnim
             duration: motion.opened ? 480 : 240
             easing.type: Easing.BezierSpline
-            easing.bezierCurve: motion.opened ? [0.38, 1.21, 0.22, 1, 1, 1] : [0.4, 0, 0.2, 1, 1, 1]
+            easing.bezierCurve: motion.opened ? [0.22, 1, 0.36, 1, 1, 1] : [0.4, 0, 0.2, 1, 1, 1]
         }
     }
     Behavior on center {
         enabled: motion.animated && motion.active
-        NumberAnimation { id: centerAnim; duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.38, 1.21, 0.22, 1, 1, 1] }
+        NumberAnimation { id: centerAnim; duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1, 0.36, 1, 1, 1] }
     }
     Behavior on leading {
         enabled: motion.animated && motion.active
-        NumberAnimation { id: leadingAnim; duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.38, 1.21, 0.22, 1, 1, 1] }
+        NumberAnimation { id: leadingAnim; duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1, 0.36, 1, 1, 1] }
     }
     Behavior on extentT {
         enabled: motion.animated && motion.active
-        NumberAnimation { id: widthAnim; duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.38, 1.21, 0.22, 1, 1, 1] }
+        NumberAnimation { id: widthAnim; duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1, 0.36, 1, 1, 1] }
     }
     Behavior on extentN {
         enabled: motion.animated && motion.active
-        NumberAnimation { id: heightAnim; duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.38, 1.21, 0.22, 1, 1, 1] }
+        NumberAnimation { id: heightAnim; duration: 420; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1, 0.36, 1, 1, 1] }
     }
-    // Exact damped-oscillator step: stable at variable frame rates and continuous
-    // when the destination changes. No animation restarts are needed to follow
-    // the changing velocity of the card.
+    // Critical damping keeps fluid deformation continuous without repeated
+    // rebounds that look like vertical flicker while the pointer is stationary.
     function spring(value, velocity, goal, dt) {
-        let frequency = 20, damping = 0.58;
-        let decayRate = frequency * damping;
-        let oscillation = frequency * Math.sqrt(1 - damping * damping);
-        let decay = Math.exp(-decayRate * dt);
-        let c = Math.cos(oscillation * dt), s = Math.sin(oscillation * dt);
+        let frequency = 20;
+        let decay = Math.exp(-frequency * dt);
         let displacement = value - goal;
+        let drift = velocity + frequency * displacement;
         return {
-            value: goal + decay * (displacement * c + (velocity + decayRate * displacement) / oscillation * s),
-            velocity: decay * (velocity * c - (decayRate * velocity + frequency * frequency * displacement) / oscillation * s)
+            value: goal + (displacement + drift * dt) * decay,
+            velocity: (velocity - frequency * drift * dt) * decay
         };
     }
+
     FrameAnimation {
         id: frames
         running: motion.animated && motion.active && (motion.travelling || motion.physicsActive)
@@ -112,7 +110,7 @@ Item {
                     + (motion.progress - previousProgress) * Math.min(80, motion.extentN * 0.2)) / dt;
                 let speed = Math.hypot(vt, vn);
                 let bias = (Math.abs(vt) - Math.abs(vn)) / Math.max(1, speed);
-                let stretch = 1 + Math.min(0.12, speed * 0.00018) * bias;
+                let stretch = 1 + Math.min(0.04, speed * 0.00008) * bias;
                 motion.impulseT = speed < 1 ? 1 : stretch;
                 motion.impulseN = speed < 1 ? 1 : 1 / stretch;
                 motion.impulseShear = speed < 1 ? 0 : Math.max(-0.025, Math.min(0.025, vt * 0.00004));

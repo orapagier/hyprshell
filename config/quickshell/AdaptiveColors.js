@@ -41,7 +41,9 @@ function panelPalette(region, accent, options) {
     }
     // Broad glass surfaces should retain the wallpaper hue. Maximizing their
     // contrast selects near-white on dark wallpaper and produces a milky slab.
-    let glass = mix(under.average, Qt.color("#101722"), 0.60);
+    let hue = under.average.hsvHue >= 0 ? under.average.hsvHue : accent.hsvHue;
+    let glass = Qt.hsva(hue, Math.min(0.85, 0.38 + under.average.hsvSaturation * 0.5),
+        0.30 + under.average.hsvValue * 0.24, 1);
     let fill = options.backgroundColor ? Qt.color(options.backgroundColor)
         : options.glassSurface ? glass : separation(dark) >= separation(light) ? dark : light;
     let opacity = options.transparency >= 0 ? 1 : options.backgroundOpacity >= 0 ? options.backgroundOpacity : originalOpacity;
@@ -67,7 +69,7 @@ function panelPalette(region, accent, options) {
     return {foreground:foreground, tint:alpha(fill, opacity),
         hover:alpha(mix(fill, foreground, 0.025), opacity),
         selected:alpha(mix(fill, foreground, 0.05), opacity),
-        outline:options.glassSurface ? alpha(Qt.color("#e5eeff"), 0.18) : alpha(glyphEdge(fill), 0.65),
+        outline:options.glassSurface ? alpha(mix(glass, Qt.color("#ffffff"), 0.78), 0.30) : alpha(glyphEdge(fill), 0.65),
         selectedOutline:alpha(foreground, 0.85)};
 }
 

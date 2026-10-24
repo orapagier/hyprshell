@@ -71,7 +71,8 @@ Item {
                 let palette = Colors.panelPalette(region, accent,
                     {shown:true, glassSurface:true, transparency:50, layers:[]});
                 verify(Colors.luminance(palette.tint) < 0.25, "Glass must not become a white panel");
-                verify(palette.outline.a < 0.2, "Glass rim must stay subtle");
+                verify(palette.outline.a <= 0.31, "Glass rim must stay translucent");
+                verify(palette.tint.hsvSaturation >= 0.37, "Glass should retain a vivid wallpaper tint");
                 verify(Colors.contrast(palette.foreground, Colors.mix(sample,palette.tint,0.5)) >= 4.5);
                 fills.push(palette.tint);
             }
