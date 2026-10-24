@@ -825,8 +825,11 @@ Item {
         verticalItemAlignment: Grid.AlignVCenter
         height: implicitHeight
         spacing: bar.statusIconsOnly ? 2 : bar.uniformItems || bar.centerItems || bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
-        leftPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
-        rightPadding: bar.uniformItems || bar.centerItems ? 0 : Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
+        // Match the power glyph's visible inset at the full panel ends.
+        readonly property real endPadding: bar.uniformItems && bar.fullBackgroundEnabled && !bar.vertical
+            ? Math.max(0, power.width - power.glyphRect.x - power.glyphRect.width) : 0
+        leftPadding: bar.uniformItems || bar.centerItems ? endPadding : Math.max(0, (bar.vertical ? 0 : 1) + (Settings.item(bar.settings, "workspaces").paddingLeft || 0))
+        rightPadding: bar.uniformItems || bar.centerItems ? endPadding : Math.max(0, (bar.vertical ? 0 : 3) + (Settings.item(bar.settings, "workspaces").paddingRight || 0))
         Repeater {
             id: workspaceRepeater
             model: (bar.statusData.workspaces || []).filter(w => !bar.outputName || w.monitor === bar.outputName)
