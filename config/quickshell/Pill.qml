@@ -172,7 +172,8 @@ Item {
         id: iconLabel
         transform: Scale { xScale: pill.iconInkScale; yScale: pill.iconInkScale }
         x: pill.vertical || (pill.uniformGlyphHeight > 0 && pill.circular) ? (parent.width - compactGlyphMetrics.tightBoundingRect.width * pill.iconInkScale) / 2 - compactGlyphMetrics.tightBoundingRect.x * pill.iconInkScale : pill.effectiveLeftPadding - (pill.uniformGlyphHeight > 0 ? compactGlyphMetrics.tightBoundingRect.x * pill.iconInkScale : 0)
-        y: pill.uniformGlyphHeight > 0 ? (parent.height - compactGlyphMetrics.tightBoundingRect.height * pill.iconInkScale) / 2 - (baselineOffset + compactGlyphMetrics.tightBoundingRect.y) * pill.iconInkScale : pill.vertical && !pill.shownText.length
+        // Empty glyphs need no baseline layout during icon/orientation changes.
+        y: !visible ? 0 : pill.uniformGlyphHeight > 0 ? (parent.height - compactGlyphMetrics.tightBoundingRect.height * pill.iconInkScale) / 2 - (baselineOffset + compactGlyphMetrics.tightBoundingRect.y) * pill.iconInkScale : pill.vertical && !pill.shownText.length
             ? (parent.height - compactGlyphMetrics.tightBoundingRect.height) / 2 - baselineOffset - compactGlyphMetrics.tightBoundingRect.y
             : pill.vertical ? 4 : (parent.height - height) / 2
         objectName: "pillIcon"

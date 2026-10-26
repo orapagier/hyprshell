@@ -101,6 +101,8 @@ Item {
             compare(itemPage.settings.fontSize, 0);
         }
         function test_editorsFitWideAndNarrowLayouts() {
+            // Hidden categories retain their previous geometry until shown.
+            barPage.category = "all";
             for (let page of [barPage, itemPage]) {
                 barPage.visible = page === barPage; itemPage.visible = page === itemPage;
                 for (let width of [820, 480, 360]) {

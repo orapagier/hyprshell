@@ -77,7 +77,7 @@ Item {
         function test_sidePanelsAreIconOnlyAndCircular(data) {
             pane.settings = config(data.edge);
             pane.clockText = 'September Wednesday 12:59 PM';
-            compare(pane.width,32);
+            fuzzyCompare(pane.width,Math.max(32,16 / 0.48),0.01);
             for (let id of ['calendar','audio','battery','wifi','bluetooth','notifications','power']) {
                 let item = pane.moduleItems[id];
                 compare(item.displayText,'',id);
@@ -114,7 +114,7 @@ Item {
             pane.trayModel = Array.from({length:18},(_,i) => ({icon:Qt.resolvedUrl("../icons/preview-tray.svg"),title:'App '+i}));
             pane.clockText = 'Wednesday September 30 11:59 PM';
             // Grid lays out newly created tray delegates on the next polish.
-            tryVerify(() => pane.moduleItems.tray.height >= 18 * 28);
+            tryVerify(() => pane.moduleItems.tray.height >= 18 * pane.panelSlotSize);
             for (let edge of ['left','right']) {
                 pane.settings = config(edge);
                 assertLayout();
@@ -126,7 +126,8 @@ Item {
                 let rect = pane.menuRect('power');
                 verify(rect.y >= 0 && rect.y + rect.height <= pane.height + 0.1);
                 let trayIcon = findChild(pane,'trayIcon');
-                verify(trayIcon.width >= 24 && trayIcon.height >= 24);
+                fuzzyCompare(trayIcon.width,pane.panelSlotSize,0.01);
+                fuzzyCompare(trayIcon.height,pane.panelSlotSize,0.01);
                 pane.ensureItemVisible(trayIcon);
                 viewport.contentY = viewport.contentHeight - viewport.height;
                 let before = pane.menuRect('calendar').y;

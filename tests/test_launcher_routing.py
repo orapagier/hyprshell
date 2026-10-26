@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class LauncherRoutingTests(unittest.TestCase):
-    def test_panel_priority_and_focused_output(self):
+    def test_focused_output_hidden_panel_and_fallback(self):
         shell = (ROOT / 'config/quickshell/shell.qml').read_text()
         handler = shell[shell.index('        function toggleLauncher(): void {'):].split('\n        }', 1)[0] + '\n        }'
         source = '''import QtQuick
@@ -19,32 +19,29 @@ TestCase {
     name: "LauncherRouting"
     property var compositor: ({focusedMonitor:{name:'main'}})
     property var panels: ({instances:[]})
-    property var docks: ({instances:[]})
-    property var taskbars: ({instances:[]})
     property string selected: ''
-    function panel(name,output,available) {
-        return {screen:{name:output},output:{name:output},launcherAvailable:available,
-            closeMenu:function(){},toggleLauncher:function(){selected=name;}};
+    property var closed: []
+    function panel(name,output,shown) {
+        return {screen:{name:output},shown:shown,
+            closeMenu:function(){closed.push(name);},toggleLauncher:function(){selected=name;}};
     }
     HANDLER
-    function test_combinations() {
-        for (let pane of [false,true]) for (let dock of [false,true]) for (let bar of [false,true]) {
-            panels.instances=[panel('pane','main',pane)];
-            docks.instances=[panel('dock','main',dock)];
-            taskbars.instances=[panel('bar','main',bar)];
-            selected=''; toggleLauncher();
-            compare(selected,bar ? 'bar' : dock ? 'dock' : 'pane');
+    function test_hidden_panel_keeps_keyboard_launcher() {
+        compositor.focusedMonitor={name:'main'};
+        for (let shown of [false,true]) {
+            panels.instances=[panel('pane','main',shown)];
+            selected=''; closed=[]; toggleLauncher();
+            compare(selected,'pane'); compare(closed.length,0);
         }
     }
-    function test_focused_output_and_ineligible_panels() {
+    function test_focused_output_closes_other_menus() {
         panels.instances=[panel('pane-main','main',true),panel('pane-other','other',true)];
-        docks.instances=[panel('dock-main','main',true)];
-        taskbars.instances=[panel('bar-other','other',true),panel('bar-hidden','main',false)];
-        toggleLauncher(); compare(selected,'dock-main');
         compositor.focusedMonitor={name:'other'};
-        toggleLauncher(); compare(selected,'bar-other');
-        taskbars.instances=[];
-        toggleLauncher(); compare(selected,'pane-other');
+        closed=[]; toggleLauncher(); compare(selected,'pane-other'); compare(closed,['pane-main']);
+        compositor.focusedMonitor=null;
+        closed=[]; toggleLauncher(); compare(selected,'pane-main'); compare(closed,['pane-other']);
+        panels.instances=[];
+        selected=''; toggleLauncher(); compare(selected,'');
     }
 }'''.replace('HANDLER', handler.replace('Hyprland.', 'compositor.'))
         runner = subprocess.check_output([sys.executable, str(ROOT / 'tools/check_runtime.py'), '--qmltestrunner'], text=True).strip()

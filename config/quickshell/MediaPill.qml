@@ -26,7 +26,7 @@ Pill {
         objectName: "mediaSpectrum"
         visible: !media.settings.hideIcon
         x: media.iconOnly ? (parent.width - width) / 2 : media.uniformItems ? (media.settings.panelItemPadding ?? 4) : Math.max(0, (media.settings.panelItemPadding ?? 9) + (media.settings.paddingLeft || 0))
-        width: media.uniformItems ? media.spectrumWidth : media.vertical ? Math.min(parent.width - 14, 28 * media.spectrumScale) : 58 * media.spectrumScale
+        width: media.uniformItems ? media.spectrumWidth : media.vertical ? Math.min(parent.width * 0.8, 28 * media.spectrumScale) : 58 * media.spectrumScale
         height: media.uniformItems ? (media.settings.uniformGlyphHeight || media.settings.iconSize || 16) : media.vertical ? (media.settings.uniformGlyphHeight || Math.min(parent.height - 14, 16 * media.spectrumScale)) : 16 * media.spectrumScale
         y: (parent.height - height) / 2
         spacing: media.uniformItems ? 1 : media.vertical ? Math.max(1, media.spectrumScale) : 2 * media.spectrumScale

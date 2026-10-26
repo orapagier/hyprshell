@@ -28,19 +28,23 @@ Item {
         updateMarquee();
     }
     function updateMarquee() {
+        marqueeTimer.stop();
         if (!playing) { marquee = ""; return; }
         if (characters.length <= 28) { marquee = fullTitle; return; }
-        let elapsed = ((Date.now() - marqueeStarted) / 1000) % (2 + ring.length * 0.3);
-        let offset = elapsed < 2 ? 0 : Math.floor((elapsed - 2) / 0.3);
+        let elapsed = Math.max(0, Date.now() - marqueeStarted) % (2000 + ring.length * 300);
+        let offset = elapsed < 2000 ? 0 : Math.floor((elapsed - 2000) / 300);
         marquee = Array.from({length: 28}, (_, i) => ring[(offset + i) % ring.length]).join("");
+        // Wake only when the next character changes, including the initial
+        // pause and wraparound. Recompute from time so delayed frames catch up.
+        marqueeTimer.interval = Math.max(1, (offset === 0 ? 2300 : 2000 + (offset + 1) * 300) - elapsed);
+        marqueeTimer.start();
     }
     onPlayingChanged: resetMarquee()
     onRingChanged: resetMarquee()
     Component.onCompleted: resetMarquee()
     Timer {
+        id: marqueeTimer
         objectName: "mediaMarqueeTimer"
-        interval: 67; repeat: true
-        running: activity.playing && activity.characters.length > 28
         onTriggered: activity.updateMarquee()
     }
 }

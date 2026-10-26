@@ -127,7 +127,8 @@ Item {
                 fuzzyCompare(crossSize,data.thickness,0.01,"panel thickness");
                 for (let id of ["launcher","settings","audio","wifi","calendar","power"]) {
                     let item = bar.moduleItems[id], background = findChild(item,"pillBackground");
-                    fuzzyCompare(background.height,data.thickness * 0.6,0.01,id + " own pill height");
+                    let verticalInset = full === "on" && !bar.vertical && bar.side(id) !== "left" ? 2 : 0;
+                    fuzzyCompare(background.height,data.thickness * 0.6 - 2 * verticalInset,0.01,id + " own pill height");
                     if (data.uniform && !bar.iconsOnly && !item.labelIsIcon && !item.shownIcon.length)
                         fuzzyCompare(item.uniformTextHeight,data.thickness * 10 / 30,0.01,id + " text scale");
                     else fuzzyCompare(item.glyphRect.height,data.thickness * (data.uniform ? 12 / 30 : 0.48),0.01,id + " ink height");
@@ -327,9 +328,10 @@ Item {
                     }
                     if (mode === "on" && id !== "tray" && id !== "workspaces") {
                         let background = findChild(item,"pillBackground");
-                        fuzzyCompare(background.width,bar.panelSlotSize,0.01,id + " pill width");
-                        fuzzyCompare(background.height,bar.panelSlotSize,0.01,id + " pill height");
-                        fuzzyCompare(background.radius,bar.panelSlotSize / 2,0.01,id + " round pill");
+                        let size = bar.panelSlotSize - (bar.side(id) === "left" ? 0 : 4);
+                        fuzzyCompare(background.width,size,0.01,id + " pill width");
+                        fuzzyCompare(background.height,size,0.01,id + " pill height");
+                        fuzzyCompare(background.radius,size / 2,0.01,id + " round pill");
                     }
                     if (previous) fuzzyCompare(item.x - previous.x - previous.width,7,0.01,id + " gap");
                     previous = item;
@@ -346,23 +348,22 @@ Item {
                     fuzzyCompare(trayIcon.height,bar.panelSlotSize,0.01,"tray slot height");
                     if (mode === "on") {
                         let background = findChild(trayIcon,"pillBackground");
-                        fuzzyCompare(background.width,bar.panelSlotSize,0.01,"tray pill width");
-                        fuzzyCompare(background.height,bar.panelSlotSize,0.01,"tray pill height");
-                        fuzzyCompare(background.radius,bar.panelSlotSize / 2,0.01,"tray round pill");
+                        fuzzyCompare(background.width,bar.panelSlotSize - 4,0.01,"tray pill width");
+                        fuzzyCompare(background.height,bar.panelSlotSize - 4,0.01,"tray pill height");
+                        fuzzyCompare(background.radius,(bar.panelSlotSize - 4) / 2,0.01,"tray round pill");
                     }
                 }
                 let full = findChild(bar,"fullPanelPill");
                 verify(full.visible);
-                fuzzyCompare(bar.panelSlotSize / full.height,0.6,0.01,"inner pills occupy 60% of full pill height");
+                fuzzyCompare(full.height,bar.panelSlotSize + 4,0.01,"full pill fits items with 2 px headroom");
                 fuzzyCompare(full.x + full.width / 2,bar.width / 2,0.01,"full pill center");
                 fuzzyCompare(bar.moduleItems[ids[0]].x - full.x,bar.fullPillInset,0.01,"full pill leading cap");
                 fuzzyCompare(full.x + full.width - bar.moduleItems[ids[ids.length - 1]].x
                     - bar.moduleItems[ids[ids.length - 1]].width,bar.fullPillInset,0.01,"full pill trailing cap");
-                fuzzyCompare(full.height,bar.panelSlotSize + 2 * bar.panelItemInset,0.01,"full pill vertical inset");
-                fuzzyCompare(full.y,0,0.01,"full pill top");
+                fuzzyCompare(full.y,(bar.height - full.height) / 2,0.01,"full pill centered vertically");
                 for (let id of ids) {
                     let item = bar.moduleItems[id];
-                    let inset = bar.panelItemInset + (id === "workspaces" ? (bar.panelSlotSize - bar.workspacePillSize) / 2 : 0);
+                    let inset = 2 + (id === "workspaces" ? (bar.panelSlotSize - bar.workspacePillSize) / 2 : 0);
                     fuzzyCompare(item.y - full.y,inset,0.01,id + " top inset");
                     fuzzyCompare(full.y + full.height - item.y - item.height,
                         inset,0.01,id + " bottom inset");

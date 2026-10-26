@@ -106,12 +106,12 @@ hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+")
 hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true, description = "Decrease brightness" })
 
 -- Freeze the screen before region selection, then edit the capture in Swappy.
-hl.bind("Print", hl.dsp.exec_cmd('grimblast --freeze save area - | swappy -f -'), { description = "Capture screenshot region" })
+hl.bind("Print", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-screenshot" --region'), { description = "Capture screenshot region" })
 -- This keyboard's Print key emits KEY_INSERT, so bind it as well
-hl.bind("Insert", hl.dsp.exec_cmd('grimblast --freeze save area - | swappy -f -'), { description = "Capture screenshot region" })
+hl.bind("Insert", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-screenshot" --region'), { description = "Capture screenshot region" })
 -- Capture before opening the editor so menus and popups stay in the image.
-hl.bind("SHIFT + Print", hl.dsp.exec_cmd("grim - | swappy -f -"), { description = "Capture full-screen screenshot" })
-hl.bind("SHIFT + Insert", hl.dsp.exec_cmd("grim - | swappy -f -"), { description = "Capture full-screen screenshot" })
+hl.bind("SHIFT + Print", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-screenshot" --screen'), { description = "Capture full-screen screenshot" })
+hl.bind("SHIFT + Insert", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-screenshot" --screen'), { description = "Capture full-screen screenshot" })
 
 -- Requires playerctl
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true, description = "Next track" })

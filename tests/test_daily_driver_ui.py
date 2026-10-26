@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(shutil.which('quickshell'), 'Native Quickshell is needed')
 class DailyDriverNativeTests(unittest.TestCase):
-    def test_first_run_guide_completes_and_does_not_return_on_reopen(self):
+    def test_guide_from_settings_home_completes_and_stays_completed(self):
         source = '''import QtQuick
 import Quickshell
 import "."
@@ -29,7 +29,9 @@ ShellRoot {
             if (test.phase === 0) { controller.open(); test.phase = 1; return; }
             let editor = controller.window;
             if (test.phase === 1 && editor && editor.idle) {
-                if (editor.section !== -18) { test.fail("first-run page"); return; }
+                if (editor.section !== editor.homeSection || !editor.firstRunPending) { test.fail("home or initial guide state"); return; }
+                editor.section = -18; test.phase = 10;
+            } else if (test.phase === 10 && editor && editor.idle) {
                 let complete = test.find(editor.contentItem, "finishWelcomeGuide");
                 if (!complete || !complete.enabled) return;
                 let build = test.find(editor.contentItem, "hyprshellBuild");

@@ -26,7 +26,9 @@ Item {
     // keeps the bars lively at 5 Hz while the 40 ms Behavior smooths the steps.
     function offerFrame(frame) {
         if (!validFrame(frame)) return;
-        if (!frame.some((value, index) => value !== levels[index])) return;
+        // Even a return to the currently displayed frame supersedes a queued
+        // peak. Otherwise a short sound can leave stale bars after silence.
+        if (pendingFrame === null && !frame.some((value, index) => value !== levels[index])) return;
         pendingFrame = frame;
         if (!applyFrame.running) applyFrame.start();
     }

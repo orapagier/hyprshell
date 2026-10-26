@@ -11,6 +11,53 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(shutil.which('quickshell'), 'Native Qt runtime required')
 class MediaActivityTests(unittest.TestCase):
+    def test_spectrum_coalescing_delivers_latest_valid_frame(self):
+        # Quickshell.Io is linked into Quickshell, not the standalone Qt runner.
+        with tempfile.TemporaryDirectory(prefix='hyprshell-spectrum-frames-') as directory:
+            root = Path(directory)
+            runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
+            (root / 'shell').symlink_to(ROOT / 'config/quickshell', target_is_directory=True)
+            entry = root / 'Check.qml'
+            entry.write_text('''import QtQuick
+import QtTest
+import Quickshell
+import "shell"
+ShellRoot {
+    AudioSpectrum { id: spectrum }
+    TestCase { id: input; when: false }
+    function check(value) {
+        if (!spectrum.levels.every(n => n === value)) throw new Error("Unexpected spectrum frame");
+    }
+    Timer { interval: 100; running: true; onTriggered: {
+        try {
+            spectrum.offerFrame(Array(12).fill(1));
+            spectrum.offerFrame(Array(12).fill(0));
+            input.wait(250); check(0);
+            spectrum.acceptFrame(Array(12).fill(0.4));
+            spectrum.offerFrame(Array(12).fill(0.9));
+            spectrum.offerFrame(Array(12).fill(0.4));
+            input.wait(250); check(0.4);
+            spectrum.offerFrame(Array(12).fill(0.2));
+            spectrum.offerFrame(Array(12).fill(0.8));
+            spectrum.offerFrame(Array(12).fill(NaN));
+            input.wait(250); check(0.8);
+            spectrum.offerFrame(Array(12).fill(1));
+            spectrum.restart();
+            input.wait(250); check(0);
+            console.info("SPECTRUM_FRAMES_OK"); Qt.quit();
+        } catch (error) { console.error(error); Qt.exit(1); }
+    }}
+}
+''')
+            env = dict(os.environ, QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software',
+                       QT_QPA_PLATFORMTHEME='', XDG_RUNTIME_DIR=str(runtime),
+                       XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'))
+            result = subprocess.run(['quickshell', '-p', str(entry)], env=env,
+                                    capture_output=True, text=True, timeout=10)
+            output = result.stdout + result.stderr
+            self.assertEqual(result.returncode, 0, output)
+            self.assertIn('SPECTRUM_FRAMES_OK', output)
+
     def test_desktop_services_loads_idle(self):
         with tempfile.TemporaryDirectory(prefix='hyprshell-media-services-') as directory:
             root = Path(directory)

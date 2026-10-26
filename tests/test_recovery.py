@@ -238,7 +238,9 @@ class RecoveryNativeTests(unittest.TestCase):
             current = copy.deepcopy(backend.DEFAULTS)
             current['bar']['height'] = 40
             target = root / 'config/hyprshell/settings.json'; target.parent.mkdir(); target.write_text(json.dumps(current))
-            backup = root / 'state/hyprshell/backups/recovery-native/settings.json'; backup.parent.mkdir(parents=True); backup.write_text(json.dumps(backend.DEFAULTS))
+            saved = copy.deepcopy(backend.DEFAULTS)
+            saved['bar']['height'] = 32
+            backup = root / 'state/hyprshell/backups/recovery-native/settings.json'; backup.parent.mkdir(parents=True); backup.write_text(json.dumps(saved))
             fixture = payload / 'RecoveryNative.qml'
             fixture.write_text('''import QtQuick
 import QtQuick.Window

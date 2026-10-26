@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Finish a capture before opening the editor; Escape never opens an empty image.
+set -euo pipefail
+umask 077
+
+mode=${1:---region}
+case "$mode" in
+    --open)
+        if (( $# == 2 )); then
+            [[ -f "$2" && -r "$2" ]] || exit 1
+            exec swappy -f "$2"
+        fi
+        (( $# == 1 )) || exit 2
+        mode=--region
+        ;;
+    --region|--screen) (( $# <= 1 )) || exit 2 ;;
+    *) printf 'Usage: hyprshell-screenshot [--region|--screen|--open [FILE]]\n' >&2; exit 2 ;;
+esac
+
+capture=$(mktemp "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/hyprshell-shot.XXXXXXXX.png")
+trap 'rm -f -- "$capture"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' HUP TERM
+
+if [[ $mode == --screen ]]; then
+    grim "$capture"
+elif command -v grimblast >/dev/null && command -v hyprpicker >/dev/null; then
+    grimblast --freeze save area "$capture"
+else
+    # Systems without the optional freeze helper still support region capture.
+    geometry=$(slurp) || exit 0
+    [[ -n $geometry ]] || exit 0
+    grim -g "$geometry" "$capture"
+fi
+[[ -s $capture ]] || exit 1
+swappy -f - < "$capture"

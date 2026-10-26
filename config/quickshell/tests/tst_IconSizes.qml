@@ -16,32 +16,35 @@ Item {
         name: "IconSizes"
         when: windowShown
         function cleanup() { bar.settings = {}; }
+        function trayImage() { return findChild(bar,"trayIcon").children.find(child => child.fillMode !== undefined); }
         function test_globalSizingIncludesGlassGlyphsTrayAndSpectrum() {
             bar.settings = {bar:{height:32,iconSize:24}};
-            compare(findChild(bar.moduleItems.audio,"pillIcon").font.pixelSize,24);
-            compare(bar.moduleItems.audio.content.font.pixelSize,18);
-            compare(bar.moduleItems.wifi.content.font.pixelSize,24);
+            // Ink is normalized from a large font; the rendered size is the
+            // contract, not the internal 128 px outline used for measurement.
+            fuzzyCompare(bar.moduleItems.audio.iconGlyphRect.height,24,0.01);
+            fuzzyCompare(bar.moduleItems.audio.textGlyphRect.height,24,0.01);
+            fuzzyCompare(bar.moduleItems.wifi.glyphRect.height,24,0.01);
             compare(findChild(bar,"distroGlassLogo").iconSize,24);
-            compare(findChild(bar,"settingsGlassCog").iconSize,24);
-            compare(findChild(bar,"trayIcon").width,24);
-            compare(findChild(bar.moduleItems.battery,"pillIcon").font.pixelSize,24);
-            compare(bar.moduleItems.battery.content.font.pixelSize,18);
+            fuzzyCompare(bar.moduleItems.settings.glyphRect.height,24,0.01);
+            compare(trayImage().width,24);
+            fuzzyCompare(bar.moduleItems.battery.iconGlyphRect.height,24,0.01);
+            fuzzyCompare(bar.moduleItems.battery.textGlyphRect.height,24,0.01);
             compare(bar.moduleItems.battery.shownText,"86%");
             compare(bar.moduleItems.media.item.spectrumWidth,87);
         }
         function test_individualSizeWinsAndResetFollowsGlobal() {
             bar.settings = {bar:{height:32,iconSize:32},items:[{id:"wifi",iconSize:12},{id:"launcher",iconSize:40},{id:"tray",iconSize:20}]};
-            compare(bar.moduleItems.wifi.content.font.pixelSize,12);
+            fuzzyCompare(bar.moduleItems.wifi.glyphRect.height,12,0.01);
             compare(findChild(bar,"distroGlassLogo").iconSize,40);
-            compare(findChild(bar,"trayIcon").width,20);
-            compare(findChild(bar.moduleItems.audio,"pillIcon").font.pixelSize,32);
+            compare(trayImage().width,20);
+            fuzzyCompare(bar.moduleItems.audio.iconGlyphRect.height,32,0.01);
             bar.settings = {bar:{height:32,iconSize:32},items:[{id:"wifi",iconSize:0}]};
-            compare(bar.moduleItems.wifi.content.font.pixelSize,32);
+            fuzzyCompare(bar.moduleItems.wifi.glyphRect.height,32,0.01);
             bar.settings = {bar:{height:32,iconSize:0}};
-            compare(bar.moduleItems.wifi.content.font.pixelSize,15);
-            compare(findChild(bar,"distroGlassLogo").iconSize,22);
-            compare(findChild(bar.moduleItems.audio,"pillIcon").font.pixelSize,16);
-            compare(findChild(bar,"trayIcon").width,16);
+            fuzzyCompare(bar.moduleItems.wifi.glyphRect.height,15.36,0.01);
+            fuzzyCompare(findChild(bar,"distroGlassLogo").iconSize,15.36,0.01);
+            fuzzyCompare(bar.moduleItems.audio.iconGlyphRect.height,15.36,0.01);
+            fuzzyCompare(trayImage().width,15.36,0.01);
         }
         function test_largerIconsGrowHitAreasAndKeepMenuAnchors() {
             bar.settings = {bar:{height:32,iconSize:48}};

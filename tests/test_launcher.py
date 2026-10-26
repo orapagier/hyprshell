@@ -94,12 +94,6 @@ ShellRoot {
                 source = fixture.read_text().replace('    Window {',
                     '    SettingsStore { id: preferences }\n    ApplicationService { id: appService; store: preferences }\n    Window {')
                 source = source.replace('LauncherMenu { id: launcher;', 'LauncherMenu { applicationService: appService; id: launcher;')
-                source = source.replace('launcher.launch({id: "vim"});',
-                    'keyboard.keyClick(Qt.Key_P, Qt.ControlModifier, 0); check(launcher.interacting, "pin menu did not open"); '
-                    'let menu = launcher.data.find(item => item.objectName === "launcherPinMenu"); '
-                    'check(menu && menu.background.objectName === "launcherPinGlass" && menu.background.radius === 16, "pin menu glass missing"); '
-                    'check(menu.background.gradient.stops[0].color.a < 1, "pin menu lost transparency"); '
-                    'keyboard.keyClick(Qt.Key_Down, Qt.NoModifier, 0); keyboard.keyClick(Qt.Key_Return, Qt.NoModifier, 0); launcher.launch({id: "vim"});')
                 fixture.write_text(source)
             runtime = root / 'runtime'; runtime.mkdir(mode=0o700)
             environment = dict(os.environ, XDG_CONFIG_HOME=str(root / 'config'), XDG_STATE_HOME=str(root / 'state'),
@@ -111,7 +105,8 @@ ShellRoot {
                 self.assertNotIn(error, result.stdout + result.stderr)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             if shared:
-                saved = json.loads((root / 'config/hyprshell/settings.json').read_text())
-                self.assertEqual(saved['pins']['shared'], ['alpha.desktop'])
+                # Launching no longer exposes the retired app-panel pin UI or
+                # writes settings; keyboard navigation still uses the service.
+                self.assertFalse((root / 'config/hyprshell/settings.json').exists())
             entries = [json.loads(line) for line in log.read_text().splitlines()]
             self.assertCountEqual(entries, [['app', '-t', 'service', '--', 'beta.desktop'], ['app', '-t', 'service', '--', 'vim.desktop'], ['app', '-t', 'service', '--', 'gparted.desktop']])

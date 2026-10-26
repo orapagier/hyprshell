@@ -135,10 +135,12 @@ Item {
                 ]) {
                     style.bar.position = edge;
                     bar.settings = style;
-                    verify(!popover.pointed);
+                    verify(popover.pointed); // All current menus use the shared stem.
                     let rect = bar.menuRect("wifi");
                     compare(popover.triggerRect,Qt.rect(rect.x + bar.x,rect.y + bar.y,rect.width,rect.height));
-                    verify(popover.fluidOutline.footRight > popover.fluidOutline.footLeft);
+                    compare(popover.fluidOutline.footLeft,popover.tipX);
+                    compare(popover.fluidOutline.footRight,popover.tipX);
+                    verify(popover.fluidOutline.waistHalf > 0);
                 }
                 bar.settings = {bar:{position:edge,background:"on"},items:[{id:"wifi",pillGroup:"test",sharedBackground:"off"}]};
                 verify(popover.pointed);

@@ -84,9 +84,9 @@ hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+")
 hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true, description = "Decrease brightness" })
 
 -- Screenshot region snipping tool: Print opens the region selector, then edit in swappy
-hl.bind("Print", hl.dsp.exec_cmd('grim -g "$(slurp)" - | swappy -f -'), { description = "Capture screenshot region" })
+hl.bind("Print", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-screenshot" --region'), { description = "Capture screenshot region" })
 -- This keyboard's Print key emits KEY_INSERT, so bind it as well
-hl.bind("Insert", hl.dsp.exec_cmd('grim -g "$(slurp)" - | swappy -f -'), { description = "Capture screenshot region" })
+hl.bind("Insert", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-screenshot" --region'), { description = "Capture screenshot region" })
 
 -- Requires playerctl
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true, description = "Next track" })

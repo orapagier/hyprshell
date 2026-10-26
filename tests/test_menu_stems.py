@@ -25,6 +25,7 @@ Item {
     width: 1366; height: 900
     Item {
         id: panel
+        property bool shown: true
         property real originX: bar.x
         property real originY: bar.y
         property var screen: ({width:scene.width,height:scene.height})
@@ -66,7 +67,7 @@ Item {
             return test_shortcuts_data().filter(row => row.menu !== "launcher");
         }
         function test_centeredMenusFollowIcons(data) {
-            menuState.close(); panel.visible = true;
+            menuState.close(); panel.shown = true;
             menuState.activate(data.menu,true);
             for (let background of ["on","off"]) {
                 for (let padding of [0,45]) {
@@ -87,12 +88,12 @@ Item {
             }
             bar.settings = {bar:{position:data.edge,centerItems:false}};
             verify(!popover.alignToTrigger);
-            panel.visible = false;
+            panel.shown = false;
             verify(!popover.alignToTrigger);
         }
         function test_shortcuts(data) {
             menuState.close();
-            panel.visible = true;
+            panel.shown = true;
             let id = bar.menuItemId(data.menu);
             bar.settings = {bar:{position:data.edge}};
             menuState.activate(data.menu, true);
@@ -108,10 +109,10 @@ Item {
             }
             bar.settings = {bar:{position:data.edge}};
             verify(popover.connected);
-            panel.visible = false;
+            panel.shown = false;
             verify(!popover.connected, "Hidden panel must have no stem");
             verify(!findChild(popover,"menuFunnel").visible);
-            panel.visible = true;
+            panel.shown = true;
             if (data.menu === "battery") {
                 bar.statusData = Object.assign({},bar.statusData,{battery:{present:false}});
                 verify(!popover.connected, "Absent battery must have no stem");

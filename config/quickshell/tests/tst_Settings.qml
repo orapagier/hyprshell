@@ -48,7 +48,7 @@ Item {
         function test_extraSpacingAddsToGeneralGapAndMovesAnchors() {
             let wifi = bar.moduleItems.wifi, bluetooth = bar.moduleItems.bluetooth;
             for (let side of ["left", "center", "right"]) {
-                bar.settings = {bar:{height:32,spacing:5}, items:Object.keys(bar.moduleItems).map(id => ({
+                bar.settings = {bar:{height:32,hyprknots:false,compactSpacing:5}, items:Object.keys(bar.moduleItems).map(id => ({
                     id:id, enabled:id === "wifi" || id === "bluetooth", side:side,
                     order:id === "wifi" ? 0 : 1, spacingLeft:id === "wifi" ? 7 : 3,
                     spacingRight:id === "wifi" ? 10 : 11
@@ -91,7 +91,7 @@ Item {
             let audio = findChild(bar, "audioTrigger");
             bar.settings = {items:[{id:"audio",text:"Sound",icon:"♪",textColor:"#ff0000",iconColor:"#00ff00",backgroundColor:"#0000ff",backgroundOpacity:0.4,opacity:0.6,fontSize:18}]};
             compare(audio.shownText, "Sound"); compare(audio.shownIcon, "♪");
-            compare(audio.content.text, "Sound"); compare(audio.content.font.pixelSize,18);
+            compare(audio.content.text, "Sound"); fuzzyCompare(audio.textGlyphRect.height,18,0.01);
             compare(audio.textColor, Qt.color("#ff0000")); compare(audio.iconColor, Qt.color("#00ff00"));
             let fill = audio.styledBackground(Qt.rgba(1,1,1,0.2));
             compare(fill.b, 1); fuzzyCompare(fill.a,0.4,0.001);
