@@ -14,8 +14,8 @@ ColumnLayout {
     spacing: 8
     Label {
         text: field.label
-        color: Style.Theme.text
-        font.pixelSize: Style.Theme.bodySize
+        color: Style.SettingsTheme.text
+        font.pixelSize: Style.SettingsTheme.bodySize
     }
     RowLayout {
         Layout.fillWidth: true
@@ -34,21 +34,21 @@ ColumnLayout {
             leftPadding: 14
             Accessible.name: field.label
             rightPadding: 14
-            color: Style.Theme.text
-            font.pixelSize: Style.Theme.bodySize
-            selectionColor: Style.Theme.selection
-            selectedTextColor: Style.Theme.text
+            color: Style.SettingsTheme.text
+            font.pixelSize: Style.SettingsTheme.bodySize
+            selectionColor: Style.SettingsTheme.selection
+            selectedTextColor: Style.SettingsTheme.text
             text: field.value
             placeholderText: field.hint
-            placeholderTextColor: Style.Theme.muted
+            placeholderTextColor: Style.SettingsTheme.muted
             selectByMouse: true
             background: Rectangle {
                 radius: 8
-                color: Style.Theme.field
-                border.color: Style.Theme.controlBorder
+                color: Style.SettingsTheme.field
+                border.color: Style.SettingsTheme.controlBorder
                 Behavior on color {
                     ColorAnimation {
-                        duration: Style.Theme.duration(field, 130)
+                        duration: Style.SettingsTheme.duration(field, 130)
                     }
                 }
             }
@@ -60,7 +60,7 @@ ColumnLayout {
         Layout.fillWidth: true
         text: field.description
         wrapMode: Text.WordWrap
-        color: Style.Theme.muted
-        font.pixelSize: Style.Theme.captionSize
+        color: Style.SettingsTheme.muted
+        font.pixelSize: Style.SettingsTheme.captionSize
     }
 }

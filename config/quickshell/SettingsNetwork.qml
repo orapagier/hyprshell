@@ -55,12 +55,12 @@ ColumnLayout {
         }
         stderr: StdioCollector { onStreamFinished: if (text) { page.success = false; page.message = "Network helper failed. Refresh and try again."; } }
     }
-    Label { objectName: "networkMessage"; visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    Label { objectName: "networkMessage"; visible: !!page.message; text: page.message; color: page.success ? Style.SettingsTheme.success : Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
     RowLayout {
         Layout.fillWidth: true
         SettingsButton { objectName: "refreshNetwork"; text: page.busy ? "Working…" : "Refresh"; enabled: !page.busy; onClicked: page.request({operation: "status"}) }
         Label {
-            Layout.fillWidth: true; wrapMode: Text.Wrap; color: Style.Theme.muted
+            Layout.fillWidth: true; wrapMode: Text.Wrap; color: Style.SettingsTheme.muted
             text: !page.loaded ? "Network status has not been read." : ({full: "Internet access available", portal: "Sign in to this network to access the internet", limited: "Connected with limited internet access", none: "Disconnected", unknown: "Internet access has not been determined"})[page.connectivity] || "Internet access has not been determined"
         }
     }
@@ -68,8 +68,8 @@ ColumnLayout {
         title: "Saved connections"
         subtitle: "Connect opens a terminal for passwords and connection results. Edit includes automatic connection, IP addresses, DNS, and security. Refresh after using another network tool."
         Layout.fillWidth: true
-        SettingsTextField { objectName: "networkSearch"; Layout.fillWidth: true; placeholderText: "Find a connection or type"; color: Style.Theme.text; selectByMouse: true; onTextChanged: page.query = text }
-        Label { visible: page.loaded && page.filtered.length === 0; text: page.profiles.length ? "No matching connections." : "No saved connections. Use the Wi-Fi menu or add one below."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        SettingsTextField { objectName: "networkSearch"; Layout.fillWidth: true; placeholderText: "Find a connection or type"; color: Style.SettingsTheme.text; selectByMouse: true; onTextChanged: page.query = text }
+        Label { visible: page.loaded && page.filtered.length === 0; text: page.profiles.length ? "No matching connections." : "No saved connections. Use the Wi-Fi menu or add one below."; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Repeater {
             model: page.filtered
             delegate: ColumnLayout {
@@ -77,8 +77,8 @@ ColumnLayout {
                 required property var modelData
                 Layout.fillWidth: true
                 spacing: 8
-                Label { Layout.fillWidth: true; text: connection.modelData.name; color: Style.Theme.text; font.bold: true; wrapMode: Text.Wrap }
-                Label { Layout.fillWidth: true; text: page.typeName(connection.modelData.type) + (connection.modelData.active ? " · Active" : " · Disconnected"); color: connection.modelData.active ? Style.Theme.success : Style.Theme.muted; wrapMode: Text.Wrap }
+                Label { Layout.fillWidth: true; text: connection.modelData.name; color: Style.SettingsTheme.text; font.bold: true; wrapMode: Text.Wrap }
+                Label { Layout.fillWidth: true; text: page.typeName(connection.modelData.type) + (connection.modelData.active ? " · Active" : " · Disconnected"); color: connection.modelData.active ? Style.SettingsTheme.success : Style.SettingsTheme.muted; wrapMode: Text.Wrap }
                 Flow {
                     Layout.fillWidth: true
                     spacing: 8
@@ -88,7 +88,7 @@ ColumnLayout {
                 }
             }
         }
-        Label { visible: page.pendingForget !== null; text: page.pendingForget ? "Forget “" + page.pendingForget.name + "”? This removes its saved settings and credentials. You will need to add it again." : ""; color: Style.Theme.warning; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        Label { visible: page.pendingForget !== null; text: page.pendingForget ? "Forget “" + page.pendingForget.name + "”? This removes its saved settings and credentials. You will need to add it again." : ""; color: Style.SettingsTheme.warning; wrapMode: Text.Wrap; Layout.fillWidth: true }
         RowLayout {
             visible: page.pendingForget !== null
             SettingsButton { objectName: "confirmForgetNetwork"; text: "Forget connection"; enabled: !page.busy && page.pendingForget !== null; onClicked: page.change("forget", page.pendingForget) }
@@ -99,9 +99,9 @@ ColumnLayout {
         title: "Hidden Wi-Fi"
         subtitle: "Enter the exact network name. The connection terminal asks for its password and shows the result."
         Layout.fillWidth: true
-        SettingsTextField { id: hiddenName; objectName: "hiddenNetworkName"; Layout.fillWidth: true; placeholderText: "Network name (SSID)"; color: Style.Theme.text; selectByMouse: true; enabled: !page.busy }
+        SettingsTextField { id: hiddenName; objectName: "hiddenNetworkName"; Layout.fillWidth: true; placeholderText: "Network name (SSID)"; color: Style.SettingsTheme.text; selectByMouse: true; enabled: !page.busy }
         SettingsButton { objectName: "connectHiddenNetwork"; text: "Connect hidden Wi-Fi…"; enabled: !page.busy && hiddenName.text.length > 0; onClicked: page.request({operation: "hidden", ssid: hiddenName.text}) }
-        Label { text: "For enterprise networks, configure authentication and certificates with Add Wi-Fi first, then connect the saved profile above."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: "For enterprise networks, configure authentication and certificates with Add Wi-Fi first, then connect the saved profile above."; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
     SettingsCard {
         title: "Add or configure a connection"
@@ -116,7 +116,7 @@ ColumnLayout {
             SettingsButton { objectName: "addWireguardNetwork"; text: "Add WireGuard…"; enabled: !page.busy && page.editorAvailable; onClicked: page.request({operation: "create", type: "wireguard"}) }
         }
         SettingsButton { text: "Advanced connection settings…"; enabled: !page.busy && page.editorAvailable; onClicked: page.request({operation: "editor"}) }
-        Label { visible: page.loaded && !page.editorAvailable; text: "Install nm-connection-editor to add or edit connections."; color: Style.Theme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        Label { text: "VPN setup and file import use the editor’s connection chooser. Provider-specific VPNs need their NetworkManager plugin; WireGuard uses NetworkManager’s built-in support. Network credentials stay on this laptop and are excluded from GitHub configuration sync."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { visible: page.loaded && !page.editorAvailable; text: "Install nm-connection-editor to add or edit connections."; color: Style.SettingsTheme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: "VPN setup and file import use the editor’s connection chooser. Provider-specific VPNs need their NetworkManager plugin; WireGuard uses NetworkManager’s built-in support. Network credentials stay on this laptop and are excluded from GitHub configuration sync."; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
 }

@@ -126,7 +126,7 @@ ColumnLayout {
             Layout.fillWidth: true
             visible: page.projectionOnly || page.monitors.length > 1
             enabled: page.monitors.length > 1 && !page.busy
-            Label { text: "Screen to duplicate"; color: Style.Theme.muted }
+            Label { text: "Screen to duplicate"; color: Style.SettingsTheme.muted }
             SettingsComboBox {
                 id: duplicateSource
                 objectName: "duplicateSource"
@@ -146,9 +146,9 @@ ColumnLayout {
             SettingsButton { objectName: "applyDisplays"; text: "Apply changes…"; highlighted: true; visible: !page.pending; enabled: page.loaded && page.entries.length > 0 && !page.busy; onClicked: page.request("preview") }
             SettingsButton { text: page.dirty ? "Discard edits & refresh" : "Refresh"; visible: !page.pending; enabled: !page.busy; onClicked: page.request("status") }
         }
-        Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        Label { visible: page.loaded && !page.monitors.length; text: "No active displays found."; color: Style.Theme.muted }
-        Label { visible: page.projectionOnly && page.loaded && page.monitors.length === 1; text: "Connect a projector or second display to use Duplicate or Extend, then refresh."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { visible: !!page.message; text: page.message; color: page.success ? Style.SettingsTheme.success : Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { visible: page.loaded && !page.monitors.length; text: "No active displays found."; color: Style.SettingsTheme.muted }
+        Label { visible: page.projectionOnly && page.loaded && page.monitors.length === 1; text: "Connect a projector or second display to use Duplicate or Extend, then refresh."; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
     Repeater {
         model: page.projectionOnly ? [] : page.monitors
@@ -172,7 +172,7 @@ ColumnLayout {
             ColumnLayout {
                 Layout.fillWidth: true
                 visible: page.monitors.length > 1
-                Label { text: "Use this screen as"; color: Style.Theme.muted }
+                Label { text: "Use this screen as"; color: Style.SettingsTheme.muted }
                 SettingsComboBox {
                     objectName: "displayMirror"
                     Layout.fillWidth: true
@@ -182,14 +182,14 @@ ColumnLayout {
                     onActivated: page.edit(card.index, "mirror", currentIndex ? sources[currentIndex - 1] : "")
                 }
             }
-            Label { visible: !!card.entry.mirror; text: "Showing the desktop and cursor from " + (card.entry.mirror || "") + ". Different screen shapes may stretch the picture."; Layout.fillWidth: true; wrapMode: Text.Wrap; color: Style.Theme.muted }
+            Label { visible: !!card.entry.mirror; text: "Showing the desktop and cursor from " + (card.entry.mirror || "") + ". Different screen shapes may stretch the picture."; Layout.fillWidth: true; wrapMode: Text.Wrap; color: Style.SettingsTheme.muted }
             GridLayout {
                 Layout.fillWidth: true
                 columns: card.width > 600 ? 2 : 1
                 columnSpacing: 20; rowSpacing: 16
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Label { text: "Resolution"; color: Style.Theme.muted }
+                    Label { text: "Resolution"; color: Style.SettingsTheme.muted }
                     SettingsComboBox {
                         objectName: "displayResolution"
                         Layout.fillWidth: true
@@ -203,7 +203,7 @@ ColumnLayout {
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Label { text: "Refresh rate"; color: Style.Theme.muted }
+                    Label { text: "Refresh rate"; color: Style.SettingsTheme.muted }
                     SettingsComboBox {
                         objectName: "displayRefresh"
                         Layout.fillWidth: true
@@ -214,7 +214,7 @@ ColumnLayout {
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Label { text: "Scale"; color: Style.Theme.muted }
+                    Label { text: "Scale"; color: Style.SettingsTheme.muted }
                     SettingsComboBox {
                         objectName: "displayScale"
                         Layout.fillWidth: true
@@ -230,7 +230,7 @@ ColumnLayout {
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Label { text: "Rotation"; color: Style.Theme.muted }
+                    Label { text: "Rotation"; color: Style.SettingsTheme.muted }
                     SettingsComboBox {
                         objectName: "displayRotation"
                         Layout.fillWidth: true
@@ -243,7 +243,7 @@ ColumnLayout {
             ColumnLayout {
                 Layout.fillWidth: true
                 visible: page.monitors.length > 1
-                Label { text: "Place this display next to"; color: Style.Theme.muted }
+                Label { text: "Place this display next to"; color: Style.SettingsTheme.muted }
                 SettingsComboBox {
                     id: anchorDisplay
                     Layout.fillWidth: true
@@ -266,14 +266,14 @@ ColumnLayout {
             RowLayout {
                 Layout.fillWidth: true
                 visible: card.entry.position !== "auto"
-                Label { text: "X"; color: Style.Theme.muted }
+                Label { text: "X"; color: Style.SettingsTheme.muted }
                 SpinBox {
                     objectName: "displayX"
                     Layout.fillWidth: true; editable: true; from: -32000; to: 32000
                     value: parseInt(card.entry.position.split("x")[0]) || 0
                     onValueModified: page.edit(card.index, "position", value + "x" + card.entry.position.split("x")[1])
                 }
-                Label { text: "Y"; color: Style.Theme.muted }
+                Label { text: "Y"; color: Style.SettingsTheme.muted }
                 SpinBox {
                     objectName: "displayY"
                     Layout.fillWidth: true; editable: true; from: -32000; to: 32000
@@ -281,7 +281,7 @@ ColumnLayout {
                     onValueModified: page.edit(card.index, "position", card.entry.position.split("x")[0] + "x" + value)
                 }
             }
-            Label { text: "Place a second display beside the first using its width ÷ scale for X (use height ÷ scale when rotated). Negative X places it to the left."; Layout.fillWidth: true; wrapMode: Text.Wrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize }
+            Label { text: "Place a second display beside the first using its width ÷ scale for X (use height ÷ scale when rotated). Negative X places it to the left."; Layout.fillWidth: true; wrapMode: Text.Wrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize }
         }
     }
 }

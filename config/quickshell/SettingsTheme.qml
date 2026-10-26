@@ -78,8 +78,8 @@ ColumnLayout {
                 onToggled: page.request("save", checked ? "dark" : "light")
             }
         }
-        Label { text: "Apps with their own appearance setting should use Follow system. Reopen apps that do not change automatically."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-        Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: "Apps with their own appearance setting should use Follow system. Reopen apps that do not change automatically."; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { visible: !!page.message; text: page.message; color: page.success ? Style.SettingsTheme.success : Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
         SettingsButton { text: page.dirty ? "Discard edits & refresh" : "Refresh"; flat: true; enabled: !page.busy; onClicked: page.request("status", page.mode) }
     }
     SettingsCard {
@@ -93,7 +93,7 @@ ColumnLayout {
         SettingsRow {
             title: "Font size"
             SettingsSpinBox { id: fontPoints; objectName: "applicationFontSize"; from: 6; to: 32; value: 11; enabled: page.loaded && !page.busy }
-            Label { text: "pt"; color: Style.Theme.muted }
+            Label { text: "pt"; color: Style.SettingsTheme.muted }
             Item { Layout.fillWidth: true }
         }
         SettingsRow {
@@ -104,7 +104,7 @@ ColumnLayout {
             title: "Cursor size"
             separator: false
             SettingsSpinBox { id: cursorPixels; objectName: "applicationCursorSize"; from: 16; to: 64; value: 24; stepSize: 4; enabled: page.loaded && !page.busy }
-            Label { text: "px"; color: Style.Theme.muted }
+            Label { text: "px"; color: Style.SettingsTheme.muted }
             Item { Layout.fillWidth: true }
         }
         SettingsButton {
@@ -114,6 +114,6 @@ ColumnLayout {
             enabled: page.loaded && !page.busy && page.dirty && fontPicker.currentIndex >= 0 && cursorPicker.currentIndex >= 0
             onClicked: page.request("save", page.mode, {font: page.fonts[fontPicker.currentIndex] + " " + fontPoints.value, cursorTheme: page.cursors[cursorPicker.currentIndex], cursorSize: cursorPixels.value})
         }
-        Label { text: "Apps with custom fonts or themes keep their own choices. Hyprpane uses its separate appearance controls."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: "Apps with custom fonts or themes keep their own choices. Hyprpane uses its separate appearance controls."; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
 }

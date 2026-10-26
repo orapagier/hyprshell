@@ -56,7 +56,7 @@ ColumnLayout {
             Layout.fillWidth: true
             text: "Restart your agents after installing. Keep the Hyprshell checkout available; skill updates follow changes in the repository. Existing custom skills are preserved."
             wrapMode: Text.WordWrap
-            color: Style.Theme.muted
+            color: Style.SettingsTheme.muted
         }
         Label {
             objectName: "hyprskillResult"
@@ -64,7 +64,7 @@ ColumnLayout {
             visible: page.message !== ""
             text: page.message
             wrapMode: Text.WrapAnywhere
-            color: page.success ? Style.Theme.muted : Style.Theme.danger
+            color: page.success ? Style.SettingsTheme.muted : Style.SettingsTheme.danger
         }
     }
 }

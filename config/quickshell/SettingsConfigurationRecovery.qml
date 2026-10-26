@@ -48,30 +48,30 @@ SettingsCard {
             } catch (e) { page.success = false; page.message = "Could not read configuration recovery. Refresh and retry."; }
         } }
     }
-    SettingsLabel { visible: !page.ready; text: "Wait for Settings to finish saving."; color: Style.Theme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { visible: !page.ready; text: "Wait for Settings to finish saving."; color: Style.SettingsTheme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap }
     Flow {
         Layout.fillWidth: true; spacing: 8
         SettingsButton { objectName: "createConfigurationCheckpoint"; text: page.busy ? "Working…" : "Back up Hyprshell now"; enabled: page.loaded && page.ready && !page.busy; onClicked: page.request("checkpoint") }
         SettingsButton { objectName: "refreshSetupBackups"; text: "Refresh backups"; enabled: page.ready && !page.busy; onClicked: page.request("status") }
         SettingsButton { text: "Open backup folder"; enabled: !page.busy && !!page.backupDirectory && page.checkpoints.some(row => row.kind !== "legacy"); onClicked: Qt.openUrlExternally("file://" + page.backupDirectory.split("/").map(encodeURIComponent).join("/")) }
     }
-    SettingsLabel { visible: page.loaded && page.checkpoints.length === 0; text: "No setup backups yet. Back up Hyprshell now to create your first dated restore point."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    SettingsLabel { text: "Choose a backup to restore · newest first"; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { visible: page.loaded && page.checkpoints.length === 0; text: "No setup backups yet. Back up Hyprshell now to create your first dated restore point."; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { text: "Choose a backup to restore · newest first"; color: Style.SettingsTheme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
     SettingsComboBox {
         id: picker; objectName: "configurationCheckpointPicker"; Layout.fillWidth: true
         model: page.checkpoints.map(row => row.label); enabled: page.ready && !page.busy && page.checkpoints.length > 0
         onActivated: { page.selectedId = page.checkpoints[currentIndex].id; page.preview = null; }
         Accessible.name: "Hyprshell backup date and time"
     }
-    SettingsLabel { objectName: "selectedSetupBackup"; visible: page.selectedBackup !== null; text: page.selectedBackup ? page.selectedBackup.label + "\n" + (page.selectedBackup.fileCount !== null ? page.selectedBackup.fileCount + " configuration files · " : "") + (page.selectedBackup.bytes / 1024).toFixed(1) + " KiB" : ""; textFormat: Text.PlainText; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    SettingsLabel { text: "New manual setup backups and before-restore backups are kept separately from cleanup history. Copy the backup folder to another drive for protection against disk failure or reinstalling the OS. Legacy checkpoints remain subject to their existing cleanup rules."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    SettingsLabel { visible: page.skippedBackups > 0; text: page.skippedBackups + " incomplete or invalid backup entries were skipped. Check the backup folder before relying on them."; color: Style.Theme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { objectName: "selectedSetupBackup"; visible: page.selectedBackup !== null; text: page.selectedBackup ? page.selectedBackup.label + "\n" + (page.selectedBackup.fileCount !== null ? page.selectedBackup.fileCount + " configuration files · " : "") + (page.selectedBackup.bytes / 1024).toFixed(1) + " KiB" : ""; textFormat: Text.PlainText; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { text: "New manual setup backups and before-restore backups are kept separately from cleanup history. Copy the backup folder to another drive for protection against disk failure or reinstalling the OS. Legacy checkpoints remain subject to their existing cleanup rules."; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { visible: page.skippedBackups > 0; text: page.skippedBackups + " incomplete or invalid backup entries were skipped. Check the backup folder before relying on them."; color: Style.SettingsTheme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap }
     SettingsButton { objectName: "previewConfigurationRestore"; text: "Preview selected backup…"; enabled: page.ready && !page.busy && !!page.selectedId; onClicked: page.request("preview", page.selectedId) }
-    SettingsLabel { visible: page.preview !== null; text: page.preview ? "Selected backup: " + page.preview.label + "\n" + (page.preview.changes.length ? "Files to restore:\n" + page.preview.changes.join("\n") + "\nYour current setup receives a dated before-restore backup. Saved manual Lua and startup commands load on your next login. Log out and back in after restoring." : "This backup matches the current configuration.") : ""; textFormat: Text.PlainText; color: Style.Theme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { visible: page.preview !== null; text: page.preview ? "Selected backup: " + page.preview.label + "\n" + (page.preview.changes.length ? "Files to restore:\n" + page.preview.changes.join("\n") + "\nYour current setup receives a dated before-restore backup. Saved manual Lua and startup commands load on your next login. Log out and back in after restoring." : "This backup matches the current configuration.") : ""; textFormat: Text.PlainText; color: Style.SettingsTheme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap }
     RowLayout {
         visible: page.preview !== null
         SettingsButton { objectName: "confirmConfigurationRestore"; text: "Restore this backup"; highlighted: true; enabled: page.ready && !page.busy && page.preview !== null && page.preview.changes.length > 0; onClicked: page.request("restore") }
         SettingsButton { text: "Cancel"; enabled: !page.busy; onClicked: page.preview = null }
     }
-    SettingsLabel { text: page.message; visible: !!text; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { text: page.message; visible: !!text; color: page.success ? Style.SettingsTheme.success : Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
 }

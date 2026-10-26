@@ -34,7 +34,7 @@ ColumnLayout {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 8
-                Label { text: "Alignment"; color: Style.Theme.muted; font.pixelSize: Style.Theme.bodySize }
+                Label { text: "Alignment"; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.bodySize }
                 SettingsComboBox {
                     Layout.fillWidth: true
                     model: ["left", "right"].includes(root.barSettings.position) ? ["Top", "Center", "Bottom"] : ["Left", "Center", "Right"]
@@ -45,7 +45,7 @@ ColumnLayout {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 8
-                Label { text: "Order within group"; color: Style.Theme.muted; font.pixelSize: Style.Theme.bodySize }
+                Label { text: "Order within group"; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.bodySize }
                 RowLayout {
                     Layout.fillWidth: true
                     SettingsButton { Layout.fillWidth: true; text: "← Earlier"; onClicked: root.moveRequested(-1) }
@@ -187,7 +187,7 @@ ColumnLayout {
         subtitle: "Custom colors take priority over wallpaper colors."
         RowLayout {
             Layout.fillWidth: true
-            Label { text: "Wallpaper colors"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize; Layout.fillWidth: true }
+            Label { text: "Wallpaper colors"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize; Layout.fillWidth: true }
             SettingsComboBox {
                 model: ["Use general setting", "Enabled", "Disabled"]
                 currentIndex: Math.max(0, ["inherit", "on", "off"].indexOf(root.settings.adaptiveColors))

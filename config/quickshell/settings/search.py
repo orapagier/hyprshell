@@ -16,7 +16,8 @@ PAGES = {
     '-13': 'SettingsApplications', '-14': 'SettingsRecovery', '-15': 'SettingsNetwork',
     '-16': 'SettingsAccessibility', '-17': 'SettingsRegional', '-18': 'SettingsHelp',
     '-19': 'SettingsBehavior', '-20': 'SettingsClipboard', '-21': 'SettingsPeripherals',
-    '-22': 'SettingsFirewall', '-23': 'SettingsConfigurationRecovery', '*': 'SettingsItemEditor',
+    '-22': 'SettingsFirewall', '-23': 'SettingsConfigurationRecovery',
+    '-25': 'SettingsBluetooth', '*': 'SettingsItemEditor',
 }
 TOKEN = re.compile(r'(?P<comment>//[^\n]*|/\*[\s\S]*?\*/)|'
                    r'(?P<string>"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')|'

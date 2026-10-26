@@ -67,7 +67,7 @@ ColumnLayout {
             delegate: ColumnLayout {
                 required property string modelData
                 Layout.fillWidth: true
-                Label { Layout.fillWidth: true; text: parent.modelData; wrapMode: Text.Wrap; color: Style.Theme.text; textFormat: Text.PlainText }
+                Label { Layout.fillWidth: true; text: parent.modelData; wrapMode: Text.Wrap; color: Style.SettingsTheme.text; textFormat: Text.PlainText }
                 SettingsComboBox {
                     Layout.fillWidth: true
                     model: ["Follow defaults", "Inbox only", "Off"]

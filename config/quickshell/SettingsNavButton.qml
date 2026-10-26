@@ -7,7 +7,7 @@ Button {
     property string symbol: "󰒓"
     property bool itemEnabled: true
     property bool keyboardSelected: false
-    implicitHeight: Math.round(40 * Style.Theme.textScale)
+    implicitHeight: Math.round(42 * Style.SettingsTheme.textScale)
     leftPadding: 13; rightPadding: 13
     hoverEnabled: true
     Accessible.name: text
@@ -19,24 +19,24 @@ Button {
         implicitWidth: 180; implicitHeight: 24
         Text {
             text: control.symbol; width: 22; anchors.verticalCenter: parent.verticalCenter
-            color: control.highlighted ? Style.Theme.text : Style.Theme.muted
+            color: control.highlighted ? Style.SettingsTheme.accentText : Style.SettingsTheme.muted
             font.family: "GoMono Nerd Font"; font.pixelSize: 16
         }
         Text {
             id: labelText
             x: 33; width: parent.width - 33; anchors.verticalCenter: parent.verticalCenter
-            text: control.text; font.pixelSize: Style.Theme.bodySize; font.weight: control.highlighted ? Font.DemiBold : Font.Normal
-            color: control.itemEnabled ? Style.Theme.text : Style.Theme.disabled
+            text: control.text; font.pixelSize: Style.SettingsTheme.bodySize; font.weight: control.highlighted ? Font.DemiBold : Font.Normal
+            color: control.itemEnabled ? Style.SettingsTheme.text : Style.SettingsTheme.disabled
             elide: Text.ElideRight
         }
     }
     background: Rectangle {
-        radius: height / 2
-        color: control.highlighted ? Style.Theme.selection : control.hovered ? Style.Theme.hover : "transparent"
+        radius: 10
+        color: control.highlighted ? Style.SettingsTheme.selection : control.hovered ? Style.SettingsTheme.hover : "transparent"
         border.width: control.activeFocus || control.keyboardSelected ? 2 : 0
-        border.color: (control.activeFocus || control.keyboardSelected) ? Style.Theme.accentText : Style.Theme.border
-        Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
+        border.color: (control.activeFocus || control.keyboardSelected) ? Style.SettingsTheme.accentText : Style.SettingsTheme.border
+        Behavior on color { ColorAnimation { duration: Style.SettingsTheme.duration(control, Style.SettingsTheme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.SettingsTheme.effectsCurve } }
         scale: control.down ? 0.97 : 1
-        Behavior on scale { NumberAnimation { duration: Style.Theme.duration(control, 220); easing.type: Easing.OutBack; easing.overshoot: 0.5 } }
+        Behavior on scale { NumberAnimation { duration: Style.SettingsTheme.duration(control, 160); easing.type: Easing.OutCubic } }
     }
 }

@@ -32,7 +32,7 @@ ColumnLayout {
             delegate: RowLayout {
                 required property var modelData
                 Layout.fillWidth: true
-                Label { text: parent.modelData.label; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Style.Theme.text }
+                Label { text: parent.modelData.label; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Style.SettingsTheme.text }
                 SettingsComboBox {
                     objectName: parent.modelData.key + "Control"
                     model: ["Use config", "Enabled", "Disabled"]
@@ -65,7 +65,7 @@ ColumnLayout {
             Accessible.name: "Custom keyboard layout codes"
             onTextEdited: root.edited("keyboardLayouts", text.trim())
         }
-        Label { text: "Switch between layouts"; color: Style.Theme.text }
+        Label { text: "Switch between layouts"; color: Style.SettingsTheme.text }
         SettingsComboBox {
             id: switching
             objectName: "layoutSwitchControl"
@@ -78,7 +78,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Switching needs more than one layout. This choice replaces configured keyboard options; Use config restores them. Custom variants remain in your input configuration."
-            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
         }
         SettingsTextField {
             objectName: "typingTest"
@@ -110,6 +110,6 @@ ColumnLayout {
     Label {
         Layout.fillWidth: true
         text: "Use config and ↺ restore your existing input configuration. Suggested slider positions are not measured device settings."
-        color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; wrapMode: Text.WordWrap
+        color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; wrapMode: Text.WordWrap
     }
 }

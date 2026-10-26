@@ -57,7 +57,7 @@ ColumnLayout {
         }
         onExited: (code, status) => { if (code !== 0 && page.success) { page.success = false; page.message = "Workspace/rule helper failed. Refresh and retry."; } }
     }
-    SettingsLabel { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { visible: !!page.message; text: page.message; color: page.success ? Style.SettingsTheme.success : Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
     Flow {
         Layout.fillWidth: true; spacing: 8
         SettingsButton { objectName: "saveBehavior"; text: "Apply changes"; highlighted: page.pending; enabled: page.loaded && page.pending && !page.busy; onClicked: page.request("save") }
@@ -67,11 +67,11 @@ ColumnLayout {
         title: "Window behavior"
         subtitle: "Use config keeps your existing desktop behavior. Choose an override only where needed."
         Layout.fillWidth: true; enabled: page.loaded && !page.busy
-        SettingsLabel { text: "Default tiling layout"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
+        SettingsLabel { text: "Default tiling layout"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize }
         SettingsComboBox { Layout.fillWidth: true; model: ["Use config", "Dwindle", "Master", "Scrolling"]; currentIndex: page.layouts.indexOf(page.draft.general.layout || "inherit"); onActivated: index => page.editGeneral("layout", index ? page.layouts[index] : undefined) }
-        SettingsLabel { text: "Resize windows from borders"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
+        SettingsLabel { text: "Resize windows from borders"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize }
         SettingsComboBox { Layout.fillWidth: true; model: ["Use config", "Enabled", "Disabled"]; currentIndex: page.draft.general.resizeOnBorder === undefined ? 0 : page.draft.general.resizeOnBorder ? 1 : 2; onActivated: index => page.editGeneral("resizeOnBorder", index ? index === 1 : undefined) }
-        SettingsLabel { text: "Focus follows pointer"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
+        SettingsLabel { text: "Focus follows pointer"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize }
         SettingsComboBox { Layout.fillWidth: true; model: ["Use config", "Click to focus", "Focus under pointer", "Pointer focus without switching keyboard focus", "Separate pointer and keyboard focus, including clicks"]; currentIndex: page.draft.general.followMouse === undefined ? 0 : page.draft.general.followMouse + 1; onActivated: index => page.editGeneral("followMouse", index ? index - 1 : undefined) }
     }
     SettingsCard {
@@ -87,14 +87,14 @@ ColumnLayout {
                 Layout.fillWidth: true
                 RowLayout {
                     Layout.fillWidth: true
-                    SettingsLabel { text: "Workspace"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
+                    SettingsLabel { text: "Workspace"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize }
                     SettingsSpinBox { from: 1; to: 99; value: workspaceRow.modelData.id; onValueModified: page.editRow("workspaces", workspaceRow.index, "id", value) }
                 }
-                SettingsTextField { Layout.fillWidth: true; placeholderText: "Name (optional)"; text: workspaceRow.modelData.name; color: Style.Theme.text; onTextEdited: page.editRow("workspaces", workspaceRow.index, "name", text); selectByMouse: true }
+                SettingsTextField { Layout.fillWidth: true; placeholderText: "Name (optional)"; text: workspaceRow.modelData.name; color: Style.SettingsTheme.text; onTextEdited: page.editRow("workspaces", workspaceRow.index, "name", text); selectByMouse: true }
                 SettingsComboBox { Layout.fillWidth: true; model: ["Use default layout", "Dwindle", "Master", "Scrolling"]; currentIndex: page.layouts.indexOf(workspaceRow.modelData.layout); onActivated: index => page.editRow("workspaces", workspaceRow.index, "layout", page.layouts[index]) }
                 SettingsSwitch { objectName: "workspaceFloating-" + workspaceRow.index; text: "Floating windows"; checked: workspaceRow.modelData.floating === true; Layout.fillWidth: true; onToggled: page.editWorkspacePlacement(workspaceRow.index, "floating", checked) }
                 SettingsSwitch { objectName: "workspacePseudotiled-" + workspaceRow.index; text: "Pseudotiled windows"; checked: workspaceRow.modelData.pseudotiled === true; Layout.fillWidth: true; onToggled: page.editWorkspacePlacement(workspaceRow.index, "pseudotiled", checked) }
-                SettingsLabel { text: "Pseudotiling keeps windows tiled at their preferred size. Use the Dwindle layout. Floating and pseudotiling are alternative choices. Changes cover existing, new and moved-in windows; turning either off keeps existing placement."; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                SettingsLabel { text: "Pseudotiling keeps windows tiled at their preferred size. Use the Dwindle layout. Floating and pseudotiling are alternative choices. Changes cover existing, new and moved-in windows; turning either off keeps existing placement."; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 SettingsSwitch { text: "Keep available when empty"; checked: workspaceRow.modelData.persistent; Layout.fillWidth: true; onToggled: page.editRow("workspaces", workspaceRow.index, "persistent", checked) }
                 SettingsButton { text: "Remove preference"; onClicked: page.remove("workspaces", workspaceRow.index) }
             }
@@ -105,7 +105,7 @@ ColumnLayout {
         title: "Application window rules"
         subtitle: "Rules match one exact application class. Placement and size apply when a window opens; close and reopen the app to check the result."
         Layout.fillWidth: true; enabled: page.loaded && !page.busy
-        SettingsLabel { visible: !!page.discoveryMessage; text: page.discoveryMessage; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        SettingsLabel { visible: !!page.discoveryMessage; text: page.discoveryMessage; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Repeater {
             model: page.draft.rules
             delegate: ColumnLayout {
@@ -113,20 +113,20 @@ ColumnLayout {
                 required property var modelData
                 required property int index
                 Layout.fillWidth: true
-                SettingsTextField { objectName: "ruleClass-" + ruleRow.index; Layout.fillWidth: true; placeholderText: "Application class, e.g. kitty"; text: ruleRow.modelData.class; color: Style.Theme.text; selectByMouse: true; onTextEdited: page.editRow("rules", ruleRow.index, "class", text) }
+                SettingsTextField { objectName: "ruleClass-" + ruleRow.index; Layout.fillWidth: true; placeholderText: "Application class, e.g. kitty"; text: ruleRow.modelData.class; color: Style.SettingsTheme.text; selectByMouse: true; onTextEdited: page.editRow("rules", ruleRow.index, "class", text) }
                 SettingsComboBox { visible: page.classes.length > 0; Layout.fillWidth: true; model: ["Choose a running application"].concat(page.classes); onActivated: index => { if (index > 0) { page.editRow("rules", ruleRow.index, "class", page.classes[index - 1]); page.draft = Model.copy(page.draft); } } }
                 SettingsComboBox { Layout.fillWidth: true; model: ["Use existing placement", "Float", "Tile"]; currentIndex: ["inherit", "float", "tile"].indexOf(ruleRow.modelData.mode); onActivated: index => page.editRow("rules", ruleRow.index, "mode", ["inherit", "float", "tile"][index]) }
                 RowLayout {
                     Layout.fillWidth: true
-                    SettingsLabel { text: "Open on workspace · 0 uses default"; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                    SettingsLabel { text: "Open on workspace · 0 uses default"; color: Style.SettingsTheme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
                     SettingsSpinBox { from: 0; to: 99; value: ruleRow.modelData.workspace; onValueModified: page.editRow("rules", ruleRow.index, "workspace", value) }
                 }
                 SettingsSwitch { text: "Pin floating windows to all workspaces"; checked: ruleRow.modelData.pin; Layout.fillWidth: true; onToggled: page.editRow("rules", ruleRow.index, "pin", checked) }
                 SettingsSwitch { text: "Disable animations for this app"; checked: ruleRow.modelData.noAnimations; Layout.fillWidth: true; onToggled: page.editRow("rules", ruleRow.index, "noAnimations", checked) }
-                SettingsLabel { text: "Floating size · 0 / 0 uses app size"; color: Style.Theme.text; font.pixelSize: Style.Theme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                SettingsLabel { text: "Floating size · 0 / 0 uses app size"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 RowLayout {
                     SettingsSpinBox { from: 0; to: 4096; stepSize: 100; editable: true; value: ruleRow.modelData.width; onValueModified: page.editRow("rules", ruleRow.index, "width", value) }
-                    SettingsLabel { text: "×"; color: Style.Theme.text }
+                    SettingsLabel { text: "×"; color: Style.SettingsTheme.text }
                     SettingsSpinBox { from: 0; to: 4096; stepSize: 100; editable: true; value: ruleRow.modelData.height; onValueModified: page.editRow("rules", ruleRow.index, "height", value) }
                 }
                 SettingsButton { text: "Remove rule"; onClicked: page.remove("rules", ruleRow.index) }

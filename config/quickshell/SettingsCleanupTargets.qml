@@ -95,12 +95,12 @@ ColumnLayout {
                 SettingsLabel {
                     Layout.fillWidth: true
                     text: target.modelData.paths.join("\n") || "Choose an existing non-hidden folder in your home below."
-                    color: Style.Theme.muted; wrapMode: Text.WrapAnywhere; textFormat: Text.PlainText
+                    color: Style.SettingsTheme.muted; wrapMode: Text.WrapAnywhere; textFormat: Text.PlainText
                 }
                 SettingsLabel {
                     Layout.fillWidth: true
                     text: (target.modelData.risk === "low" ? "Rebuildable · " : target.modelData.risk === "history" ? "Troubleshooting history · " : target.modelData.risk === "recovery" ? "Recovery history · " : "Personal recovery copies · ") + target.modelData.impact
-                    color: target.modelData.risk === "low" ? Style.Theme.muted : Style.Theme.warning
+                    color: target.modelData.risk === "low" ? Style.SettingsTheme.muted : Style.SettingsTheme.warning
                     wrapMode: Text.WordWrap; textFormat: Text.PlainText
                 }
             }
@@ -120,7 +120,7 @@ ColumnLayout {
             SettingsLabel { text: "Minimum file age (days)"; Layout.fillWidth: true; wrapMode: Text.Wrap }
             SpinBox { objectName: page.administrator ? "systemCleanupAge" : "userCleanupAge"; from: 0; to: 365; value: page.days; enabled: !page.busy; onValueModified: { page.days = value; page.preview = null; } }
         }
-        SettingsLabel { Layout.fillWidth: true; text: "0 includes recent files. Otherwise files must be untouched for this many days. System package, temporary and journal tools use their own policies."; color: Style.Theme.muted; wrapMode: Text.Wrap }
+        SettingsLabel { Layout.fillWidth: true; text: "0 includes recent files. Otherwise files must be untouched for this many days. System package, temporary and journal tools use their own policies."; color: Style.SettingsTheme.muted; wrapMode: Text.Wrap }
         RowLayout {
             Layout.fillWidth: true
             SettingsLabel { text: "Keep newest backup sets"; Layout.fillWidth: true; wrapMode: Text.Wrap }
@@ -142,10 +142,10 @@ ColumnLayout {
                 required property var modelData
                 Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText
                 text: modelData.title + " · " + (modelData.blocked ? "Skipped" : page.size(modelData.bytes) + (modelData.estimate ? " observed; reclaimed space depends on the tool's policy" : " · " + modelData.count + " eligible files")) + "\n" + modelData.paths.join("\n") + "\n" + modelData.impact + (modelData.emptyReason ? "\n" + modelData.emptyReason : "") + (modelData.command ? "\nAction: " + modelData.command.join(" ") : "") + (modelData.warnings.length ? "\n" + modelData.warnings.join("\n") : "")
-                color: modelData.blocked || modelData.warnings.length ? Style.Theme.warning : Style.Theme.text
+                color: modelData.blocked || modelData.warnings.length ? Style.SettingsTheme.warning : Style.SettingsTheme.text
             }
         }
-        SettingsLabel { Layout.fillWidth: true; wrapMode: Text.Wrap; text: page.preview ? (page.preview.totalFiles - page.excluded.length) + " individual files selected, plus the listed maintenance actions. Space estimates may overlap and can differ from recovered disk space." : ""; color: Style.Theme.warning }
+        SettingsLabel { Layout.fillWidth: true; wrapMode: Text.Wrap; text: page.preview ? (page.preview.totalFiles - page.excluded.length) + " individual files selected, plus the listed maintenance actions. Space estimates may overlap and can differ from recovered disk space." : ""; color: Style.SettingsTheme.warning }
         ScrollView {
             Layout.fillWidth: true; Layout.preferredHeight: 200; clip: true
             visible: page.preview !== null && page.preview.totalFiles > 0
@@ -161,8 +161,8 @@ ColumnLayout {
                         implicitHeight: Math.max(38, contentItem.implicitHeight + 12)
                         contentItem: Text {
                             text: fileChoice.text
-                            color: Style.Theme.text
-                            font.pixelSize: Style.Theme.captionSize
+                            color: Style.SettingsTheme.text
+                            font.pixelSize: Style.SettingsTheme.captionSize
                             leftPadding: fileChoice.indicator.width + fileChoice.spacing
                             wrapMode: Text.WrapAnywhere
                             verticalAlignment: Text.AlignVCenter
@@ -177,16 +177,16 @@ ColumnLayout {
         RowLayout {
             visible: page.preview !== null && page.preview.totalFiles > 200
             SettingsButton { text: "Previous files"; enabled: !page.busy && page.fileOffset > 0; onClicked: page.request("files", page.fileOffset - 200) }
-            SettingsLabel { text: page.preview ? (page.fileOffset + 1) + "–" + Math.min(page.fileOffset + 200, page.preview.totalFiles) + " of " + page.preview.totalFiles : ""; color: Style.Theme.muted }
+            SettingsLabel { text: page.preview ? (page.fileOffset + 1) + "–" + Math.min(page.fileOffset + 200, page.preview.totalFiles) + " of " + page.preview.totalFiles : ""; color: Style.SettingsTheme.muted }
             SettingsButton { text: "Next files"; enabled: !page.busy && page.preview !== null && page.fileOffset + 200 < page.preview.totalFiles; onClicked: page.request("files", page.fileOffset + 200) }
         }
-        SettingsLabel { visible: page.preview !== null && page.preview.totalFiles > 200; Layout.fillWidth: true; wrapMode: Text.Wrap; text: "Files on other pages remain selected unless unchecked. The selected file count above includes all pages."; color: Style.Theme.warning }
+        SettingsLabel { visible: page.preview !== null && page.preview.totalFiles > 200; Layout.fillWidth: true; wrapMode: Text.Wrap; text: "Files on other pages remain selected unless unchecked. The selected file count above includes all pages."; color: Style.SettingsTheme.warning }
         SettingsButton { visible: page.preview !== null && !!page.preview.listPath; text: "Open full file list"; onClicked: Qt.openUrlExternally("file://" + page.preview.listPath) }
         RowLayout {
             SettingsButton { objectName: page.administrator ? "confirmSystemCleanup" : "confirmUserCleanup"; text: "Confirm cleanup"; highlighted: true; enabled: page.actionable && !page.busy; onClicked: page.request("clean") }
             SettingsButton { text: "Cancel"; enabled: !page.busy; onClicked: page.preview = null }
         }
     }
-    SettingsLabel { visible: !!page.message; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger }
-    SettingsLabel { visible: !!page.details; Layout.fillWidth: true; wrapMode: Text.WrapAnywhere; textFormat: Text.PlainText; text: page.details; color: Style.Theme.muted }
+    SettingsLabel { visible: !!page.message; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText; text: page.message; color: page.success ? Style.SettingsTheme.success : Style.SettingsTheme.danger }
+    SettingsLabel { visible: !!page.details; Layout.fillWidth: true; wrapMode: Text.WrapAnywhere; textFormat: Text.PlainText; text: page.details; color: Style.SettingsTheme.muted }
 }

@@ -28,7 +28,7 @@ Popup {
     padding: 22
     modal: true
     closePolicy: requesting || applying ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    background: Rectangle { color: Style.Theme.surface; radius: 14; border.color: Style.Theme.controlBorder }
+    background: Rectangle { color: Style.SettingsTheme.surface; radius: 14; border.color: Style.SettingsTheme.controlBorder }
     function run(args) {
         if (requesting) return;
         action = args[0];
@@ -75,19 +75,19 @@ Popup {
     onOpened: { checkAfterStatus = true; run(["--status"]); }
     contentItem: ColumnLayout {
         spacing: 12
-        Label { text: "Sync from GitHub"; font.pixelSize: 20; font.bold: true; color: Style.Theme.text }
+        Label { text: "Sync from GitHub"; font.pixelSize: 20; font.bold: true; color: Style.SettingsTheme.text }
         Label {
             Layout.fillWidth: true
             objectName: "githubUpdateSource"
             text: "You are updating from the developer’s GitHub repository: " + (dialog.review.repository ? dialog.review.repository + " · " + dialog.review.branch : "https://github.com/orapagier/hyprshell.git · main")
             textFormat: Text.PlainText
             wrapMode: Text.WrapAnywhere
-            color: Style.Theme.accentText
+            color: Style.SettingsTheme.accentText
         }
         Label {
             Layout.fillWidth: true; wrapMode: Text.Wrap
             text: dialog.message; textFormat: Text.PlainText
-            color: dialog.success ? Style.Theme.muted : Style.Theme.danger
+            color: dialog.success ? Style.SettingsTheme.muted : Style.SettingsTheme.danger
         }
         ScrollView {
             id: reviewScroll
@@ -105,9 +105,9 @@ Popup {
                 selectByMouse: true
                 wrapMode: TextEdit.Wrap
                 textFormat: TextEdit.PlainText
-                color: Style.Theme.text
-                font.pixelSize: Style.Theme.bodySize
-                background: Rectangle { color: Style.Theme.field; radius: 8 }
+                color: Style.SettingsTheme.text
+                font.pixelSize: Style.SettingsTheme.bodySize
+                background: Rectangle { color: Style.SettingsTheme.field; radius: 8 }
                 text: {
                     let r = dialog.review;
                     if (!r.target) return "Your settings and hardware checks will appear here before you can sync.";
@@ -135,7 +135,7 @@ Popup {
                 Label {
                     Layout.fillWidth: true; wrapMode: Text.Wrap
                     text: (dialog.review.missingPackages || []).join(", ")
-                    textFormat: Text.PlainText; color: Style.Theme.text
+                    textFormat: Text.PlainText; color: Style.SettingsTheme.text
                 }
                 TextArea {
                     objectName: "githubDependencyCommand"
@@ -143,20 +143,20 @@ Popup {
                     text: dialog.review.dependencyCommand || ""
                     textFormat: TextEdit.PlainText
                     readOnly: true; selectByMouse: true
-                    font.family: "monospace"; color: Style.Theme.text
-                    background: Rectangle { color: Style.Theme.field; radius: 6 }
+                    font.family: "monospace"; color: Style.SettingsTheme.text
+                    background: Rectangle { color: Style.SettingsTheme.field; radius: 6 }
                 }
                 Label {
                     Layout.fillWidth: true; wrapMode: Text.Wrap
                     text: dialog.installingDependencies ? "Installation runs in the background and continues if you close this window. Compatibility is checked again after success." : dialog.dependenciesStarted ? "Review the result above and the output below. Choose Check again before retrying or syncing." : dialog.review.canInstallDependencies ? "Confirm below to install in the background. The desktop update is applied only after a new compatibility review." : "Resolve the other update review issues and review your conflict choices before installing here."
-                    color: Style.Theme.muted
+                    color: Style.SettingsTheme.muted
                 }
                 CheckBox {
                     id: dependencyApproval
                     objectName: "githubDependencyApproval"
                     text: "I allow this package installation" + (dialog.review.dependencyFullUpgrade ? " and full system upgrade." : ".")
                     enabled: !dialog.busy && !dialog.dependenciesStarted && dialog.review.canInstallDependencies === true && dialog.choicesReviewed
-                    palette.windowText: Style.Theme.text
+                    palette.windowText: Style.SettingsTheme.text
                     Accessible.name: text
                 }
                 SettingsButton {
@@ -174,8 +174,8 @@ Popup {
                         objectName: "githubDependencyOutput"
                         text: dialog.dependencyOutput; textFormat: TextEdit.PlainText
                         readOnly: true; selectByMouse: true; wrapMode: TextEdit.Wrap
-                        color: Style.Theme.text; font.family: "monospace"
-                        background: Rectangle { color: Style.Theme.field; radius: 6 }
+                        color: Style.SettingsTheme.text; font.family: "monospace"
+                        background: Rectangle { color: Style.SettingsTheme.field; radius: 6 }
                     }
                 }
             }
@@ -206,12 +206,12 @@ Popup {
                     required property var modelData
                     Layout.fillWidth: true
                     spacing: 8
-                    Label { text: conflict.modelData.label || conflict.modelData.path; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: Style.Theme.accentText; Layout.fillWidth: true }
-                    Label { text: (conflict.modelData.preference ? "Personal preference. " : "") + "This choice keeps the entire file or category, including deletions. Files: " + (conflict.modelData.files || [conflict.modelData.path]).join(", "); color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                    Label { text: conflict.modelData.label || conflict.modelData.path; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: Style.SettingsTheme.accentText; Layout.fillWidth: true }
+                    Label { text: (conflict.modelData.preference ? "Personal preference. " : "") + "This choice keeps the entire file or category, including deletions. Files: " + (conflict.modelData.files || [conflict.modelData.path]).join(", "); color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
                     CheckBox {
                         id: comparison
                         text: "Show comparison"
-                        palette.windowText: Style.Theme.text
+                        palette.windowText: Style.SettingsTheme.text
                     }
                     RowLayout {
                         Layout.fillWidth: true
@@ -227,7 +227,7 @@ Popup {
                                     text: version.modelData === "local" ? "Keep your local version" : "Use developer’s version"
                                     checked: dialog.choiceFor(conflict.modelData) === version.modelData
                                     enabled: !dialog.busy
-                                    palette.windowText: Style.Theme.text
+                                    palette.windowText: Style.SettingsTheme.text
                                     Accessible.name: text + " for " + conflict.modelData.path
                                     onClicked: dialog.choose(conflict.modelData.path, checked ? version.modelData : "")
                                 }
@@ -242,8 +242,8 @@ Popup {
                                         readOnly: true
                                         selectByMouse: true
                                         wrapMode: TextEdit.Wrap
-                                        color: Style.Theme.text
-                                        background: Rectangle { color: Style.Theme.field; radius: 6 }
+                                        color: Style.SettingsTheme.text
+                                        background: Rectangle { color: Style.SettingsTheme.field; radius: 6 }
                                     }
                                 }
                             }
@@ -252,7 +252,7 @@ Popup {
                     Label {
                         visible: comparison.checked
                         text: "Differences (− local, + developer)"
-                        color: Style.Theme.text
+                        color: Style.SettingsTheme.text
                     }
                     ScrollView {
                         visible: comparison.checked
@@ -267,8 +267,8 @@ Popup {
                             selectByMouse: true
                             wrapMode: TextEdit.Wrap
                             font.family: "monospace"
-                            color: Style.Theme.text
-                            background: Rectangle { color: Style.Theme.field; radius: 6 }
+                            color: Style.SettingsTheme.text
+                            background: Rectangle { color: Style.SettingsTheme.field; radius: 6 }
                         }
                     }
                 }
@@ -292,7 +292,7 @@ Popup {
             visible: dialog.review.ready === true && dialog.choicesReviewed
             enabled: !dialog.busy
             text: "I reviewed the changes and hardware testing limitations."
-            palette.windowText: Style.Theme.text
+            palette.windowText: Style.SettingsTheme.text
             Accessible.name: text
         }
         RowLayout {

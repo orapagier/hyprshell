@@ -18,8 +18,8 @@ ColumnLayout {
         columns: row.stackOnNarrow && width < 460 ? 1 : 2
         columnSpacing: 24
         rowSpacing: 10
-        Layout.topMargin: 6
-        Layout.bottomMargin: 14
+        Layout.topMargin: 8
+        Layout.bottomMargin: 16
         ColumnLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
@@ -28,16 +28,16 @@ ColumnLayout {
             Label {
                 Layout.fillWidth: true
                 text: row.title
-                color: Style.Theme.text
-                font.pixelSize: Style.Theme.bodySize
+                color: Style.SettingsTheme.text
+                font.pixelSize: Style.SettingsTheme.bodySize
                 wrapMode: Text.WordWrap
             }
             Label {
                 Layout.fillWidth: true
                 visible: text.length > 0
                 text: row.description
-                color: Style.Theme.muted
-                font.pixelSize: Style.Theme.captionSize
+                color: Style.SettingsTheme.muted
+                font.pixelSize: Style.SettingsTheme.captionSize
                 wrapMode: Text.WordWrap
             }
         }
@@ -53,6 +53,6 @@ ColumnLayout {
         visible: row.separator
         Layout.fillWidth: true
         implicitHeight: 1
-        color: Style.Theme.separator
+        color: Style.SettingsTheme.separator
     }
 }

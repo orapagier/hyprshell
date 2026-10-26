@@ -38,8 +38,8 @@ ColumnLayout {
         }
         onExited: (code, status) => { if (code !== 0 && page.success) { page.success = false; page.message = "Desktop checks could not finish. Try again."; } }
     }
-    Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    Label { objectName: "hyprshellBuild"; text: page.buildLabel; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+    Label { visible: !!page.message; text: page.message; color: page.success ? Style.SettingsTheme.success : Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    Label { objectName: "hyprshellBuild"; text: page.buildLabel; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
     SettingsCard {
         title: page.guideComplete ? "Getting-started guide" : "Welcome to your daily desktop"
         subtitle: "Work through the essentials at your own pace. Changes use the same saved Settings you can sync to GitHub."
@@ -57,8 +57,8 @@ ColumnLayout {
                 id: step
                 required property var modelData
                 Layout.fillWidth: true
-                Label { text: step.modelData.title; color: Style.Theme.text; font.bold: true; font.pixelSize: Style.Theme.bodySize; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                Label { text: step.modelData.detail; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Label { text: step.modelData.title; color: Style.SettingsTheme.text; font.bold: true; font.pixelSize: Style.SettingsTheme.bodySize; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Label { text: step.modelData.detail; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 SettingsButton { text: "Open settings"; onClicked: page.navigate(step.modelData.page) }
             }
         }
@@ -79,12 +79,12 @@ ColumnLayout {
                 id: checkRow
                 required property var modelData
                 Layout.fillWidth: true
-                Label { text: checkRow.modelData.title + " · " + ({ok: "Ready", attention: "Needs attention", unavailable: "Unavailable", inactive: "Inactive"})[checkRow.modelData.state]; color: checkRow.modelData.state === "ok" ? Style.Theme.success : checkRow.modelData.state === "attention" ? Style.Theme.warning : Style.Theme.muted; font.pixelSize: Style.Theme.bodySize; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                Label { text: checkRow.modelData.hint; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Label { text: checkRow.modelData.title + " · " + ({ok: "Ready", attention: "Needs attention", unavailable: "Unavailable", inactive: "Inactive"})[checkRow.modelData.state]; color: checkRow.modelData.state === "ok" ? Style.SettingsTheme.success : checkRow.modelData.state === "attention" ? Style.SettingsTheme.warning : Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.bodySize; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Label { text: checkRow.modelData.hint; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 SettingsButton { visible: checkRow.modelData.state === "attention"; text: "Open related settings"; onClicked: page.navigate(checkRow.modelData.page) }
             }
         }
-        Label { visible: !!page.reportPath; text: page.reportPath; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+        Label { visible: !!page.reportPath; text: page.reportPath; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap; textFormat: Text.PlainText }
         SettingsButton { visible: !!page.reportPath; text: "Review saved report"; onClicked: Qt.openUrlExternally("file://" + page.reportPath) }
     }
 }

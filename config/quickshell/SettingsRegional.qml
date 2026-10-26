@@ -45,33 +45,33 @@ ColumnLayout {
         }
         onExited: (code, status) => { if (code !== 0 && page.success) { page.success = false; page.message = "Regional helper failed. Refresh and try again."; } }
     }
-    Label { visible: !!page.message; text: page.message; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    Label { visible: !!page.message; text: page.message; color: page.success ? Style.SettingsTheme.success : Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
     SettingsButton { text: page.dirty ? "Discard edits & refresh" : "Refresh"; enabled: !page.busy; onClicked: page.request({operation: "status"}) }
     SettingsCard {
         title: "Application language and formats"
         subtitle: "Choose from locales generated on this machine. Application translations depend on each app. Hyprshell’s interface currently uses English."
         Layout.fillWidth: true
-        Label { text: "Application language"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
+        Label { text: "Application language"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize }
         SettingsComboBox { id: language; objectName: "regionalLanguage"; Layout.fillWidth: true; model: ["Use system language"].concat(page.locales); enabled: page.loaded && !page.busy }
-        Label { text: "Date, time, and number formats"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
+        Label { text: "Date, time, and number formats"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize }
         SettingsComboBox { id: formats; objectName: "regionalFormats"; Layout.fillWidth: true; model: ["Use system formats"].concat(page.locales); enabled: page.loaded && !page.busy }
-        Label { text: "Your timezone (optional)"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
-        SettingsTextField { id: zone; objectName: "regionalTimezone"; Layout.fillWidth: true; placeholderText: "Use system timezone, or e.g. Asia/Manila"; color: Style.Theme.text; selectByMouse: true; enabled: page.loaded && !page.busy }
-        Label { text: zone.text.trim() && !page.timezones.includes(zone.text.trim()) ? "Enter an installed timezone such as Asia/Manila or Europe/London." : "A personal timezone affects your apps at the next login. It does not change the hardware clock."; color: Style.Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        Label { text: "Your timezone (optional)"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize }
+        SettingsTextField { id: zone; objectName: "regionalTimezone"; Layout.fillWidth: true; placeholderText: "Use system timezone, or e.g. Asia/Manila"; color: Style.SettingsTheme.text; selectByMouse: true; enabled: page.loaded && !page.busy }
+        Label { text: zone.text.trim() && !page.timezones.includes(zone.text.trim()) ? "Enter an installed timezone such as Asia/Manila or Europe/London." : "A personal timezone affects your apps at the next login. It does not change the hardware clock."; color: Style.SettingsTheme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
         Flow {
             Layout.fillWidth: true; spacing: 8
             SettingsButton { objectName: "previewRegional"; text: "Preview formats"; enabled: page.loaded && !page.busy; onClicked: page.request({operation: "preview", settings: page.draft()}) }
             SettingsButton { objectName: "saveRegional"; text: "Save for next login"; highlighted: page.dirty; enabled: page.loaded && !page.busy && page.dirty; onClicked: page.request({operation: "save", settings: page.draft()}) }
         }
-        Label { text: page.preview.error || [page.preview.date, page.preview.time, page.preview.zone, page.preview.number].filter(Boolean).join(" · "); color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize; wrapMode: Text.Wrap; Layout.fillWidth: true }
-        Label { text: "To add another language, generate its locale using your system’s locale settings, then Refresh. A manually configured LC_ALL takes precedence over these format choices."; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        Label { text: page.preview.error || [page.preview.date, page.preview.time, page.preview.zone, page.preview.number].filter(Boolean).join(" · "); color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        Label { text: "To add another language, generate its locale using your system’s locale settings, then Refresh. A manually configured LC_ALL takes precedence over these format choices."; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; wrapMode: Text.Wrap; Layout.fillWidth: true }
     }
     SettingsCard {
         title: "System timezone"
         subtitle: "Changes the timezone for all users and may request administrator authentication. Your personal timezone above remains independent."
         Layout.fillWidth: true
         SettingsButton { text: "Set system timezone…"; enabled: page.loaded && !page.busy && zone.text.trim() && page.timezones.includes(zone.text.trim()); onClicked: page.confirmSystemZone = true }
-        Label { visible: page.confirmSystemZone; text: "Set the system timezone to “" + zone.text.trim() + "”?"; color: Style.Theme.warning; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        Label { visible: page.confirmSystemZone; text: "Set the system timezone to “" + zone.text.trim() + "”?"; color: Style.SettingsTheme.warning; wrapMode: Text.Wrap; Layout.fillWidth: true }
         RowLayout {
             visible: page.confirmSystemZone
             SettingsButton { text: "Apply system timezone"; enabled: !page.busy; onClicked: page.request({operation: "system-timezone", timezone: zone.text.trim()}) }

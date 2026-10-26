@@ -35,7 +35,7 @@ ColumnLayout {
             SettingsButton { text: "Check queues"; enabled: !!page.tools.lpstat && !page.busy; onClicked: page.request("check-printers") }
             SettingsButton { text: "Enable printing on demand…"; enabled: !!page.tools.lpstat && !page.busy; onClicked: page.confirmEnable = true }
         }
-        SettingsLabel { visible: page.confirmEnable; text: "Enable the CUPS socket at boot and now? Administrator authentication happens in the terminal. The server starts when a client requests printing."; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        SettingsLabel { visible: page.confirmEnable; text: "Enable the CUPS socket at boot and now? Administrator authentication happens in the terminal. The server starts when a client requests printing."; color: Style.SettingsTheme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
         RowLayout {
             visible: page.confirmEnable
             SettingsButton { text: "Enable printing…"; enabled: !page.busy; onClicked: page.request("enable-printing") }
@@ -57,7 +57,7 @@ ColumnLayout {
         SettingsButton { visible: !page.tools["system-config-printer"] || !page.tools["simple-scan"]; text: "Install printing & scanning tools…"; enabled: !page.busy; onClicked: page.request("install") }
         SettingsButton { objectName: "refreshPeripherals"; text: "Refresh tool availability"; enabled: !page.busy; onClicked: page.request("status") }
     }
-    SettingsLabel { visible: page.busy; text: "Working… Device discovery can take a few seconds."; color: Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    SettingsLabel { text: page.message; visible: !!text; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    SettingsLabel { text: page.details; textFormat: Text.PlainText; visible: !!text; color: Style.Theme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { visible: page.busy; text: "Working… Device discovery can take a few seconds."; color: Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { text: page.message; visible: !!text; color: page.success ? Style.SettingsTheme.success : Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { text: page.details; textFormat: Text.PlainText; visible: !!text; color: Style.SettingsTheme.text; Layout.fillWidth: true; wrapMode: Text.Wrap }
 }

@@ -16,7 +16,7 @@ ColumnLayout {
         return null;
     }
     property bool collapsible: sectionHost !== null
-    readonly property real contentHeight: body.implicitHeight + 36
+    readonly property real contentHeight: body.implicitHeight + 40
     property real collapseThreshold: 1000
     readonly property bool longSection: contentHeight > collapseThreshold
     property bool expanded: !longSection
@@ -44,7 +44,7 @@ ColumnLayout {
         return false;
     }
     Layout.minimumWidth: 0
-    spacing: 6
+    spacing: 10
     ColumnLayout {
         Layout.fillWidth: true
         Layout.leftMargin: 2
@@ -70,41 +70,41 @@ ColumnLayout {
                 spacing: 10
                 Label {
                     Layout.fillWidth: true
-                    text: root.title; color: Style.Theme.text
-                    font.pixelSize: Style.Theme.sectionSize; font.weight: Font.DemiBold
+                    text: root.title; color: Style.SettingsTheme.text
+                    font.pixelSize: Style.SettingsTheme.sectionSize; font.weight: Font.DemiBold
                     wrapMode: Text.WordWrap
                 }
                 Label {
                     visible: root.collapsible
                     text: "⌄"
                     rotation: root.contentExpanded ? 0 : -90
-                    color: Style.Theme.muted; font.pixelSize: Style.Theme.sectionSize
-                    Behavior on rotation { NumberAnimation { duration: Style.Theme.duration(root, 200); easing.type: Easing.OutCubic } }
+                    color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.sectionSize
+                    Behavior on rotation { NumberAnimation { duration: Style.SettingsTheme.duration(root, 200); easing.type: Easing.OutCubic } }
                 }
             }
             background: Rectangle {
-                color: heading.hovered && root.collapsible ? Style.Theme.hover : "transparent"
-                radius: Style.Theme.controlRadius
-                border.color: heading.activeFocus ? Style.Theme.accentText : "transparent"
+                color: heading.hovered && root.collapsible ? Style.SettingsTheme.hover : "transparent"
+                radius: Style.SettingsTheme.controlRadius
+                border.color: heading.activeFocus ? Style.SettingsTheme.accentText : "transparent"
                 border.width: heading.activeFocus ? 2 : 0
             }
         }
-        Label { visible: root.contentExpanded && text !== ""; text: root.subtitle; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize }
+        Label { visible: root.contentExpanded && text !== ""; text: root.subtitle; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize }
     }
     Rectangle {
         visible: root.contentExpanded
         Layout.fillWidth: true
-        implicitHeight: body.implicitHeight + 36
-        color: Style.Theme.surface
-        radius: 16
-        border.color: Style.Theme.highContrast ? Style.Theme.border : "transparent"
+        implicitHeight: body.implicitHeight + 40
+        color: Style.SettingsTheme.surface
+        radius: Style.SettingsTheme.radius
+        border.color: Style.SettingsTheme.highContrast ? Style.SettingsTheme.border : "transparent"
         ColumnLayout {
             id: body
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: 18
-            spacing: 12
+            anchors.margins: 20
+            spacing: 16
         }
     }
 }

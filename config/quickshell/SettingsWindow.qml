@@ -66,6 +66,7 @@ FloatingWindow {
         if (section === -14) return "Backup plans require Save · Recovery and updates require an explicit action";
         if (section === -23) return "Back up now · Select a dated backup, preview, then restore";
         if ([-5, -15, -18, -21, -22].indexOf(section) >= 0) return "Use this page’s action buttons";
+        if (section === -25) return "Bluetooth changes apply immediately";
         if (section === -12) return "Sound changes apply immediately and are remembered by the audio service";
         if (section === -10) return "Timers save automatically · Hardware controls apply immediately";
         if (section === -13) return "Choices save immediately · Startup changes take effect at next login";
@@ -123,34 +124,52 @@ FloatingWindow {
                 Math.max(y + button.height - view.height, Math.min(view.contentY, y))));
         });
     }
+    function revealCurrentNavigation() {
+        if (searchQuery.trim()) return;
+        let button = null;
+        for (let i = 0; i < navigationGroups.count; ++i) {
+            let group = navigationGroups.itemAt(i);
+            let index = group.pages.findIndex(page => page.section === section);
+            if (index >= 0) { button = group.buttons.itemAt(index); break; }
+        }
+        if (section >= 0) button = barResults.itemAt(section);
+        if (!button) return;
+        let y = button.mapToItem(sidebar.contentItem, 0, 0).y;
+        let view = sidebar.contentItem;
+        view.contentY = Math.max(0, Math.min(view.contentHeight - view.height,
+            Math.max(y + button.height - view.height, Math.min(view.contentY, y))));
+    }
     property bool barItemsExpanded: false
     readonly property var navigation: [
-        {group: "Desktop", pages: [
+        {group: "Personalize", pages: [
             {section: -8, title: "Appearance", symbol: "󰔎", keywords: "theme colors font cursor"},
-            {section: -20, title: "Clipboard history", symbol: "󰅍", keywords: "copy paste clips text images"},
-            {section: -21, title: "Printing & scanning", symbol: "󰐪", keywords: "printer scanner cups paper documents"},
-            {section: -19, title: "Workspaces & rules", symbol: "󰍹", keywords: "workspace rules tiling layout focus pointer"},
             {section: -2, title: "Windows", symbol: "󰖲", keywords: "hyprland transparency blur gaps animations"},
             {section: -1, title: "Hyprpane", symbol: "󰕮", keywords: "hyprpane panel topbar position screen edge top bottom left right spacing workspace workspaces"},
-            {section: -13, title: "Applications", symbol: "󰀻", keywords: "default apps startup"},
-            {section: -11, title: "Notifications", symbol: "󰂚", keywords: "delivery popups disturb"}
+            {section: -19, title: "Workspaces & rules", symbol: "󰍹", keywords: "workspace rules tiling layout focus pointer"},
+            {section: -13, title: "Applications", symbol: "󰀻", keywords: "default apps startup"}
         ]},
-        {group: "Devices", pages: [
+        {group: "Devices & connections", pages: [
             {section: -7, title: "Displays", symbol: "󰍹", keywords: "monitor resolution scale rotation duplicate mirror extend HDMI TV projection"},
-            {section: -15, title: "Network", symbol: "󰤨", keywords: "wifi wi-fi hidden enterprise vpn wireguard ethernet connections dns"},
             {section: -12, title: "Sound", symbol: "󰕾", keywords: "audio volume microphone speakers"},
+            {section: -25, title: "Bluetooth", symbol: "󰂯", keywords: "pair devices headphones wireless discoverable trusted wake battery"},
+            {section: -15, title: "Network", symbol: "󰤨", keywords: "wifi wi-fi hidden enterprise vpn wireguard ethernet connections dns"},
             {section: -9, title: "Mouse & keyboard", symbol: "󰍽", keywords: "input touchpad scrolling typing layouts"},
-            {section: -6, title: "Keyboard shortcuts", symbol: "󰌌", keywords: "keybindings hotkeys"}
+            {section: -6, title: "Keyboard shortcuts", symbol: "󰌌", keywords: "keybindings hotkeys"},
+            {section: -21, title: "Printing & scanning", symbol: "󰐪", keywords: "printer scanner cups paper documents"}
         ]},
-        {group: "System", pages: [
-            {section: -22, title: "Firewall", symbol: "󰒃", keywords: "firewalld security rules ports services zones block incoming tcp udp website dns custom cloudflare adult porn malware malicious phishing protection"},
+        {group: "Preferences", pages: [
+            {section: -11, title: "Notifications", symbol: "󰂚", keywords: "delivery popups disturb"},
+            {section: -20, title: "Clipboard history", symbol: "󰅍", keywords: "copy paste clips text images"},
             {section: -16, title: "Accessibility", symbol: "󰋁", keywords: "large text size contrast reduced motion animations"},
             {section: -17, title: "Language & region", symbol: "󰗊", keywords: "locale timezone date time number formats"},
             {section: -10, title: "Power & battery", symbol: "󰁹", keywords: "brightness sleep lid profiles"},
-            {section: -3, title: "Screen locking", symbol: "󰌾", keywords: "security idle lock"},
+            {section: -3, title: "Screen locking", symbol: "󰌾", keywords: "security idle lock"}
+        ]},
+        {group: "System", pages: [
+            {section: -22, title: "Firewall", symbol: "󰒃", keywords: "firewalld security rules ports services zones block incoming tcp udp website dns custom cloudflare adult porn malware malicious phishing protection"},
             {section: -4, title: "Cleanup", symbol: "󰃢", keywords: "storage files maintenance"},
             {section: -23, title: "Backup & restore", symbol: "󰁯", keywords: "hyprshell setup backup restore date time configuration checkpoints snapshots"},
-            {section: -14, title: "Updates & recovery", symbol: "󰁯", keywords: "backup restore checkpoints"},
+            {section: -14, title: "Updates & recovery", symbol: "󰚰", keywords: "backup restore checkpoints"},
             {section: -18, title: "Help & diagnostics", symbol: "󰋖", keywords: "welcome guide health diagnostics support getting started version build rolling"},
             {section: -5, title: "Hyprskill", symbol: "󰒓", keywords: "agents coding knowledge"}
         ]}
@@ -177,11 +196,11 @@ FloatingWindow {
     onSectionChanged: {
         if (editorScroll.contentItem) scrollPositions[previousSection] = editorScroll.contentItem.contentY;
         previousSection = section;
+        Qt.callLater(() => Qt.callLater(window.revealCurrentNavigation));
         if (section >= 0) barItemsExpanded = true;
         Qt.callLater(() => {
             if (editorScroll.contentItem) editorScroll.contentItem.contentY = scrollPositions[section] || 0;
         });
-        pageFade.restart();
     }
     property string message: ""
     property bool success: true
@@ -221,7 +240,7 @@ FloatingWindow {
     title: "Hyprshell Settings"
     implicitWidth: screen ? Math.min(1180, Math.round(screen.width * 0.9)) : 1180
     implicitHeight: screen ? Math.min(860, Math.round(screen.height * 0.85)) : 810
-    color: Style.Theme.background
+    color: Style.SettingsTheme.background
     property bool firstRunPending: {
         try { return JSON.parse(welcomeFile.text()).completed !== true; } catch (e) { return true; }
     }
@@ -451,15 +470,6 @@ FloatingWindow {
         enabled: window.visible
         onActivated: { searchField.forceActiveFocus(); searchField.selectAll(); }
     }
-    NumberAnimation {
-        id: pageFade
-        target: pageContent
-        property: "opacity"
-        from: 0.65
-        to: 1
-        duration: window.draft.hyprland.animations === false ? 0 : 140
-        easing.type: Easing.OutCubic
-    }
     SettingsGithubUpdate { id: githubUpdate; hostWidth: window.width; hostHeight: window.height }
     Popup {
         id: githubDialog
@@ -469,13 +479,13 @@ FloatingWindow {
         padding: 24
         modal: true
         closePolicy: githubSync.running ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle { color: Style.Theme.surface; radius: 14; border.color: Style.Theme.controlBorder }
+        background: Rectangle { color: Style.SettingsTheme.surface; radius: 14; border.color: Style.SettingsTheme.controlBorder }
         contentItem: ColumnLayout {
             spacing: 14
-            Label { text: "Sync to GitHub"; color: Style.Theme.text; font.pixelSize: 20; font.bold: true }
-            Label { Layout.fillWidth: true; text: "Sync saves your current desktop to a local commit, then pushes it to GitHub."; wrapMode: Text.WordWrap; color: Style.Theme.muted }
-            Label { objectName: "githubRepositoryLabel"; text: window.syncRepository || "Sign in to find your repository"; color: Style.Theme.accentText }
-            Label { Layout.fillWidth: true; text: window.syncMessage; wrapMode: Text.WordWrap; color: window.syncSuccess ? Style.Theme.muted : Style.Theme.danger }
+            Label { text: "Sync to GitHub"; color: Style.SettingsTheme.text; font.pixelSize: 20; font.bold: true }
+            Label { Layout.fillWidth: true; text: "Sync saves your current desktop to a local commit, then pushes it to GitHub."; wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted }
+            Label { objectName: "githubRepositoryLabel"; text: window.syncRepository || "Sign in to find your repository"; color: Style.SettingsTheme.accentText }
+            Label { Layout.fillWidth: true; text: window.syncMessage; wrapMode: Text.WordWrap; color: window.syncSuccess ? Style.SettingsTheme.muted : Style.SettingsTheme.danger }
             RowLayout {
                 SettingsButton {
                     objectName: "githubForkButton"
@@ -542,26 +552,26 @@ FloatingWindow {
         anchors.fill: parent
         padding: 0
         property bool settingsMotionEnabled: window.draft.hyprland.animations !== false && !window.draft.accessibility.reducedMotion
-        palette.window: Style.Theme.background
-        palette.windowText: Style.Theme.text
-        palette.text: Style.Theme.text
-        palette.base: Style.Theme.surface
-        palette.button: Style.Theme.button
-        palette.buttonText: Style.Theme.text
-        palette.highlight: Style.Theme.accent
-        palette.highlightedText: Style.Theme.accentForeground
-        palette.brightText: Style.Theme.accentForeground
-        palette.dark: Style.Theme.accentText
-        palette.mid: Style.Theme.border
+        palette.window: Style.SettingsTheme.background
+        palette.windowText: Style.SettingsTheme.text
+        palette.text: Style.SettingsTheme.text
+        palette.base: Style.SettingsTheme.surface
+        palette.button: Style.SettingsTheme.button
+        palette.buttonText: Style.SettingsTheme.text
+        palette.highlight: Style.SettingsTheme.accent
+        palette.highlightedText: Style.SettingsTheme.accentForeground
+        palette.brightText: Style.SettingsTheme.accentForeground
+        palette.dark: Style.SettingsTheme.accentText
+        palette.mid: Style.SettingsTheme.border
         font.family: "Noto Sans"
-        font.pixelSize: Style.Theme.bodySize
-        background: Rectangle { color: Style.Theme.background }
+        font.pixelSize: Style.SettingsTheme.bodySize
+        background: Rectangle { color: Style.SettingsTheme.background }
         contentItem: ColumnLayout {
             spacing: 0
             RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: false
-                Layout.preferredHeight: 58
+                Layout.preferredHeight: 72
                 Layout.leftMargin: 22
                 Layout.rightMargin: 22
                 ToolButton {
@@ -573,14 +583,15 @@ FloatingWindow {
                     onClicked: window.goHome()
                     Keys.onReturnPressed: clicked()
                     Keys.onEnterPressed: clicked()
-                    contentItem: ColumnLayout {
-                        spacing: 2
-                        Label { text: "Hyprsettings"; font.pixelSize: 18; font.bold: true; color: Style.Theme.text }
+                    contentItem: RowLayout {
+                        spacing: 12
+                        Label { text: "󰒓"; font.family: "GoMono Nerd Font"; font.pixelSize: 23; color: Style.SettingsTheme.accentText }
+                        Label { text: "Hyprsettings"; font.pixelSize: 17; font.weight: Font.DemiBold; color: Style.SettingsTheme.text }
                     }
                     background: Rectangle {
-                        radius: Style.Theme.controlRadius
-                        color: homeButton.hovered ? Style.Theme.hover : "transparent"
-                        border.color: homeButton.activeFocus ? Style.Theme.accentText : "transparent"
+                        radius: Style.SettingsTheme.controlRadius
+                        color: homeButton.hovered ? Style.SettingsTheme.hover : "transparent"
+                        border.color: homeButton.activeFocus ? Style.SettingsTheme.accentText : "transparent"
                     }
                 }
                 Item {
@@ -619,37 +630,33 @@ FloatingWindow {
                     }
                 }
             }
-            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Style.Theme.separator }
+            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Style.SettingsTheme.separator }
             RowLayout {
                 enabled: !githubSync.running && !githubUpdate.busy && !recoveryPage.busy
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 0
-                ScrollView {
-                    id: sidebar
-                    objectName: "settingsSidebar"
-                    Layout.preferredWidth: window.width < 900 ? 220 : 236
+                Rectangle {
+                    Layout.preferredWidth: window.width < 900 ? 224 : 250
                     Layout.fillHeight: true
-                    clip: true
-                    padding: 14
-                    contentWidth: availableWidth
-                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                    background: Rectangle { color: Style.Theme.sidebar }
+                    color: Style.SettingsTheme.sidebar
                     ColumnLayout {
-                        width: sidebar.availableWidth
-                        spacing: 4
+                        anchors.fill: parent
+                        anchors.margins: 14
+                        spacing: 16
                         TextField {
                             id: searchField
                             objectName: "settingsSearch"
                             Layout.fillWidth: true
-                            Layout.bottomMargin: 14
-                            implicitHeight: Style.Theme.controlHeight
+                            implicitHeight: Style.SettingsTheme.controlHeight
                             placeholderText: "Search settings"
-                            color: Style.Theme.text
-                            placeholderTextColor: Style.Theme.muted
-                            font.pixelSize: Style.Theme.bodySize
-                            leftPadding: 12
-                            rightPadding: searchClear.visible ? 38 : 12
+                            color: Style.SettingsTheme.text
+                            placeholderTextColor: Style.SettingsTheme.muted
+                            selectionColor: Style.SettingsTheme.selection
+                            selectedTextColor: Style.SettingsTheme.text
+                            font.pixelSize: Style.SettingsTheme.bodySize
+                            leftPadding: 36
+                            rightPadding: searchClear.visible ? 34 : 12
                             selectByMouse: true
                             Accessible.name: "Search settings"
                             onTextChanged: window.searchQuery = text
@@ -661,10 +668,16 @@ FloatingWindow {
                                 else event.accepted = false;
                             }
                             background: Rectangle {
-                                radius: 12
-                                color: Style.Theme.field
+                                radius: Style.SettingsTheme.controlRadius
+                                color: Style.SettingsTheme.field
                                 border.width: 1
-                                border.color: searchField.activeFocus ? Style.Theme.accentText : Style.Theme.border
+                                border.color: searchField.activeFocus ? Style.SettingsTheme.accentText : Style.SettingsTheme.border
+                                Behavior on border.color { ColorAnimation { duration: Style.SettingsTheme.duration(searchField, 150) } }
+                            }
+                            Text {
+                                x: 12; anchors.verticalCenter: parent.verticalCenter
+                                text: "󰍉"; font.family: "GoMono Nerd Font"; font.pixelSize: 17
+                                color: Style.SettingsTheme.muted
                             }
                             ToolButton {
                                 id: searchClear
@@ -676,83 +689,119 @@ FloatingWindow {
                                 visible: searchField.text.length > 0
                                 Accessible.name: "Clear search"
                                 onClicked: { searchField.clear(); searchField.forceActiveFocus(); }
-                                contentItem: Text { text: searchClear.text; color: Style.Theme.muted; font.pixelSize: 20; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { radius: 6; color: searchClear.hovered ? Style.Theme.hover : "transparent"; border.color: searchClear.activeFocus ? Style.Theme.accentText : "transparent" }
+                                contentItem: Text { text: searchClear.text; color: Style.SettingsTheme.muted; font.pixelSize: 20; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                background: Rectangle { radius: 6; color: searchClear.hovered ? Style.SettingsTheme.hover : "transparent"; border.color: searchClear.activeFocus ? Style.SettingsTheme.accentText : "transparent" }
                             }
                         }
-                        Repeater {
-                            id: navigationGroups
-                            model: window.navigation
-                            delegate: ColumnLayout {
-                                id: navGroup
-                                required property var modelData
-                                readonly property var pages: window.matchingPages(modelData.pages)
-                                property alias buttons: pageResults
-                                visible: pages.length > 0
-                                Layout.fillWidth: true
-                                spacing: 3
-                                Label {
-                                    text: navGroup.modelData.group
-                                    Layout.leftMargin: 12
-                                    Layout.topMargin: 12
-                                    Layout.bottomMargin: 5
-                                    color: Style.Theme.muted
-                                    font.pixelSize: Style.Theme.captionSize
-                                    font.weight: Font.DemiBold
+                        ScrollView {
+                            id: sidebar
+                            objectName: "settingsSidebar"
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            contentWidth: availableWidth
+                            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                            ColumnLayout {
+                                width: sidebar.availableWidth
+                                spacing: 4
+                                SettingsNavButton {
+                                    objectName: "settingsOverviewNav"
+                                    Layout.fillWidth: true
+                                    Layout.bottomMargin: 10
+                                    visible: !window.searchQuery.trim()
+                                    text: "Overview"; symbol: "󰋜"
+                                    highlighted: window.section === window.homeSection
+                                    onClicked: window.goHome()
                                 }
                                 Repeater {
-                                    id: pageResults
-                                    model: navGroup.pages
+                                    id: navigationGroups
+                                    model: window.navigation
+                                    delegate: ColumnLayout {
+                                        id: navGroup
+                                        required property var modelData
+                                        required property int index
+                                        readonly property var pages: window.matchingPages(modelData.pages)
+                                        property alias buttons: pageResults
+                                        property bool expanded: index === 0
+                                        readonly property bool containsCurrent: modelData.pages.some(page => page.section === window.section)
+                                        readonly property bool revealed: expanded || window.searchQuery.trim().length > 0
+                                        onContainsCurrentChanged: if (containsCurrent) expanded = true
+                                        visible: pages.length > 0
+                                        Layout.fillWidth: true
+                                        spacing: 3
+                                        ToolButton {
+                                            id: groupButton
+                                            objectName: "settingsGroup" + navGroup.index
+                                            Layout.fillWidth: true
+                                            Layout.topMargin: 8
+                                            implicitHeight: Math.round(36 * Style.SettingsTheme.textScale)
+                                            leftPadding: 12; rightPadding: 10
+                                            hoverEnabled: true
+                                            Accessible.name: navGroup.modelData.group
+                                            Accessible.description: navGroup.revealed ? "Collapse group" : "Expand group"
+                                            onClicked: navGroup.expanded = !navGroup.expanded
+                                            contentItem: RowLayout {
+                                                Label { Layout.fillWidth: true; text: navGroup.modelData.group; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                                                Label { text: "›"; rotation: navGroup.revealed ? 90 : 0; color: Style.SettingsTheme.muted; font.pixelSize: 17; Behavior on rotation { NumberAnimation { duration: Style.SettingsTheme.duration(groupButton, 180); easing.type: Easing.OutCubic } } }
+                                            }
+                                            background: Rectangle { radius: 8; color: groupButton.hovered ? Style.SettingsTheme.hover : "transparent"; border.color: groupButton.activeFocus ? Style.SettingsTheme.accentText : "transparent" }
+                                        }
+                                        Repeater {
+                                            id: pageResults
+                                            model: navGroup.pages
+                                            delegate: SettingsNavButton {
+                                                required property var modelData
+                                                objectName: "settingsNav" + modelData.section
+                                                visible: navGroup.revealed
+                                                text: modelData.title
+                                                symbol: modelData.symbol
+                                                Layout.fillWidth: true
+                                                keyboardSelected: searchField.activeFocus && window.searchResultIndex >= 0 && window.searchResults[window.searchResultIndex]?.section === modelData.section
+                                                highlighted: window.section === modelData.section
+                                                onClicked: window.section = modelData.section
+                                            }
+                                        }
+                                    }
+                                }
+                                SettingsButton {
+                                    objectName: "settingsBarItemsToggle"
+                                    Layout.fillWidth: true
+                                    Layout.topMargin: 16
+                                    flat: true
+                                    text: "Hyprpane items  " + (window.barItemsExpanded || window.searchQuery.trim() ? "⌃" : "⌄")
+                                    visible: window.matchingPages(window.barNavigation).length > 0
+                                    Accessible.description: window.barItemsExpanded ? "Expanded" : "Collapsed"
+                                    onClicked: window.barItemsExpanded = !window.barItemsExpanded
+                                }
+                                Repeater {
+                                    id: barResults
+                                    model: window.barItemsExpanded || window.searchQuery.trim() ? window.matchingPages(window.barNavigation) : []
                                     delegate: SettingsNavButton {
                                         required property var modelData
-                                        objectName: "settingsNav" + modelData.section
                                         text: modelData.title
                                         symbol: modelData.symbol
+                                        itemEnabled: modelData.itemEnabled
                                         Layout.fillWidth: true
                                         keyboardSelected: searchField.activeFocus && window.searchResultIndex >= 0 && window.searchResults[window.searchResultIndex]?.section === modelData.section
                                         highlighted: window.section === modelData.section
                                         onClicked: window.section = modelData.section
                                     }
                                 }
+                                Label {
+                                    objectName: "settingsSearchEmpty"
+                                    visible: window.searchResults.length === 0
+                                    Layout.fillWidth: true
+                                    Layout.margins: 12
+                                    text: "No settings found. Try another search."
+                                    color: Style.SettingsTheme.muted
+                                    font.pixelSize: Style.SettingsTheme.bodySize
+                                    wrapMode: Text.WordWrap
+                                }
                             }
-                        }
-                        SettingsButton {
-                            objectName: "settingsBarItemsToggle"
-                            Layout.fillWidth: true
-                            Layout.topMargin: 16
-                            flat: true
-                            text: "Hyprpane items  " + (window.barItemsExpanded || window.searchQuery.trim() ? "⌃" : "⌄")
-                            visible: window.matchingPages(window.barNavigation).length > 0
-                            Accessible.description: window.barItemsExpanded ? "Expanded" : "Collapsed"
-                            onClicked: window.barItemsExpanded = !window.barItemsExpanded
-                        }
-                        Repeater {
-                            id: barResults
-                            model: window.barItemsExpanded || window.searchQuery.trim() ? window.matchingPages(window.barNavigation) : []
-                            delegate: SettingsNavButton {
-                                required property var modelData
-                                text: modelData.title
-                                symbol: modelData.symbol
-                                itemEnabled: modelData.itemEnabled
-                                Layout.fillWidth: true
-                                keyboardSelected: searchField.activeFocus && window.searchResultIndex >= 0 && window.searchResults[window.searchResultIndex]?.section === modelData.section
-                                highlighted: window.section === modelData.section
-                                onClicked: window.section = modelData.section
-                            }
-                        }
-                        Label {
-                            objectName: "settingsSearchEmpty"
-                            visible: window.searchResults.length === 0
-                            Layout.fillWidth: true
-                            Layout.margins: 12
-                            text: "No settings found. Try another search."
-                            color: Style.Theme.muted
-                            font.pixelSize: Style.Theme.bodySize
-                            wrapMode: Text.WordWrap
                         }
                     }
                 }
-                Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Style.Theme.separator }
+                Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Style.SettingsTheme.separator }
                 ScrollView {
                     id: editorScroll
                     objectName: "settingsEditorScroll"
@@ -760,32 +809,40 @@ FloatingWindow {
                     Layout.fillHeight: true
                     clip: true
                     contentWidth: availableWidth
-                    padding: window.width < 900 ? 24 : 40
+                    padding: window.width < 900 ? 24 : 44
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                    background: Rectangle { color: Style.Theme.background }
+                    background: Rectangle { color: Style.SettingsTheme.background }
                     ColumnLayout {
                         id: pageContent
                         objectName: "settingsPageContent"
                         // Section folding is scoped to settings pages, outside review dialogs.
                         readonly property string settingsSectionQuery: window.searchQuery
-                        width: Math.min(780, editorScroll.availableWidth)
+                        width: Math.min(820, editorScroll.availableWidth)
                         x: Math.max(0, (editorScroll.availableWidth - width) / 2)
                         spacing: 24
                         Connections {
                             target: window
                             function onSectionChanged() { pageReveal.restart(); }
                         }
-                        SequentialAnimation {
+                        transform: Translate { id: pageOffset }
+                        ParallelAnimation {
                             id: pageReveal
-                            PropertyAction { target: pageContent; property: "opacity"; value: Style.Theme.duration(pageContent, 180) > 0 ? 0.65 : 1 }
-                            NumberAnimation { target: pageContent; property: "opacity"; to: 1; duration: Style.Theme.duration(pageContent, 180); easing.type: Easing.OutCubic }
+                            NumberAnimation { target: pageContent; property: "opacity"; from: 0.6; to: 1; duration: Style.SettingsTheme.duration(pageContent, 180); easing.type: Easing.OutCubic }
+                            NumberAnimation { target: pageOffset; property: "y"; from: 8; to: 0; duration: Style.SettingsTheme.duration(pageContent, 220); easing.type: Easing.OutCubic }
+                        }
+                        Label {
+                            visible: window.section !== window.homeSection
+                            text: window.section >= 0 ? "Hyprpane  /  Items" : window.navigation.find(group => group.pages.some(page => page.section === window.section))?.group || "Settings"
+                            color: Style.SettingsTheme.muted
+                            font.pixelSize: Style.SettingsTheme.captionSize
+                            Layout.bottomMargin: -10
                         }
                         Label {
                             objectName: "settingsPageTitle"
                             visible: window.section !== window.homeSection
                             text: window.section >= 0 ? window.names[window.selected.id] || "" : window.navigation.reduce((pages, group) => pages.concat(group.pages), []).find(page => page.section === window.section)?.title || "Settings"
-                            font.pixelSize: Style.Theme.titleSize
-                            font.bold: true
+                            font.pixelSize: Style.SettingsTheme.titleSize
+                            font.weight: Font.DemiBold
                             Layout.fillWidth: true
                             wrapMode: Text.WordWrap
                         }
@@ -793,10 +850,10 @@ FloatingWindow {
                             Layout.fillWidth: true
                             Layout.topMargin: -14
                             visible: window.section !== window.homeSection
-                            font.pixelSize: Style.Theme.bodySize
-                            text: window.section === -23 ? "Save your Hyprshell setup and choose a dated backup to restore." : window.section === -22 ? "Manage network rules and blocked websites." : window.section === -20 ? "Optional local clipboard history" : window.section === -21 ? "Printers and scanners when you need them" : window.section === -19 ? "Choose workspace layouts and rules for application windows." : window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover personal configuration, and back up personal files." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Browse layout, visibility, item spacing, appearance, menus, and clock settings." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
+                            font.pixelSize: Style.SettingsTheme.bodySize
+                            text: window.section === -25 ? "Your headphones, keyboards, and other wireless devices." : window.section === -23 ? "Save your Hyprshell setup and choose a dated backup to restore." : window.section === -22 ? "Manage network rules and blocked websites." : window.section === -20 ? "Optional local clipboard history" : window.section === -21 ? "Printers and scanners when you need them" : window.section === -19 ? "Choose workspace layouts and rules for application windows." : window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover personal configuration, and back up personal files." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Browse layout, visibility, item spacing, appearance, menus, and clock settings." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
                             wrapMode: Text.WordWrap
-                            color: Style.Theme.muted
+                            color: Style.SettingsTheme.muted
                         }
                         SettingsButton {
                             objectName: "hyprpaneBackToSettings"
@@ -809,9 +866,9 @@ FloatingWindow {
                             Layout.fillWidth: true
                             visible: window.section >= -1
                             Layout.preferredHeight: previewBar.y + previewBar.height * previewBar.scale + 16
-                            radius: Style.Theme.radius
-                            color: Style.Theme.surface
-                            border.color: Style.Theme.border
+                            radius: Style.SettingsTheme.radius
+                            color: Style.SettingsTheme.surface
+                            border.color: Style.SettingsTheme.border
                             Label {
                                 id: previewLabel
                                 x: 16
@@ -819,8 +876,8 @@ FloatingWindow {
                                 width: parent.width - 32
                                 wrapMode: Text.WordWrap
                                 text: "Hyprpane preview · drag to rearrange, click to customize"
-                                color: Style.Theme.muted
-                                font.pixelSize: Style.Theme.captionSize
+                                color: Style.SettingsTheme.muted
+                                font.pixelSize: Style.SettingsTheme.captionSize
                                 font.letterSpacing: 0
                             }
                             Bar {
@@ -1084,6 +1141,12 @@ FloatingWindow {
                             services: window.audioServices
                             testSound: soundTester
                         }
+                        SettingsPageLoader {
+                            id: bluetoothPage
+                            visible: window.visible && window.section === -25
+                            Layout.fillWidth: true
+                            sourceComponent: SettingsBluetooth {}
+                        }
                         SettingsInput {
                             visible: window.section === -9
                             Layout.fillWidth: true
@@ -1102,16 +1165,16 @@ FloatingWindow {
             Label {
                 Layout.fillWidth: true
                 objectName: "settingsSaveNotice"
-                Layout.minimumHeight: 30
+                Layout.minimumHeight: 38
                 Layout.leftMargin: 16
                 Layout.rightMargin: 16
                 topPadding: 7
                 bottomPadding: 7
                 text: !window.success ? (window.message || window.store.error) : window.saving ? "Saving changes…" : window.savedNotice || (window.pageDirty ? "Unapplied edits kept while Settings is running · " : window.manualDirty ? "Another page has unapplied edits · " : "") + window.savingPolicy()
-                horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: Text.AlignLeft
                 wrapMode: Text.WordWrap
-                font.pixelSize: Style.Theme.captionSize
-                color: !window.success ? Style.Theme.danger : window.manualDirty ? Style.Theme.warning : Style.Theme.muted
+                font.pixelSize: Style.SettingsTheme.captionSize
+                color: !window.success ? Style.SettingsTheme.danger : window.manualDirty ? Style.SettingsTheme.warning : Style.SettingsTheme.muted
             }
         }
     }

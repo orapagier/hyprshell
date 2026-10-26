@@ -60,7 +60,7 @@ ColumnLayout {
             Layout.fillWidth: true
             visible: !!root.batteryInfo.present && root.batteryInfo.seconds > 0
             text: Math.round((root.batteryInfo.seconds || 0) / 60) + " minutes " + (root.batteryInfo.charging ? "until full" : "remaining") + " (estimate)"
-            color: Style.Theme.muted; wrapMode: Text.WordWrap
+            color: Style.SettingsTheme.muted; wrapMode: Text.WordWrap
         }
     }
     SettingsCard {
@@ -82,7 +82,7 @@ ColumnLayout {
             Layout.fillWidth: true
             visible: !!root.status.brightnessError && !root.status.brightness
             text: root.status.brightnessError || ""
-            color: Style.Theme.muted; wrapMode: Text.WordWrap; font.pixelSize: Style.Theme.captionSize
+            color: Style.SettingsTheme.muted; wrapMode: Text.WordWrap; font.pixelSize: Style.SettingsTheme.captionSize
         }
     }
     SettingsCard {
@@ -115,7 +115,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Enabled timers must increase in this order: dim, screen off, then suspend. Brightness returns on activity unless you adjusted it manually. Suspending does not enable screen locking."
-            color: Style.Theme.muted; wrapMode: Text.WordWrap; font.pixelSize: Style.Theme.captionSize
+            color: Style.SettingsTheme.muted; wrapMode: Text.WordWrap; font.pixelSize: Style.SettingsTheme.captionSize
         }
     }
     SettingsCard {
@@ -150,7 +150,7 @@ ColumnLayout {
             Layout.fillWidth: true
             visible: !!root.status.lidError
             text: root.status.lidError || ""
-            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
         }
     }
     SettingsCard {
@@ -169,7 +169,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: root.settings.profile !== "system" && profile.profiles.indexOf(root.settings.profile) < 0 ? "Saved preference: " + root.settings.profile + ". This profile is currently unavailable; choose Use system setting or another supported profile." : root.status.profiles ? "Active: " + root.status.profiles.active : root.status.profilesError || "Checking supported profiles…"
-            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
         }
     }
     SettingsButton { text: "Refresh power controls"; enabled: !root.busy; onClicked: root.request(["--status"]) }
@@ -177,6 +177,6 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: text !== ""
         text: [root.success ? "" : root.message, root.runtimeError].filter(Boolean).join("\n")
-        wrapMode: Text.WordWrap; color: Style.Theme.danger
+        wrapMode: Text.WordWrap; color: Style.SettingsTheme.danger
     }
 }

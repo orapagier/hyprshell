@@ -74,8 +74,8 @@ ColumnLayout {
             Layout.fillWidth: true
             text: "Save a valid command before testing. Unlock with your locker's configured authentication."
             wrapMode: Text.WordWrap
-            color: Style.Theme.muted
-            font.pixelSize: Style.Theme.captionSize
+            color: Style.SettingsTheme.muted
+            font.pixelSize: Style.SettingsTheme.captionSize
         }
     }
     SettingsCard {
@@ -108,6 +108,6 @@ ColumnLayout {
         visible: text !== ""
         text: page.runtimeError
         wrapMode: Text.WordWrap
-        color: Style.Theme.danger
+        color: Style.SettingsTheme.danger
     }
 }

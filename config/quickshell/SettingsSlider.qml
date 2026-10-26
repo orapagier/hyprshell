@@ -46,15 +46,15 @@ ColumnLayout {
         Layout.fillWidth: true
         Label {
             text: root.label
-            color: Style.Theme.text
-            font.pixelSize: Style.Theme.bodySize
+            color: Style.SettingsTheme.text
+            font.pixelSize: Style.SettingsTheme.bodySize
             Layout.fillWidth: true
         }
         Label {
             objectName: "sliderValue"
             text: root.inherited && !slider.pressed ? root.inheritedText : Number((slider.pressed ? slider.value : root.displayValue).toFixed(2)) + root.suffix
-            color: root.inherited ? Style.Theme.muted : Style.Theme.accentText
-            font.pixelSize: Style.Theme.bodySize
+            color: root.inherited ? Style.SettingsTheme.muted : Style.SettingsTheme.accentText
+            font.pixelSize: Style.SettingsTheme.bodySize
         }
         ToolButton {
             objectName: "sliderReset"
@@ -66,8 +66,8 @@ ColumnLayout {
             hoverEnabled: true
             Accessible.name: "Reset " + root.label
             onClicked: root.edited("")
-            contentItem: Text { text: parent.text; color: root.inherited ? Style.Theme.disabled : Style.Theme.muted; font.pixelSize: 18; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { radius: 7; color: parent.hovered || parent.activeFocus ? Style.Theme.controlBorder : "transparent"; border.color: parent.activeFocus ? Style.Theme.accentText : "transparent" }
+            contentItem: Text { text: parent.text; color: root.inherited ? Style.SettingsTheme.disabled : Style.SettingsTheme.muted; font.pixelSize: 18; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { radius: 7; color: parent.hovered || parent.activeFocus ? Style.SettingsTheme.controlBorder : "transparent"; border.color: parent.activeFocus ? Style.SettingsTheme.accentText : "transparent" }
             ToolTip.visible: hovered
             ToolTip.text: root.resetDescription
         }
@@ -110,12 +110,12 @@ ColumnLayout {
                 width: slider.availableWidth
                 height: 5
                 radius: 3
-                color: Style.Theme.controlBorder
+                color: Style.SettingsTheme.controlBorder
                 Rectangle {
                     width: slider.visualPosition * parent.width
                     height: parent.height
                     radius: 3
-                    color: root.inherited ? Style.Theme.muted : Style.Theme.accentText
+                    color: root.inherited ? Style.SettingsTheme.muted : Style.SettingsTheme.accentText
                 }
             }
             handle: Rectangle {
@@ -124,11 +124,11 @@ ColumnLayout {
                 implicitWidth: 18
                 implicitHeight: 18
                 radius: 9
-                color: slider.pressed ? Style.Theme.accentForeground : Style.Theme.text
+                color: slider.pressed ? Style.SettingsTheme.accentForeground : Style.SettingsTheme.text
                 border.width: slider.activeFocus || slider.hovered ? 3 : 2
-                border.color: slider.activeFocus || slider.hovered ? Style.Theme.accentText : Style.Theme.accentForeground
+                border.color: slider.activeFocus || slider.hovered ? Style.SettingsTheme.accentText : Style.SettingsTheme.accentForeground
                 scale: slider.pressed ? 1.18 : 1
-                Behavior on scale { NumberAnimation { duration: Style.Theme.duration(root, 220); easing.type: Easing.OutBack; easing.overshoot: 0.5 } }
+                Behavior on scale { NumberAnimation { duration: Style.SettingsTheme.duration(root, 220); easing.type: Easing.OutBack; easing.overshoot: 0.5 } }
             }
         }
         SettingsButton {
@@ -146,8 +146,8 @@ ColumnLayout {
         visible: root.description !== ""
         Layout.fillWidth: true
         text: root.description
-        color: Style.Theme.muted
-        font.pixelSize: Style.Theme.captionSize
+        color: Style.SettingsTheme.muted
+        font.pixelSize: Style.SettingsTheme.captionSize
         wrapMode: Text.WordWrap
     }
 }

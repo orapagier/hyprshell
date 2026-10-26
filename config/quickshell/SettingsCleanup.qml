@@ -65,7 +65,7 @@ ColumnLayout {
         title: "Automatic cleanup"
         subtitle: "Clean old user files on a systemd user timer. Missed runs are picked up at your next login. Save these settings separately below."
         enabled: page.loaded && !page.busy
-        Label { text: "Schedule"; color: Style.Theme.muted }
+        Label { text: "Schedule"; color: Style.SettingsTheme.muted }
         SettingsComboBox {
             model: ["Off", "Daily", "Weekly", "Monthly"]
             currentIndex: ["off", "daily", "weekly", "monthly"].indexOf(page.settings.schedule)
@@ -106,7 +106,7 @@ ColumnLayout {
             Layout.fillWidth: true
             visible: page.preview !== null
             text: page.preview ? page.preview.entries.length + " files · " + (page.preview.bytes / 1048576).toFixed(2) + " MiB eligible" : ""
-            color: Style.Theme.text
+            color: Style.SettingsTheme.text
         }
         ScrollView {
             Layout.fillWidth: true
@@ -117,8 +117,8 @@ ColumnLayout {
                 readOnly: true
                 selectByMouse: true
                 wrapMode: TextEdit.WrapAnywhere
-                color: Style.Theme.text
-                background: Rectangle { radius: Style.Theme.controlRadius; color: Style.Theme.field; border.color: Style.Theme.controlBorder }
+                color: Style.SettingsTheme.text
+                background: Rectangle { radius: Style.SettingsTheme.controlRadius; color: Style.SettingsTheme.field; border.color: Style.SettingsTheme.controlBorder }
                 text: page.preview ? page.preview.entries.map(e => e.category + " · " + e.size + " bytes\n" + e.path).join("\n\n") || "No files match the saved age and backup-retention rules. This does not mean your browser or package caches are empty. Use Clean now · your files above to preview those caches." : ""
             }
         }
@@ -136,16 +136,16 @@ ColumnLayout {
         Layout.fillWidth: true
         title: "Automatic cleanup status"
         subtitle: "The user cleanup timer and the distribution's existing package-cache timer keep their separate policies. Manual system maintenance is available above."
-        Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "paccache.timer: " + page.paccache; color: Style.Theme.text }
-        Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Hyprshell cleanup timer: " + page.timerStatus; color: Style.Theme.muted }
+        Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "paccache.timer: " + page.paccache; color: Style.SettingsTheme.text }
+        Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Hyprshell cleanup timer: " + page.timerStatus; color: Style.SettingsTheme.muted }
     }
     SettingsCard {
         Layout.fillWidth: true
         title: "Personal data and installed software"
         subtitle: "The categories above cover disposable files and reviewed recovery history."
-        SettingsLabel { Layout.fillWidth: true; wrapMode: Text.Wrap; text: "Downloads, documents, browser profiles, credentials, repositories, personal-file backups, Windows VM disks and container volumes are preserved. They may use substantial storage, but can contain your work. Unused apps, VM disks and container resources should be removed through the application that manages them."; color: Style.Theme.muted }
+        SettingsLabel { Layout.fillWidth: true; wrapMode: Text.Wrap; text: "Downloads, documents, browser profiles, credentials, repositories, personal-file backups, Windows VM disks and container volumes are preserved. They may use substantial storage, but can contain your work. Unused apps, VM disks and container resources should be removed through the application that manages them."; color: Style.SettingsTheme.muted }
         SettingsButton { text: "Open home folder for manual review"; onClicked: Qt.openUrlExternally("file://" + Quickshell.env("HOME").split("/").map(encodeURIComponent).join("/")) }
     }
     SettingsFactoryReset { id: factoryReset; Layout.fillWidth: true; ready: page.resetReady; enabled: !worker.running && !manualCleanup.busy && !systemCleanup.busy; onRestored: settings => page.restored(settings) }
-    Label { Layout.fillWidth: true; text: page.message; wrapMode: Text.WrapAnywhere; color: Style.Theme.warning }
+    Label { Layout.fillWidth: true; text: page.message; wrapMode: Text.WrapAnywhere; color: Style.SettingsTheme.warning }
 }

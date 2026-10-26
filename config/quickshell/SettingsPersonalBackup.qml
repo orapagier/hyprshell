@@ -40,9 +40,9 @@ SettingsCard {
             } catch (e) { page.success = false; page.message = "Could not read personal backup controls. Refresh to retry."; }
         } }
     }
-    SettingsLabel { text: "Backup destination"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
-    SettingsTextField { objectName: "automaticBackupDestination"; Layout.fillWidth: true; placeholderText: "Existing absolute folder on your backup drive"; text: page.draft.destination; color: Style.Theme.text; selectByMouse: true; onTextEdited: page.edit("destination", text) }
-    SettingsLabel { text: "Select personal folders"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
+    SettingsLabel { text: "Backup destination"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize }
+    SettingsTextField { objectName: "automaticBackupDestination"; Layout.fillWidth: true; placeholderText: "Existing absolute folder on your backup drive"; text: page.draft.destination; color: Style.SettingsTheme.text; selectByMouse: true; onTextEdited: page.edit("destination", text) }
+    SettingsLabel { text: "Select personal folders"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize }
     Repeater {
         model: page.folders
         delegate: SettingsSwitch {
@@ -51,7 +51,7 @@ SettingsCard {
             onToggled: page.toggleSource(modelData.path, checked)
         }
     }
-    SettingsTextField { id: customFolder; Layout.fillWidth: true; placeholderText: "Another personal folder inside your home (absolute path)"; color: Style.Theme.text; selectByMouse: true }
+    SettingsTextField { id: customFolder; Layout.fillWidth: true; placeholderText: "Another personal folder inside your home (absolute path)"; color: Style.SettingsTheme.text; selectByMouse: true }
     SettingsButton { text: "Add source folder"; enabled: customFolder.text.trim().length > 0 && page.draft.sources.indexOf(customFolder.text.trim()) < 0; onClicked: { page.toggleSource(customFolder.text.trim(), true); customFolder.text = ""; } }
     Repeater {
         model: page.draft.sources
@@ -59,11 +59,11 @@ SettingsCard {
             id: sourceRow
             required property string modelData
             Layout.fillWidth: true
-            SettingsLabel { text: sourceRow.modelData; textFormat: Text.PlainText; color: Style.Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            SettingsLabel { text: sourceRow.modelData; textFormat: Text.PlainText; color: Style.SettingsTheme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
             SettingsButton { text: "Remove"; onClicked: page.toggleSource(sourceRow.modelData, false) }
         }
     }
-    SettingsLabel { text: "Automatic schedule"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize }
+    SettingsLabel { text: "Automatic schedule"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize }
     SettingsComboBox { Layout.fillWidth: true; model: ["Off · manual backups", "Daily", "Weekly"]; currentIndex: ["off", "daily", "weekly"].indexOf(page.draft.schedule); onActivated: index => page.edit("schedule", ["off", "daily", "weekly"][index]) }
     Flow {
         Layout.fillWidth: true; spacing: 8
@@ -73,8 +73,8 @@ SettingsCard {
         SettingsButton { text: "Verify latest snapshot"; enabled: !page.busy && !page.pending && page.initial !== null && !!page.initial.destination && page.status.phase !== "running"; onClicked: page.request("verify") }
         SettingsButton { text: "Open snapshots / recover files"; enabled: !page.busy && !page.pending && page.initial !== null && !!page.initial.destination; onClicked: page.request("open") }
     }
-    SettingsLabel { text: page.status.message + (page.status.time ? "\n" + Qt.formatDateTime(new Date(page.status.time), "yyyy-MM-dd HH:mm") : ""); textFormat: Text.PlainText; color: ["failed", "interrupted"].indexOf(page.status.phase) >= 0 ? Style.Theme.danger : Style.Theme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    SettingsLabel { text: "Symbolic links and special files are skipped. Snapshots reuse verified unchanged copies and keep older versions. Snapshots are never deleted automatically; watch free space. Scheduled backups require the selected destination to remain connected and your user session to be running."; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    SettingsLabel { text: "Recover files from the snapshot folder into a separate folder first. Check them before replacing originals. A backup on the same drive cannot protect against that drive failing."; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
-    SettingsLabel { text: page.message; visible: !!text; color: page.success ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { text: page.status.message + (page.status.time ? "\n" + Qt.formatDateTime(new Date(page.status.time), "yyyy-MM-dd HH:mm") : ""); textFormat: Text.PlainText; color: ["failed", "interrupted"].indexOf(page.status.phase) >= 0 ? Style.SettingsTheme.danger : Style.SettingsTheme.muted; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { text: "Symbolic links and special files are skipped. Snapshots reuse verified unchanged copies and keep older versions. Snapshots are never deleted automatically; watch free space. Scheduled backups require the selected destination to remain connected and your user session to be running."; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { text: "Recover files from the snapshot folder into a separate folder first. Check them before replacing originals. A backup on the same drive cannot protect against that drive failing."; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { text: page.message; visible: !!text; color: page.success ? Style.SettingsTheme.success : Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
 }

@@ -27,8 +27,8 @@ ColumnLayout {
     Label {
         Layout.fillWidth: true
         text: "Browse Hyprpane settings"
-        color: Style.Theme.text
-        font.pixelSize: Style.Theme.sectionSize
+        color: Style.SettingsTheme.text
+        font.pixelSize: Style.SettingsTheme.sectionSize
         font.weight: Font.DemiBold
     }
     Flow {
@@ -62,8 +62,8 @@ ColumnLayout {
             : root.category === "menus" ? "Adjust hover behavior, menu glass, and the clock format."
             : "All Hyprpane controls, grouped by purpose."
         wrapMode: Text.WordWrap
-        color: Style.Theme.muted
-        font.pixelSize: Style.Theme.captionSize
+        color: Style.SettingsTheme.muted
+        font.pixelSize: Style.SettingsTheme.captionSize
     }
     SettingsPanelLayout {
         Layout.fillWidth: true
@@ -77,7 +77,7 @@ ColumnLayout {
         visible: root.showCategory("layout")
         title: "Position & size"
         subtitle: "Choose the screen edge and panel dimensions."
-        Label { text: "Screen edge"; color: Style.Theme.muted; font.pixelSize: Style.Theme.bodySize }
+        Label { text: "Screen edge"; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.bodySize }
         SettingsComboBox {
             objectName: "barPositionControl"
             Layout.fillWidth: true
@@ -88,11 +88,11 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "On either side edge, the left group sits at the top and the right group sits at the bottom."
-            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
         }
         Label {
             visible: ["left", "right"].includes(root.settings.position)
-            text: "Side panel length"; color: Style.Theme.muted; font.pixelSize: Style.Theme.bodySize
+            text: "Side panel length"; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.bodySize
         }
         SettingsComboBox {
             objectName: "verticalPresentationControl"
@@ -106,7 +106,7 @@ ColumnLayout {
             visible: ["left", "right"].includes(root.settings.position)
             Layout.fillWidth: true
             text: "Side panels show icons in circular pills. Compact keeps the groups together. Long panels scroll; hover an icon for its details."
-            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
         }
         SettingsSlider {
             objectName: "heightControl"
@@ -157,7 +157,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Join the full background pill to the screen with curved feet. Requires the full pill to be on; turning it off also disables attachment and autohide. Edge and end margins apply while detached."
-            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
         }
         SettingsSwitch {
             objectName: "autoHideControl"
@@ -170,7 +170,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Hover the screen edge to reveal Hyprpane with a jelly bounce. Open menus keep it visible. Windows can use the space while autohide is enabled."
-            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
         }
     }
     SettingsCard {
@@ -197,8 +197,8 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Individual workspace"
-            color: Style.Theme.text
-            font.pixelSize: Style.Theme.bodySize
+            color: Style.SettingsTheme.text
+            font.pixelSize: Style.SettingsTheme.bodySize
         }
         SettingsComboBox {
             objectName: "barWorkspaceControl"
@@ -223,8 +223,8 @@ ColumnLayout {
                 return baseline + (choices.length ? " Individual choices: " + choices.map(w => w + (root.settings.workspaceOverrides[w] ? " on" : " off")).join(", ") + "." : "");
             }
             wrapMode: Text.WordWrap
-            color: Style.Theme.muted
-            font.pixelSize: Style.Theme.captionSize
+            color: Style.SettingsTheme.muted
+            font.pixelSize: Style.SettingsTheme.captionSize
         }
     }
 
@@ -265,7 +265,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Align the visible tops and bottoms of icons and text to the general icon size, with equal padding and the active item gap. Workspace pills match that height while their numbers stay small. Individual icon and text sizes take priority. Switch off to restore individual padding and spacing."
-            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
         }
         SettingsSwitch {
             objectName: "centerItemsControl"
@@ -277,7 +277,7 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Show icons only and place the left, center, and right groups together at the screen’s center. The calendar icon opens the date and time. Item order and shared pills stay the same."
-            wrapMode: Text.WordWrap; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
         }
         SettingsIconSize {
             Layout.fillWidth: true
@@ -427,8 +427,8 @@ ColumnLayout {
             Layout.fillWidth: true
             text: "Give each item a bright color. Colors reshuffle when the wallpaper changes and stay readable. Turn off to use the current theme. Individual colors and wallpaper choices take priority."
             wrapMode: Text.WordWrap
-            color: Style.Theme.muted
-            font.pixelSize: Style.Theme.captionSize
+            color: Style.SettingsTheme.muted
+            font.pixelSize: Style.SettingsTheme.captionSize
         }
     }
     SettingsCard {
@@ -495,8 +495,8 @@ ColumnLayout {
             Layout.fillWidth: true
             text: "Connect Hyprpane items with a line and decorative knots."
             wrapMode: Text.WordWrap
-            color: Style.Theme.muted
-            font.pixelSize: Style.Theme.captionSize
+            color: Style.SettingsTheme.muted
+            font.pixelSize: Style.SettingsTheme.captionSize
         }
         SettingsSlider {
             objectName: "hyprknotsLineWidthControl"
@@ -562,8 +562,8 @@ ColumnLayout {
                 return keys.length ? "Workspace overrides: " + keys.map(w => w + (choices[w] ? " on" : " off")).join(", ") : "All workspaces follow the default.";
             }
             wrapMode: Text.WordWrap
-            color: Style.Theme.muted
-            font.pixelSize: Style.Theme.captionSize
+            color: Style.SettingsTheme.muted
+            font.pixelSize: Style.SettingsTheme.captionSize
         }
     }
 
@@ -599,8 +599,8 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Preview   " + Qt.formatDateTime(new Date(), root.settings.clockFormat)
-            color: Style.Theme.accentText
-            font.pixelSize: Style.Theme.bodySize
+            color: Style.SettingsTheme.accentText
+            font.pixelSize: Style.SettingsTheme.bodySize
             wrapMode: Text.Wrap
         }
     }

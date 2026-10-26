@@ -31,8 +31,8 @@ ColumnLayout {
     Label {
         Layout.fillWidth: true
         text: control.mode === "inherit" ? control.inheritDescription : control.mode === "on" ? "Background pill shown" : "Background pill removed"
-        color: Style.Theme.muted
-        font.pixelSize: Style.Theme.captionSize
+        color: Style.SettingsTheme.muted
+        font.pixelSize: Style.SettingsTheme.captionSize
         wrapMode: Text.WordWrap
     }
 }

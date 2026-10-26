@@ -42,16 +42,16 @@ method; `bin/hyprshell-settings` and the desktop entry provide normal
 application-launcher access. No web server,
 browser, or additional GUI framework is required.
 
-Settings follows GNOME and COSMIC's restrained desktop conventions: a persistent
-sidebar, a compact header, a centered editor, and rounded preference groups with
-headings above the surface. `style/Theme.qml` owns the neutral dark surfaces,
-blue accent, semantic feedback colors, typography, and control sizes. The
-direction was informed by [UI/UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
-and the [GNOME boxed-list guidelines](https://developer.gnome.org/hig/patterns/containers/boxed-lists.html).
-Settings keeps its own opaque dark interface; the application color preference
-continues to control application windows separately.
+Hyprsettings uses charcoal surfaces, a muted mint accent, generous spacing, and
+short transitions. `style/SettingsTheme.qml` owns its palette and control sizes;
+it inherits text scaling, high contrast and reduced motion from `style/Theme.qml`.
+Desktop menus retain their independent wallpaper-aware palette. The window title
+remains `Hyprshell Settings` for existing compositor placement rules.
 
-Navigation groups pages under **Desktop**, **Devices**, and **System**. The shorter
+Navigation groups pages under **Personalize**, **Devices & connections**,
+**Preferences**, and **System**. Groups expand on demand and automatically reveal
+the selected page. Search stays above the scrolling navigation, and matching
+pages are visible even in collapsed groups. The shorter
 sidebar labels **Appearance**, **Windows**, **Applications**, **Keyboard shortcuts**,
 and **Cleanup** lead to the existing application theme, Hyprland, default apps,
 keybindings, and system cleanup controls. **Hyprpane items** expands individual module
@@ -67,11 +67,23 @@ repeated whitespace. **Ctrl+F** focuses search; **Up/Down** select a result;
 **Escape** or the clear button clears the query. Browsing and searching do not
 write preferences. Each page keeps its scroll position within the current window.
 
-Settings opens on an overview with Desktop, Devices, and System category links,
-search, and the existing getting-started guide. The overview has no sidebar entry;
-click the Hyprshell Settings branding in the window header to return to it.
-First-time setup remains available from the overview instead of redirecting away
-from it. Failed drafts and direct display-settings navigation retain their routes.
+Settings opens on an overview with direct links to Appearance, Hyprpane, Displays,
+Sound, Network, and Bluetooth, plus search, the getting-started guide, and setup
+backups. Tiles become a single column in narrow windows. The **Overview** entry
+and window branding return home and clear the query. All existing pages and
+individual panel-item editors remain available in navigation. Page transitions
+use one short fade/slide, honoring reduced motion and disabled desktop animations.
+Failed drafts and direct display-settings navigation retain their routes.
+
+**Bluetooth** adds radio power, visibility to nearby devices, saved devices,
+connection state, and available battery levels. Device details expose trust,
+wake permission, blocking, and a confirmation before forgetting. These controls
+use the existing native BlueZ API; they do not add preferences to GitHub sync.
+Opening the page does not scan or start a pairing agent. **Find a device** loads
+the existing pairing UI, including PIN/passkey confirmation and its bounded scan.
+Done, power-off, navigation away, or closing Settings releases the pairing UI.
+Unavailable adapters disable hardware actions. Native tests inject radio/device
+objects and isolate D-Bus; physical pairing still needs a desktop hardware check.
 
 Short preference sections start expanded across Settings. Only sections with more
 than 1,000 logical pixels of control content start collapsed, including advanced

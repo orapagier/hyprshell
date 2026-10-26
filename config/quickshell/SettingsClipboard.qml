@@ -43,7 +43,7 @@ ColumnLayout {
         SettingsSwitch { objectName: "clipboardEnabled"; text: "Remember clipboard entries"; checked: page.settings.enabled; enabled: page.available || checked; Layout.fillWidth: true; onToggled: page.edited("enabled", checked) }
         SettingsSwitch { text: "Include images"; checked: page.settings.includeImages; Layout.fillWidth: true; onToggled: page.edited("includeImages", checked) }
         SettingsSlider { label: "Maximum saved entries"; settingValue: page.settings.maxItems; from: 10; to: 200; allowReset: false; Layout.fillWidth: true; onEdited: value => page.edited("maxItems", value) }
-        SettingsLabel { text: "Entries are limited to 5 MiB each. The entry limit is enforced on the next capture. Disabling history stops capture and keeps saved entries until cleared. History never travels through GitHub sync."; color: Style.Theme.muted; font.pixelSize: Style.Theme.captionSize; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        SettingsLabel { text: "Entries are limited to 5 MiB each. The entry limit is enforced on the next capture. Disabling history stops capture and keeps saved entries until cleared. History never travels through GitHub sync."; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; wrapMode: Text.Wrap; Layout.fillWidth: true }
         SettingsButton { visible: !page.available; text: "Install clipboard tools…"; enabled: !page.busy; onClicked: page.request("install") }
         SettingsButton { text: "Refresh tool availability"; enabled: !page.busy; onClicked: page.request("status") }
     }
@@ -57,24 +57,24 @@ ColumnLayout {
             SettingsButton { visible: page.revealed; text: "Hide history"; onClicked: { page.entries = []; page.revealed = false; } }
             SettingsButton { text: "Clear all…"; enabled: !page.busy; onClicked: page.confirmClear = true }
         }
-        SettingsLabel { visible: page.confirmClear; text: "Permanently remove saved entries? This cannot be undone."; color: Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        SettingsLabel { visible: page.confirmClear; text: "Permanently remove saved entries? This cannot be undone."; color: Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
         RowLayout {
             visible: page.confirmClear
             SettingsButton { text: "Clear saved history"; enabled: !page.busy; onClicked: page.request("wipe") }
             SettingsButton { text: "Cancel"; onClicked: page.confirmClear = false }
         }
-        SettingsLabel { visible: page.revealed && page.entries.length === 0; text: "History is empty."; color: Style.Theme.muted }
+        SettingsLabel { visible: page.revealed && page.entries.length === 0; text: "History is empty."; color: Style.SettingsTheme.muted }
         Repeater {
             model: page.entries
             delegate: RowLayout {
                 id: entryRow
                 required property var modelData
                 Layout.fillWidth: true
-                SettingsLabel { text: entryRow.modelData.preview; textFormat: Text.PlainText; color: Style.Theme.text; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                SettingsLabel { text: entryRow.modelData.preview; textFormat: Text.PlainText; color: Style.SettingsTheme.text; wrapMode: Text.Wrap; Layout.fillWidth: true }
                 SettingsButton { text: "Copy"; enabled: !page.busy; onClicked: page.request("copy", entryRow.modelData.id) }
                 SettingsButton { text: "Remove"; enabled: !page.busy; onClicked: page.request("delete", entryRow.modelData.id) }
             }
         }
     }
-    SettingsLabel { text: [page.message, page.runtimeError].filter(Boolean).join("\n"); visible: text.length > 0; color: page.success && !page.runtimeError ? Style.Theme.success : Style.Theme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    SettingsLabel { text: [page.message, page.runtimeError].filter(Boolean).join("\n"); visible: text.length > 0; color: page.success && !page.runtimeError ? Style.SettingsTheme.success : Style.SettingsTheme.danger; Layout.fillWidth: true; wrapMode: Text.Wrap }
 }

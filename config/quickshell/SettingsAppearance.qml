@@ -46,8 +46,8 @@ ColumnLayout {
             visible: root.settings.effectWorkspaceScope === "selected"
             Layout.fillWidth: true
             text: (root.settings.effectWorkspaces || []).length ? "Selected workspaces: " + root.settings.effectWorkspaces.join(", ") : "No workspaces selected. Effects are off until you select one."
-            color: Style.Theme.muted
-            font.pixelSize: Style.Theme.captionSize
+            color: Style.SettingsTheme.muted
+            font.pixelSize: Style.SettingsTheme.captionSize
             wrapMode: Text.WordWrap
         }
     }
@@ -90,7 +90,7 @@ ColumnLayout {
         GridLayout {
             Layout.fillWidth: true
             columns: root.width >= 600 ? 2 : 1
-            Label { text: "Background blur"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+            Label { text: "Background blur"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize; Layout.fillWidth: true; wrapMode: Text.WordWrap }
             SettingsComboBox {
                 Layout.fillWidth: true
                 objectName: "blurMode"
@@ -102,7 +102,7 @@ ColumnLayout {
         GridLayout {
             Layout.fillWidth: true
             columns: root.width >= 600 ? 2 : 1
-            Label { text: "Blur applies to"; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+            Label { text: "Blur applies to"; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize; Layout.fillWidth: true; wrapMode: Text.WordWrap }
             SettingsComboBox {
                 Layout.fillWidth: true
                 objectName: "blurFocusControl"
@@ -202,8 +202,8 @@ ColumnLayout {
                 Label {
                     Layout.fillWidth: true
                     text: parent.modelData.label
-                    color: Style.Theme.text
-                    font.pixelSize: Style.Theme.bodySize
+                    color: Style.SettingsTheme.text
+                    font.pixelSize: Style.SettingsTheme.bodySize
                     wrapMode: Text.WordWrap
                 }
                 SettingsComboBox {
@@ -218,8 +218,8 @@ ColumnLayout {
         Label {
             Layout.fillWidth: true
             text: "Special-workspace and popup blur are compositor-wide options. Focus and numbered-workspace filters apply to normal application windows. Blur passes and special-workspace blur can increase GPU use."
-            color: Style.Theme.muted
-            font.pixelSize: Style.Theme.captionSize
+            color: Style.SettingsTheme.muted
+            font.pixelSize: Style.SettingsTheme.captionSize
             wrapMode: Text.WordWrap
         }
     }
@@ -267,7 +267,7 @@ ColumnLayout {
             delegate: RowLayout {
                 required property var modelData
                 Layout.fillWidth: true
-                Label { text: modelData.label; color: Style.Theme.text; font.pixelSize: Style.Theme.bodySize; Layout.fillWidth: true }
+                Label { text: modelData.label; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize; Layout.fillWidth: true }
                 SettingsComboBox {
                     model: ["Use config", "Enabled", "Disabled"]
                     currentIndex: root.settings[parent.modelData.key] === undefined ? 0 : root.settings[parent.modelData.key] ? 1 : 2
@@ -279,8 +279,8 @@ ColumnLayout {
     Label {
         Layout.fillWidth: true
         text: "Use config leaves a setting under your Hyprland configuration. Sliders start at suggested values until you adjust them. Use ↺ to remove an override. App-specific window rules may take priority."
-        color: Style.Theme.muted
-        font.pixelSize: Style.Theme.captionSize
+        color: Style.SettingsTheme.muted
+        font.pixelSize: Style.SettingsTheme.captionSize
         wrapMode: Text.WordWrap
     }
 }

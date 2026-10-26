@@ -26,7 +26,7 @@ SettingsCard {
         Accessible.name: 'Panel layout preset'
         onActivated: root.selectedPreset = currentIndex - 1
     }
-    Label { text: 'Preview monitor name'; color: Style.Theme.text }
+    Label { text: 'Preview monitor name'; color: Style.SettingsTheme.text }
     SettingsTextField {
         objectName: 'panelPreviewMonitor'
         Layout.fillWidth: true
@@ -35,7 +35,7 @@ SettingsCard {
         onTextEdited: root.monitor = text.trim()
     }
     RowLayout {
-        Label { text: 'Preview workspace'; color: Style.Theme.text }
+        Label { text: 'Preview workspace'; color: Style.SettingsTheme.text }
         SpinBox {
             objectName: 'panelPreviewWorkspace'
             from: 1; to: 99; value: root.workspace
@@ -48,13 +48,13 @@ SettingsCard {
         objectName: 'panelLayoutDiagram'
         Layout.fillWidth: true
         implicitHeight: 180
-        color: Style.Theme.surface
-        border.color: Style.Theme.border
+        color: Style.SettingsTheme.surface
+        border.color: Style.SettingsTheme.border
         radius: 8
         Label {
             anchors.centerIn: parent
             text: 'Workspace ' + root.workspace + (root.monitor ? ' · ' + root.monitor : '\nUnlisted monitor')
-            color: Style.Theme.muted
+            color: Style.SettingsTheme.muted
             horizontalAlignment: Text.AlignHCenter
         }
         Repeater {
@@ -68,7 +68,7 @@ SettingsCard {
                 readonly property bool bottomOccupied: root.panels.some(p => p.shown && p.edge === 'bottom')
                 objectName: 'panelPreview_' + modelData.name
                 visible: modelData.shown
-                color: [Style.Theme.accentText, Style.Theme.text, Style.Theme.muted][index]
+                color: [Style.SettingsTheme.accentText, Style.SettingsTheme.text, Style.SettingsTheme.muted][index]
                 opacity: modelData.hideMode === 'always' ? 1 : 0.5
                 radius: 5
                 x: modelData.edge === 'right' ? screen.width - 22 : 8
@@ -82,13 +82,13 @@ SettingsCard {
         Layout.fillWidth: true
         text: root.panels.map(p => p.name.replace('hypr', 'Hypr') + ': ' + (!p.enabled ? 'disabled' :
             !p.shown ? 'hidden here' : p.edge + (p.hideMode === 'always' ? '' : ' · ' + p.hideMode))).join('\n')
-        color: Style.Theme.text
+        color: Style.SettingsTheme.text
         wrapMode: Text.WordWrap
     }
     Label {
         Layout.fillWidth: true
         text: 'Schematic placement preview. Actual dimensions follow Hyprpane settings.'
-        color: Style.Theme.muted
+        color: Style.SettingsTheme.muted
         wrapMode: Text.WordWrap
     }
     SettingsButton {
