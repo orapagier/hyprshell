@@ -974,7 +974,11 @@ Item {
         sourceComponent: MediaPill {
             vertical: bar.iconPills
             iconOnly: bar.iconsOnly || bar.statusIconsOnly
-            settings: bar.appearance("media")
+            settings: {
+                let style = bar.appearance("media");
+                style.uniformTextHeight = (style.uniformTextHeight ?? style.uniformGlyphHeight) * 0.96;
+                return style;
+            }
             colorSampler: Settings.adaptive(bar.settings, "media") ? bar.wallpaperColors : null
             colorRoot: bar
             text: bar.mediaData.title || ""
