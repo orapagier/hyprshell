@@ -26,10 +26,10 @@ Pill {
         width: media.uniformItems ? media.spectrumWidth : media.vertical ? Math.min(parent.width * 0.8, 28 * media.spectrumScale) : 58 * media.spectrumScale
         height: media.uniformItems ? Math.min(Math.max(0, parent.height - 4), (media.settings.uniformGlyphHeight || media.settings.iconSize || 16) * (media.vertical ? 1 : 1.2)) : media.vertical ? (media.settings.uniformGlyphHeight || Math.min(parent.height - 14, 16 * media.spectrumScale)) : 16 * media.spectrumScale
         y: (parent.height - height) / 2
-        spacing: media.uniformItems ? 1 : media.vertical ? Math.max(1, media.spectrumScale) : 2 * media.spectrumScale
+        spacing: media.uniformItems ? (media.vertical ? 1 : 0.75) : media.vertical ? Math.max(1, media.spectrumScale) : 2 * media.spectrumScale
         minimumHeight: 2 * media.spectrumScale
-        barCount: media.vertical || media.uniformItems ? 5 : 12
-        levels: media.vertical || media.uniformItems ? Array.from({length:5}, (_, band) => {
+        barCount: media.vertical ? 5 : 12
+        levels: media.vertical ? Array.from({length:5}, (_, band) => {
             let start = Math.floor(band * media.levels.length / 5);
             let end = Math.max(start + 1, Math.floor((band + 1) * media.levels.length / 5));
             return Math.max(0, ...media.levels.slice(start, end));
