@@ -1,22 +1,22 @@
 {
   "format": 1,
   "repository": "orapagier/hyprshell",
-  "tag": "v1.0.0",
+  "tag": "v1.0.1",
   "architectures": {
     "x86_64": {
       "hyprmonitor": {
         "asset": "hyprmonitor",
-        "sha256": "b36992e045cf36e161f6b97c0ecc7d7eb139851f800643774a07d6b696bdb049",
+        "sha256": "6e2c7f18187bf11013af199390069c383b3d8c134b8ab7abae59bc2b6c9968ae",
         "minimum_glibc": "2.43"
       },
       "hyprmatrix": {
         "asset": "hyprmatrix",
-        "sha256": "b3906d13e5a131924a09cc7bddb8cd2700515f26acd7fc2f03588cb4ff5b175d",
-        "minimum_glibc": "2.39"
+        "sha256": "c25f501ab9676c4096657f3861d95c6baf08399379f7785e29aae7c129638cc0",
+        "minimum_glibc": "2.43"
       },
       "hyprweather": {
         "asset": "hyprweather",
-        "sha256": "787144c33ec1787a56438eb74d86f4db5da46a9ad3e34d35a06d0a9de15dbdea",
+        "sha256": "1b03cdb5c3d8ef82e6c36454988231e7dadd65149d1ca33af4b73cbb133a57d9",
         "minimum_glibc": "2.39"
       }
     }

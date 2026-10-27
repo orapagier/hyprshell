@@ -210,9 +210,9 @@ The installer:
 
 Hyprmonitor, Hyprmatrix and Hyprweather install automatically without local Cargo builds.
 Their release repository, tag, asset names, checksums and minimum glibc versions
-are pinned in [app-releases.json](app-releases.json). These initial binaries target
-Linux x86-64. Hyprmonitor requires glibc 2.43 or newer; Hyprmatrix and Hyprweather
-require glibc 2.39 or newer. The installer checks the host glibc before downloading
+are pinned in [app-releases.json](app-releases.json). The v1.0.1 binaries target
+Linux x86-64. Hyprmonitor and Hyprmatrix require glibc 2.43 or newer; Hyprweather
+requires glibc 2.39 or newer. The installer checks the host glibc before downloading
 any app. The binaries were built on Fedora 44; fresh Arch runtime acceptance
 remains pending.
 An unchanged installed binary is reused after checksum verification. Missing

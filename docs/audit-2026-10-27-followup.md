@@ -1,9 +1,9 @@
 # October 27 audit follow-up
 
 This implements the local follow-ups from [the audit](audit-2026-10-27.md).
-The user confirmed the updated desktop interactions work after reload. Publishing
-the desktop-app assets and collecting active-workload measurements remain separate
-completion steps.
+The user confirmed the updated desktop interactions work after reload and published
+the desktop-app release. Its downloaded assets are verified and the local installer
+pin is updated. Collecting active-workload measurements remains a follow-up.
 
 ## Implemented
 
@@ -32,8 +32,8 @@ completion steps.
   cap each window at 10,000 intervals.
 - **Release preparation:** the packager now accepts `--manifest-output`, allowing
   assets and a candidate checksum manifest to be reviewed before changing the
-  installer's download pin. The working installer manifest still names v1.0.0
-  until the replacement release is published.
+  installer's download pin. Following publication and verification of the
+  downloaded assets, the installer manifest now names v1.0.1.
 
 The shutdown implementation uses Quickshell's
 [FileView write completion](https://quickshell.org/docs/v0.2.1/types/Quickshell.Io/FileView/)
@@ -118,27 +118,24 @@ time. Gaps above 250 ms are counted separately because a window may simply be id
 that category can also contain long stalls. Compare like-for-like activity and
 refresh rates. An empty interval series is not evidence of zero frame latency.
 
-## Finish the release
+## Published release and installer pin
 
-The candidate bundle is `~/Downloads/hyprshell-v1.0.1/`: three executables,
-`SHA256SUMS`, `RELEASE-NOTES.md`, and a candidate `app-releases.json`. Binaries stay
-outside Git. The source revision and glibc requirements are in the release notes.
-This agent session could not reach GitHub's API, so tag availability has not been
-verified and no release, tag or push was performed.
+The user published [v1.0.1](https://github.com/orapagier/hyprshell/releases/tag/v1.0.1)
+at source revision `d03c425f25e6c8d7092ec22d305e0091b5c70036`, uploading all three
+executables and `SHA256SUMS`. All three user-downloaded executables match the
+checksums in the originally prepared bundle; the downloaded checksum file also
+matches. Verification copies were moved out of the checkout into
+`~/Downloads/hyprshell-v1.0.1-verified/` without changing their bytes.
 
-After reviewing/committing the local changes and explicitly authorizing publication:
-
-1. Check that v1.0.1 is unused; never replace existing release assets in place.
-2. Push the reviewed source branch so GitHub has the revision in the release notes.
-3. Create the release at that revision, uploading all three executables plus
-   `SHA256SUMS`, with the staged notes. Publish the assets before updating the pin.
-4. Verify the published downloads against the candidate checksums. Then apply
-   the candidate `app-releases.json` to the checkout, test app-release installation,
-   and commit/push that manifest update.
-
-Until step 4, full setup/reviewed deployment can still install the older pinned
-weather executable. The already-fixed local weather helper is unchanged by this
-follow-up. Fresh Arch app runtime acceptance also remains unverified.
+`app-releases.json` now pins v1.0.1 and these verified checksums. Hyprmonitor and
+Hyprmatrix require glibc 2.43; Hyprweather requires glibc 2.39. The installed
+executables already match, so no live binary replacement is needed. The manifest
+commit must be pushed before GitHub-based setup/update consumers receive the pin.
+The 10 app-release regression tests passed. Isolated staging accepted all three
+verified downloads, checked executable modes, and reused all three installed
+executables without network or live writes. ELF architecture and glibc requirements
+were checked against the downloaded files. Fresh Arch app runtime acceptance
+remains unverified.
 
 Private checkpoints, the combined rollback script and measurement files remain
 outside the repository; their paths are supplied in the completion message.
