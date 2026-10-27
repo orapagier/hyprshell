@@ -38,6 +38,7 @@ Rectangle {
     readonly property bool busy: worker.running
     property string operation: "weather"
     property bool reloadAfterSave: false
+    property bool responseReceived: false
     readonly property bool choosingCity: editing || snapshot.needsLocation === true
     readonly property var locationParts: (snapshot.location?.name || "").split(",").map(part => part.trim())
     radius: 22
@@ -88,10 +89,12 @@ Rectangle {
     Component.onCompleted: if (active) refresh()
     Process {
         id: worker
+        onRunningChanged: if (running) card.responseReceived = false
         stdout: SplitParser {
             onRead: line => {
                 try {
                     const data = JSON.parse(line);
+                    card.responseReceived = true;
                     if (card.operation === "search") {
                         card.results = data.results || [];
                         card.message = data.error || (card.results.length ? "Choose the matching place:" : "No matches. Try another spelling or coordinates.");
@@ -107,6 +110,8 @@ Rectangle {
         }
         stderr: StdioCollector {}
         onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0 && !card.responseReceived && card.operation !== "weather")
+                card.message = card.operation === "search" ? "Could not search for places. Try again." : "Could not save location. Try again.";
             if (card.operation === "select" && card.reloadAfterSave) {
                 card.reloadAfterSave = false;
                 Qt.callLater(card.refresh);
@@ -219,7 +224,7 @@ Rectangle {
                             required property int index
                             objectName: "weatherResult-" + index
                             text: modelData.name; Layout.fillWidth: true
-                            contentItem: Text { text: choice.text; color: choice.enabled ? card.textColor : card.secondaryColor; font.family: "DejaVu Sans"; font.pixelSize: 12; wrapMode: Text.Wrap; lineHeight: 1.3 }
+                            contentItem: Text { text: choice.text; textFormat: Text.PlainText; color: choice.enabled ? card.textColor : card.secondaryColor; font.family: "DejaVu Sans"; font.pixelSize: 12; wrapMode: Text.Wrap; lineHeight: 1.3 }
                             implicitHeight: contentItem.implicitHeight + 24
                             enabled: !card.busy
                             onClicked: card.selectLocation(modelData)

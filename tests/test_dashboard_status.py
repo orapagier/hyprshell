@@ -1,5 +1,6 @@
 """Dashboard interaction and lightweight resource sampling only while open."""
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -18,12 +19,42 @@ spec.loader.exec_module(status_helper)
 
 class DashboardResourceTests(unittest.TestCase):
     def test_cpu_guest_time_idle_and_counter_resets(self):
-        with patch.object(status_helper.Path, 'read_text', return_value='cpu 100 10 20 800 40 5 5 20 30 10\ncpu0 0 0 0 0 0 0 0 0\n'):
+        class AggregateOnly(io.StringIO):
+            def read(self, *args):
+                raise AssertionError('Do not read the full per-core and interrupt table')
+
+        stream = AggregateOnly('cpu 100 10 20 800 40 5 5 20 30 10\ncpu0 0 0 0 0 0 0 0 0\n')
+        with patch.object(status_helper.Path, 'open', return_value=stream):
             self.assertEqual(status_helper.cpu_ticks(), (1000, 840))
         self.assertEqual(status_helper.cpu_percent((1000, 840), (1200, 990)), 25)
         self.assertEqual(status_helper.cpu_percent((1000, 840), (1200, 1040)), 0)
         for before, after in [(None, (1200, 990)), ((1000, 840), (1000, 840)), ((1000, 840), (500, 400))]:
             self.assertIsNone(status_helper.cpu_percent(before, after))
+
+    def test_watch_refreshes_uptime_without_repeating_system_discovery(self):
+        snapshots = []
+        def capture(value, **kwargs):
+            snapshots.append(json.loads(value))
+            if len(snapshots) == 2:
+                raise KeyboardInterrupt
+        with patch.object(status_helper, 'system_info', return_value={'uptimeSeconds': 1}) as discovery, \
+             patch.object(status_helper, 'uptime_seconds', side_effect=[100, 102]), \
+             patch.object(status_helper, 'cpu_ticks', return_value=(1000, 840)), \
+             patch.object(status_helper, 'resource_usage', return_value={}), \
+             patch.object(status_helper.time, 'sleep'), \
+             patch.object(status_helper.sys, 'argv', ['dashboard-status.py', '--watch']), \
+             patch('builtins.print', side_effect=capture):
+            with self.assertRaises(KeyboardInterrupt):
+                status_helper.main()
+        self.assertEqual([row['system']['uptimeSeconds'] for row in snapshots], [100, 102])
+        discovery.assert_called_once()
+
+    def test_uptime_handles_unavailable_or_invalid_counters(self):
+        for content in ('', 'n/a', 'inf', 'nan'):
+            with self.subTest(content=content), patch.object(status_helper.Path, 'read_text', return_value=content):
+                self.assertIsNone(status_helper.uptime_seconds())
+        with patch.object(status_helper.Path, 'read_text', side_effect=OSError):
+            self.assertIsNone(status_helper.uptime_seconds())
 
     def test_memory_uses_available_and_handles_unavailable_sources(self):
         with patch.object(status_helper.Path, 'read_text', return_value='MemTotal: 1000 kB\nMemAvailable: 700 kB\nMemFree: 100 kB\nCached: 600 kB\n'), patch.object(status_helper.os, 'statvfs', side_effect=OSError):

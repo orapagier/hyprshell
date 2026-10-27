@@ -14,6 +14,10 @@ class ActivityCenterTests(unittest.TestCase):
     def test_right_corner_notifications_and_direct_player_actions(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            (root / 'wallpaper.svg').write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="850">'
+                '<path fill="#ee2233" d="M0 0h550v850H0z"/>'
+                '<path fill="#2244ee" d="M550 0h550v850H550z"/></svg>')
             payload = root / 'shell'
             payload.mkdir()
             for source in (ROOT / 'config/quickshell').iterdir():
@@ -85,12 +89,15 @@ ShellRoot {
         id: drawer
         services: ({})
         rightCorner: true
+        wallpaperSource: Qt.resolvedUrl("wallpaper.svg")
         width: 1100; height: 850
         contentPage: Component {
             ActivityContent {
                 inbox: mockInbox; store: mockStore
                 active: drawer.opened
                 screenWidth: drawer.width; screenHeight: drawer.height
+                wallpaperSource: drawer.wallpaperSource
+                wallpaperRegion: drawer.bodyRect
                 onDismissRequested: drawer.close()
             }
         }
@@ -117,6 +124,17 @@ ShellRoot {
                 test.check(popover.bodyRight === drawer.width && popover.bodyBottom === drawer.height, "Drawer joins bottom-right screen corner");
                 test.check(drawer.revealRect.x + drawer.revealRect.width === drawer.width, "Reveal strip touches right edge");
                 test.check(popover.bodyWidth === 390, "Activity center stays narrow");
+                let sampler = test.find(page, 'activityWallpaperSampler');
+                input.tryVerify(() => sampler.ready, 2000);
+                let pixels = sampler.pixels;
+                test.check(pixels.length === 96 * 64 * 4, "Palette uses a 24 KiB thumbnail buffer");
+                page.wallpaperRegion = Qt.rect(0, 50, 300, 400);
+                test.check(page.wallpaperSample.r > page.wallpaperSample.b, "Left region follows red wallpaper");
+                page.wallpaperRegion = Qt.rect(800, 250, 300, 600);
+                test.check(page.wallpaperSample.b > page.wallpaperSample.r, "Right region follows blue wallpaper");
+                input.wait(50);
+                test.check(sampler.pixels === pixels, "Moving and resizing reuses pixels instead of rereading Canvas");
+                page.wallpaperRegion = Qt.binding(() => drawer.bodyRect);
                 test.check(popover.containsPointer(Qt.point(popover.bodyX - popover.footRadius / 2, drawer.height - 2)), "Mirrored foot retains hover");
                 test.check(!popover.containsPointer(Qt.point(0,0)), "Opposite corner is outside drawer");
                 input.mouseMove(drawer.contentItem, popover.bodyX + 100, popover.bodyY + 100);

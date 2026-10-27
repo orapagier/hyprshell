@@ -12,6 +12,7 @@ Button {
     opacity: enabled ? 1 : 0.4
     contentItem: Text {
         text: control.text; font: control.font
+        textFormat: Text.PlainText
         color: control.highlighted ? Style.SettingsTheme.accentForeground : Style.SettingsTheme.text
         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight

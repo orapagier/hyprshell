@@ -35,18 +35,23 @@ def system_info():
         cpu = next(line.split(':', 1)[1].strip() for line in Path('/proc/cpuinfo').read_text().splitlines() if line.startswith('model name'))
     except (OSError, StopIteration):
         cpu = identity.machine
-    try:
-        uptime = max(0, int(float(Path('/proc/uptime').read_text().split()[0])))
-    except (OSError, ValueError, IndexError):
-        uptime = None
-    return {'uptimeSeconds': uptime, 'osAgeDays': os_age_days(), 'hostname': identity.nodename, 'os': distribution, 'kernel': identity.release, 'cpuModel': cpu,
+    return {'uptimeSeconds': uptime_seconds(), 'osAgeDays': os_age_days(), 'hostname': identity.nodename, 'os': distribution, 'kernel': identity.release, 'cpuModel': cpu,
             'memoryTotal': os.sysconf('SC_PHYS_PAGES') * os.sysconf('SC_PAGE_SIZE')}
+
+
+def uptime_seconds():
+    try:
+        return max(0, int(float(Path('/proc/uptime').read_text().split()[0])))
+    except (OSError, ValueError, IndexError, OverflowError):
+        return None
 
 
 def cpu_ticks():
     try:
         # Guest times already belong to user/nice; count only the first 8 fields.
-        ticks = [int(value) for value in Path('/proc/stat').read_text().splitlines()[0].split()[1:9]]
+        # Only the aggregate line is needed, not per-core/interrupt counters.
+        with Path('/proc/stat').open() as stream:
+            ticks = [int(value) for value in stream.readline().split()[1:9]]
         return sum(ticks), ticks[3] + ticks[4]
     except (OSError, ValueError, IndexError):
         return None
@@ -87,6 +92,7 @@ def main():
         time.sleep(0.2)
         while True:
             after = cpu_ticks()
+            system['uptimeSeconds'] = uptime_seconds()
             print(json.dumps({'system': system, 'usage': resource_usage(before, after)}), flush=True)
             if '--watch' not in sys.argv[1:]:
                 break

@@ -25,6 +25,7 @@ Switch {
     }
     contentItem: Text {
         text: control.text; font.pixelSize: Style.SettingsTheme.bodySize; color: Style.SettingsTheme.text
+        textFormat: Text.PlainText
         rightPadding: control.indicator.width + control.spacing
         verticalAlignment: Text.AlignVCenter
         wrapMode: Text.WordWrap

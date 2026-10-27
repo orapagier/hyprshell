@@ -161,6 +161,7 @@ ColumnLayout {
                         implicitHeight: Math.max(38, contentItem.implicitHeight + 12)
                         contentItem: Text {
                             text: fileChoice.text
+                            textFormat: Text.PlainText
                             color: Style.SettingsTheme.text
                             font.pixelSize: Style.SettingsTheme.captionSize
                             leftPadding: fileChoice.indicator.width + fileChoice.spacing

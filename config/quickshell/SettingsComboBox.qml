@@ -12,6 +12,7 @@ ComboBox {
     font.pixelSize: Style.SettingsTheme.bodySize
     contentItem: Text {
         text: control.displayText; font: control.font; color: Style.SettingsTheme.text
+        textFormat: Text.PlainText
         verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
     }
     indicator: Text { text: "⌄"; color: Style.SettingsTheme.muted; font.pixelSize: 18; x: control.width - 26; y: (control.height - height) / 2 - 2 }
@@ -26,7 +27,7 @@ ComboBox {
         required property int index
         width: control.width - 12; height: 36
         highlighted: control.highlightedIndex === index
-        contentItem: Text { text: modelData; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+        contentItem: Text { text: modelData; textFormat: Text.PlainText; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         background: Rectangle { radius: Style.SettingsTheme.controlRadius; color: parent.highlighted ? Style.SettingsTheme.selection : "transparent" }
     }
     popup: Popup {

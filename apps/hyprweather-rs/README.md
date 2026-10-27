@@ -5,10 +5,14 @@ async runtime or extra window. HTTPS uses the system `curl` executable (bounded
 connection/total time, HTTPS only, response size limit, no shell). Rust owns
 validation, JSON, location selection, cache freshness and atomic persistence.
 
-Build with `cargo build --release --locked --manifest-path apps/hyprweather-rs/Cargo.toml`.
+For local development, build with `cargo build --release --locked --manifest-path apps/hyprweather-rs/Cargo.toml`.
 Install the release binary at `~/.config/quickshell/helpers/hyprweather`.
-The Hyprshell installer builds and stages it transactionally. `curl` is included
-in both package manifests. Binary and build outputs are excluded from Git/sync.
+Normal Hyprshell setup and reviewed updates stage the checksum-pinned binary from
+`app-releases.json` transactionally; they do not build it with Cargo. A local source
+fix needs a new published release and manifest checksum to reach that channel.
+Until then, setup can replace a local development build with the pinned release.
+`curl` is included in both package manifests. Binary and build outputs are excluded
+from Git/sync.
 
 On each dashboard opening the helper emits cached JSON immediately, then fetches
 only if older than 15 minutes. It exits after the request. No automatic retries

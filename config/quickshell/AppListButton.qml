@@ -28,6 +28,7 @@ MenuButton {
         Text {
             Layout.fillWidth: true
             text: control.text
+            textFormat: Text.PlainText
             font: control.font
             color: control.enabled ? control.accent : "#585b70"
             elide: Text.ElideRight

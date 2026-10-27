@@ -25,6 +25,7 @@ ColumnLayout {
         Layout.fillWidth:true; wrapMode:Text.Wrap; color:'#f38ba8'
         visible:!!manager.service.desktop?.error
         text:manager.service.desktop?.error || ''
+        textFormat: Text.PlainText
     }
     SettingsComboBox {
         id: installed
@@ -71,6 +72,7 @@ ColumnLayout {
         visible: !!manager.selected
         Layout.fillWidth: true
         text: manager.selected ? 'App identity: ' + (manager.selected.identity || 'unavailable') + '\nMatched app: ' + (manager.selected.appId || 'unmatched') : ''
+        textFormat: Text.PlainText
         color: '#a6adc8'; font.pixelSize: 12; wrapMode: Text.Wrap
     }
     ColumnLayout {
@@ -91,6 +93,7 @@ ColumnLayout {
     Text {
         visible: !!manager.service.error
         text: manager.service.error; color: '#f38ba8'; font.pixelSize: 12
+        textFormat: Text.PlainText
         Layout.fillWidth: true; wrapMode: Text.Wrap
     }
 }

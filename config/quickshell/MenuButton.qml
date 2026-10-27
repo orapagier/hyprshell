@@ -20,6 +20,8 @@ Button {
     font.family: "DejaVu Sans"; font.pixelSize: 13
     contentItem: Text {
         text: control.text
+        // Device names, application labels and notification actions are data.
+        textFormat: Text.PlainText
         font: control.font
         color: control.enabled ? control.accent : control.menuColors.disabled
         elide: Text.ElideRight

@@ -3,6 +3,7 @@ use serde_json::{json, Value};
 use std::{
     env, fs,
     io::{self, Write},
+    os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
     process::Command,
     time::{SystemTime, UNIX_EPOCH},
@@ -57,8 +58,23 @@ fn emit(value: &Value) {
 fn atomic_write(path: &Path, value: &Value) -> Result<(), String> {
     fs::create_dir_all(path.parent().ok_or("Invalid data path")?).map_err(|e| e.to_string())?;
     let temp = path.with_extension(format!("{}.tmp", std::process::id()));
-    fs::write(&temp, value.to_string()).map_err(|e| e.to_string())?;
-    fs::rename(&temp, path).map_err(|e| e.to_string())
+    // Exclusive creation rejects existing files and symlinks before writing.
+    // Location data must be private even with a permissive process umask.
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(&temp)
+        .map_err(|e| e.to_string())?;
+    let result = (|| {
+        file.write_all(value.to_string().as_bytes())?;
+        file.sync_all()?;
+        fs::rename(&temp, path)
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&temp);
+    }
+    result.map_err(|e| e.to_string())
 }
 fn read_location() -> Result<Option<Location>, String> {
     let path = config_path();
@@ -284,6 +300,47 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::unix::fs::{symlink, PermissionsExt};
+
+    #[test]
+    fn atomic_writes_are_private_and_refuse_existing_temporary_paths() {
+        let directory = env::temp_dir().join(format!("hyprweather-atomic-{}", std::process::id()));
+        fs::create_dir(&directory).unwrap();
+        let destination = directory.join("weather.json");
+        let temp = destination.with_extension(format!("{}.tmp", std::process::id()));
+        let victim = directory.join("unrelated.txt");
+        fs::write(&victim, "preserve").unwrap();
+        symlink(&victim, &temp).unwrap();
+        assert!(atomic_write(&destination, &json!({"version":1})).is_err());
+        assert_eq!(fs::read_to_string(&victim).unwrap(), "preserve");
+        assert!(temp.is_symlink());
+        assert!(!destination.exists());
+        fs::remove_file(&temp).unwrap();
+        fs::write(&temp, "existing temporary data").unwrap();
+        assert!(atomic_write(&destination, &json!({"version":1})).is_err());
+        assert_eq!(
+            fs::read_to_string(&temp).unwrap(),
+            "existing temporary data"
+        );
+        fs::remove_file(&temp).unwrap();
+        atomic_write(&destination, &json!({"version":1})).unwrap();
+        assert_eq!(
+            fs::metadata(&destination).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        atomic_write(&destination, &json!({"version":2})).unwrap();
+        assert_eq!(fs::read_to_string(&destination).unwrap(), "{\"version\":2}");
+        assert!(!temp.exists());
+        // Failed replacement cleans up only the temporary file we created.
+        let invalid = directory.join("directory.json");
+        fs::create_dir(&invalid).unwrap();
+        assert!(atomic_write(&invalid, &json!({})).is_err());
+        assert!(!invalid
+            .with_extension(format!("{}.tmp", std::process::id()))
+            .exists());
+        fs::remove_dir_all(directory).unwrap();
+    }
+
     #[test]
     fn cache_expiry_and_clock_changes() {
         assert!(fresh(100, 999));

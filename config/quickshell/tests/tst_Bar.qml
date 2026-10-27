@@ -155,10 +155,12 @@ Item {
                     if (data.uniform && number === 1)
                         fuzzyCompare(ink.height,workspace.height * 0.65,0.01,"workspace number fits smaller circle");
                 }
-                fuzzyCompare(findChild(bar,"mediaSpectrum").height,data.thickness * (data.uniform ? 0.4 : 0.48),0.01,"media ink height");
+                // Horizontal spectra deliberately have more visual weight;
+                // circular/side spectra retain the ordinary icon height.
+                fuzzyCompare(findChild(bar,"mediaSpectrum").height,data.thickness * (data.uniform ? (bar.iconPills ? 0.4 : 0.5) : 0.48),0.01,"media ink height");
                 fuzzyCompare(bar.moduleItems.media.height,data.thickness * 0.6,0.01,"media pill height");
                 if (data.uniform && !bar.iconsOnly)
-                    fuzzyCompare(bar.moduleItems.media.item.uniformTextHeight,data.thickness * 10 / 30,0.01,"media matches clock text");
+                    fuzzyCompare(bar.moduleItems.media.item.uniformTextHeight,data.thickness * 10 / 30 * 0.96,0.01,"media title is slightly smaller than clock text");
                 fuzzyCompare(bar.moduleItems.tray.trayIconSize,data.thickness * (data.uniform ? 0.4 : 0.48),0.01,"tray artwork height");
                 fuzzyCompare(findChild(bar.moduleItems.tray,"trayIcon").height,data.thickness * 0.6,0.01,"tray pill height");
             }
@@ -509,8 +511,15 @@ Item {
                     compare(bar.moduleItems[id].effectiveIconSize,15,id);
                 compare(findChild(bar,"distroGlassLogo").iconSize,15);
                 fuzzyCompare(bar.moduleItems.settings.glyphRect.height,15,0.01);
-                compare(findChild(bar,"mediaSpectrum").width,15);
-                compare(findChild(bar,"mediaSpectrum").height,15);
+                let spectrum = findChild(bar,"mediaSpectrum");
+                fuzzyCompare(spectrum.width,centered ? 15 : 43.5,0.01);
+                if (centered) compare(spectrum.height,15);
+                else {
+                    verify(spectrum.height > 15,"horizontal spectrum is taller than icons");
+                    verify(spectrum.height <= spectrum.parent.height - 3,"spectrum retains vertical breathing room");
+                }
+                fuzzyCompare(spectrum.y + spectrum.height / 2,spectrum.parent.height / 2,0.01);
+                verify(spectrum.x >= 0 && spectrum.x + spectrum.width <= spectrum.parent.width,"spectrum fits inside its pill");
                 compare(bar.moduleItems.tray.trayIconSize,15);
                 compare(findChild(bar,"workspace1").content.font.pixelSize,128);
                 if (!centered) {
@@ -638,7 +647,11 @@ Item {
                     fuzzyCompare(top + background.height / 2,bar.moduleItems.audio.y + bar.moduleItems.audio.height / 2,0.01,"workspace pill and icon centers match");
                 }
                 let spectrum = findChild(bar,"mediaSpectrum");
-                compare(spectrum.height,16);
+                if (bar.iconPills) compare(spectrum.height,16);
+                else {
+                    verify(spectrum.height > 16 && spectrum.height <= 20,"horizontal spectrum has expanded height");
+                    verify(spectrum.height <= spectrum.parent.height - 3,"spectrum does not touch its pill edges");
+                }
             }
         }
         function test_compactSpacingAndWorkspaceGaps() {

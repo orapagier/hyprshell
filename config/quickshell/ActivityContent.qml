@@ -52,10 +52,14 @@ ColumnLayout {
     spacing: 12
     WallpaperColors {
         id: wallpaperSampler
+        objectName: "activityWallpaperSampler"
         source: page.wallpaperSource
         screenWidth: page.screenWidth; screenHeight: page.screenHeight
-        offsetY: page.wallpaperRegion.y
-        bandHeight: Math.max(1, page.wallpaperRegion.height)
+        // Reuse a small full-wallpaper cache as the drawer animates/resizes.
+        // Regional colors still follow wallpaperRegion without Canvas readbacks.
+        offsetY: 0
+        bandHeight: Math.max(1, page.screenHeight)
+        sampleWidth: 96; sampleHeight: 64
     }
     RowLayout {
         Layout.fillWidth: true
