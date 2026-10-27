@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Switch the running desktop after validating it; recover Sidera on startup failure.
+# Activate Hyprshell after validating the desktop configuration.
 set -euo pipefail
 config="${XDG_CONFIG_HOME:-$HOME/.config}"
 state="${XDG_STATE_HOME:-$HOME/.local/state}/hyprshell"
@@ -24,7 +24,7 @@ if [[ "${verification,,}" != *"config ok"* ]]; then
 fi
 checkpoint=$(python3 "$helper" create --label 'Activate the fluid Hyprshell desktop' -- "$config/hypr/hyprland.lua")
 printf 'Activation checkpoint: %s\n' "$checkpoint"
-printf 'Task: switch from Sidera to Hyprshell. Previous main configuration is backed up.\nRollback: python3 %q restore %q --apply\nThen: hyprctl reload; quickshell kill --path %q; caelestia-shell --no-duplicate --daemonize\n' "$helper" "$checkpoint" "$config/quickshell" > "$checkpoint/notes.md"
+printf 'Task: activate Hyprshell. Previous main configuration is backed up.\nRollback: python3 %q restore %q --apply\nThen: hyprctl reload; quickshell kill --path %q\n' "$helper" "$checkpoint" "$config/quickshell" > "$checkpoint/notes.md"
 chmod 600 "$checkpoint/notes.md"
 wallpaper_pid=
 recover() {
@@ -37,13 +37,6 @@ start_wallpaper() {
     # Keep an existing daemon intact if its socket is temporarily unavailable.
     if pgrep -x awww-daemon >/dev/null 2>&1; then return 1; fi
     local image="$HOME/Pictures/Wallpapers/default.jpg"
-    local previous="${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/wallpaper/path.txt"
-    # One-time migration of the current wallpaper; the CLI is never invoked.
-    if [[ -f "$previous" ]]; then
-        local candidate=""
-        IFS= read -r candidate < "$previous" || true
-        if [[ -f "$candidate" ]]; then image="$candidate"; fi
-    fi
     printf 'Prior wallpaper daemon: absent. Started by this activation; recovery stops only its PID.\n' >> "$checkpoint/notes.md"
     awww-daemon > "$checkpoint/wallpaper.log" 2>&1 &
     wallpaper_pid=$!
@@ -73,18 +66,8 @@ if ! is_unlocked; then
     printf 'The desktop locked during preparation; the previous configuration was restored.\n' >&2
     exit 1
 fi
-sidera_running=false
-if "$shell_bin" list --path "$config/quickshell/caelestia" --json | python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin) else 1)'; then
-    sidera_running=true
-    if ! "$shell_bin" kill --path "$config/quickshell/caelestia"; then
-        recover
-        printf 'Could not stop Sidera; the previous configuration was restored.\n' >&2
-        exit 1
-    fi
-fi
 if ! "$HOME/.local/bin/start-quickshell-bar"; then
     recover
-    if "$sidera_running"; then caelestia-shell --no-duplicate --daemonize; fi
     printf 'Hyprshell startup failed; the previous desktop was restored.\n' >&2
     exit 1
 fi

@@ -27,7 +27,7 @@ print('<html>Sign in</html>' if interface == 'test-portal' else 'NetworkManager 
             runtime.mkdir(mode=0o700)
             payload = root / 'payload'
             shutil.copytree(ROOT / 'config/quickshell', payload,
-                            ignore=shutil.ignore_patterns('caelestia', '__pycache__', 'audio-spectrum'))
+                            ignore=shutil.ignore_patterns('__pycache__', 'audio-spectrum'))
             entry = payload / 'WifiInternetNative.qml'
             entry.write_text((payload / 'tests/WifiInternetNative.qml').read_text().replace('import ".."', 'import "."'))
             env = dict(os.environ, PATH=str(root) + os.pathsep + os.environ['PATH'],

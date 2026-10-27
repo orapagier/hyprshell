@@ -2,10 +2,7 @@
 
 Hyprshell owns the desktop implementation and continues to use its existing
 services, preferences, launcher, panel visibility, idle controls and Hyprlock
-supervisor. Sidera/Caelestia is a visual reference, not a runtime dependency.
-The spatial and effects easing values follow the expressive animation curves
-visible in Sidera's animation tokens. The dashboard and lock layout are written
-for Hyprshell; no Sidera QML or C++ module is imported.
+supervisor. The dashboard and lock layout use native Hyprshell components.
 
 Hover colors ease over 200 ms. Button shapes and menu movement use an expressive
 350 ms curve, and presses provide a small scale response. Menus arrive from their
@@ -52,11 +49,7 @@ authentication and the session lock, including existing failure and resume
 recovery behavior. Super+L and all idle/sleep locking paths retain that backend.
 
 `hyprshell-activate` verifies access to Hyprland and the session bus, checkpoints
-the main configuration, reloads it and stops only Sidera's shell instance before
-starting Hyprshell. If startup fails it restores the configuration and restarts
-Sidera when it was running. It does not log out, reboot or alter Sidera's files.
-The main configuration is switched only when this command can access the desktop.
-When no native wallpaper daemon is running, activation starts awww and uses the
-current Sidera wallpaper file when available, otherwise Hyprshell's default.
-An existing awww session is retained. Recovery stops only a daemon started by
-this activation; no Caelestia command is needed to display the wallpaper.
+the main configuration, reloads it and starts Hyprshell. If startup fails it
+restores the previous configuration. When no native wallpaper daemon is running,
+activation starts awww with the default wallpaper. An existing awww session is
+retained. Recovery stops only a daemon started by this activation.

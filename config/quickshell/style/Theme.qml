@@ -35,7 +35,7 @@ QtObject {
     readonly property int radius: 12
     readonly property int controlRadius: 8
     readonly property int controlHeight: Math.round(38 * textScale)
-    // Match the expressive spatial/effects rhythm used by Sidera, without its plugin.
+    // Expressive spatial and effects animation timing.
     readonly property var spatialCurve: [0.38, 1.21, 0.22, 1, 1, 1]
     readonly property var effectsCurve: [0.34, 0.8, 0.34, 1, 1, 1]
     readonly property int hoverDuration: 200
