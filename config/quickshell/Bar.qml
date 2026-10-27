@@ -605,7 +605,10 @@ Item {
                 let first = ids[i - 1], second = ids[i];
                 let centerBoundary = bar.side(first) !== bar.side(second)
                     && (bar.side(first) === "center" || bar.side(second) === "center");
-                let knotted = bar.centerItems || centerBoundary || (endpointHasPill(first, true) && endpointHasPill(second, false));
+                let workspaceMedia = (first === "workspaces" && second === "media")
+                    || (first === "media" && second === "workspaces");
+                let knotted = bar.centerItems || centerBoundary || workspaceMedia
+                    || (endpointHasPill(first, true) && endpointHasPill(second, false));
                 if (!bar.centerItems && bar.side(first) === bar.side(second) && bar.pillName(first)
                     && bar.pillName(first) === bar.pillName(second) && knotted) continue;
                 let start = itemEdge(first, true);

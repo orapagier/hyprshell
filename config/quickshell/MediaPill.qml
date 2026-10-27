@@ -5,7 +5,7 @@ Pill {
     id: media
     property var levels: []
     readonly property real spectrumScale: (settings.iconSize || 16) / 16
-    readonly property real spectrumWidth: settings.hideIcon ? 0 : uniformItems ? (settings.iconSize || 16) * (vertical ? 1 : 2.6) : Math.ceil(58 * spectrumScale)
+    readonly property real spectrumWidth: settings.hideIcon ? 0 : uniformItems ? (settings.iconSize || 16) * (vertical ? 1 : 2.9) : Math.ceil(58 * spectrumScale)
     glyphRect: settings.hideIcon ? textGlyphRect : Qt.rect(spectrum.x, spectrum.y, spectrum.width, spectrum.height)
     implicitHeight: settings.panelPillHeight || (uniformItems ? naturalHeight : vertical ? width : Math.max(28, settings.hideIcon ? 0 : (settings.iconSize || 16) + 8, shownText.length ? content.implicitHeight + 8 : 0))
     foreground: "#cba6f7"

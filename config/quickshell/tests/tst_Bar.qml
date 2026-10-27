@@ -767,6 +767,28 @@ Item {
                 compare(links.segments[2].knots.length, 0);
             }
         }
+        function test_workspaceMediaKnotWithBareSpectrum() {
+            let links = findChild(bar, "panelConnectors");
+            bar.statusData = {workspaces:[{id:1,name:"1"}],audio:{},network:{},bluetooth:{},battery:{}};
+            bar.mediaData = {playing:true,title:"Track",levels:[0.3,0.8]};
+            for (let position of ["top","bottom","left","right"]) {
+                for (let reverse of [false,true]) {
+                    bar.settings = connectorConfig(position, {
+                        workspaces:{background:"on",order:reverse ? 1 : 0},
+                        media:{background:"off",order:reverse ? 0 : 1}
+                    }, {uniformItems:true,fullBackground:"off",centerItems:false});
+                    if (bar.vertical) bar.width = bar.implicitWidth;
+                    wait(0);
+                    compare(links.segments.length,1);
+                    verify(links.segments[0].knots.length > 0);
+                    verify(bar.moduleItems.media.item.bare);
+                    verify(links.segments[0].end - links.segments[0].start >= 2.5 * bar.knotSize + 1.6 * links.knotScale + 2);
+                }
+            }
+            bar.mediaData = {playing:false};
+            wait(0);
+            compare(links.segments.length,0);
+        }
         function test_hyprknotsContainerPills() {
             let links = findChild(bar, "panelConnectors");
             bar.statusData = {workspaces:[{id:1,name:"1"},{id:2,name:"2"}], audio:{}, network:{}, bluetooth:{}, battery:{}};
