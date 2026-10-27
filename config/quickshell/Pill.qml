@@ -126,8 +126,8 @@ Item {
         opacity: pill.settings.pillTransparency >= 0 ? 1 - pill.settings.pillTransparency / 100 : 1
         anchors.centerIn: parent
         // Inset the surface independently of glyph sizing and the hit area.
-        readonly property real surfaceHeight: Math.max(0, pill.height - 2 * (pill.settings.backgroundVerticalInset || 0))
-        width: pill.circular ? Math.min(pill.width, surfaceHeight) : pill.width
+        readonly property real surfaceHeight: Math.max(0, pill.height - 2 * (pill.circular ? 0 : pill.settings.backgroundVerticalInset || 0))
+        width: pill.circular ? (pill.settings.panelPillHeight || Math.min(pill.width, surfaceHeight)) : pill.width
         height: pill.circular ? width : surfaceHeight
         radius: pill.circular ? width / 2 : pill.vertical ? Math.min(width, height) / 2 : pill.settings.radius >= 0 ? pill.settings.radius : height / 2
         color: pill.backgroundFill

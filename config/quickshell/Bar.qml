@@ -1131,9 +1131,11 @@ Item {
     }
     BarMenuButton {
         id: audio
+        // Percentage labels remain available in centered horizontal layouts.
+        iconOnly: bar.vertical || bar.statusIconsOnly
         x: bar.itemX("audio")
         y: bar.itemY("audio")
-        vertical: bar.iconPills
+        vertical: bar.vertical || (bar.centerItems && settings.hideText === true)
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("audio")
         opacity: Settings.item(bar.settings, "audio").opacity ?? 1
@@ -1200,9 +1202,11 @@ Item {
     }
     BarMenuButton {
         id: battery
+        // Percentage labels remain available in centered horizontal layouts.
+        iconOnly: bar.vertical || bar.statusIconsOnly
         x: bar.itemX("battery")
         y: bar.itemY("battery")
-        vertical: bar.iconPills
+        vertical: bar.vertical || (bar.centerItems && settings.hideText === true)
         maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("battery")
         opacity: Settings.item(bar.settings, "battery").opacity ?? 1

@@ -10,6 +10,7 @@ ColumnLayout {
     required property var barSettings
     property var allItems: []
     readonly property var pillGroups: ["Own pill", ...Array.from(new Set(allItems.map(i => i.pillGroup).filter(name => !!name)))]
+    readonly property bool percentageItem: settings.id === "audio" || settings.id === "battery"
     property bool saving: false
     signal edited(string key, var value)
     signal moveRequested(int direction)
@@ -158,7 +159,11 @@ ColumnLayout {
                     onEdited: value => root.edited(modelData.key, value)
                 }
             }
-            SettingsCheckBox { text: "Hide text"; checked: root.settings.hideText || false; onToggled: root.edited("hideText", checked) }
+            SettingsCheckBox {
+                text: root.percentageItem ? "Show percentage" : "Hide text"
+                checked: root.percentageItem ? !root.settings.hideText : root.settings.hideText || false
+                onToggled: root.edited("hideText", root.percentageItem ? !checked : checked)
+            }
             SettingsCheckBox { text: "Hide icon"; checked: root.settings.hideIcon || false; onToggled: root.edited("hideIcon", checked) }
         }
         SettingsIconSize {

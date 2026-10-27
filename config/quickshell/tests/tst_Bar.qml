@@ -127,7 +127,7 @@ Item {
                 fuzzyCompare(crossSize,data.thickness,0.01,"panel thickness");
                 for (let id of ["launcher","settings","audio","wifi","calendar","power"]) {
                     let item = bar.moduleItems[id], background = findChild(item,"pillBackground");
-                    let verticalInset = full === "on" && !bar.vertical && bar.side(id) !== "left" ? 2 : 0;
+                    let verticalInset = !item.circular && full === "on" && !bar.vertical && bar.side(id) !== "left" ? 2 : 0;
                     fuzzyCompare(background.height,data.thickness * 0.6 - 2 * verticalInset,0.01,id + " own pill height");
                     if (data.uniform && !bar.iconsOnly && !item.labelIsIcon && !item.shownIcon.length)
                         fuzzyCompare(item.uniformTextHeight,data.thickness * 10 / 30,0.01,id + " text scale");
@@ -213,7 +213,8 @@ Item {
                 let modules = {};
                 for (let id of Object.keys(bar.moduleItems)) modules[id] = {};
                 modules.calendar = {side:"center"};
-                modules.audio = {side:"right",paddingLeft:20,paddingRight:-5};
+                modules.audio = {side:"right",paddingLeft:20,paddingRight:-5,hideText:true};
+                modules.battery = {hideText:true};
                 bar.settings = connectorConfig(edge,modules,{centerItems:true,iconSize:16});
                 wait(0);
                 let saved = JSON.stringify(bar.settings.items);
@@ -243,8 +244,8 @@ Item {
                 bar.settings = Object.assign({},bar.settings,{bar:Object.assign({},bar.settings.bar,{centerItems:false})});
                 wait(0);
                 compare(bar.moduleItems.calendar.shownText,bar.clockText);
-                compare(bar.moduleItems.audio.shownText,"48%");
-                compare(bar.moduleItems.battery.shownText,"82%");
+                compare(bar.moduleItems.audio.shownText,"");
+                compare(bar.moduleItems.battery.shownText,"");
                 compare(findChild(bar,"workspace1").shownText,"Dev");
                 compare(bar.moduleItems.media.item.shownText,"Artist — A song");
                 verify(findChild(bar,"notificationBadge").visible);
@@ -299,6 +300,27 @@ Item {
                 });
             }
         }
+        function test_percentageVisibility() {
+            bar.statusData = {workspaces:[], audio:{icon:"󰕾",text:"48%"},
+                network:{},bluetooth:{},battery:{present:true,text:"󰁹 82%"}};
+            for (let edge of ["top","bottom"]) for (let centered of [false,true]) {
+                for (let hidden of [true,false]) {
+                    bar.settings = connectorConfig(edge,{audio:{hideText:hidden},battery:{hideText:hidden},
+                        power:{}},{centerItems:centered,fullBackground:"on"});
+                    wait(0);
+                    for (let id of ["audio","battery"]) {
+                        let item = bar.moduleItems[id];
+                        compare(item.shownText,hidden ? "" : id === "audio" ? "48%" : "82%");
+                        compare(item.circular,hidden);
+                        let surface = findChild(item,"pillBackground");
+                        if (hidden) {
+                            fuzzyCompare(surface.width,bar.panelSlotSize,0.01);
+                            fuzzyCompare(surface.height,surface.width,0.01);
+                        } else verify(surface.width > surface.height);
+                    }
+                }
+            }
+        }
         function test_centeredItemsShareSlotsPillsAndGlyphCenters() {
             bar.statusData = {workspaces:[{id:1,name:"1",active:true},{id:2,name:"2"}],
                 audio:{icon:"󰕾",text:"48%"},network:{text:"󰤨"},bluetooth:{text:"󰂯"},
@@ -309,7 +331,7 @@ Item {
             bar.notificationData = {count:3};
             let modules = {launcher:{side:"left"},settings:{side:"left"},workspaces:{side:"left"},
                 media:{side:"left"},calendar:{side:"center"},tray:{side:"right"},notifications:{side:"right"},
-                audio:{side:"right"},wifi:{side:"right"},bluetooth:{side:"right"},battery:{side:"right"},power:{side:"right"}};
+                audio:{side:"right",hideText:true},wifi:{side:"right"},bluetooth:{side:"right"},battery:{side:"right",hideText:true},power:{side:"right"}};
             for (let edge of ["top","bottom"]) for (let mode of ["off","on"]) {
                 bar.settings = connectorConfig(edge,modules,{centerItems:true,uniformItems:true,iconSize:20,
                     height:30,background:mode,fullBackground:"on",spacing:7,hyprknots:false,compactSpacing:7});
@@ -330,7 +352,7 @@ Item {
                     }
                     if (mode === "on" && id !== "tray" && id !== "workspaces") {
                         let background = findChild(item,"pillBackground");
-                        let size = bar.panelSlotSize - (bar.side(id) === "left" ? 0 : 4);
+                        let size = bar.panelSlotSize;
                         fuzzyCompare(background.width,size,0.01,id + " pill width");
                         fuzzyCompare(background.height,size,0.01,id + " pill height");
                         fuzzyCompare(background.radius,size / 2,0.01,id + " round pill");
@@ -350,9 +372,9 @@ Item {
                     fuzzyCompare(trayIcon.height,bar.panelSlotSize,0.01,"tray slot height");
                     if (mode === "on") {
                         let background = findChild(trayIcon,"pillBackground");
-                        fuzzyCompare(background.width,bar.panelSlotSize - 4,0.01,"tray pill width");
-                        fuzzyCompare(background.height,bar.panelSlotSize - 4,0.01,"tray pill height");
-                        fuzzyCompare(background.radius,(bar.panelSlotSize - 4) / 2,0.01,"tray round pill");
+                        fuzzyCompare(background.width,bar.panelSlotSize,0.01,"tray pill width");
+                        fuzzyCompare(background.height,bar.panelSlotSize,0.01,"tray pill height");
+                        fuzzyCompare(background.radius,bar.panelSlotSize / 2,0.01,"tray round pill");
                     }
                 }
                 let full = findChild(bar,"fullPanelPill");
@@ -907,8 +929,8 @@ Item {
                 let wifi = bar.moduleItems.wifi, circle = findChild(wifi,"pillBackground");
                 compare(circle.width,circle.height);
                 compare(circle.radius,circle.width / 2);
-                compare(bar.moduleItems.audio.circular,centered);
-                if (!centered) compare(bar.moduleItems.audio.shownText,"48%");
+                compare(bar.moduleItems.audio.circular,false);
+                compare(bar.moduleItems.audio.shownText,"48%");
             }
         }
         function test_attachmentFollowsFullPill() {
