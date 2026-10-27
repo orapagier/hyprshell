@@ -64,8 +64,7 @@ Item {
     function spacingOffset(id, key) { return uniformItems ? 0 : (Settings.item(settings, id)[key] || 0); }
     function gapBetween(first, second) {
         let base = !uniformItems && !centerItems && pillName(first) && pillName(first) === pillName(second) ? (settings.bar?.groupSpacing ?? 3) : itemSpacing;
-        let shared = !centerItems && pillName(first) && pillName(first) === pillName(second);
-        return Math.max(knotsEnabled && !shared ? minimumKnotGap : 0,
+        return Math.max(knotsEnabled ? minimumKnotGap : 0,
             base + spacingOffset(first, "spacingRight") + spacingOffset(second, "spacingLeft"));
     }
     function groupLength(sideName) {
@@ -463,17 +462,6 @@ Item {
         onLineWidthChanged: requestPaint()
         onKnotScaleChanged: requestPaint()
         function knotSizeFor(length) { return bar.knotSize; }
-        function endpointHasPill(id, trailing) {
-            if (fullPill.participating) return true;
-            let item = bar.moduleItems[id];
-            // Container items use the actual button facing this gap.
-            if (id === "workspaces")
-                item = workspaceRepeater.itemAt(trailing ? workspaceRepeater.count - 1 : 0);
-            else if (id === "media") item = mediaSlot.item;
-            else if (id === "tray" && bar.vertical)
-                item = trayIcons.itemAt(trailing ? trayIcons.count - 1 : 0);
-            return !!item && item.bare === false;
-        }
         function itemEdge(id, trailing) {
             let container = bar.moduleItems[id], item = container;
             let offset = bar.vertical ? container.y : container.x;
@@ -603,19 +591,11 @@ Item {
             let result = [];
             for (let i = 1; i < ids.length; ++i) {
                 let first = ids[i - 1], second = ids[i];
-                let centerBoundary = bar.side(first) !== bar.side(second)
-                    && (bar.side(first) === "center" || bar.side(second) === "center");
-                let workspaceMedia = (first === "workspaces" && second === "media")
-                    || (first === "media" && second === "workspaces");
-                let knotted = bar.centerItems || centerBoundary || workspaceMedia
-                    || (endpointHasPill(first, true) && endpointHasPill(second, false));
-                if (!bar.centerItems && bar.side(first) === bar.side(second) && bar.pillName(first)
-                    && bar.pillName(first) === bar.pillName(second) && knotted) continue;
                 let start = itemEdge(first, true);
                 let end = itemEdge(second, false);
                 if (end - start < 2) continue;
                 let cross = bar.vertical ? bar.insetLeft + bar.contentWidth / 2 : bar.insetTop + bar.contentHeight / 2;
-                result.push(segmentFor(start, end, cross, false, knotted));
+                result.push(segmentFor(start, end, cross, false, true));
             }
             if (bar.itemShown("workspaces")) {
                 // Follow the actual filtered delegates, including their polished
@@ -626,8 +606,7 @@ Item {
                     let start = bar.vertical ? workspaceRow.y + a.y + a.height : workspaceRow.x + a.x + a.width;
                     let end = bar.vertical ? workspaceRow.y + b.y : workspaceRow.x + b.x;
                     let cross = bar.vertical ? workspaceRow.x + a.x + a.width / 2 : workspaceRow.y + a.y + a.height / 2;
-                    let knotted = bar.centerItems || fullPill.participating || (!a.bare && !b.bare);
-                    if (end - start >= 2) result.push(segmentFor(start, end, cross, true, knotted));
+                    if (end - start >= 2) result.push(segmentFor(start, end, cross, true, true));
                 }
             }
             if (bar.centerItems && bar.itemShown("tray")) {

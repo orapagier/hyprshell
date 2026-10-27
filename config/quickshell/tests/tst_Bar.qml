@@ -743,28 +743,28 @@ Item {
         function test_hyprknotsBareNeighbors() {
             let links = findChild(bar, "panelConnectors");
             for (let position of ["top", "bottom", "left", "right"]) {
-                for (let modes of [["on","on","on",true], ["off","on","on",false],
-                        ["on","off","on",false], ["off","off","on",false],
-                        ["inherit","inherit","off",false], ["on","on","off",true]]) {
+                for (let modes of [["on","on","on"], ["off","on","on"],
+                        ["on","off","on"], ["off","off","on"],
+                        ["inherit","inherit","off"], ["on","on","off"]]) {
                     bar.settings = connectorConfig(position, {audio:{background:modes[0]}, wifi:{background:modes[1]}}, {background:modes[2]});
                     compare(links.segments.length, 1);
-                    compare(links.segments[0].knots.length > 0, modes[3]);
+                    verify(links.segments[0].knots.length > 0);
                     verify(links.segments[0].end > links.segments[0].start);
                 }
                 bar.settings = connectorConfig(position, {audio:{pillGroup:"pair", sharedBackground:"off"}, wifi:{pillGroup:"pair"}});
                 compare(links.segments.length, 1);
-                compare(links.segments[0].knots.length, 0);
+                verify(links.segments[0].knots.length > 0);
                 bar.settings = connectorConfig(position, {audio:{pillGroup:"pair", sharedBackground:"on"}, wifi:{pillGroup:"pair"}});
-                compare(links.segments.length, 0);
-                // Both open rails around the center keep their knots with bare
-                // endpoints; the gap inside the right section remains a line.
+                compare(links.segments.length, 1);
+                verify(links.segments[0].knots.length > 0);
+                // Knots connect bare items within and between panel sections.
                 bar.settings = connectorConfig(position, {audio:{side:"left", background:"off"},
                     calendar:{side:"center", background:"off"},
                     wifi:{side:"right", background:"off"}, bluetooth:{side:"right", background:"off"}});
                 compare(links.segments.length, 3);
                 verify(links.segments[0].knots.length > 0);
                 verify(links.segments[1].knots.length > 0);
-                compare(links.segments[2].knots.length, 0);
+                verify(links.segments[2].knots.length > 0);
             }
         }
         function test_workspaceMediaKnotWithBareSpectrum() {
@@ -804,7 +804,7 @@ Item {
                         wait(0);
                         compare(links.segments.length, id === "workspaces" ? 2 : 1);
                         for (let segment of links.segments)
-                            compare(segment.knots.length > 0, mode === "on");
+                            verify(segment.knots.length > 0);
                     }
                 }
             }
