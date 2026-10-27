@@ -8,6 +8,7 @@ ColumnLayout {
     readonly property var menuColors: Colors.menuColorsFor(card)
     required property var notification
     property bool expanded: false
+    function focusFirst() { header.forceActiveFocus(); }
     signal toggleRequested()
     signal dismissRequested()
     signal actionRequested(string actionId)

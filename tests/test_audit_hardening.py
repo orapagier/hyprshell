@@ -104,7 +104,7 @@ ShellRoot {
 ''')
             env = dict(os.environ, AUDIT_TEST_ROOT=str(root), PATH=str(root) + os.pathsep + os.environ['PATH'],
                        XDG_RUNTIME_DIR=str(root / 'runtime'), XDG_CONFIG_HOME=str(root / 'config'),
-                       XDG_STATE_HOME=str(root / 'state'), QT_QPA_PLATFORM='offscreen',
+                       XDG_STATE_HOME=str(root / 'state'), XDG_CACHE_HOME=str(root / 'cache'), QT_QPA_PLATFORM='offscreen',
                        QT_QPA_PLATFORMTHEME='', QT_QUICK_BACKEND='software')
             result = subprocess.run(['quickshell', '--log-rules', 'qml.debug=true', '-p', str(entry)],
                                     env=env, capture_output=True, text=True, timeout=18)

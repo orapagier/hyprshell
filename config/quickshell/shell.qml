@@ -11,6 +11,8 @@ import "SettingsModel.js" as Settings
 
 ShellRoot {
     id: shell
+    // Flush before Quickshell stops child JavaScript during generation teardown.
+    Component.onDestruction: notificationInbox.flushHistory(true)
     property string clockText: ""
     // Root properties keep panel properties from shadowing service IDs.
     readonly property var services: desktopServices
@@ -310,7 +312,23 @@ ShellRoot {
         onExited: (code, status) => {
             if (code !== 0) console.warn("Hyprland reload failed (exit " + code + "); reloading Quickshell.");
             // Reload Quickshell after Hyprland has loaded the saved shortcuts.
+            notificationInbox.flushHistory(true);
             Quickshell.reload(true);
+        }
+    }
+    FrameTiming {
+        id: frameTiming
+        windows: [{name: "dashboard", window: dashboardWindow}, {name: "activity", window: activityWindow}]
+            .concat(panels.instances.map(panel => ({name: "panel-" + panel.screen.name, window: panel})))
+    }
+    IpcHandler {
+        target: "performance"
+        function startFrames(seconds: int): string {
+            return JSON.stringify({ok: frameTiming.start(seconds), instance: Quickshell.instanceId, capture: frameTiming.captureId});
+        }
+        function frameResults(): string {
+            return JSON.stringify({instance: Quickshell.instanceId, capture: frameTiming.captureId, windows: frameTiming.finish(),
+                limits: "Frame-swap intervals, not GPU render time; gaps over 250 ms reported separately; millisecond clock resolution."});
         }
     }
     IpcHandler {

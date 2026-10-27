@@ -738,7 +738,10 @@ mod tests {
         });
         assert_eq!(c.sample().cpu, None);
         for _ in 0..12 {
-            c.sample();
+            // The history limit must not depend on /proc/stat advancing between
+            // rapid calls. Supply a known earlier aggregate counter each time.
+            c.cpu = vec![Ticks::default()];
+            assert!(c.sample().cpu.is_some());
         }
         assert_eq!(c.data.cpu_history.len(), 10);
         c.resume();

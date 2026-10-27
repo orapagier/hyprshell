@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 import "WallpaperQuery.js" as Query
 
@@ -7,6 +8,39 @@ QtObject {
     property var sources: ({})
     property string response: ""
     property int retryInterval: 2000
+    property bool eventsReady: false
+    property bool queryPending: false
+    function requestQuery() {
+        if (query.running) queryPending = true;
+        else query.running = true;
+    }
+    readonly property Process events: Process {
+        command: ["python3", decodeURIComponent(Qt.resolvedUrl("helpers/wallpaper-events.py").toString().replace(/^file:\/\//, ""))]
+        running: true
+        stdout: SplitParser {
+            onRead: line => {
+                if (line === "ready") watcher.eventsReady = true;
+                if (line === "change" || line === "ready") eventDelay.restart();
+            }
+        }
+        stderr: StdioCollector {}
+        onExited: {
+            watcher.eventsReady = false;
+            eventRestart.start();
+        }
+    }
+    readonly property Timer eventRestart: Timer {
+        interval: 30000
+        onTriggered: watcher.events.running = true
+    }
+    readonly property Timer eventDelay: Timer {
+        interval: 100
+        onTriggered: watcher.requestQuery()
+    }
+    readonly property Connections outputs: Connections {
+        target: Quickshell
+        function onScreensChanged() { eventDelay.restart(); }
+    }
     function acceptQuery(text) {
         let next = Query.sources(text);
         if (JSON.stringify(next) !== JSON.stringify(sources)) sources = next;
@@ -25,10 +59,17 @@ QtObject {
                 watcher.acceptQuery(watcher.response);
                 watcher.retryInterval = 2000;
             } else watcher.retryInterval = Math.min(30000, watcher.retryInterval * 2);
+            if (watcher.queryPending) {
+                watcher.queryPending = false;
+                eventDelay.restart();
+            }
+            watcher.poll.restart();
         }
     }
     readonly property Timer poll: Timer {
-        interval: watcher.retryInterval; running: true; repeat: true
-        onTriggered: if (!watcher.query.running) watcher.query.running = true
+        // Keep a correctness fallback: clear/disabled cache need not write a file.
+        interval: watcher.eventsReady && watcher.retryInterval === 2000 ? 30000 : watcher.retryInterval
+        running: true; repeat: true
+        onTriggered: watcher.requestQuery()
     }
 }

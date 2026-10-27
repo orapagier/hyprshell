@@ -6,7 +6,7 @@ import Quickshell.Io
 import "NotificationPolicy.js" as Policy
 import Quickshell.Services.Notifications
 
-Item {
+Scope {
     id: inbox
     property var preferences: ({})
     property var popups: []
@@ -38,8 +38,51 @@ Item {
         id: session
         reloadableId: "native-notification-session"
         property string token: Date.now().toString()
+        // QObject references cross engine generations; JS arrays do not.
+        property QtObject owner: inbox
+        onLoaded: {
+            if (owner && owner !== inbox) {
+                let snapshot = owner.handoffHistory();
+                if (snapshot) {
+                    inbox.rows = JSON.parse(snapshot);
+                    inbox.initialized = true;
+                    inbox.save();
+                }
+            }
+            owner = inbox;
+            if (!inbox.initialized) initialLoad.start();
+        }
     }
-    function save() { if (initialized) history.setText(JSON.stringify(rows)); }
+    property bool handedOff: false
+    function handoffHistory() {
+        flushHistory(true);
+        handedOff = true;
+        return initialized ? JSON.stringify(rows) : "";
+    }
+    Timer { id: initialLoad; interval: 0; onTriggered: history.text() }
+    signal historySaved()
+    property bool pendingSave: false
+    function save() {
+        if (!initialized || handedOff) return;
+        pendingSave = true;
+        // A bounded window, not a trailing debounce: continuous arrivals cannot
+        // postpone persistence forever.
+        if (!saveTimer.running) saveTimer.start();
+    }
+    function flushHistory(blocking) {
+        if (!initialized || handedOff) return;
+        saveTimer.stop();
+        if (blocking) history.waitForJob();
+        if (pendingSave) {
+            pendingSave = false;
+            history.blockWrites = !!blocking;
+            history.setText(JSON.stringify(rows));
+            history.blockWrites = false;
+        }
+        if (blocking) history.waitForJob();
+    }
+    Timer { id: saveTimer; interval: 150; onTriggered: inbox.flushHistory(false) }
+    Component.onDestruction: flushHistory(true)
     function record(notification) {
         let old = rows.find(r => r.sourceId === notification.id && r.sessionToken === session.token);
         let entry = {id: old ? old.id : Date.now() + "-" + notification.id, sessionToken: session.token, restored: notification.lastGeneration, sourceId: notification.id, app: notification.appName, summary: notification.summary, body: notification.body, actions: notification.actions.map(a => ({id: a.identifier, text: a.text})), received: notification.lastGeneration && old ? old.received : Date.now(), unread: notification.lastGeneration && old ? old.unread : true, active: true, appKey: Policy.appKey(notification), critical: notification.urgency === NotificationUrgency.Critical};
@@ -69,9 +112,18 @@ Item {
     }
     FileView {
         id: history
+        preload: false
+        atomicWrites: true
+        onSaved: inbox.historySaved()
+        onSaveFailed: {
+            console.warn("Could not save notification history; retaining pending changes.");
+            inbox.pendingSave = true;
+            retrySave.restart();
+        }
         path: Quickshell.statePath("notifications.json")
         printErrors: false
         onLoaded: {
+            if (inbox.initialized) return;
             try {
                 let stored = JSON.parse(text());
                 let current = inbox.rows.map(row => {
@@ -89,6 +141,7 @@ Item {
             else console.warn("Could not read notification history; leaving the file unchanged.");
         }
     }
+    Timer { id: retrySave; interval: 5000; onTriggered: inbox.flushHistory(false) }
     // One-time, read-only import of the previous inbox. No Python process is used.
     Process {
         id: legacyImport

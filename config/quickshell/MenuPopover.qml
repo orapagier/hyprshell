@@ -78,6 +78,13 @@ Item {
         ignoreUnknownSignals: true
         function onBusyChanged() { releasePersistent.restart(); }
     }
+    // Virtualized pages own their scroll area and need a viewport cap independent
+    // of contentHeight. Other menu pages retain the outer Flickable.
+    Binding {
+        target: popover.pageItem && typeof popover.pageItem.maximumViewportHeight !== "undefined" ? popover.pageItem : null
+        property: "maximumViewportHeight"
+        value: Math.max(1, Math.min(popover.availableHeight, popover.maximumBodyHeight) - 36)
+    }
     property bool instant: false
     readonly property var pageItem: persistentSelected ? persistentLoader.item : pageLoader.item
     property bool opened: false

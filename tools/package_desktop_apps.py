@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / 'config/quickshell/settings'))
 from app_releases import APPS, verify_binary
 
 
-def package(repo, output, tag, repository, binaries):
+def package(repo, output, tag, repository, binaries, manifest_output=None):
     if not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]*', tag):
         raise ValueError('Use a simple release tag, for example v1.0.0')
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
@@ -55,7 +55,7 @@ def package(repo, output, tag, repository, binaries):
         'Wayland desktop runtime libraries remain supplied by Hyprshell setup.\n\n'
         'Upload all three executables and SHA256SUMS as release assets, preserving their names. '
         'The installer verifies checksums pinned in app-releases.json.\n')
-    (repo / 'app-releases.json').write_text(json.dumps(manifest, indent=2) + '\n')
+    (manifest_output or repo / 'app-releases.json').write_text(json.dumps(manifest, indent=2) + '\n')
     return manifest
 
 
@@ -64,15 +64,17 @@ def main():
     parser.add_argument('--tag', required=True)
     parser.add_argument('--repository', default='orapagier/hyprshell')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--manifest-output', type=Path,
+                        help='Stage a candidate manifest without changing the installer pin')
     for app in APPS:
         parser.add_argument('--' + app, type=Path,
                             default=ROOT / 'apps' / (app + '-rs/target/release') / app)
     args = parser.parse_args()
     package(ROOT, args.output, args.tag, args.repository,
-            {app: getattr(args, app) for app in APPS})
+            {app: getattr(args, app) for app in APPS}, args.manifest_output)
     print('Release tag:', args.tag)
     print('Upload assets from:', args.output.resolve())
-    print('Updated manifest:', ROOT / 'app-releases.json')
+    print('Updated manifest:', args.manifest_output or ROOT / 'app-releases.json')
 
 
 if __name__ == '__main__':

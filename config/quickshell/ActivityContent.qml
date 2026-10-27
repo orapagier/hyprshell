@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Io
@@ -7,7 +8,7 @@ import "style" as Style
 import "AdaptiveColors.js" as Colors
 import "SettingsModel.js" as Settings
 
-ColumnLayout {
+ListView {
     id: page
     objectName: "activityContent"
     required property var inbox
@@ -38,7 +39,7 @@ ColumnLayout {
     property var expandedGroups: []
     property string error: ""
     signal dismissRequested()
-    function focusFirst() { quiet.forceActiveFocus(); }
+    function focusFirst() { headerItem.quietControl.forceActiveFocus(); }
     function markRead() { if (active && inbox.unread > 0) inbox.markRead(); }
     onActiveChanged: {
         if (active) {
@@ -49,7 +50,47 @@ ColumnLayout {
     }
     Connections { target: page.inbox; function onUnreadChanged() { Qt.callLater(page.markRead); } }
     Keys.onEscapePressed: dismissRequested()
-    spacing: 12
+    property real maximumViewportHeight: Math.max(1, Math.min(700, screenHeight - 32) - 36)
+    implicitHeight: Math.min(maximumViewportHeight, contentHeight)
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
+    cacheBuffer: 160
+    spacing: 6
+    model: {
+        let items = [];
+        for (let group of groups) {
+            items.push({group: group, row: null});
+            if (expandedGroups.includes(group.key))
+                for (let row of group.rows) items.push({group: null, row: row});
+        }
+        return items;
+    }
+    ScrollBar.vertical: ScrollBar {}
+    function focusRow(index) {
+        if (!count) return;
+        currentIndex = Math.max(0, Math.min(count - 1, index));
+        positionViewAtIndex(currentIndex, ListView.Contain);
+        Qt.callLater(() => {
+            let control = currentItem?.item;
+            if (control?.focusFirst) control.focusFirst();
+            else control?.forceActiveFocus();
+        });
+    }
+    Keys.onDownPressed: focusRow(currentIndex + 1)
+    Keys.onUpPressed: focusRow(currentIndex - 1)
+    Connections {
+        target: page.Window.window
+        function onActiveFocusItemChanged() {
+            let focused = page.Window.window.activeFocusItem;
+            let ancestor = focused;
+            while (ancestor && ancestor !== page.contentItem) ancestor = ancestor.parent;
+            if (!ancestor) return;
+            let point = focused.mapToItem(page.contentItem, 0, 0);
+            if (point.y < page.contentY) page.contentY = point.y;
+            else if (point.y + focused.height > page.contentY + page.height)
+                page.contentY = point.y + focused.height - page.height;
+        }
+    }
     WallpaperColors {
         id: wallpaperSampler
         objectName: "activityWallpaperSampler"
@@ -61,50 +102,6 @@ ColumnLayout {
         bandHeight: Math.max(1, page.screenHeight)
         sampleWidth: 96; sampleHeight: 64
     }
-    RowLayout {
-        Layout.fillWidth: true
-        MenuLabel { text: "Notifications"; color: page.textColor; font.pixelSize: 18; font.bold: true; Layout.fillWidth: true }
-        MenuButton {
-            objectName: "activityClear"
-            text: "Clear all"; accent: page.accentColor
-            enabled: page.inbox.rows.length > 0
-            onClicked: page.inbox.clear()
-        }
-    }
-    Switch {
-        id: quiet
-        objectName: "activityDnd"
-        text: "Do Not Disturb"
-        indicator: Rectangle {
-            implicitWidth: 36; implicitHeight: 20
-            x: quiet.leftPadding; y: (quiet.height - height) / 2
-            radius: 10
-            color: quiet.checked ? page.accentColor : page.cardColor
-            border.color: quiet.activeFocus ? page.textColor : page.secondaryColor
-            Rectangle {
-                x: quiet.checked ? parent.width - width - 3 : 3
-                y: 3; width: 14; height: 14; radius: 7
-                color: quiet.checked ? page.cardColor : page.secondaryColor
-            }
-        }
-        contentItem: MenuLabel {
-            text: quiet.text; color: page.textColor
-            leftPadding: 46
-            verticalAlignment: Text.AlignVCenter
-        }
-        Layout.fillWidth: true
-        checked: page.store.config.notifications.doNotDisturb
-        enabled: page.store.loaded && !writer.running
-        onToggled: {
-            let before = Settings.copy(page.store.config);
-            let after = Settings.copy(before);
-            after.notifications.doNotDisturb = checked;
-            page.error = "";
-            writer.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/backend.py").toString().replace(/^file:\/\//, "")), "--save-json", JSON.stringify(after), "--expected-json", JSON.stringify(before)];
-            writer.running = true;
-        }
-    }
-    MenuLabel { text: page.error; visible: text.length > 0; color: "#f38ba8"; Layout.fillWidth: true; wrapMode: Text.Wrap }
     Process {
         id: writer
         stdout: StdioCollector {
@@ -119,62 +116,111 @@ ColumnLayout {
         onExited: (code, status) => {
             if (code !== 0 && !page.error) page.error = "Could not save Do Not Disturb.";
             page.store.reload();
-            quiet.checked = Qt.binding(() => page.store.config.notifications.doNotDisturb);
+            page.headerItem.quietControl.checked = Qt.binding(() => page.store.config.notifications.doNotDisturb);
         }
     }
-    Rectangle {
-        Layout.fillWidth: true
-        visible: !!media.player
-        implicitHeight: media.implicitHeight + 28
-        radius: 16; color: page.cardColor
-        border.color: Colors.mix(page.cardColor, page.accentColor, 0.38)
-        MediaControls {
-            id: media
-            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 14 }
-            textColor: page.textColor; secondaryColor: page.secondaryColor; accentColor: page.accentColor
-        }
-    }
-    MenuLabel {
-        objectName: "activityEmpty"
-        text: "You’re all caught up"
-        visible: page.inbox.rows.length === 0
-        color: page.secondaryColor; Layout.fillWidth: true
-        topPadding: 20; bottomPadding: 20
-        horizontalAlignment: Text.AlignHCenter
-    }
-    Repeater {
-        model: page.groups
-        delegate: ColumnLayout {
-            id: group
-            required property var modelData
-            readonly property bool expanded: page.expandedGroups.includes(modelData.key)
+    header: ColumnLayout {
+        width: page.width
+        spacing: 12
+        property alias quietControl: quiet
+        RowLayout {
             Layout.fillWidth: true
-            spacing: 6
+            MenuLabel { text: "Notifications"; color: page.textColor; font.pixelSize: 18; font.bold: true; Layout.fillWidth: true }
             MenuButton {
-                objectName: "activityGroup-" + group.modelData.key
-                text: (group.expanded ? "▾ " : "▸ ") + group.modelData.name + " · " + group.modelData.rows.length
-                accent: page.secondaryColor; font.pixelSize: 12
-                Layout.fillWidth: true
-                Accessible.name: (group.expanded ? "Collapse " : "Expand ") + group.modelData.name + " notifications"
-                onClicked: {
-                    page.expandedGroups = group.expanded
-                        ? page.expandedGroups.filter(key => key !== group.modelData.key)
-                        : page.expandedGroups.concat([group.modelData.key]);
-                    if (!group.expanded && group.modelData.rows.some(row => String(row.id) === page.expanded)) page.expanded = "";
+                objectName: "activityClear"
+                text: "Clear all"; accent: page.accentColor
+                enabled: page.inbox.rows.length > 0
+                onClicked: page.inbox.clear()
+            }
+        }
+        Switch {
+            id: quiet
+            objectName: "activityDnd"
+            text: "Do Not Disturb"
+            indicator: Rectangle {
+                implicitWidth: 36; implicitHeight: 20
+                x: quiet.leftPadding; y: (quiet.height - height) / 2
+                radius: 10
+                color: quiet.checked ? page.accentColor : page.cardColor
+                border.color: quiet.activeFocus ? page.textColor : page.secondaryColor
+                Rectangle {
+                    x: quiet.checked ? parent.width - width - 3 : 3
+                    y: 3; width: 14; height: 14; radius: 7
+                    color: quiet.checked ? page.cardColor : page.secondaryColor
                 }
             }
-            Repeater {
-                model: group.expanded ? group.modelData.rows : []
-                delegate: NotificationCard {
-                    required property var modelData
-                    objectName: "activityNotification-" + String(modelData.id)
-                    Layout.fillWidth: true; Layout.minimumWidth: 0
-                    notification: modelData
-                    expanded: page.expanded === String(modelData.id)
-                    onToggleRequested: page.expanded = expanded ? "" : String(modelData.id)
-                    onDismissRequested: page.inbox.dismiss(modelData.id)
-                    onActionRequested: actionId => page.inbox.invoke(modelData.id, actionId)
+            contentItem: MenuLabel {
+                text: quiet.text; color: page.textColor
+                leftPadding: 46
+                verticalAlignment: Text.AlignVCenter
+            }
+            Layout.fillWidth: true
+            checked: page.store.config.notifications.doNotDisturb
+            enabled: page.store.loaded && !writer.running
+            onToggled: {
+                let before = Settings.copy(page.store.config);
+                let after = Settings.copy(before);
+                after.notifications.doNotDisturb = checked;
+                page.error = "";
+                writer.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/backend.py").toString().replace(/^file:\/\//, "")), "--save-json", JSON.stringify(after), "--expected-json", JSON.stringify(before)];
+                writer.running = true;
+            }
+        }
+        MenuLabel { text: page.error; visible: text.length > 0; color: "#f38ba8"; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Rectangle {
+            Layout.fillWidth: true
+            visible: !!media.player
+            implicitHeight: media.implicitHeight + 28
+            radius: 16; color: page.cardColor
+            border.color: Colors.mix(page.cardColor, page.accentColor, 0.38)
+            MediaControls {
+                id: media
+                anchors { left: parent.left; right: parent.right; top: parent.top; margins: 14 }
+                textColor: page.textColor; secondaryColor: page.secondaryColor; accentColor: page.accentColor
+            }
+        }
+        MenuLabel {
+            objectName: "activityEmpty"
+            text: "You’re all caught up"
+            visible: page.inbox.rows.length === 0
+            color: page.secondaryColor; Layout.fillWidth: true
+            topPadding: 20; bottomPadding: 20
+            horizontalAlignment: Text.AlignHCenter
+        }
+    }
+    delegate: Loader {
+        id: entry
+        required property var modelData
+        width: page.width
+        sourceComponent: modelData.group ? groupHeader : notificationCard
+        Component {
+            id: groupHeader
+            MenuButton {
+                readonly property var group: entry.modelData.group
+                readonly property bool expanded: page.expandedGroups.includes(group.key)
+                objectName: "activityGroup-" + group.key
+                text: (expanded ? "▾ " : "▸ ") + group.name + " · " + group.rows.length
+                accent: page.secondaryColor; font.pixelSize: 12
+                Accessible.name: (expanded ? "Collapse " : "Expand ") + group.name + " notifications"
+                onClicked: {
+                    let key = group.key;
+                    let closing = expanded;
+                    if (closing && group.rows.some(row => String(row.id) === page.expanded)) page.expanded = "";
+                    page.expandedGroups = closing
+                        ? page.expandedGroups.filter(value => value !== key)
+                        : page.expandedGroups.concat([key]);
                 }
+            }
+        }
+        Component {
+            id: notificationCard
+            NotificationCard {
+                notification: entry.modelData.row
+                objectName: "activityNotification-" + String(notification.id)
+                expanded: page.expanded === String(notification.id)
+                onToggleRequested: page.expanded = expanded ? "" : String(notification.id)
+                onDismissRequested: page.inbox.dismiss(notification.id)
+                onActionRequested: actionId => page.inbox.invoke(notification.id, actionId)
             }
         }
     }
