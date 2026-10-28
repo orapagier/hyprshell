@@ -11,6 +11,25 @@ FloatingWindow {
     id: window
     required property var store
     property var wallpaperSources: ({})
+    // Sample the current output once at thumbnail size. Window resizing and
+    // page navigation reuse these pixels; moving to another output resamples.
+    WallpaperColors {
+        id: windowWallpaper
+        objectName: "settingsWallpaperSampler"
+        source: window.wallpaperSources[window.screen?.name] || ""
+        screenWidth: window.screen?.width || 1366
+        screenHeight: window.screen?.height || 768
+        offsetY: 0
+        bandHeight: screenHeight
+        sampleWidth: 96
+        sampleHeight: 64
+    }
+    Binding {
+        target: Style.SettingsTheme
+        property: "wallpaperSample"
+        value: windowWallpaper.sampleRect(Qt.rect(0, 0, windowWallpaper.screenWidth, windowWallpaper.screenHeight))
+        restoreMode: Binding.RestoreBindingOrValue
+    }
     property string lockingError: ""
     property string powerError: ""
     property var audioServices: null

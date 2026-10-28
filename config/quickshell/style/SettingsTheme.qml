@@ -1,30 +1,33 @@
 pragma Singleton
 import QtQuick
+import "../AdaptiveColors.js" as Colors
 
-// Settings owns its palette; desktop surfaces keep their wallpaper colors.
+// Share the desktop's wallpaper palette while keeping Settings typography.
 QtObject {
+    property color wallpaperSample: "#141721"
+    readonly property var wallpaperColors: Colors.wallpaperPalette(wallpaperSample, highContrast)
     readonly property real textScale: Theme.textScale
     readonly property bool highContrast: Theme.highContrast
     readonly property bool reducedMotion: Theme.reducedMotion
-    readonly property color background: highContrast ? "#000000" : "#191b20"
-    readonly property color sidebar: highContrast ? "#0c0c0c" : "#131519"
-    readonly property color surface: highContrast ? "#161616" : "#22252b"
-    readonly property color field: highContrast ? "#000000" : "#191c21"
-    readonly property color button: highContrast ? "#222222" : "#30343c"
-    readonly property color hover: highContrast ? "#303030" : "#2c3139"
-    readonly property color pressed: highContrast ? "#404040" : "#363e46"
-    readonly property color border: highContrast ? "#ffffff" : "#343942"
-    readonly property color controlBorder: highContrast ? "#ffffff" : "#666f7c"
-    readonly property color separator: highContrast ? "#8a8a8a" : "#30343c"
-    readonly property color text: highContrast ? "#ffffff" : "#eceef2"
-    readonly property color muted: highContrast ? "#e8e8e8" : "#a3aab6"
-    readonly property color disabled: highContrast ? "#a8a8a8" : "#7f8793"
-    readonly property color accent: "#a5d6c2"
-    readonly property color accentHover: "#bce5d4"
-    readonly property color accentPressed: "#8ac3ac"
-    readonly property color accentText: highContrast ? "#c6ffe6" : "#b1dfcc"
-    readonly property color selection: highContrast ? "#244d3e" : "#263b34"
-    readonly property color accentForeground: "#152c22"
+    readonly property color background: wallpaperColors.background
+    readonly property color sidebar: highContrast ? "#0c0c0c" : Colors.mix(background, Qt.color("#000000"), 0.22)
+    readonly property color surface: highContrast ? "#161616" : Colors.mix(background, accent, 0.06)
+    readonly property color field: highContrast ? "#000000" : Colors.mix(background, accent, 0.02)
+    readonly property color button: highContrast ? "#222222" : Colors.mix(background, accent, 0.13)
+    readonly property color hover: highContrast ? "#303030" : Colors.mix(background, accent, 0.18)
+    readonly property color pressed: highContrast ? "#404040" : Colors.mix(background, accent, 0.24)
+    readonly property color border: highContrast ? "#ffffff" : Colors.mix(background, accent, 0.20)
+    readonly property color controlBorder: highContrast ? "#ffffff" : Colors.mix(background, accent, 0.55)
+    readonly property color separator: highContrast ? "#8a8a8a" : border
+    readonly property color text: wallpaperColors.text
+    readonly property color muted: highContrast ? "#e8e8e8" : Colors.mix(background, text, 0.90)
+    readonly property color disabled: highContrast ? "#a8a8a8" : wallpaperColors.disabled
+    readonly property color accent: wallpaperColors.accent
+    readonly property color accentHover: Colors.mix(accent, Qt.color("#ffffff"), 0.18)
+    readonly property color accentPressed: Colors.mix(accent, background, 0.12)
+    readonly property color accentText: accent
+    readonly property color selection: highContrast ? "#244d3e" : Colors.mix(background, accent, 0.22)
+    readonly property color accentForeground: highContrast ? "#000000" : Colors.mix(background, Qt.color("#000000"), 0.45)
     readonly property color success: "#a5d6c2"
     readonly property color warning: "#eed099"
     readonly property color danger: "#ffadb6"
