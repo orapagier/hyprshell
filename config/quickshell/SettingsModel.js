@@ -97,7 +97,6 @@ function merge(defaults, saved) {
     for (let name of Object.keys(result.panels || {}))
         result.panels[name] = Object.assign(result.panels[name], (saved.panels || {})[name] || {});
     result.pins = {matches: copy((saved.pins || {}).matches || {})};
-    result.systemMonitor = Object.assign(result.systemMonitor || {}, saved.systemMonitor || {});
     result.hyprland = saved.hyprland || {};
     result.clipboard = Object.assign(result.clipboard || {}, saved.clipboard || {});
     result.accessibility = Object.assign(result.accessibility || {}, saved.accessibility || {});

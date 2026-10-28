@@ -188,6 +188,15 @@ hl.window_rule({
 })
 
 -- Float dialogs without changing the default tiling of normal app windows.
+-- Keep MDM downloads compact even on workspaces that expand normal windows.
+hl.window_rule({
+    name = "float-mdm-download",
+    match = { initial_title = "^MDM Download$" },
+    tag = "+hyprshell-dialog",
+    float = true,
+    center = true,
+})
+
 -- Modal is an app-provided dialog flag, not a window-size heuristic.
 hl.window_rule({
     name  = "float-modal-dialogs",
@@ -335,14 +344,6 @@ hl.layer_rule({
 hl.layer_rule({
     name = "hyprmatrix-settings-glass",
     match = { namespace = "^hyprmatrix-settings$" },
-    blur = true,
-    ignore_alpha = 0.05,
-})
-
--- Frosted shortcut overlay; transparent space around the card stays clear.
-hl.layer_rule({
-    name = "hyprmonitor-rust-glass",
-    match = { namespace = "^hyprmonitor$" },
     blur = true,
     ignore_alpha = 0.05,
 })

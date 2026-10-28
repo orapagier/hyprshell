@@ -4,11 +4,6 @@
   "tag": "v1.0.1",
   "architectures": {
     "x86_64": {
-      "hyprmonitor": {
-        "asset": "hyprmonitor",
-        "sha256": "6e2c7f18187bf11013af199390069c383b3d8c134b8ab7abae59bc2b6c9968ae",
-        "minimum_glibc": "2.43"
-      },
       "hyprmatrix": {
         "asset": "hyprmatrix",
         "sha256": "c25f501ab9676c4096657f3861d95c6baf08399379f7785e29aae7c129638cc0",

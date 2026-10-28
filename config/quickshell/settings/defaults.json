@@ -1,14 +1,5 @@
 {
   "version": 1,
-  "systemMonitor": {
-    "enabled": true,
-    "workspaceOverrides": {},
-    "transparency": 0,
-    "x": 1,
-    "y": 0.08,
-    "width": 1000,
-    "height": 1000
-  },
   "bar": {
     "visible": true,
     "workspaceScope": "all",

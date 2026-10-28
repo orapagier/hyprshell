@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Hyprmonitor
-Comment=Lightweight system monitor — right-click for settings
-Exec=hyprmonitor --settings
-Icon=utilities-system-monitor
-Terminal=false
-Categories=System;Monitor;
-Keywords=CPU;RAM;temperature;network;battery;

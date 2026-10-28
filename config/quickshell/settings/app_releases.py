@@ -6,9 +6,8 @@ import re
 import urllib.error
 import urllib.request
 
-APPS = ('hyprmonitor', 'hyprmatrix', 'hyprweather')
-TARGETS = {'hyprmonitor': 'home/.local/bin/hyprmonitor',
-           'hyprmatrix': 'home/.local/bin/hyprmatrix',
+APPS = ('hyprmatrix', 'hyprweather')
+TARGETS = {'hyprmatrix': 'home/.local/bin/hyprmatrix',
            'hyprweather': 'config/quickshell/helpers/hyprweather'}
 MAX_BYTES = 64 * 1024 * 1024
 

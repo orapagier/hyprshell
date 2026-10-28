@@ -76,14 +76,14 @@ class AppReleaseTests(unittest.TestCase):
         self.save_manifest()
         with patch.object(app_releases.urllib.request, 'urlopen', side_effect=self.download) as fetch:
             staged = self.stage_apps()
-        self.assertEqual(fetch.call_count, 3)
+        self.assertEqual(fetch.call_count, 2)
         for app, data in self.binaries.items():
             self.assertEqual(staged[app_releases.TARGETS[app]].read_bytes(), data)
 
     def test_downloads_pinned_assets_and_marks_them_executable(self):
         with patch.object(app_releases.urllib.request, 'urlopen', side_effect=self.download) as fetch:
             staged = self.stage_apps()
-        self.assertEqual(fetch.call_count, 3)
+        self.assertEqual(fetch.call_count, 2)
         for app, data in self.binaries.items():
             target = staged[app_releases.TARGETS[app]]
             self.assertEqual(target.read_bytes(), data)
@@ -109,7 +109,7 @@ class AppReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'checksum mismatch'):
                 self.stage_apps()
         html = b'<html>download failed</html>'
-        self.manifest['architectures']['x86_64']['hyprmonitor']['sha256'] = hashlib.sha256(html).hexdigest()
+        self.manifest['architectures']['x86_64']['hyprmatrix']['sha256'] = hashlib.sha256(html).hexdigest()
         self.save_manifest()
         with patch.object(app_releases.urllib.request, 'urlopen', return_value=Response(html)):
             with self.assertRaisesRegex(RuntimeError, 'ELF executable'):
@@ -136,11 +136,11 @@ class AppReleaseTests(unittest.TestCase):
     def test_manifest_rejects_bad_tag_asset_and_hash(self):
         for field, value in [('tag', '../latest'), ('asset', '../../bad'), ('sha256', 'invalid')]:
             with self.subTest(field=field):
-                old = self.manifest['tag'] if field == 'tag' else self.manifest['architectures']['x86_64']['hyprmonitor'][field]
+                old = self.manifest['tag'] if field == 'tag' else self.manifest['architectures']['x86_64']['hyprmatrix'][field]
                 if field == 'tag':
                     self.manifest[field] = value
                 else:
-                    self.manifest['architectures']['x86_64']['hyprmonitor'][field] = value
+                    self.manifest['architectures']['x86_64']['hyprmatrix'][field] = value
                 self.save_manifest()
                 with patch.object(app_releases.urllib.request, 'urlopen') as fetch:
                     with self.assertRaisesRegex(RuntimeError, 'Invalid desktop app release'):
@@ -149,7 +149,7 @@ class AppReleaseTests(unittest.TestCase):
                 if field == 'tag':
                     self.manifest[field] = old
                 else:
-                    self.manifest['architectures']['x86_64']['hyprmonitor'][field] = old
+                    self.manifest['architectures']['x86_64']['hyprmatrix'][field] = old
 
     def prepare_deployment(self):
         source = self.repo / 'config/quickshell/shell.qml'
@@ -203,17 +203,43 @@ class AppReleaseTests(unittest.TestCase):
         for app, data in self.binaries.items():
             self.assertEqual(self.installed_path(app).read_bytes(), data)
 
+    def test_upgrades_preserve_independent_monitor_binary_and_launcher(self):
+        self.prepare_deployment()
+        legacy = {'home/.local/bin/hyprmonitor': b'independent binary',
+                  'data/applications/hyprmonitor.desktop': b'independent launcher'}
+        records = {}
+        for key, data in legacy.items():
+            root, relative = key.split('/', 1)
+            target = self.locations[root] / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+            records[key] = {'hash': hashlib.sha256(data).hexdigest()}
+        state = self.locations['state']
+        state.mkdir(parents=True, exist_ok=True)
+        (state / 'deployed.json').write_text(json.dumps({'files': records}))
+        for resolved in (False, True):
+            with self.subTest(resolved=resolved):
+                (state / 'deployed.json').write_text(json.dumps({'files': records}))
+                with patch.object(app_releases.urllib.request, 'urlopen', side_effect=self.download), \
+                        patch.object(deployment.subprocess, 'run', side_effect=self.compile_helper), \
+                        patch.object(deployment, 'validate_staged'):
+                    deployment.install(self.repo, locations=self.locations, resolved=resolved, build={'revision': 'test'})
+                for key, data in legacy.items():
+                    root, relative = key.split('/', 1)
+                    self.assertEqual((self.locations[root] / relative).read_bytes(), data)
+                self.assertTrue(set(legacy).isdisjoint(json.loads((state / 'deployed.json').read_text())['files']))
+
     def test_concurrent_binary_edit_is_preserved(self):
         self.prepare_deployment()
         def download(request, timeout):
-            installed = self.locations['home'] / '.local/bin/hyprmonitor'
+            installed = self.locations['home'] / '.local/bin/hyprmatrix'
             installed.parent.mkdir(parents=True, exist_ok=True)
             installed.write_bytes(b'concurrent edit')
             return self.download(request, timeout)
         with patch.object(app_releases.urllib.request, 'urlopen', side_effect=download):
             with self.assertRaisesRegex(RuntimeError, 'changed during validation'):
                 self.install()
-        self.assertEqual((self.locations['home'] / '.local/bin/hyprmonitor').read_bytes(), b'concurrent edit')
+        self.assertEqual((self.locations['home'] / '.local/bin/hyprmatrix').read_bytes(), b'concurrent edit')
         self.assertFalse((self.locations['config'] / 'quickshell/shell.qml').exists())
 
 

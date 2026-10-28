@@ -77,6 +77,8 @@ def validate(data):
     if not isinstance(data, dict) or type(data.get('version')) is not int or data['version'] != 1:
         raise ValueError('Unsupported settings version')
     data = copy.deepcopy(data)
+    # Accept old shell preferences without managing the independent application.
+    data.pop('systemMonitor', None)
     # Ignore only the retired experiment, preserving validation of other keys.
     sections = [data.get('bar')] + (data.get('items', []) if isinstance(data.get('items', []), list) else [])
     for section in sections:
@@ -86,24 +88,6 @@ def validate(data):
     if set(data) - set(DEFAULTS):
         raise ValueError('Unknown settings section')
     result = json.loads(json.dumps(DEFAULTS))
-    monitor = data.get('systemMonitor', {})
-    if not isinstance(monitor, dict) or set(monitor) - set(result['systemMonitor']):
-        raise ValueError('Unknown Hyprmonitor setting')
-    result['systemMonitor'].update(monitor)
-    monitor = result['systemMonitor']
-    if type(monitor['enabled']) is not bool:
-        raise ValueError('Hyprmonitor enabled must be boolean')
-    overrides = monitor['workspaceOverrides']
-    if not isinstance(overrides, dict) or any(
-        not isinstance(key, str) or not re.fullmatch(r'[1-9][0-9]?', key) or type(value) is not bool
-        for key, value in overrides.items()
-    ):
-        raise ValueError('Hyprmonitor workspace overrides must map workspace numbers 1–99 to booleans')
-    for key in ('x', 'y'):
-        number(monitor[key], 0, 1)
-    number(monitor['transparency'], 0, 100, True)
-    number(monitor['width'], 240, 3840, True)
-    number(monitor['height'], 420, 2160, True)
     bar = data.get('bar', {})
     if not isinstance(bar, dict) or set(bar) - set(result['bar']):
         raise ValueError('Unknown bar setting')
@@ -712,7 +696,7 @@ def bar_visible(bar, workspace):
     return bar['visible'] and (bar['workspaceScope'] == 'all' or workspace in bar['workspaceList'])
 
 
-def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpane', workspace_visibility=None, app_action=None, toggle_hover=None, monitor_action=None):
+def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpane', workspace_visibility=None, app_action=None, toggle_hover=None):
     data = validate(data)
     if workspace_visibility is not None:
         workspace, visible = workspace_visibility
@@ -731,19 +715,6 @@ def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpa
     target = config / 'hyprshell/settings.json'
     with lock(state / 'hyprshell/settings.lock'):
         current = validate(json.loads(target.read_text())) if target.exists() else validate(DEFAULTS)
-        if monitor_action is not None:
-            data = copy.deepcopy(current)
-            if isinstance(monitor_action, dict) and 'toggleWorkspace' in monitor_action:
-                workspace = monitor_action['toggleWorkspace']
-                if set(monitor_action) != {'toggleWorkspace'} or type(workspace) is not int or not 1 <= workspace <= 99:
-                    raise ValueError('Choose a Hyprmonitor workspace number from 1 to 99')
-                monitor = data['systemMonitor']
-                visible = monitor['workspaceOverrides'].get(str(workspace), monitor['enabled'])
-                monitor['workspaceOverrides'][str(workspace)] = not visible
-            elif isinstance(monitor_action, dict):
-                data['systemMonitor'].update(monitor_action)
-            else:
-                raise ValueError('Invalid Hyprmonitor action')
         if app_action is not None:
             data = application_action(current, app_action)
         if toggle_workspace is not None:
@@ -835,7 +806,6 @@ def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpa
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--save-json')
-    parser.add_argument('--system-monitor-json')
     parser.add_argument('--toggle-bar', type=int, metavar='WORKSPACE')
     parser.add_argument('--set-bar-visibility', nargs=2, metavar=('WORKSPACE', 'show|hide'))
     parser.add_argument('--toggle-panel', nargs=2, metavar=('COMPONENT', 'WORKSPACE'))
@@ -850,9 +820,6 @@ def main():
             return run_locker()
         if args.idle:
             return run_idle(args.battery)
-        if args.system_monitor_json is not None:
-            print(json.dumps(save(DEFAULTS, monitor_action=json.loads(args.system_monitor_json))))
-            return 0
         if args.set_bar_visibility is not None:
             workspace, action = args.set_bar_visibility
             if action not in ('show', 'hide'):

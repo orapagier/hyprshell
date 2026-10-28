@@ -192,7 +192,7 @@ The installer:
    only when no manager is installed.
 2. Upgrades the system and installs desktop, daily-driver and firmware packages.
    Fedora first resolves/downloads the full transaction from compatible repositories.
-3. Stages and validates desktop files, downloads pinned Hyprmonitor, Hyprmatrix and Hyprweather
+3. Stages and validates desktop files, downloads pinned Hyprmatrix and Hyprweather
    release binaries and verifies their SHA-256 checksums, builds the audio spectrum helper,
    retains current preferences, and backs up changed managed files before deployment.
 4. Enables networking, Bluetooth, user audio and graphical login; starts UPower.
@@ -208,10 +208,13 @@ The installer:
 
 ### Prebuilt desktop apps
 
-Hyprmonitor, Hyprmatrix and Hyprweather install automatically without local Cargo builds.
+Hyprmonitor is an independent application and is not installed or managed by Hyprshell.
+Existing installations and app preferences are retained during updates.
+
+Hyprmatrix and Hyprweather install automatically without local Cargo builds.
 Their release repository, tag, asset names, checksums and minimum glibc versions
 are pinned in [app-releases.json](app-releases.json). The v1.0.1 binaries target
-Linux x86-64. Hyprmonitor and Hyprmatrix require glibc 2.43 or newer; Hyprweather
+Linux x86-64. Hyprmatrix requires glibc 2.43 or newer; Hyprweather
 requires glibc 2.39 or newer. The installer checks the host glibc before downloading
 any app. The binaries were built on Fedora 44; fresh Arch runtime acceptance
 remains pending.
@@ -223,7 +226,7 @@ invokes Cargo. Hyprweather remains at `~/.config/quickshell/helpers/hyprweather`
 where the dashboard expects it. Application settings, launchers and shortcuts are
 installed as before.
 
-To publish desktop app updates, build all three apps with `cargo build --release --locked`
+To publish desktop app updates, build both apps with `cargo build --release --locked`
 using their respective `--manifest-path apps/<app>-rs/Cargo.toml`, then run:
 
 ```bash
@@ -231,10 +234,10 @@ python3 tools/package_desktop_apps.py --tag v1.0.0 \
   --output "$HOME/Downloads/hyprshell-v1.0.0"
 ```
 
-The packager copies the executables as `hyprmonitor`, `hyprmatrix` and `hyprweather`,
+The packager copies the executables as `hyprmatrix` and `hyprweather`,
 generates `SHA256SUMS` and release notes, and updates `app-releases.json`. Their
 architecture is pinned in the manifest and verified against the executable format. Upload
-the three executables and `SHA256SUMS` to a GitHub Release in the manifest's repository
+the two executables and `SHA256SUMS` to a GitHub Release in the manifest's repository
 with exactly the specified tag. Use the generated notes as its description. Publish
 the assets before distributing the installer changes that reference them. Use a
 new tag for every binary update; commit the updated manifest alongside matching

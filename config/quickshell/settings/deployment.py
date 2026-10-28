@@ -117,7 +117,7 @@ def inspect(repo, locations=None, base_repo=None):
         changes.append(key)
     removed = []
     for key, record in old.items():
-        if (key not in files and not protected(key) and key not in ('config/quickshell/helpers/audio-spectrum', 'config/quickshell/helpers/hyprweather', 'home/.local/bin/hyprmonitor', 'home/.local/bin/hyprmatrix')
+        if (key not in files and not protected(key) and key not in ('config/quickshell/helpers/audio-spectrum', 'config/quickshell/helpers/hyprweather', 'home/.local/bin/hyprmonitor', 'data/applications/hyprmonitor.desktop', 'home/.local/bin/hyprmatrix')
                 and not (key.startswith('home/Pictures/Wallpapers/') and Path(key).name != 'default.jpg')):
             target = destination(key, locations)
             safe_target(target, locations[key.split('/')[0]])
@@ -246,7 +246,7 @@ def install(repo, *, native=False, base_repo=None, locations=None, resolved=Fals
                 files.setdefault(key, source)
         if resolved:
             plan['removed'] = [key for key in load_manifest(locations)['files'] if key not in files and destination(key, locations).exists()
-                and key not in ('config/quickshell/helpers/audio-spectrum', 'config/quickshell/helpers/hyprweather', 'home/.local/bin/hyprmonitor', 'home/.local/bin/hyprmatrix')
+                and key not in ('config/quickshell/helpers/audio-spectrum', 'config/quickshell/helpers/hyprweather', 'home/.local/bin/hyprmonitor', 'data/applications/hyprmonitor.desktop', 'home/.local/bin/hyprmatrix')
                 and not (key.startswith('home/Pictures/Wallpapers/') and Path(key).name != 'default.jpg')]
         removed_before = {key: digest(destination(key, locations)) for key in plan['removed']}
         state = locations['state']
