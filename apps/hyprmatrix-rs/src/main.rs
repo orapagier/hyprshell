@@ -17,6 +17,7 @@ const HELP: &str = "Hyprmatrix — wallpaper-aware desktop digital rain\n\n\
   --show / --hide / --toggle     Control running app; hide pauses animation\n\
   --toggle-workspace             Toggle rain on the active workspace only\n\
                                  (starts the app when it is not running)\n\
+  --cycle-effect                Cycle Matrix, shooting stars, meteors\n\
   --quit                        Stop the running app\n\
   --refresh                     Refresh wallpaper color\n\
   --check-config                Validate ~/.config/hyprmatrix/config.toml\n\
@@ -27,6 +28,7 @@ const HELP: &str = "Hyprmatrix — wallpaper-aware desktop digital rain\n\n\
   --benchmark SECONDS           Measure 1920x1080 rain rendering\n\n\
   --benchmark-settings SECONDS  Measure with settings open\n\n\
 Super+Alt+M opens settings; the rain has no hover target.\n\
+Ctrl+Alt+M cycles effects and saves the choice.\n\
 Right-click the panel or use Close settings to close it.\n\
 Drag the settings panel to reposition it.\n\
 Rain is opt-in per workspace; use the keybinding or --toggle-workspace.\n\
@@ -163,6 +165,18 @@ fn run() -> Result<(), String> {
                 desktop::run(c, false)?;
             }
             Ok(())
+        }
+        "--cycle-effect" => {
+            match desktop::control("cycle-effect") {
+                Ok(()) => Ok(()),
+                Err(error) if error.starts_with("No running Hyprmatrix:") => {
+                    let mut next = c;
+                    next.effect = next.effect.next();
+                    next.save()?;
+                    desktop::run(next, false)
+                }
+                Err(error) => Err(error),
+            }
         }
         _ => Err(format!("Unknown option {command}; use --help")),
     }

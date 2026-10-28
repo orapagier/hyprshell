@@ -285,11 +285,12 @@ Item {
                         : Qt.matrix4x4(1,0,0,-connectorClip.x, 0,1,0,-connectorClip.y, 0,0,1,0, 0,0,0,1)
                 }
                 ShapePath {
-                    strokeWidth: 0.65
-                    strokeColor: Qt.alpha(glass.rimColor, 0.55)
+                    strokeWidth: 1
+                    strokeColor: glass.rimColor
                     fillGradient: LinearGradient {
                         x1: 0; y1: popover.neckY; x2: 0; y2: (popover.shapeY + popover.shapeHeight)
                         GradientStop { position: 0; color: glass.topColor }
+                        GradientStop { position: 0.38; color: glass.middleColor }
                         GradientStop { position: 1; color: glass.bottomColor }
                     }
                     PathSvg { path: popover.fluidOutline.path }
@@ -305,10 +306,12 @@ Item {
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
-                strokeWidth: 0
+                strokeWidth: 1
+                strokeColor: glass.rimColor
                 fillGradient: LinearGradient {
                     x1: 0; y1: popover.bodyY; x2: 0; y2: popover.bodyBottom
                     GradientStop { position: 0; color: glass.topColor }
+                    GradientStop { position: 0.38; color: glass.middleColor }
                     GradientStop { position: 1; color: glass.bottomColor }
                 }
                 // Draw the left surface, then mirror it for the right corner.
@@ -336,6 +339,7 @@ Item {
             border.color: glass.rimColor
             gradient: Gradient {
                 GradientStop { position: 0; color: glass.topColor }
+                GradientStop { position: 0.38; color: glass.middleColor }
                 GradientStop { position: 1; color: glass.bottomColor }
             }
             Rectangle {

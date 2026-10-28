@@ -45,6 +45,10 @@ effect. Toggles are stored under `[workspace_overrides]` in the config;
 workspaces without an entry keep rain off, and a fresh start enables the launch
 workspace once so the first launch already shows rain.
 
+Ctrl+Alt+M cycles Matrix → Shooting stars → Meteors → Matrix and
+saves the choice immediately. It starts Hyprmatrix if needed; an already running
+instance retains its workspace visibility and other settings.
+
 Commands:
 
 ```sh
@@ -55,6 +59,7 @@ hyprmatrix --hide        # Unmaps the surface and stops animation and wallpaper 
 hyprmatrix --show
 hyprmatrix --toggle
 hyprmatrix --toggle-workspace  # Toggle rain on the active workspace
+hyprmatrix --cycle-effect      # Select and save the next effect
 hyprmatrix --refresh     # Retry palette extraction at the next wallpaper check
 hyprmatrix --quit
 hyprmatrix --check-config

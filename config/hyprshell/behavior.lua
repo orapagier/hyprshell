@@ -53,8 +53,31 @@ local function floatWorkspaceWindow(w)
         hl.dispatch(hl.dsp.window.move({ window = w, x = m.x + r.left + left + border, y = m.y + r.top + top + border, relative = false }))
     end
 end
-hl.on("window.open", floatWorkspaceWindow)
+local floatingWorkAreas = {}
+local workAreaTimer
+local function watchFloatingWorkAreas()
+    -- Verification has no event loop or windows; start only in a live session.
+    if workAreaTimer or #hl.get_windows() == 0 then return end
+    workAreaTimer = hl.timer(function()
+        local nextAreas = {}
+        for _, w in ipairs(hl.get_windows()) do
+            if w.mapped and w.floating and w.fullscreen == 0 and w.workspace and floatingWorkspaces[w.workspace.id] and w.monitor then
+                local m, r = w.monitor, w.monitor.reserved
+                local area = table.concat({m.x, m.y, m.width, m.height, m.scale, m.transform, r.left, r.top, r.right, r.bottom}, ":")
+                local previous = floatingWorkAreas[w.address]
+                nextAreas[w.address] = area
+                if previous and previous ~= area then floatWorkspaceWindow(w) end
+            end
+        end
+        floatingWorkAreas = nextAreas
+    end, {timeout = 100, type = "repeat"})
+end
+hl.on("window.open", function(w)
+    floatWorkspaceWindow(w)
+    watchFloatingWorkAreas()
+end)
 hl.on("config.reloaded", function()
+    watchFloatingWorkAreas()
     for _, w in ipairs(hl.get_windows()) do floatWorkspaceWindow(w) end
 end)
 hl.window_rule({name = "hyprshell-workspace-pseudo-1", match = {workspace = "1"}, tile = true, pseudo = true})

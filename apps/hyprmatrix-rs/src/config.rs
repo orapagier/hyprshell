@@ -12,6 +12,10 @@ pub enum Effect {
 }
 impl Effect {
     pub const ALL: [Self; 3] = [Self::Matrix, Self::ShootingStars, Self::Meteors];
+    pub fn next(self) -> Self {
+        let index = Self::ALL.iter().position(|effect| *effect == self).unwrap();
+        Self::ALL[(index + 1) % Self::ALL.len()]
+    }
     pub fn label(self) -> &'static str {
         match self {
             Self::Matrix => "Matrix",
@@ -152,6 +156,14 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn effect_cycle_visits_every_mode_and_wraps() {
+        let mut effect = Effect::Matrix;
+        for expected in [Effect::ShootingStars, Effect::Meteors, Effect::Matrix] {
+            effect = effect.next();
+            assert_eq!(effect, expected);
+        }
+    }
     #[test]
     fn effects_roundtrip_and_legacy_configs_keep_matrix() {
         let legacy: Config = toml::from_str("fps = 15").unwrap();

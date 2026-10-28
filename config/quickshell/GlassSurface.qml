@@ -15,9 +15,11 @@ Item {
     readonly property var menuColors: Colors.wallpaperPalette(sample, Style.Theme.highContrast)
     // A dark backing keeps menu labels readable on light and busy wallpapers.
     readonly property color base: menuColors.background
-    readonly property color topColor: Colors.alpha(Colors.mix(base, Qt.color("#ffffff"), 0.07), 1 - translucency)
+    readonly property color topColor: Colors.alpha(Colors.mix(base, Qt.color("#ffffff"), Style.Theme.highContrast ? 0 : 0.13), 1 - translucency)
     readonly property color bottomColor: Colors.alpha(base, 1 - translucency)
-    readonly property color rimColor: Colors.alpha(menuColors.accent, 0.55)
+    // Static tonal layers suggest glass without another blur or render texture.
+    readonly property color middleColor: Colors.alpha(Colors.mix(base, menuColors.accent, Style.Theme.highContrast ? 0 : 0.04), 1 - translucency)
+    readonly property color rimColor: Colors.alpha(Colors.mix(menuColors.accent, Qt.color("#ffffff"), 0.48), 0.64)
     WallpaperColors {
         id: sampler
         source: glass.wallpaperSource

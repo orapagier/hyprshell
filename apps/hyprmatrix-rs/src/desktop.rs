@@ -79,6 +79,11 @@ enum Event {
     Workspace(String),
     WorkspaceError(String),
 }
+fn accepts_control_command(command: &str) -> bool {
+    matches!(command, "show" | "hide" | "toggle" | "quit" | "settings"
+        | "settings-at-cursor" | "refresh" | "fullscreen" | "toggle-workspace"
+        | "cycle-effect")
+}
 /// Diagnostics gated by HYPRIX_DEBUG for troubleshooting the frame loop.
 fn dbg_event(what: &str) {
     if std::env::var_os("HYPRIX_DEBUG").is_some() {
@@ -385,19 +390,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
                 continue;
             }
             let command = command.trim().to_string();
-            if ![
-                "show",
-                "hide",
-                "toggle",
-                "quit",
-                "settings",
-                "settings-at-cursor",
-                "refresh",
-                "fullscreen",
-                "toggle-workspace",
-            ]
-            .contains(&command.as_str())
-            {
+            if !accepts_control_command(&command) {
                 let _ = stream.write_all(b"invalid command\n");
                 continue;
             }
@@ -482,7 +475,7 @@ pub fn run(config: Config, menu: bool) -> Result<(), String> {
                             // Refusals from interactive commands stay recoverable.
                             let fatal = !matches!(
                                 command.as_str(),
-                                "toggle-workspace" | "settings" | "settings-at-cursor"
+                                "toggle-workspace" | "cycle-effect" | "settings" | "settings-at-cursor"
                             );
                             if fatal {
                                 state.error = Some(error);
@@ -884,6 +877,13 @@ impl Desktop {
                 self.wake_draw();
             }
             "refresh" => self.refresh.store(true, Ordering::Relaxed),
+            "cycle-effect" => {
+                let mut next = self.config.clone();
+                next.effect = next.effect.next();
+                next.save()?;
+                self.config = next;
+                self.wake_draw();
+            }
             "fullscreen" => {
                 self.config.fullscreen = true;
                 self.config.save()?;
@@ -1319,6 +1319,16 @@ delegate_pointer!(Desktop);
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn control_listener_accepts_effect_cycles_and_existing_commands() {
+        for command in ["cycle-effect", "toggle-workspace", "show", "hide", "toggle",
+            "quit", "settings", "settings-at-cursor", "refresh", "fullscreen"] {
+            assert!(accepts_control_command(command), "Rejected {command}");
+        }
+        for command in ["", "--cycle-effect", "unknown", "cycle-effect\nquit"] {
+            assert!(!accepts_control_command(command));
+        }
+    }
     #[test]
     fn header_pointer_uses_output_origin_and_stays_in_small_popups() {
         assert_eq!(header_position((-1920,100), render::menu_rect(1920,1080)), (-960,444));

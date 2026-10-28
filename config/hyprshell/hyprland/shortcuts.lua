@@ -32,6 +32,7 @@ hl.bind("SUPER + K", hl.dsp.exec_cmd('"$HOME/.local/bin/keybindings-launcher"'),
 hl.bind("SUPER + D", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" dashboard'), { description = "Toggle dashboard" })
 hl.bind("ALT + I", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmonitor" --toggle-workspace'), { description = "Toggle Hyprmonitor on active workspace" })
 hl.bind("ALT + M", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmatrix" --toggle-workspace'), { description = "Toggle Hyprmatrix on active workspace" })
+hl.bind("CTRL + ALT + M", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmatrix" --cycle-effect'), { description = "Cycle Hyprmatrix effects" })
 hl.bind("SUPER + ALT + M", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmatrix" --settings'), { description = "Open Hyprmatrix settings" })
 hl.bind("ALT + T", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" topbar'), { description = "Toggle Hyprpane on current workspace" })
 hl.bind("ALT + C", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" calendar'), { description = "Toggle calendar" })

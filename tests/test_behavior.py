@@ -77,6 +77,7 @@ class BehaviorTests(unittest.TestCase):
         # targets, idempotence and non-target/fullscreen/closed-window handling.
         harness = r'''local callbacks, actions, windows = {}, {}, {}
 hl = {
+    timer = function() end,
     config = function() end, workspace_rule = function() end, window_rule = function() end,
     on = function(name, fn) callbacks[name] = fn end,
     get_windows = function() return windows end,
@@ -121,8 +122,10 @@ assert(#actions == 3)
         data = self.sample()
         data['workspaces'][0]['floating'] = True
         harness = r'''local callbacks, actions = {}, {}
+local workAreaTick
 local gaps = 10
 hl = {
+    timer = function(fn, options) assert(options.type == "repeat"); workAreaTick = fn end,
     config = function() end, workspace_rule = function() end, window_rule = function() end,
     on = function(name, fn) callbacks[name] = fn end,
     get_config = function(key)
@@ -145,7 +148,7 @@ hl = {
 -- A window already floated by its map-time rule must still be fitted.
 local m = {width=3840, height=2160, scale=2, transform=0, x=-1920, y=100,
            reserved={left=40, right=30, top=50, bottom=60}}
-local w = {mapped=true, workspace={id=2}, floating=true, fullscreen=0, monitor=m}
+local w = {address="0x123", mapped=true, workspace={id=2}, floating=true, fullscreen=0, monitor=m}
 hl.get_windows = function() return {w} end
 callbacks["window.open"](w)
 assert(#actions == 2)
@@ -153,6 +156,19 @@ assert(actions[1].kind == "resize" and actions[1].window == w)
 assert(actions[1].x == 1826 and actions[1].y == 946 and not actions[1].relative)
 assert(actions[2].kind == "move" and actions[2].window == w)
 assert(actions[2].x == -1868 and actions[2].y == 162 and not actions[2].relative)
+-- Existing windows expand upward when the panel hides, then move down again.
+callbacks["config.reloaded"]()
+workAreaTick()
+actions = {}
+m.reserved.top = 0
+workAreaTick()
+assert(#actions == 2 and actions[1].y == 996 and actions[2].y == 112)
+actions = {}
+workAreaTick()
+assert(#actions == 0) -- Never override manual geometry on unchanged work areas.
+m.reserved.top = 50
+workAreaTick()
+assert(#actions == 2 and actions[1].y == 946 and actions[2].y == 162)
 -- Rotation, fractional scale and a different panel edge on another output.
 actions = {}
 m.width, m.height, m.scale, m.transform, m.x, m.y = 1920, 1080, 1.25, 1, 1920, -100
@@ -228,6 +244,7 @@ assert(#actions == 0)
         self.assertGreater(source.index('hyprshell-workspace-pseudo-2'), source.index('hyprshell-user-0'))
         harness = r'''local callbacks, actions, windows = {}, {}, {}
 hl = {
+    timer = function() end,
     config = function() end, workspace_rule = function() end, window_rule = function() end,
     on = function(name, fn) callbacks[name] = fn end,
     get_windows = function() return windows end,
@@ -281,6 +298,7 @@ assert(#actions == 6 and not other.pseudo)
                            source.index('hyprshell-workspace-pseudo-2'))
         harness = r'''local callbacks, rules = {}, {}
 hl = {
+    timer = function() end,
     config=function() end, workspace_rule=function() end,
     window_rule=function(r) table.insert(rules,r) end,
     on=function(name,fn) callbacks[name]=fn end,
@@ -318,6 +336,7 @@ end
         windows_source = (ROOT / 'config/hyprshell/hyprland/windows.lua').read_text()
         harness = r'''local callbacks, rules, windows, actions = {}, {}, {}, {}
 hl = {
+    timer = function() end,
     config=function() end, workspace_rule=function() end, layer_rule=function() end,
     window_rule=function(r) table.insert(rules,r) end,
     on=function(name,fn)
@@ -402,6 +421,7 @@ end
         ]
         harness = r'''local callbacks, actions = {}, {}
 hl = {
+    timer = function() end,
     config=function() end, workspace_rule=function() end, window_rule=function() end,
     on=function(name, fn) callbacks[name]=fn end,
     dsp={window={

@@ -110,7 +110,7 @@ Item {
                     + (motion.progress - previousProgress) * Math.min(80, motion.extentN * 0.2)) / dt;
                 let speed = Math.hypot(vt, vn);
                 let bias = (Math.abs(vt) - Math.abs(vn)) / Math.max(1, speed);
-                let stretch = 1 + Math.min(0.04, speed * 0.00008) * bias;
+                let stretch = 1 + Math.min(0.055, speed * 0.00010) * bias;
                 motion.impulseT = speed < 1 ? 1 : stretch;
                 motion.impulseN = speed < 1 ? 1 : 1 / stretch;
                 motion.impulseShear = speed < 1 ? 0 : Math.max(-0.025, Math.min(0.025, vt * 0.00004));

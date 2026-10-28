@@ -11,10 +11,10 @@ speed = 6.0
 font_size = 12
 fps = 15
 theme = "wallpaper"
-effect = "matrix"
+effect = "shooting_stars"
 
 [workspace_overrides]
-1 = false
+1 = true
 2 = false
 3 = false
 4 = true
