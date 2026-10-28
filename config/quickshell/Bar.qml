@@ -7,6 +7,7 @@ import "AdaptiveColors.js" as Colors
 Item {
     id: bar
     property var settings: ({})
+    property string onlySide: ""
     property bool compactItemPadding: false
     property bool statusIconsOnly: false
     property bool hoverPopdowns: true
@@ -145,7 +146,7 @@ Item {
         })
     function menuItemId(name) { return name === "workspacePreview" ? "workspaces" : name; }
     function itemEnabled(id) {
-        return Settings.item(settings, id).enabled !== false;
+        return (!onlySide || side(id) === onlySide) && Settings.item(settings, id).enabled !== false;
     }
     function side(id) {
         id = menuItemId(id);

@@ -287,13 +287,37 @@ ShellRoot {
                 onHoverChanged: inside => menuState.retain(inside)
             }
             KeybindingsPopup { id: keybindings; screen: panel.screen; wallpaperSource: bar.wallpaperSource; translucency: preferences.panelConfig.bar.popdownTranslucency ?? 0.06 }
-            function closeMenu() { menuState.close(); keybindings.opened = false; }
+            Hyprhover {
+                id: hoverWindows
+                screen: panel.modelData
+                available: !panel.shown
+                workspace: panel.workspace
+                settings: preferences.panelConfig
+                services: shell.services
+                applicationService: applications
+                inbox: shell.inbox
+                statusData: shell.statusData
+                mediaData: shell.mediaData
+                notificationData: shell.notificationData
+                clockText: shell.clockText
+                trayModel: tray.items
+                wallpaperSource: bar.wallpaperSource
+                onRevealed: {
+                    dashboardWindow.close();
+                    activityWindow.close();
+                    menuState.close();
+                    keybindings.opened = false;
+                    for (let other of panels.instances) if (other !== panel) other.closeMenu();
+                }
+                onSettingsRequested: { close(); settingsController.open(); }
+            }
+            function closeMenu() { hoverWindows.close(); menuState.close(); keybindings.opened = false; }
             function refreshSettings() {
                 if (!panel.shown || (menuState.section && !bar.itemEnabled(bar.menuItemId(menuState.section)))) menuState.close();
             }
-            function toggleMenu(name) { keybindings.opened = false; menuState.activate(name, true); }
+            function toggleMenu(name) { hoverWindows.close(); keybindings.opened = false; menuState.activate(name, true); }
             function toggleLauncher() { toggleMenu("launcher"); }
-            function toggleKeybindings() { menuState.close(); keybindings.opened = !keybindings.opened; }
+            function toggleKeybindings() { hoverWindows.close(); menuState.close(); keybindings.opened = !keybindings.opened; }
         }
     }
     Connections {
