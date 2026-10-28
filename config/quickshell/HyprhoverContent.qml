@@ -12,6 +12,7 @@ Column {
     readonly property var menuColors: Colors.menuColorsFor(content)
     property alias controls: modelBar
     readonly property var tabs: modelBar.orderedItems(group)
+    readonly property real preferredWidth: Math.max(280, Math.min(368, page.item?.implicitWidth || 0), tabs.length * 32 + Math.max(0, tabs.length - 1) * 6) + 32
     property string selected: ""
     readonly property var labels: ({launcher:"Apps", settings:"Settings", workspaces:"Workspaces", media:"Media", calendar:"Calendar", tray:"Tray", notifications:"Notifications", audio:"Audio", wifi:"Wi-Fi", bluetooth:"Bluetooth", battery:"Battery", power:"Power"})
     readonly property var symbols: ({launcher:"󰀻", settings:"󰒓", workspaces:"󰍹", media:"󰎆", calendar:"󰃭", tray:"󰀻", notifications:"󰂚", audio:"󰕾", wifi:"󰤨", bluetooth:"󰂯", battery:"󰁹", power:"󰐥"})
@@ -34,6 +35,7 @@ Column {
         notificationData: content.owner.notificationData
         trayModel: content.owner.trayModel
         outputName: content.owner.screen.name
+        wallpaperSource: content.owner.wallpaperSource
     }
     Row {
         width: parent.width
@@ -54,6 +56,8 @@ Column {
                 required property string modelData
                 objectName: "hyprhoverTab-" + modelData
                 readonly property bool selected: content.selected === modelData
+                readonly property var appearance: modelBar.appearance(modelData)
+                readonly property color iconColor: appearance.iconColor || appearance.textColor || appearance.vibrantColor || content.menuColors.text
                 hoverEnabled: true
                 width: tabStrip.diameter
                 height: width
@@ -71,7 +75,7 @@ Column {
                 }
                 contentItem: Text {
                     text: content.symbols[tab.modelData] || ""
-                    color: tab.selected ? content.menuColors.accent : content.menuColors.text
+                    color: tab.iconColor
                     font.family: "GoMono Nerd Font"
                     font.pixelSize: Math.max(1, tab.width * 0.46)
                     verticalAlignment: Text.AlignVCenter

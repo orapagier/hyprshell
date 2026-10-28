@@ -16,9 +16,9 @@ Item {
     property bool instant: false
     readonly property var pageItem: loader.item
     readonly property var menuColors: glass.menuColors
-    readonly property real bodyWidth: Math.min(alignment === "center" ? 360 : 400, Math.max(0, width - 56))
+    readonly property real bodyWidth: Math.min(alignment === "center" ? 360 : alignment === "right" ? Math.min(400, pageItem?.preferredWidth || 312) : 400, Math.max(0, width - 56))
     readonly property real bodyX: alignment === "left" ? 0 : alignment === "right" ? width - bodyWidth : (width - bodyWidth) / 2
-    property real bodyHeight: Math.min(Math.max(0, height - 32), 520, Math.max(180, scroll.contentHeight + 32))
+    property real bodyHeight: Math.min(Math.max(0, height - 32), 520, Math.max(alignment === "right" ? 0 : 180, scroll.contentHeight + 32))
     readonly property real foot: Math.min(28, Math.max(0, (width - bodyWidth) / 2), Math.max(0, height - bodyHeight))
     readonly property rect bodyRect: Qt.rect(bodyX, 0, bodyWidth, bodyHeight)
     readonly property bool rendering: opened || progress > 0.001 || sideways > 0.001

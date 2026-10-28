@@ -53,7 +53,7 @@ ShellRoot {
         services: ({workspace: function(id) {}, scrollWorkspace: function(delta) {}, outputs: [], inputs: [], sink: null, microphone: null, wifiEnabled: false, wifiNetworks: [], bluetoothDevices: [], adapter: null, statusData: {network:{}}, scanWifi: function(enabled) {}})
         inbox: fakeInbox
         statusData: ({workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {present:false}})
-        settings: ({bar:{}, items:[{id:'audio',side:'left'},{id:'wifi',enabled:false}]})
+        settings: ({bar:{randomVibrantColors:true}, items:[{id:'audio',side:'left',iconColor:'#ff1234'},{id:'wifi',enabled:false}]})
     }
     Timer {
         interval: 200; running: true
@@ -111,6 +111,14 @@ ShellRoot {
                 let content = hover.controls.parent;
                 let row = content.children.find(child => child.objectName === 'hyprhoverTabs');
                 test.checkCircles(row, 'hyprhoverTab-', content.tabs.length);
+                for (let tab of row.children.filter(child => child.objectName.startsWith('hyprhoverTab-'))) {
+                    let style = hover.controls.appearance(tab.modelData);
+                    test.check(Qt.colorEqual(tab.contentItem.color, style.iconColor || style.textColor || style.vibrantColor), 'saved vibrant/custom icon color retained');
+                }
+                if (capture.stage === 2) {
+                    test.check(hover.drawerSurface.bodyWidth < 400, 'sparse right drawer shrinks');
+                    test.check(hover.drawerSurface.bodyHeight >= content.implicitHeight + 31, 'short page fits without clipping');
+                }
                 if (capture.stage === 0) {
                     let workspacePage = content.children.find(child => child.objectName === 'hyprhoverTabPage').item;
                     let numbers = workspacePage.children.find(child => child.objectName === 'hyprhoverWorkspaceTabs');
