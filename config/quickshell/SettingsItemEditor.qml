@@ -288,7 +288,6 @@ ColumnLayout {
         text: "Restore last saved item"
         enabled: !root.saving
         onClicked: root.resetRequested()
-        ToolTip.visible: hovered
-        ToolTip.text: "Restore this item's last saved settings and position"
+        Accessible.description: "Restore this item's last saved settings and position"
     }
 }

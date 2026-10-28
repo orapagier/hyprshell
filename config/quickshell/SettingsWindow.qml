@@ -621,8 +621,7 @@ FloatingWindow {
                     flat: true
                     text: githubSync.running ? "Syncing…" : "Sync to GitHub"
                     enabled: window.idle && !window.dirty && !window.manualDirty && window.success && window.store.loaded
-                    ToolTip.visible: hovered
-                    ToolTip.text: "Commit and push your desktop setup to your GitHub hyprshell repository"
+                    Accessible.description: "Commit and push your desktop setup to your GitHub hyprshell repository"
                     onClicked: {
                         githubDialog.open();
                         githubSync.request("--status", []);
@@ -633,8 +632,7 @@ FloatingWindow {
                     flat: true
                     text: "Sync from GitHub"
                     enabled: window.idle && !window.dirty && !window.manualDirty && window.success && window.store.loaded
-                    ToolTip.visible: hovered
-                    ToolTip.text: "Review incoming changes and compatibility before updating Hyprshell"
+                    Accessible.description: "Review incoming changes and compatibility before updating Hyprshell"
                     onClicked: githubUpdate.open()
                 }
                 SettingsButton {

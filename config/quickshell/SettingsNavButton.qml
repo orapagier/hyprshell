@@ -12,8 +12,6 @@ Button {
     hoverEnabled: true
     Accessible.name: text
     Accessible.description: highlighted ? "Current page" : itemEnabled ? "" : "Bar item is hidden"
-    ToolTip.visible: (hovered || activeFocus) && truncated
-    ToolTip.text: text
     readonly property bool truncated: labelText.truncated
     contentItem: Item {
         implicitWidth: 180; implicitHeight: 24

@@ -68,8 +68,7 @@ ColumnLayout {
             onClicked: root.edited("")
             contentItem: Text { text: parent.text; color: root.inherited ? Style.SettingsTheme.disabled : Style.SettingsTheme.muted; font.pixelSize: 18; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             background: Rectangle { radius: 7; color: parent.hovered || parent.activeFocus ? Style.SettingsTheme.controlBorder : "transparent"; border.color: parent.activeFocus ? Style.SettingsTheme.accentText : "transparent" }
-            ToolTip.visible: hovered
-            ToolTip.text: root.resetDescription
+            Accessible.description: root.resetDescription
         }
     }
     RowLayout {

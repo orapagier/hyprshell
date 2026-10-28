@@ -133,8 +133,6 @@ Rectangle {
                 font.pixelSize: 24; font.weight: Font.DemiBold
                 Layout.fillWidth: true
                 Accessible.description: "Weather by Open-Meteo. Location data by GeoNames."
-                ToolTip.visible: sourceHover.containsMouse
-                ToolTip.text: "Weather: Open-Meteo · Location: GeoNames"
                 MouseArea {
                     id: sourceHover
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -148,8 +146,6 @@ Rectangle {
                 implicitWidth: 34; leftPadding: 0; rightPadding: 0
                 contentItem: Text { text: parent.text; font: parent.font; color: card.textColor; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 Accessible.name: card.editing ? "Cancel city edit" : "Change city"
-                ToolTip.visible: hovered
-                ToolTip.text: Accessible.name
                 onClicked: { card.editing = !card.editing; if (card.editing) city.forceActiveFocus(); }
             }
         }
