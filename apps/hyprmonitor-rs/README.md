@@ -7,36 +7,46 @@ Hyprshell can install and launch it, but is not required to run it.
 
 ## Task-manager window
 
-The window uses six tabs: Overview, Processes, Performance, Storage, Network,
-and System. Performance combines CPU, Memory, GPU / cooling, and Power through
-four selectors; all seven original detailed sections remain accessible. Overlay
-mode retains its configurable seven-card dashboard.
+The window workspace has been rewritten around the official
+[TMOG summary and process screenshots](https://tmog.org/) (reviewed October 28,
+2026), with a compact Windows Task Manager style process table. It is a separate
+renderer from the optional legacy desktop overlay, not that dashboard inside a
+window. Nine destinations expose Summary, Processes, CPU, Memory, Disks, Network,
+GPU & thermals, Power, and System info.
 
-Overview shows CPU, memory, process count, physical network traffic, disk
-throughput and battery draw alongside CPU leaders. CPU and storage details also
-show Linux pressure stall percentages averaged over ten seconds.
+Summary uses colored instrumentation panels, live resource histories and CPU
+leaders. Dedicated resource pages combine history with scrollable hardware
+readings. CPU also shows logical-processor mini graphs (up to two rows, with all
+processors listed in the readings below). Disk throughput, GPU utilization and
+battery power now have bounded histories as well as CPU, memory and network.
+Unavailable samples break graph lines. GPU/power readings refresh at the configured
+sensor interval; other counters use the main update interval.
 
-Processes lists every readable process, including Hyprmonitor itself. Click the
-search box to filter by name or PID; Backspace edits, Enter leaves search, and
-Escape clears an active search. Click CPU, Memory, PID, Name, Threads, Read or
-Write to sort; click again to reverse. Scroll to explore the list. Pause freezes
-the displayed snapshot across tabs; Resume receives the next collector sample.
-Collection continues during this inspection pause, while hiding the application
-still pauses collection. Sorting and search last for the current session.
+Processes is a compact, aligned table with name, PID, CPU, resident memory,
+threads and disk read/write rates. Click the column headers to sort or reverse;
+click the search field to filter by name/PID. Click a row to inspect its parent
+and kernel state. Arrow keys, Page Up/Down, Home and End navigate processes;
+scrolling explores the table. Pause/Resume is available on every page; Space also
+freezes/resumes the displayed snapshot while collection continues. Hiding still
+suspends collection. Escape clears an active search, cancels an End task prompt,
+closes settings, or otherwise closes the app.
 
-Rows show parent PID, kernel state, thread count, resident memory and physical
-storage read/write bytes per second. CPU and I/O rates match PID plus start time
-between scans. First samples, inaccessible I/O counters and counter resets show
-an em dash; this is not zero. Process updates use the existing process interval
-(default six seconds). RSS includes shared memory; process CPU uses 100% per
-logical CPU. This explorer is read-only: it does not signal processes.
+End task requires a selected row and a second confirmation click. It sends
+SIGTERM without requesting elevated permissions, reports errors in the UI, and
+protects PID 1 and the monitor itself. A Linux pidfd is opened before checking
+`/proc/PID/stat` creation time, so PID recycling cannot retarget an action. The
+app never falls back to signalling a bare PID. SIGTERM requests termination; a
+process may handle or ignore it. There is no automatic escalation to SIGKILL.
 
-The layout and process exploration were informed by the official
-[TMOG feature overview](https://tmog.org/) and
-[1.1 release notes](https://tmog.org/release-notes.html), reviewed October 28, 2026.
-This is not feature parity: service/startup management, connection ownership,
-trace recording/replay, disk-space scanning, benchmarks, and process actions
-remain outside this implementation.
+CPU uses 100% per logical CPU for processes and 0–100% system-wide. RSS includes
+shared memory. First samples and inaccessible counters show an em dash. Process
+updates use the existing configurable interval (six seconds by default). Sensor
+availability and process visibility depend on permissions and the host system.
+
+This is a TMOG-inspired Linux task manager, not TMOG or full feature parity.
+Startup/service management, connection ownership, trace replay and benchmarks
+are not part of the window UI. The existing collection-only CLI benchmark remains.
+All original hardware readings and the optional overlay remain available.
 
 ## Desktop support
 
@@ -47,14 +57,15 @@ remain outside this implementation.
   space and uses premultiplied alpha for translucent cards.
 - `window` uses winit and softbuffer for an ordinary Linux Wayland or X11 window,
   suitable for desktops without layer-shell. It uses native window management
-  for moving, resizing and minimizing, plus the same Rust dashboard/settings UI.
+  for moving, resizing and minimizing, plus the dedicated task-manager workspace and native settings UI.
 
 "Any desktop" here means an intended Linux Wayland/X11 fallback, not Windows or
 macOS support: the collector reads Linux `/proc`, sysfs and optional system D-Bus
 services. These desktop modes still require live validation after the build.
 Actual background blur is compositor-dependent. The overlay can use Hyprland's
-blur rule. The portable RGB window composites glass-styled cards onto a dark
-background and does not claim transparent wallpaper blur where unsupported.
+blur rule. The task-manager window uses an opaque instrument workspace; opacity and desktop
+geometry remain overlay settings. Text size, accent, histories and sampling
+intervals also apply to the window.
 
 ## Right-click settings
 
@@ -179,8 +190,8 @@ panels, menus and settings remain separate and unchanged in purpose. The standal
 
 [Conky](https://github.com/brndnmtthws/conky) provides a much broader object/script
 and platform ecosystem. This implementation takes its desktop presentation,
-meters/history and configurable updates, and combines them with the original
-Hyprmonitor's seven detailed sections, glass cards and desktop geometry controls.
+meters/history and configurable updates, and retains those features in the optional overlay. The window workspace is a
+separate task-manager design.
 It does not claim Conky feature parity or better performance without a measured
 comparison using equivalent metrics and intervals.
 

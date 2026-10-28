@@ -421,48 +421,66 @@ impl ApplicationHandler<Event> for App {
                 ..
             } => {
                 let size = window.inner_size();
-                if self.cursor.0 < 196.0 {
-                    if self.cursor.1 >= size.height as f32 - 56.0 {
-                        self.menu.show(204.0, 100.0, size.width, size.height);
-                    } else if self.cursor.1 >= 104.0
-                        && self.cursor.1 < 104.0 + crate::explorer::PAGES.len() as f32 * 44.0
+                use crate::explorer::{sort_at, visible_rows, CONTENT, RAIL, ROW, TABLE_TOP};
+                let (x, y) = self.cursor;
+                let width = size.width as f32;
+                let height = size.height as f32;
+                let content_width = width - CONTENT - 20.0;
+                if x < RAIL {
+                    if y >= height - 56.0 {
+                        self.menu.show(CONTENT, 82.0, size.width, size.height);
+                    } else if (82.0..82.0 + crate::explorer::PAGES.len() as f32 * 38.0).contains(&y)
                     {
-                        self.page = ((self.cursor.1 - 104.0) / 44.0) as usize;
+                        self.page = ((y - 82.0) / 38.0) as usize;
                         self.scroll = 0;
+                        self.explorer.searching = false;
+                        self.explorer.confirming = false;
                     }
-                    window.request_redraw();
-                } else {
-                    let (x, y) = self.cursor;
-                    let width = (size.width as f32 - 248.0).max(100.0);
-                    if x >= 222.0 && x < 222.0 + width {
-                        if self.page == 2 && (104.0..138.0).contains(&y) {
-                            self.explorer.performance =
-                                (((x - 222.0) / (width / 4.0)) as usize).min(3);
-                            self.scroll = 0;
-                        } else if self.page == 1 {
-                            if (104.0..138.0).contains(&y) {
-                                if x >= 222.0 + width - 90.0 {
-                                    self.explorer.paused = !self.explorer.paused;
-                                } else {
-                                    self.explorer.searching = true;
-                                }
-                            } else if (148.0..178.0).contains(&y) {
-                                let sort = (((x - 222.0) / (width / 7.0)) as usize).min(6);
-                                if sort == self.explorer.sort {
-                                    self.explorer.ascending = !self.explorer.ascending;
-                                } else {
-                                    self.explorer.sort = sort;
-                                    self.explorer.ascending = sort == 2 || sort == 3;
-                                }
-                                self.scroll = 0;
+                } else if x >= width - 104.0 && (14.0..44.0).contains(&y) {
+                    self.explorer.paused = !self.explorer.paused;
+                } else if self.page == 1 && x >= CONTENT && x < width - 20.0 {
+                    if (90.0..122.0).contains(&y) {
+                        self.explorer.searching = true;
+                    } else if (130.0..TABLE_TOP).contains(&y) {
+                        let sort = sort_at((x - CONTENT) / content_width);
+                        if sort == self.explorer.sort {
+                            self.explorer.ascending = !self.explorer.ascending;
+                        } else {
+                            self.explorer.sort = sort;
+                            self.explorer.ascending = sort == 2 || sort == 3;
+                        }
+                        self.scroll = 0;
+                    } else if x >= width - 138.0 && (height - 70.0..height - 40.0).contains(&y) {
+                        self.explorer.searching = false;
+                        if let Some((pid, start)) = self.explorer.selected {
+                            if self.explorer.confirming {
+                                self.explorer.status = match crate::actions::end_task(pid, start) {
+                                    Ok(()) => format!("Termination requested for PID {pid}"),
+                                    Err(e) => e,
+                                };
+                                self.explorer.confirming = false;
                             } else {
-                                self.explorer.searching = false;
+                                self.explorer.confirming = true;
+                                self.explorer.status.clear();
                             }
                         }
+                    } else {
+                        self.explorer.searching = false;
+                        self.explorer.confirming = false;
+                        let count = visible_rows(height);
+                        if (TABLE_TOP..TABLE_TOP + count as f32 * ROW).contains(&y) {
+                            let rows = self.explorer.rows(&self.data);
+                            let start = self.scroll.min(rows.len().saturating_sub(count));
+                            let index = start + ((y - TABLE_TOP) / ROW) as usize;
+                            self.explorer.selected =
+                                rows.get(index).map(|p| (p.pid, p.start_ticks));
+                            self.explorer.status.clear();
+                        }
                     }
-                    window.request_redraw();
                 }
+                window.request_redraw();
             }
+
             WindowEvent::MouseWheel { delta, .. } if !self.menu.open => {
                 let y = match delta {
                     MouseScrollDelta::LineDelta(_, y) => y,
@@ -477,7 +495,7 @@ impl ApplicationHandler<Event> for App {
                 };
                 self.scroll = if y < 0.0 {
                     (self.scroll + 2).min(count.saturating_sub(if self.page == 1 {
-                        ((window.inner_size().height as f32 - 244.0) / 68.0).max(1.0) as usize
+                        crate::explorer::visible_rows(window.inner_size().height as f32)
                     } else {
                         1
                     }))
@@ -524,9 +542,86 @@ impl ApplicationHandler<Event> for App {
             }
             WindowEvent::KeyboardInput { event, .. }
                 if event.state == ElementState::Pressed
+                    && !self.menu.open
+                    && !self.explorer.searching
+                    && matches!(
+                        event.logical_key,
+                        Key::Named(
+                            NamedKey::ArrowDown
+                                | NamedKey::ArrowUp
+                                | NamedKey::PageDown
+                                | NamedKey::PageUp
+                                | NamedKey::Home
+                                | NamedKey::End
+                                | NamedKey::Space
+                        )
+                    ) =>
+            {
+                let down = matches!(
+                    event.logical_key,
+                    Key::Named(NamedKey::ArrowDown | NamedKey::PageDown)
+                );
+                if event.logical_key == Key::Named(NamedKey::Space) {
+                    self.explorer.paused = !self.explorer.paused;
+                } else if self.page == 1 {
+                    let rows = self.explorer.rows(&self.data);
+                    let count = crate::explorer::visible_rows(window.inner_size().height as f32);
+                    let current = rows
+                        .iter()
+                        .position(|p| self.explorer.selected == Some((p.pid, p.start_ticks)));
+                    let step = if matches!(
+                        event.logical_key,
+                        Key::Named(NamedKey::PageDown | NamedKey::PageUp)
+                    ) {
+                        count
+                    } else {
+                        1
+                    };
+                    let index = match event.logical_key {
+                        Key::Named(NamedKey::Home) => 0,
+                        Key::Named(NamedKey::End) => rows.len().saturating_sub(1),
+                        _ => current
+                            .map(|i| {
+                                if down {
+                                    i.saturating_add(step)
+                                } else {
+                                    i.saturating_sub(step)
+                                }
+                            })
+                            .unwrap_or(0)
+                            .min(rows.len().saturating_sub(1)),
+                    };
+                    self.explorer.selected = rows.get(index).map(|p| (p.pid, p.start_ticks));
+                    if index < self.scroll {
+                        self.scroll = index;
+                    } else if index >= self.scroll + count {
+                        self.scroll = index + 1 - count;
+                    }
+                    self.explorer.confirming = false;
+                    self.explorer.status.clear();
+                } else if self.page >= 2 {
+                    self.scroll = if down {
+                        self.scroll.saturating_add(1).min(
+                            self.explorer
+                                .section(&self.data, self.page)
+                                .rows
+                                .len()
+                                .saturating_sub(1),
+                        )
+                    } else {
+                        self.scroll.saturating_sub(1)
+                    };
+                }
+                window.request_redraw();
+            }
+            WindowEvent::KeyboardInput { event, .. }
+                if event.state == ElementState::Pressed
                     && event.logical_key == Key::Named(NamedKey::Escape) =>
             {
-                if self.menu.open {
+                if self.explorer.confirming {
+                    self.explorer.confirming = false;
+                    window.request_redraw();
+                } else if self.menu.open {
                     self.menu.open = false;
                     window.request_redraw();
                 } else {

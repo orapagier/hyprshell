@@ -1,34 +1,23 @@
-# Standalone Rust Hyprmonitor
+# Hyprmonitor task manager
 
-The monitor now owns its UI and settings instead of using a Quickshell
-controller. Its source is in `apps/hyprmonitor-rs`; see that project's README
-for the detailed readings, configuration, desktop support and build instructions.
+Hyprmonitor is a standalone Rust application in `apps/hyprmonitor-rs`, installed
+as `~/.local/bin/hyprmonitor`. Its window workspace was rewritten using the
+[official TMOG screenshots](https://tmog.org/) as references, with a compact
+Windows Task Manager style process table and nine resource destinations.
 
-Right-click anywhere in the monitor to open its native Rust settings menu.
-Configuration lives in `~/.config/hyprmonitor/config.toml`. Legacy Hyprshell
-monitor preferences are imported when no standalone configuration exists.
+The new workspace includes colored resource graphs, logical CPU mini graphs,
+sortable/searchable process columns, row selection, keyboard navigation,
+Pause/Resume and identity-checked End task confirmation. All original system,
+hardware, filesystem, network and power readings remain accessible. See the
+[application README](../apps/hyprmonitor-rs/README.md) for sampling semantics,
+controls, process-action safety and feature limits.
 
-The native executable is installed directly to `~/.local/bin/hyprmonitor`.
-It starts on demand rather than at login. Alt+I invokes
-`hyprmonitor --toggle-workspace` directly, starting it when needed; its application
-entry also launches it. Hiding pauses collection, while `hyprmonitor --quit`
-releases the process completely. On other Linux desktops, configure a
-shortcut for `hyprmonitor --toggle` or `hyprmonitor --settings` as desired.
+Alt+I retains `hyprmonitor --toggle-workspace`; other desktops can bind
+`hyprmonitor --toggle`. Right-click or the Settings button opens native settings.
+Preferences remain in `~/.config/hyprmonitor/config.toml`. Window mode uses the
+new workspace; explicit overlay mode retains the configurable desktop dashboard.
+No Quickshell, settings payload or global shortcut changes are required.
 
-The app selects a layer-shell overlay when available and otherwise uses a normal
-Wayland/X11 window. Background blur is compositor-dependent; the portable RGB
-window uses glass-styled cards on a dark background. NetworkManager and Bluetooth
-metadata come from native Rust D-Bus calls, with no Qt service bridge.
-
-The previous QML monitor renderer, Python collector, Quickshell controller and
-monitor settings card are removed from the source payload. Legacy settings
-validation remains for migration compatibility. Other Hyprshell settings and
-panels are unaffected.
-
-The standalone executable builds and passes all 16 native unit tests plus strict
-Clippy checks. The monitor migration is installed locally: Alt+I now targets the
-Rust executable in the on-disk shortcuts file. Run `hyprctl reload` from the
-Hyprland terminal to activate the binding if it has not reloaded automatically.
-The agent sandbox could not reach compositor IPC; interactive native backend and
-settings behavior still need live verification. Other desktops use the normal
-window fallback and their own shortcut configuration.
+Validation covers native unit tests, process identity rejection and termination
+of a test-owned child, strict Clippy, release compilation, and rendered previews.
+Desktop-session interaction cannot be verified from an isolated agent environment.

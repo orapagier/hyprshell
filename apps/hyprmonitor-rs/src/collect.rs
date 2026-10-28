@@ -42,6 +42,10 @@ pub struct Snapshot {
     pub cpu_history: VecDeque<f64>,
     pub memory_history: VecDeque<f64>,
     pub network_history: VecDeque<f64>,
+    pub disk_history: VecDeque<f64>,
+    pub gpu_history: VecDeque<f64>,
+    pub power_history: VecDeque<f64>,
+    pub core_history: Vec<VecDeque<f64>>,
     pub throttle_events: Option<u64>,
     pub new_throttle: bool,
     pub collection_us: u64,
@@ -346,6 +350,9 @@ impl Collector {
             &mut self.data.cpu_history,
             &mut self.data.memory_history,
             &mut self.data.network_history,
+            &mut self.data.disk_history,
+            &mut self.data.gpu_history,
+            &mut self.data.power_history,
         ] {
             while history.len() > self.config.history {
                 history.pop_front();
@@ -354,6 +361,9 @@ impl Collector {
     }
 
     pub fn resume(&mut self) {
+        for history in &mut self.data.core_history {
+            history.clear();
+        }
         self.cpu.clear();
         self.net.clear();
         self.blocks.clear();
@@ -447,14 +457,42 @@ impl Collector {
             .filter(|n| n.physical || !self.config.interfaces.is_empty())
             .filter_map(|n| Some(n.rx? + n.tx?))
             .reduce(|a, b| a + b);
+        let disk = self
+            .data
+            .disks
+            .iter()
+            .filter_map(|d| Some(d.read? + d.write?))
+            .reduce(|a, b| a + b);
+        let gpu = self
+            .data
+            .gpus
+            .iter()
+            .filter_map(|g| g.busy)
+            .reduce(f64::max);
+        let power = self
+            .data
+            .batteries
+            .iter()
+            .filter_map(|b| b.watts)
+            .reduce(|a, b| a + b);
+        self.data
+            .core_history
+            .resize_with(self.data.cores.len(), VecDeque::new);
+        for (history, value) in self.data.core_history.iter_mut().zip(&self.data.cores) {
+            while history.len() >= self.config.history {
+                history.pop_front();
+            }
+            history.push_back(value.unwrap_or(f64::NAN));
+        }
         for (history, value) in [
             (&mut self.data.cpu_history, cpu),
             (&mut self.data.memory_history, memory),
             (&mut self.data.network_history, network),
+            (&mut self.data.disk_history, disk),
+            (&mut self.data.gpu_history, gpu),
+            (&mut self.data.power_history, power),
         ] {
-            let Some(value) = value else {
-                continue;
-            };
+            let value = value.unwrap_or(f64::NAN);
             if history.len() >= self.config.history {
                 history.pop_front();
             }
@@ -838,6 +876,10 @@ mod tests {
             assert!(c.sample().cpu.is_some());
         }
         assert_eq!(c.data.cpu_history.len(), 10);
+        assert_eq!(c.data.disk_history.len(), 10);
+        assert_eq!(c.data.gpu_history.len(), 10);
+        assert_eq!(c.data.power_history.len(), 10);
+        assert!(c.data.core_history.iter().all(|h| h.len() <= 10));
         c.resume();
         assert_eq!(c.sample().cpu, None);
     }
