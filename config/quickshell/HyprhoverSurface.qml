@@ -16,9 +16,9 @@ Item {
     property bool instant: false
     readonly property var pageItem: loader.item
     readonly property var menuColors: glass.menuColors
-    readonly property real bodyWidth: Math.min(520, Math.max(0, width - 56))
+    readonly property real bodyWidth: Math.min(alignment === "center" ? 360 : 400, Math.max(0, width - 56))
     readonly property real bodyX: alignment === "left" ? 0 : alignment === "right" ? width - bodyWidth : (width - bodyWidth) / 2
-    property real bodyHeight: Math.min(Math.max(0, height - 32), 650, Math.max(260, scroll.contentHeight + 48))
+    property real bodyHeight: Math.min(Math.max(0, height - 32), 520, Math.max(180, scroll.contentHeight + 32))
     readonly property real foot: Math.min(28, Math.max(0, (width - bodyWidth) / 2), Math.max(0, height - bodyHeight))
     readonly property rect bodyRect: Qt.rect(bodyX, 0, bodyWidth, bodyHeight)
     readonly property bool rendering: opened || progress > 0.001 || sideways > 0.001
@@ -83,9 +83,9 @@ Item {
         MouseArea { x: surface.bodyX; width: surface.bodyWidth; height: surface.bodyHeight }
         Flickable {
             id: scroll
-            x: surface.bodyX + 24; y: 24
-            width: Math.max(0, surface.bodyWidth - 48)
-            height: Math.max(0, surface.bodyHeight - 48)
+            x: surface.bodyX + 16; y: 16
+            width: Math.max(0, surface.bodyWidth - 32)
+            height: Math.max(0, surface.bodyHeight - 32)
             contentWidth: width
             contentHeight: loader.item ? loader.item.implicitHeight : 0
             clip: true

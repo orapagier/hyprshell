@@ -16,7 +16,7 @@ Column {
     readonly property var symbols: ({launcher:"󰀻", settings:"󰒓", workspaces:"󰍹", media:"󰎆", calendar:"󰃭", tray:"󰀻", notifications:"󰂚", audio:"󰕾", wifi:"󰤨", bluetooth:"󰂯", battery:"󰁹", power:"󰐥"})
     signal dismissRequested()
     signal settingsRequested()
-    spacing: 18
+    spacing: 12
     function select(id) { if (tabs.includes(id)) selected = id; }
     function reconcile() { if (!tabs.includes(selected)) selected = tabs[0] || ""; }
     onTabsChanged: reconcile()
@@ -52,8 +52,8 @@ Column {
                 objectName: "hyprhoverTab-" + modelData
                 readonly property bool selected: content.selected === modelData
                 hoverEnabled: true
-                implicitWidth: caption.implicitWidth + 22
-                implicitHeight: 36
+                implicitWidth: caption.implicitWidth + 18
+                implicitHeight: 32
                 onHoveredChanged: if (hovered) content.select(modelData)
                 onClicked: content.select(modelData)
                 onActiveFocusChanged: if (activeFocus) content.select(modelData)
@@ -69,7 +69,7 @@ Column {
                     text: (content.symbols[tab.modelData] || "") + "  " + (content.labels[tab.modelData] || tab.modelData)
                     color: tab.selected ? content.menuColors.accent : content.menuColors.text
                     font.family: "GoMono Nerd Font"
-                    font.pixelSize: 12
+                    font.pixelSize: 11
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -80,7 +80,7 @@ Column {
     Text {
         text: content.labels[content.selected] || "No visible items"
         color: content.menuColors.text
-        font.pixelSize: 20
+        font.pixelSize: 17
         font.weight: Font.DemiBold
     }
     Loader {
@@ -102,7 +102,7 @@ Column {
     Component {
         id: appsPage
         LauncherMenu {
-            implicitHeight: 390
+            implicitHeight: 300
             height: implicitHeight
             applicationService: content.owner.applicationService
             wallpaperSource: content.owner.wallpaperSource
