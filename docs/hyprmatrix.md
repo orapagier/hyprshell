@@ -87,8 +87,9 @@ per wallpaper region. The refresh action retries even an unchanged image.
 ## Effects
 
 Appearance → Effect switches immediately between **Matrix**, **Shooting stars**,
-**Meteors**, and **Asteroids** and saves the choice. Existing configurations keep
-Matrix. Matrix retains evenly spaced character columns.
+and **Meteors** and saves the choice. Existing configurations keep Matrix. Old
+`asteroids` selections fall back to Shooting stars. Matrix retains evenly spaced
+character columns.
 
 Shooting stars and meteors use evenly spaced horizontal lanes, following
 Matrix's density spacing. Independently staggered passes keep the rain spread
@@ -99,14 +100,17 @@ About 88% continue through the bottom edge with their heads still bright, and
 their tails follow offscreen. The rest fade at varied heights between roughly
 18% and 82% of the screen. Rare diagonals may leave through a side edge.
 
-Shooting stars mixes fine streaks with brighter meteors (about 20% of events).
-Meteors mode keeps its brighter streaks. Comet-like passes have been removed.
-Pass duration follows screen height and speed, so slower passes still reach the
-bottom. These are stylized sky effects, with procedural trails.
+Shooting stars mixes fine streaks with brighter meteors (about 20% of non-comet
+events) and occasional comet-like streaks (about 8% of lanes). Meteors mode keeps its
+brighter streaks and includes these longer, slower comet-like passes too. The
+latter have a faint spreading tail around a narrow luminous core. Pass duration
+follows screen height and speed, so slower passes still reach the bottom. These
+are stylized sky effects, with procedural trails.
 
 Shooting stars also adds occasional stationary twinkles at random positions
 across the full screen. Each glint softly brightens and fades over 1.2–2.4
-seconds, with a small neutral-white core and four tapered rays. Independent
+seconds, with a neutral-white core and four tapered rays. About two-thirds are
+small points and one-third are larger glints, scaled by Particle size. Independent
 5–11 second intervals keep them sparse; each return chooses a new position and
 size. Density and opacity apply, while Speed leaves their timing unchanged.
 
@@ -119,40 +123,31 @@ the previous head reaches the bottom. Slower lanes use a slower cadence to avoid
 overcrowding.
 Shooting stars and Meteors have about 15% more stationary stars (about
 120 at 1080p/100%), with a mix of small points and larger stars across the upper
-half of the screen.
+half of the screen. Comet-like passes share the adjusted event frequency.
 Screen width and density determine the lane count. Very low density keeps
 at least one lane, with gaps when its occasional early burn-outs finish.
 Speed scales motion and timing. Most lanes match Matrix's typical pixel
 speed at the same Speed and size settings; about 15% use 40–65% of their ordinary
-speed. Independently, about 12% of
+speed, and comet-like lanes remain slower too. Independently, about 12% of
 events have heads and trails 1.8–2.8 times their usual size. Each event keeps
 its chosen speed, size and straight trajectory throughout its pass.
 Particle size scales heads and trails, with motion following Matrix's character
 row height. Matrix's density, motion and drawing remain unchanged.
 
-Asteroids retain predominantly upper-left to lower-right paths, occasional other
-downward headings, and steady size/speed during each tumbling pass. They cross the
-view and exit without wrapping. About 90% of sizes stay within 6% of Particle
-size, with occasional 20% smaller/larger rocks; about 90% of speeds stay within
-4% of Speed, with occasional 25% slower/faster passes. These variations are
-independent.
-
-All three space modes include a subtle stationary starfield; Asteroids retains
-its existing full-screen starfield and particle counts. Each star stays in
+Both space modes include a subtle stationary starfield. Each star stays in
 place with a fixed size and brightness for most of an 18–40 second lifetime,
 then fades away and returns at a new position, size and brightness. These stars
-use a cool neutral light, including in Asteroids mode, and renew independently
-of the moving-particle Speed setting. Density and opacity apply to them too.
-Shooting stars have fine tapered streaks and small luminous heads; meteors have
-longer, thicker trails and brighter heads; asteroids are shaded, tumbling rocks
-with craters. They are drawn procedurally without image assets or a GPU context.
+use a cool neutral light and renew independently of the moving-particle Speed
+setting. Density and opacity apply to them too. Shooting stars have fine tapered
+streaks and small luminous heads; meteors have longer, thicker trails and brighter
+heads. They are drawn procedurally without image assets or a GPU context.
 
 Color, rain opacity, background, density, speed and frame limit apply to every
 effect. Character size becomes Particle size for space effects. Lower Density
 widens Matrix column spacing or reduces the number of sky events; zero hides
 all particles. The Window layer control shares the settings page with appearance
 controls. Reset appearance restores Matrix and the usual defaults.
-The saved `effect` values are `matrix`, `shooting_stars`, `meteors`, and `asteroids`.
+The saved `effect` values are `matrix`, `shooting_stars`, and `meteors`.
 
 ## Resource design
 

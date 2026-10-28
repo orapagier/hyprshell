@@ -6,18 +6,17 @@ use std::{collections::BTreeMap, fs, path::PathBuf};
 pub enum Effect {
     #[default]
     Matrix,
+    #[serde(alias = "asteroids")]
     ShootingStars,
     Meteors,
-    Asteroids,
 }
 impl Effect {
-    pub const ALL: [Self; 4] = [Self::Matrix, Self::ShootingStars, Self::Meteors, Self::Asteroids];
+    pub const ALL: [Self; 3] = [Self::Matrix, Self::ShootingStars, Self::Meteors];
     pub fn label(self) -> &'static str {
         match self {
             Self::Matrix => "Matrix",
             Self::ShootingStars => "Shooting stars",
             Self::Meteors => "Meteors",
-            Self::Asteroids => "Asteroids",
         }
     }
 }
@@ -164,6 +163,15 @@ mod tests {
             assert!(parsed.validate().is_ok());
         }
         assert!(toml::from_str::<Config>("effect = 'unknown'").is_err());
+    }
+    #[test]
+    fn removed_asteroids_configs_load_as_shooting_stars() {
+        let c: Config = toml::from_str("effect = 'asteroids'\nopacity = 0.8\n[workspace_overrides]\n1 = true").unwrap();
+        assert_eq!(c.effect,Effect::ShootingStars);
+        assert_eq!(c.opacity,0.8);
+        assert!(c.visible_on(Some("1")));
+        assert!(c.validate().is_ok());
+        assert!(toml::to_string(&c).unwrap().contains("shooting_stars"));
     }
     #[test]
     fn stacking_defaults_behind_and_roundtrips() {

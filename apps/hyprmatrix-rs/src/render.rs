@@ -164,9 +164,6 @@ impl Renderer {
         for level in 0..18 {
             let color = if level == 17 {
                 [210,225,245]
-            } else if c.effect == Effect::Asteroids {
-                let light = 0.18 + level as f32/16.0*0.72;
-                color.map(|v| ((v as f32*0.35+100.0)*light) as u8)
             } else if level == 16 {
                 if color.iter().all(|v| *v <= 110) && c.background < 0.2 {
                     color.map(|v| (v as f32 * 0.35) as u8)
@@ -176,7 +173,7 @@ impl Renderer {
             } else {
                 color
             };
-            let fade = if c.effect == Effect::Asteroids || level >= 16 {
+            let fade = if level >= 16 {
                 1.0
             } else {
                 (level as f32 / 15.0).powf(1.5) * 0.85
@@ -607,7 +604,7 @@ mod tests {
     fn stationary_stars_keep_a_neutral_palette_in_every_space_effect() {
         let mut c=Config { theme: "amber".into(),..Config::default() };
         let mut r=Renderer::new(&c).unwrap();
-        for effect in [Effect::ShootingStars,Effect::Meteors,Effect::Asteroids] {
+        for effect in [Effect::ShootingStars,Effect::Meteors] {
             c.effect=effect;
             r.tables(&c,c.color([0;3]),1.0);
             assert_eq!(r.table[17*256+255],argb([210,225,245],(c.opacity*255.0) as u32,0));
@@ -623,7 +620,7 @@ mod tests {
         let mut actual = vec![0;(w*h) as usize];
         let mut expected = actual.clone();
         for frame in 0..120 {
-            c.effect = Effect::ALL[(frame/20)%4];
+            c.effect = Effect::ALL[(frame/20)%Effect::ALL.len()];
             if frame == 12 { c.density=1.0; }
             if frame == 25 { c.font_size=32; }
             if frame == 45 { c.opacity=0.4; c.background=0.2; }
@@ -649,12 +646,12 @@ mod tests {
     #[test]
     fn effect_selector_cycles_in_both_directions_and_reset_restores_matrix() {
         let mut c = Config::default();
-        for effect in Effect::ALL.into_iter().cycle().skip(1).take(8) {
+        for effect in Effect::ALL.into_iter().cycle().skip(1).take(Effect::ALL.len()*2) {
             adjust(&mut c,18,true);
             assert_eq!(c.effect,effect);
         }
         adjust(&mut c,18,false);
-        assert_eq!(c.effect,Effect::Asteroids);
+        assert_eq!(c.effect,Effect::Meteors);
         assert_eq!(labels(&c)[6].0,"Particle size");
         adjust(&mut c,13,true);
         assert_eq!(c.effect,Effect::Matrix);
