@@ -71,18 +71,16 @@ fn streak_path(seed: u32, region: u32, (w,h): (u32,u32))
     -> ((f32,f32),f32,(i16,i16)) {
     // Equal-width birth regions get the same opportunities, with fresh jitter.
     let x = w as f32*(region as f32+0.03+unit(seed.wrapping_add(701))*0.94)/3.0;
-    let vertical = region==1 && unit(seed.wrapping_add(711))<0.65;
+    let vertical = unit(seed.wrapping_add(711))<0.80;
     let y = h as f32*if vertical {
         0.02+unit(seed.wrapping_add(709))*0.12
     } else { 0.04+unit(seed.wrapping_add(709)).powf(1.4)*0.51 };
-    // Mirrored side distributions remove a preferred diagonal; central events
-    // mostly fall straight down, while the rest have symmetric angle variation.
-    let tilt = unit(seed.wrapping_add(713));
-    let degrees = if vertical { 90.0 } else { match region {
-        0 => 28.0+tilt*70.0,
-        2 => 152.0-tilt*70.0,
-        _ => 35.0+tilt*110.0,
-    }};
+    // Vertical rain dominates every birth region; occasional diagonals vary
+    // their angle and choose either side independently of their screen position.
+    let tilt = 12.0+unit(seed.wrapping_add(713))*50.0;
+    let degrees = if vertical { 90.0 } else {
+        90.0+tilt*if unit(seed.wrapping_add(717))<0.5 { -1.0 } else { 1.0 }
+    };
     let (dy,dx) = degrees.to_radians().sin_cos();
     let direction = ((dx*10000.0).round() as i16,(dy*10000.0).round() as i16);
     let (dx,dy)=(direction.0 as f32/10000.0,direction.1 as f32/10000.0);
@@ -97,6 +95,19 @@ fn streak_pace(c: &Config) -> f32 {
     // typical pixel velocity, scaling the entire event clock so slower motion
     // lengthens each pass without piling up extra simultaneous streaks.
     9.0*(c.font_size+5) as f32/(975.0*(c.font_size as f32/16.0))
+}
+
+// Independent event choices keep slow and large passes scattered among the rain.
+fn streak_speed_variation(seed: u32) -> f32 {
+    if unit(seed.wrapping_add(751))<0.15 {
+        0.40+unit(seed.wrapping_add(757))*0.25
+    } else { 1.0 }
+}
+
+fn streak_size_variation(seed: u32) -> f32 {
+    if unit(seed.wrapping_add(761))<0.12 {
+        1.8+unit(seed.wrapping_add(769))
+    } else { size_variation(seed) }
 }
 
 /// Stateless random time windows allow quiet gaps and overlapping events without
@@ -131,6 +142,7 @@ fn streaks(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
                 let ((x,y),distance,direction) = streak_path(event,region,(w,h));
                 let comet = unit(event.wrapping_add(43))<0.08;
                 let speed = (650.0+unit(event.wrapping_add(31))*650.0)*size
+                    *streak_speed_variation(event)
                     *if comet { 0.38 } else { 1.0 };
                 let distance = distance.min(speed*if comet { 3.8 } else { 1.35 });
                 let duration = distance/speed;
@@ -140,7 +152,7 @@ fn streaks(out: &mut Vec<Particle>, (w,h): (u32,u32), c: &Config, time: f32) {
                 let envelope = fade*fade*(3.0-2.0*fade);
                 let bright = c.effect==Effect::Meteors || unit(event.wrapping_add(37))<0.20;
                 let effect = if bright || comet { Effect::Meteors } else { Effect::ShootingStars };
-                let scale = size*size_variation(event);
+                let scale = size*streak_size_variation(event);
                 let tail = (if comet { 280.0 } else if bright { 125.0 } else { 65.0 })*scale;
                 let tail = tail.min(age*speed).min(distance*if comet { 0.85 } else { 0.60 })
                     *(1.0-((phase-0.65)/0.35).clamp(0.0,1.0)*0.65);
@@ -323,7 +335,8 @@ mod tests {
     fn streaks_use_varied_origins_and_burn_out_inside_the_view() {
         for (w,h) in [(640,520),(1920,1080),(360,4320),(7680,460)] {
             let mut regions=[0;3];
-            let mut directions=[0;2];
+            let mut directions=[[0;3];3];
+            let mut diagonal_angles=std::collections::HashSet::new();
             let mut middle=0;
             for seed in 0..1000 {
                 let ((x,y),distance,dir)=streak_path(seed,seed%3,(w,h));
@@ -334,13 +347,39 @@ mod tests {
                 assert!(x>=0.0 && x<w as f32 && end_x>=0.0 && end_x<w as f32);
                 assert!(end_y<h as f32);
                 regions[((x/w as f32*3.0) as usize).min(2)]+=1;
-                directions[usize::from(dx>0.0)]+=1;
+                let heading=if dir.0==0 { 1 } else if dir.0<0 { 0 } else { 2 };
+                directions[(seed%3) as usize][heading]+=1;
+                if dir.0!=0 {
+                    let tilt=(dy.atan2(dx).to_degrees()-90.0).abs();
+                    assert!((11.9..=62.1).contains(&tilt));
+                    diagonal_angles.insert(tilt.round() as i32);
+                }
                 if y>h as f32*0.3 { middle+=1; }
             }
             assert!(regions.iter().all(|count| *count>200));
-            assert!(directions.iter().all(|count| *count>350));
-            assert!(middle>200);
+            for [left,vertical,right] in directions {
+                assert!((240..=290).contains(&vertical),"{directions:?}");
+                assert!(left>15 && right>15,"{directions:?}");
+            }
+            assert!(diagonal_angles.len()>35);
+            assert!(middle>30);
         }
+    }
+    #[test]
+    fn streaks_include_independent_slow_and_large_passes() {
+        let (mut slow,mut large,mut both)=(0,0,0);
+        for seed in 0..10000 {
+            let speed=streak_speed_variation(seed);
+            let size=streak_size_variation(seed);
+            assert!(speed==1.0 || (0.40..=0.65).contains(&speed));
+            assert!((0.8..=1.2).contains(&size) || (1.8..=2.8).contains(&size));
+            if speed<1.0 { slow+=1; }
+            if size>1.2 { large+=1; }
+            if speed<1.0 && size>1.2 { both+=1; }
+        }
+        assert!((1300..=1700).contains(&slow),"{slow} slow passes");
+        assert!((1000..=1400).contains(&large),"{large} large passes");
+        assert!((100..=260).contains(&both),"{both} slow large passes");
     }
     #[test]
     fn shooting_stars_have_quiet_gaps_bursts_and_occasional_bright_meteors() {
@@ -522,6 +561,7 @@ mod tests {
                             47.0*c.font_size as f32/16.0*speed_variation(p.seed)
                         } else {
                             (650.0+unit(p.seed.wrapping_add(31))*650.0)*c.font_size as f32/16.0
+                                *streak_speed_variation(p.seed)
                                 *(if p.comet { 0.38 } else { 1.0 })*streak_pace(&c)
                         };
                         let distance=((p.x-old.x) as f32).hypot((p.y-old.y) as f32);
@@ -540,7 +580,7 @@ mod tests {
         }
     }
     #[test]
-    fn streak_motion_matches_matrix_pixel_speed_at_all_size_and_speed_settings() {
+    fn ordinary_streak_motion_matches_matrix_pixel_speed_at_all_size_and_speed_settings() {
         for effect in [Effect::ShootingStars,Effect::Meteors] {
             for font_size in [10,12,16,24,32] {
                 for speed in [1.0,6.0,9.0,30.0] {
@@ -556,7 +596,8 @@ mod tests {
                         let time=(12.0+frame as f32/2.0)/streak_pace(&c)*9.0/speed;
                         generate(&mut before,(1920,1080),&c,time);
                         generate(&mut after,(1920,1080),&c,time+dt);
-                        for p in before.iter().filter(|p| !p.stationary && !p.comet) {
+                        for p in before.iter().filter(|p| !p.stationary && !p.comet
+                            && streak_speed_variation(p.seed)==1.0) {
                             if let Some(next)=after.iter().find(|next| next.seed==p.seed && !next.stationary) {
                                 total+=((next.x-p.x) as f32).hypot((next.y-p.y) as f32)/dt;
                                 count+=1;

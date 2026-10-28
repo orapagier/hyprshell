@@ -92,9 +92,10 @@ Matrix. Matrix retains evenly spaced character columns.
 
 Shooting stars and meteors use balanced left, center and right birth regions.
 Each group offers all three regions an event, with independent random positions,
-headings and birth times; there is no visible left/center/right rotation. Side
-headings mirror each other. About 65% of central events start near the top and
-fall exactly straight down; other events ignite across the upper and middle sky.
+headings and birth times; there is no visible left/center/right rotation. About
+80% of events in every region start near the top and fall exactly straight down.
+The rest ignite across the upper and middle sky, randomly heading left or right
+at angles from 12° to 62° away from vertical.
 Streaks brighten and burn out inside the view, with irregular gaps,
 overlaps and occasional two- or three-event clusters.
 
@@ -117,8 +118,11 @@ half of the screen. Comet-like passes share the adjusted event frequency.
 Screen width and streak lifetimes scale
 event frequency so smaller screens keep a similarly busy sky.
 Very low density retains quiet gaps.
-Speed scales motion and timing. Ordinary streaks match Matrix's typical pixel
-speed at the same Speed and size settings; comet-like passes remain slower.
+Speed scales motion and timing. Most streaks match Matrix's typical pixel
+speed at the same Speed and size settings; about 15% use 40–65% of their ordinary
+speed, and comet-like passes remain slower too. Independently, about 12% of
+events have heads and trails 1.8–2.8 times their usual size. Each event keeps
+its chosen speed, size and straight trajectory throughout its pass.
 Particle size scales heads and trails, with motion following Matrix's character
 row height. Matrix's density, motion and drawing remain unchanged.
 
