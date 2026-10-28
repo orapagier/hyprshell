@@ -99,12 +99,16 @@ About 88% continue through the bottom edge with their heads still bright, and
 their tails follow offscreen. The rest fade at varied heights between roughly
 18% and 82% of the screen. Rare diagonals may leave through a side edge.
 
-Shooting stars mixes fine streaks with brighter meteors (about 20% of non-comet
-events) and occasional comet-like streaks (about 8% of lanes). Meteors mode keeps its
-brighter streaks and includes these longer, slower comet-like passes too. The
-latter have a faint spreading tail around a narrow luminous core. Pass duration
-follows screen height and speed, so slower passes still reach the bottom. These
-are stylized sky effects, with procedural trails.
+Shooting stars mixes fine streaks with brighter meteors (about 20% of events).
+Meteors mode keeps its brighter streaks. Comet-like passes have been removed.
+Pass duration follows screen height and speed, so slower passes still reach the
+bottom. These are stylized sky effects, with procedural trails.
+
+Shooting stars also adds occasional stationary twinkles at random positions
+across the full screen. Each glint softly brightens and fades over 1.2–2.4
+seconds, with a small neutral-white core and four tapered rays. Independent
+5–11 second intervals keep them sparse; each return chooses a new position and
+size. Density and opacity apply, while Speed leaves their timing unchanged.
 
 Fine tapered trails grow behind small neutral-white heads; the minority of
 passes that burn out early shorten their tails as they fade. Color tints the
@@ -115,12 +119,12 @@ the previous head reaches the bottom. Slower lanes use a slower cadence to avoid
 overcrowding.
 Shooting stars and Meteors have about 15% more stationary stars (about
 120 at 1080p/100%), with a mix of small points and larger stars across the upper
-half of the screen. Comet-like passes share the adjusted event frequency.
+half of the screen.
 Screen width and density determine the lane count. Very low density keeps
 at least one lane, with gaps when its occasional early burn-outs finish.
 Speed scales motion and timing. Most lanes match Matrix's typical pixel
 speed at the same Speed and size settings; about 15% use 40–65% of their ordinary
-speed, and comet-like lanes remain slower too. Independently, about 12% of
+speed. Independently, about 12% of
 events have heads and trails 1.8–2.8 times their usual size. Each event keeps
 its chosen speed, size and straight trajectory throughout its pass.
 Particle size scales heads and trails, with motion following Matrix's character
