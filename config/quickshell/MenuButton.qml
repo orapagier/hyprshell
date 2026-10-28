@@ -6,6 +6,12 @@ import QtQuick.Controls
 Button {
     id: control
     readonly property var menuColors: Colors.menuColorsFor(control)
+    // Drawers can opt into pill controls without changing other menus.
+    property bool pillShape: {
+        for (let item = parent; item; item = item.parent)
+            if (item.roundedMenuButtons !== undefined) return item.roundedMenuButtons;
+        return false;
+    }
     hoverEnabled: true
     scale: down ? 0.98 : 1
     Behavior on scale { NumberAnimation { duration: Style.Theme.duration(control, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }
@@ -28,7 +34,7 @@ Button {
         verticalAlignment: Text.AlignVCenter
     }
     background: Rectangle {
-        radius: control.down ? 10 : control.hovered ? 14 : 8
+        radius: control.pillShape ? height / 2 : control.down ? 10 : control.hovered ? 14 : 8
         color: control.down ? control.pressedColor : control.hovered || control.activeFocus ? control.hoverColor : control.fillColor
         Behavior on color { ColorAnimation { duration: Style.Theme.duration(control, Style.Theme.hoverDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.effectsCurve } }
         Behavior on radius { NumberAnimation { duration: Style.Theme.duration(control, Style.Theme.spatialDuration); easing.type: Easing.BezierSpline; easing.bezierCurve: Style.Theme.spatialCurve } }

@@ -6,6 +6,7 @@ import "AdaptiveColors.js" as Colors
 
 Column {
     id: content
+    readonly property bool roundedMenuButtons: true
     required property var owner
     property string group: "left"
     readonly property var menuColors: Colors.menuColorsFor(content)
@@ -39,39 +40,75 @@ Column {
         Text { text: "HYPRHOVER"; color: content.menuColors.secondary; font.pixelSize: 10; font.letterSpacing: 2; width: parent.width - 40 }
         Text { text: "esc"; color: content.menuColors.secondary; font.pixelSize: 11 }
     }
-    Flow {
+    Flickable {
         id: tabStrip
         objectName: "hyprhoverTabs"
         width: parent.width
-        spacing: 6
-        Repeater {
-            model: content.tabs
-            delegate: Button {
-                id: tab
-                required property string modelData
-                objectName: "hyprhoverTab-" + modelData
-                readonly property bool selected: content.selected === modelData
-                hoverEnabled: true
-                implicitWidth: caption.implicitWidth + 18
-                implicitHeight: 32
-                onHoveredChanged: if (hovered) content.select(modelData)
-                onClicked: content.select(modelData)
-                onActiveFocusChanged: if (activeFocus) content.select(modelData)
-                background: Rectangle {
-                    radius: 11
-                    color: Qt.rgba(content.menuColors.accent.r, content.menuColors.accent.g, content.menuColors.accent.b, tab.selected ? 0.20 : tab.hovered ? 0.10 : 0.04)
-                    border.width: tab.selected ? 1 : 0
-                    border.color: Qt.rgba(content.menuColors.accent.r, content.menuColors.accent.g, content.menuColors.accent.b, 0.3)
-                    Behavior on color { ColorAnimation { duration: 120 } }
-                }
-                contentItem: Text {
-                    id: caption
-                    text: (content.symbols[tab.modelData] || "") + "  " + (content.labels[tab.modelData] || tab.modelData)
-                    color: tab.selected ? content.menuColors.accent : content.menuColors.text
-                    font.family: "GoMono Nerd Font"
-                    font.pixelSize: 11
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignHCenter
+        height: tabRow.height + (contentWidth > width ? 6 : 0)
+        contentWidth: tabRow.width
+        contentHeight: height
+        clip: true
+        flickableDirection: Flickable.HorizontalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
+        function revealTab(tab) {
+            if (tab.x < contentX) contentX = tab.x;
+            else if (tab.x + tab.width > contentX + width) contentX = tab.x + tab.width - width;
+            contentX = Math.max(0, Math.min(Math.max(0, contentWidth - width), contentX));
+        }
+        WheelHandler {
+            target: null
+            onWheel: event => {
+                if (tabStrip.contentWidth <= tabStrip.width) { event.accepted = false; return; }
+                let delta = event.pixelDelta.x || event.pixelDelta.y || (event.angleDelta.x || event.angleDelta.y) / 3;
+                tabStrip.contentX = Math.max(0, Math.min(tabStrip.contentWidth - tabStrip.width, tabStrip.contentX - delta));
+                event.accepted = true;
+            }
+        }
+        Row {
+            id: tabRow
+            spacing: 6
+            Repeater {
+                model: content.tabs
+                delegate: Button {
+                    id: tab
+                    required property string modelData
+                    objectName: "hyprhoverTab-" + modelData
+                    readonly property bool selected: content.selected === modelData
+                    hoverEnabled: true
+                    implicitWidth: caption.implicitWidth + 24
+                    implicitHeight: 32
+                    onHoveredChanged: if (hovered) content.select(modelData)
+                    onClicked: content.select(modelData)
+                    onActiveFocusChanged: if (activeFocus) { content.select(modelData); tabStrip.revealTab(tab); }
+                    background: Rectangle {
+                        radius: height / 2
+                        color: Qt.rgba(content.menuColors.accent.r, content.menuColors.accent.g, content.menuColors.accent.b, tab.selected ? 0.24 : tab.hovered ? 0.12 : 0.045)
+                        border.width: 1
+                        border.color: Qt.rgba(content.menuColors.accent.r, content.menuColors.accent.g, content.menuColors.accent.b, tab.selected ? 0.4 : 0.10)
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                    }
+                    contentItem: Row {
+                        id: caption
+                        spacing: 6
+                        Text {
+                            text: content.symbols[tab.modelData] || ""
+                            height: parent.height
+                            color: tab.selected ? content.menuColors.accent : content.menuColors.secondary
+                            font.family: "GoMono Nerd Font"
+                            font.pixelSize: 12
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        Text {
+                            text: content.labels[tab.modelData] || tab.modelData
+                            height: parent.height
+                            color: tab.selected ? content.menuColors.accent : content.menuColors.text
+                            font.family: "Noto Sans"
+                            font.pixelSize: 11
+                            font.weight: tab.selected ? Font.DemiBold : Font.Normal
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
                 }
             }
         }
