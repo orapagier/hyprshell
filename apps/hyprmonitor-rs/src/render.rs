@@ -118,6 +118,7 @@ pub fn sections(d: &Snapshot) -> Vec<Section> {
         row("CPU", &d.cpu_model),
         row("Topology", &d.extra.topology),
         row("Usage", metric(d.cpu, "%")),
+        row("CPU stall pressure (10s)", metric(d.cpu_pressure, "%")),
         row(
             "Frequency",
             metric(d.frequency_mhz.map(|n| n / 1000.0), " GHz avg"),
@@ -205,7 +206,7 @@ pub fn sections(d: &Snapshot) -> Vec<Section> {
     for p in &d.top_memory {
         memory.push(row(format!("{} ({})", p.name, p.pid), b(p.memory)));
     }
-    let mut storage = vec![];
+    let mut storage = vec![row("I/O stall pressure (10s)", metric(d.io_pressure, "%"))];
     for (i, disk) in d
         .disks
         .iter()
@@ -659,6 +660,497 @@ impl Renderer {
         lines
     }
 
+    fn process_table(
+        &mut self,
+        pix: &mut Pixmap,
+        data: &Snapshot,
+        view: &crate::explorer::Explorer,
+        scroll: usize,
+        x: f32,
+        width: f32,
+        height: f32,
+    ) {
+        let rows = view.rows(data);
+        let accent = self.accent;
+        self.rect(pix, x, 104.0, width - 90.0, 34.0, 6.0, [34, 47, 65], 1.0);
+        self.text(
+            pix,
+            &format!(
+                "{}{}",
+                if view.searching {
+                    "Search: "
+                } else {
+                    "Search name / PID: "
+                },
+                view.query
+            ),
+            x + 10.0,
+            113.0,
+            12.0,
+            TEXT,
+            width - 115.0,
+        );
+        self.text(
+            pix,
+            if view.paused { "Resume" } else { "Pause" },
+            x + width - 78.0,
+            113.0,
+            12.0,
+            accent,
+            78.0,
+        );
+        for (i, label) in crate::explorer::SORTS.iter().enumerate() {
+            let bx = x + i as f32 * width / 7.0;
+            self.text(
+                pix,
+                &format!(
+                    "{}{}",
+                    label,
+                    if i == view.sort {
+                        if view.ascending {
+                            " ↑"
+                        } else {
+                            " ↓"
+                        }
+                    } else {
+                        ""
+                    }
+                ),
+                bx + 3.0,
+                157.0,
+                11.0,
+                if i == view.sort { accent } else { MUTED },
+                width / 7.0 - 4.0,
+            );
+        }
+        self.text(
+            pix,
+            &format!(
+                "{} / {} processes · CPU 100% = one logical CPU · RSS includes shared pages",
+                rows.len(),
+                data.processes.len()
+            ),
+            x,
+            188.0,
+            10.0,
+            MUTED,
+            width,
+        );
+        let visible = ((height - 244.0) / 68.0).max(1.0) as usize;
+        let start = scroll.min(rows.len().saturating_sub(visible));
+        for (i, p) in rows.iter().skip(start).take(visible).enumerate() {
+            let y = 214.0 + i as f32 * 68.0;
+            self.rect(pix, x, y, width, 62.0, 6.0, [24, 35, 51], 1.0);
+            self.text(
+                pix,
+                &format!("{}  /  {}", p.name, p.pid),
+                x + 10.0,
+                y + 8.0,
+                12.0,
+                TEXT,
+                width * 0.55,
+            );
+            self.text(
+                pix,
+                &format!("{} CPU · {}", metric(p.cpu, "%"), b(p.memory)),
+                x + width * 0.56,
+                y + 8.0,
+                11.0,
+                accent,
+                width * 0.42,
+            );
+            self.text(
+                pix,
+                &format!(
+                    "{} · parent {} · {} threads · read {}/s · write {}/s",
+                    p.state,
+                    p.parent,
+                    p.threads,
+                    rate(p.read_rate),
+                    rate(p.write_rate)
+                ),
+                x + 10.0,
+                y + 35.0,
+                10.0,
+                MUTED,
+                width - 20.0,
+            );
+        }
+        if rows.is_empty() {
+            self.text(
+                pix,
+                "No matching processes",
+                x + 10.0,
+                230.0,
+                14.0,
+                MUTED,
+                width,
+            );
+        }
+        self.text(
+            pix,
+            &format!(
+                "Rows {}–{} of {} · Click a sort label to reverse · Esc clears search",
+                if rows.is_empty() { 0 } else { start + 1 },
+                (start + visible).min(rows.len()),
+                rows.len()
+            ),
+            x,
+            height - 22.0,
+            10.0,
+            MUTED,
+            width,
+        );
+    }
+
+    pub fn render_window(
+        &mut self,
+        data: &Snapshot,
+        width: u32,
+        height: u32,
+        page: usize,
+        scroll: usize,
+        explorer: &crate::explorer::Explorer,
+    ) -> Result<Pixmap, String> {
+        self.scale = 1.0;
+        let mut pix = Pixmap::new(width, height).ok_or("Invalid window size")?;
+        pix.fill(Color::from_rgba8(12, 18, 29, 255));
+        let w = width as f32;
+        let h = height as f32;
+        let accent = self.accent;
+        self.rect(&mut pix, 0.0, 0.0, 196.0, h, 0.0, [19, 28, 43], 1.0);
+        self.text(&mut pix, "HYPRMONITOR", 22.0, 26.0, 17.0, TEXT, 170.0);
+        self.text(
+            &mut pix,
+            "System intelligence",
+            22.0,
+            54.0,
+            11.0,
+            MUTED,
+            170.0,
+        );
+        let labels = crate::explorer::PAGES;
+        for (i, label) in labels.iter().enumerate() {
+            let y = 104.0 + i as f32 * 44.0;
+            if i == page {
+                self.rect(&mut pix, 12.0, y, 172.0, 36.0, 9.0, accent, 0.13);
+                self.rect(&mut pix, 12.0, y + 9.0, 3.0, 18.0, 1.0, accent, 1.0);
+            }
+            self.text(
+                &mut pix,
+                label,
+                28.0,
+                y + 9.0,
+                12.0,
+                if i == page { accent } else { MUTED },
+                151.0,
+            );
+        }
+        self.rect(
+            &mut pix,
+            12.0,
+            h - 56.0,
+            172.0,
+            36.0,
+            9.0,
+            [34, 47, 65],
+            1.0,
+        );
+        self.text(&mut pix, "Settings", 28.0, h - 47.0, 12.0, TEXT, 150.0);
+        let x = 222.0;
+        let cw = (w - x - 26.0).max(100.0);
+        self.text(
+            &mut pix,
+            labels[page.min(labels.len() - 1)],
+            x,
+            26.0,
+            26.0,
+            TEXT,
+            cw,
+        );
+        self.text(
+            &mut pix,
+            if explorer.paused {
+                "PAUSED  /  Frozen snapshot"
+            } else {
+                "LIVE  /  Resource activity"
+            },
+            x,
+            66.0,
+            11.0,
+            accent,
+            cw,
+        );
+        if page == 0 {
+            let ram = if data.memory.total > 0 {
+                data.memory.used as f64 / data.memory.total as f64 * 100.0
+            } else {
+                0.0
+            };
+            let cards = [
+                ("PROCESSOR", metric(data.cpu, "%")),
+                (
+                    "MEMORY",
+                    if data.memory.total > 0 {
+                        format!("{ram:.1}%")
+                    } else {
+                        "—".into()
+                    },
+                ),
+                ("PROCESSES", data.processes.len().to_string()),
+                (
+                    "NETWORK RX + TX",
+                    format!(
+                        "{}/s",
+                        rate(
+                            data.networks
+                                .iter()
+                                .filter(|n| n.physical)
+                                .filter_map(|n| Some(n.rx? + n.tx?))
+                                .reduce(|a, b| a + b)
+                        )
+                    ),
+                ),
+                (
+                    "DISK READ + WRITE",
+                    format!(
+                        "{}/s",
+                        rate(
+                            data.disks
+                                .iter()
+                                .filter_map(|d| Some(d.read? + d.write?))
+                                .reduce(|a, b| a + b)
+                        )
+                    ),
+                ),
+                (
+                    "BATTERY DRAW",
+                    metric(
+                        data.batteries
+                            .iter()
+                            .filter_map(|b| b.watts)
+                            .reduce(|a, b| a + b),
+                        " W",
+                    ),
+                ),
+            ];
+            let card_w = (cw - 24.0) / 3.0;
+            for (i, (label, value)) in cards.iter().enumerate() {
+                let cx = x + (i % 3) as f32 * (card_w + 12.0);
+                let cy = (i / 3) as f32 * 120.0;
+                self.rect(
+                    &mut pix,
+                    cx,
+                    108.0 + cy,
+                    card_w,
+                    108.0,
+                    12.0,
+                    [24, 35, 51],
+                    1.0,
+                );
+                self.text(
+                    &mut pix,
+                    label,
+                    cx + 16.0,
+                    124.0 + cy,
+                    10.0,
+                    MUTED,
+                    card_w - 32.0,
+                );
+                self.text(
+                    &mut pix,
+                    value,
+                    cx + 16.0,
+                    153.0 + cy,
+                    22.0,
+                    accent,
+                    card_w - 32.0,
+                );
+            }
+            self.text(
+                &mut pix,
+                "Processes · highest CPU activity",
+                x,
+                364.0,
+                17.0,
+                TEXT,
+                cw,
+            );
+            self.text(
+                &mut pix,
+                "100% CPU = one thread · sampled process leaders",
+                x,
+                394.0,
+                11.0,
+                MUTED,
+                cw,
+            );
+            self.text(
+                &mut pix,
+                "NAME / PID",
+                x + 16.0,
+                430.0,
+                10.0,
+                MUTED,
+                cw * 0.55,
+            );
+            self.text(&mut pix, "CPU", x + cw * 0.6, 430.0, 10.0, MUTED, 80.0);
+            self.text(&mut pix, "MEMORY", x + cw * 0.8, 430.0, 10.0, MUTED, 100.0);
+            for (i, p) in data.top_cpu.iter().skip(scroll).enumerate() {
+                let y = 458.0 + i as f32 * 42.0;
+                if y + 42.0 > h - 24.0 {
+                    break;
+                }
+                self.rect(
+                    &mut pix,
+                    x,
+                    y,
+                    cw,
+                    38.0,
+                    6.0,
+                    [24, 35, 51],
+                    if i % 2 == 0 { 0.8 } else { 0.3 },
+                );
+                self.text(
+                    &mut pix,
+                    &format!("{}  /  {}", p.name, p.pid),
+                    x + 16.0,
+                    y + 10.0,
+                    12.0,
+                    TEXT,
+                    cw * 0.55,
+                );
+                self.text(
+                    &mut pix,
+                    &metric(p.cpu, "%"),
+                    x + cw * 0.6,
+                    y + 10.0,
+                    12.0,
+                    accent,
+                    cw * 0.18,
+                );
+                self.text(
+                    &mut pix,
+                    &b(p.memory),
+                    x + cw * 0.8,
+                    y + 10.0,
+                    12.0,
+                    TEXT,
+                    cw * 0.19,
+                );
+            }
+        } else if page == 1 {
+            self.process_table(&mut pix, data, explorer, scroll, x, cw, h);
+        } else {
+            let section = explorer.section(data, page);
+            let offset = if page == 2 { 48.0 } else { 0.0 };
+            if page == 2 {
+                for (i, label) in crate::explorer::PERFORMANCE.iter().enumerate() {
+                    let bx = x + i as f32 * cw / 4.0;
+                    self.rect(
+                        &mut pix,
+                        bx,
+                        104.0,
+                        cw / 4.0 - 6.0,
+                        34.0,
+                        6.0,
+                        accent,
+                        if i == explorer.performance {
+                            0.22
+                        } else {
+                            0.06
+                        },
+                    );
+                    self.text(
+                        &mut pix,
+                        label,
+                        bx + 8.0,
+                        113.0,
+                        11.0,
+                        if i == explorer.performance {
+                            accent
+                        } else {
+                            TEXT
+                        },
+                        cw / 4.0 - 20.0,
+                    );
+                }
+            }
+            let graph_height = if self.config.graphs && !section.history.is_empty() {
+                138.0
+            } else {
+                0.0
+            };
+            if graph_height > 0.0 {
+                self.rect(
+                    &mut pix,
+                    x,
+                    108.0 + offset,
+                    cw,
+                    graph_height,
+                    12.0,
+                    [24, 35, 51],
+                    1.0,
+                );
+                self.graph(
+                    &mut pix,
+                    &section.history,
+                    x + 18.0,
+                    126.0 + offset,
+                    cw - 36.0,
+                    100.0,
+                    section.maximum,
+                    accent,
+                );
+            }
+            let start = 120.0 + graph_height + offset;
+            for (i, (label, value)) in section.rows.iter().skip(scroll).enumerate() {
+                let y = start + i as f32 * 38.0;
+                if y + 38.0 > h - 28.0 {
+                    break;
+                }
+                self.rect(
+                    &mut pix,
+                    x,
+                    y,
+                    cw,
+                    34.0,
+                    6.0,
+                    [24, 35, 51],
+                    if i % 2 == 0 { 0.8 } else { 0.3 },
+                );
+                self.text(
+                    &mut pix,
+                    label,
+                    x + 14.0,
+                    y + 8.0,
+                    self.config.font_size,
+                    MUTED,
+                    cw * 0.35,
+                );
+                self.text(
+                    &mut pix,
+                    value,
+                    x + cw * 0.39,
+                    y + 8.0,
+                    self.config.font_size,
+                    TEXT,
+                    cw * 0.59,
+                );
+            }
+            self.text(
+                &mut pix,
+                "Scroll to explore all readings",
+                x,
+                h - 22.0,
+                10.0,
+                MUTED,
+                cw,
+            );
+        }
+        Ok(pix)
+    }
+
     pub fn render(&mut self, data: &Snapshot, width: u32, height: u32) -> Result<Pixmap, String> {
         // Fit once using font metrics. No asynchronous positioners, timers, or wallpaper pixel scans.
         self.scale = 1.0;
@@ -889,6 +1381,54 @@ mod tests {
             assert!(rows.iter().any(|(label, _)| label == key));
         }
     }
+    #[test]
+    fn window_pages_render_at_minimum_and_default_sizes() {
+        let mut renderer = Renderer::new(Config::default()).unwrap();
+        for (w, h) in [(720, 540), (1000, 720)] {
+            for page in 0..crate::explorer::PAGES.len() {
+                let image = renderer
+                    .render_window(
+                        &Snapshot::default(),
+                        w,
+                        h,
+                        page,
+                        0,
+                        &crate::explorer::Explorer::default(),
+                    )
+                    .unwrap();
+                assert!(image.pixels().iter().all(|p| p.alpha() == 255));
+            }
+        }
+    }
+    #[test]
+    fn process_explorer_and_performance_render_populated_snapshots() {
+        let config = Config::default();
+        let mut collector = crate::collect::Collector::new(config.clone());
+        let data = collector.sample();
+        let mut renderer = Renderer::new(config).unwrap();
+        let mut view = crate::explorer::Explorer::default();
+        for (w, h) in [(720, 540), (1000, 720)] {
+            for page in 0..crate::explorer::PAGES.len() {
+                for part in 0..4 {
+                    view.performance = part;
+                    let image = renderer
+                        .render_window(&data, w, h, page, usize::MAX, &view)
+                        .unwrap();
+                    assert!(image.pixels().iter().all(|p| p.alpha() == 255));
+                    if w == 1000 && part == 0 {
+                        if let Ok(dir) = std::env::var("HYPRMONITOR_PREVIEW_DIR") {
+                            image
+                                .save_png(
+                                    std::path::Path::new(&dir).join(format!("page-{page}.png")),
+                                )
+                                .unwrap();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn missing_rates_are_not_zero() {
         assert_eq!(rate(None), "—");

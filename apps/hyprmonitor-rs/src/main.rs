@@ -3,6 +3,7 @@ mod config;
 mod context;
 mod desktop;
 mod details;
+mod explorer;
 mod ipc;
 mod render;
 mod session;
@@ -173,10 +174,21 @@ fn run() -> Result<(), String> {
             let mut collector = Collector::new(config.clone());
             collector.sample();
             thread::sleep(Duration::from_millis(500));
-            Renderer::new(config.clone())?
-                .render(&collector.sample(), config.width, config.height)?
-                .save_png(&path)
-                .map_err(|e| e.to_string())?;
+            let data = collector.sample();
+            let mut renderer = Renderer::new(config.clone())?;
+            let image = if config.mode == "window" {
+                renderer.render_window(
+                    &data,
+                    config.width,
+                    config.height,
+                    0,
+                    0,
+                    &crate::explorer::Explorer::default(),
+                )?
+            } else {
+                renderer.render(&data, config.width, config.height)?
+            };
+            image.save_png(&path).map_err(|e| e.to_string())?;
             println!("Preview: {}", path.display());
             Ok(())
         }

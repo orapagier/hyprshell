@@ -124,6 +124,9 @@ pub fn run(config: Config) -> Result<(), String> {
         data: Snapshot::default(),
         menu: SettingsMenu::default(),
         cursor: (0.0, 0.0),
+        explorer: crate::explorer::Explorer::default(),
+        page: 0,
+        scroll: 0,
         latest,
         pending,
         worker: Some(worker_tx),
@@ -152,6 +155,9 @@ struct App {
     data: Snapshot,
     menu: SettingsMenu,
     cursor: (f32, f32),
+    explorer: crate::explorer::Explorer,
+    page: usize,
+    scroll: usize,
     latest: Arc<Mutex<Option<Snapshot>>>,
     pending: Arc<AtomicBool>,
     worker: Option<mpsc::Sender<WorkerCommand>>,
@@ -218,7 +224,14 @@ impl App {
                 scale: Some(m.scale_factor()),
             })
             .collect();
-        let mut pix = self.renderer.render(&self.data, size.width, size.height)?;
+        let mut pix = self.renderer.render_window(
+            &self.data,
+            size.width,
+            size.height,
+            self.page,
+            self.scroll,
+            &self.explorer,
+        )?;
         self.renderer
             .draw_settings(&mut pix, &self.menu, &self.config);
         let surface = self
@@ -250,9 +263,9 @@ impl ApplicationHandler<Event> for App {
             return;
         }
         let attributes = Window::default_attributes()
-            .with_title("Hyprmonitor — right-click for settings")
+            .with_title("Hyprmonitor")
             .with_inner_size(LogicalSize::new(self.config.width, self.config.height))
-            .with_min_inner_size(LogicalSize::new(240, 420))
+            .with_min_inner_size(LogicalSize::new(720, 540))
             .with_visible(self.visible);
         let result = (|| -> Result<(), String> {
             let window = Arc::new(
@@ -279,7 +292,9 @@ impl ApplicationHandler<Event> for App {
                 {
                     let mut latest = self.latest.lock().unwrap();
                     if let Some(data) = latest.take() {
-                        self.data = data;
+                        if !self.explorer.paused {
+                            self.data = data;
+                        }
                     }
                     self.pending.store(false, Ordering::Release);
                 }
@@ -400,6 +415,77 @@ impl ApplicationHandler<Event> for App {
                     self.apply(effect, event_loop);
                 }
             }
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Left,
+                ..
+            } => {
+                let size = window.inner_size();
+                if self.cursor.0 < 196.0 {
+                    if self.cursor.1 >= size.height as f32 - 56.0 {
+                        self.menu.show(204.0, 100.0, size.width, size.height);
+                    } else if self.cursor.1 >= 104.0
+                        && self.cursor.1 < 104.0 + crate::explorer::PAGES.len() as f32 * 44.0
+                    {
+                        self.page = ((self.cursor.1 - 104.0) / 44.0) as usize;
+                        self.scroll = 0;
+                    }
+                    window.request_redraw();
+                } else {
+                    let (x, y) = self.cursor;
+                    let width = (size.width as f32 - 248.0).max(100.0);
+                    if x >= 222.0 && x < 222.0 + width {
+                        if self.page == 2 && (104.0..138.0).contains(&y) {
+                            self.explorer.performance =
+                                (((x - 222.0) / (width / 4.0)) as usize).min(3);
+                            self.scroll = 0;
+                        } else if self.page == 1 {
+                            if (104.0..138.0).contains(&y) {
+                                if x >= 222.0 + width - 90.0 {
+                                    self.explorer.paused = !self.explorer.paused;
+                                } else {
+                                    self.explorer.searching = true;
+                                }
+                            } else if (148.0..178.0).contains(&y) {
+                                let sort = (((x - 222.0) / (width / 7.0)) as usize).min(6);
+                                if sort == self.explorer.sort {
+                                    self.explorer.ascending = !self.explorer.ascending;
+                                } else {
+                                    self.explorer.sort = sort;
+                                    self.explorer.ascending = sort == 2 || sort == 3;
+                                }
+                                self.scroll = 0;
+                            } else {
+                                self.explorer.searching = false;
+                            }
+                        }
+                    }
+                    window.request_redraw();
+                }
+            }
+            WindowEvent::MouseWheel { delta, .. } if !self.menu.open => {
+                let y = match delta {
+                    MouseScrollDelta::LineDelta(_, y) => y,
+                    MouseScrollDelta::PixelDelta(p) => p.y as f32,
+                };
+                let count = if self.page == 0 {
+                    self.data.top_cpu.len()
+                } else if self.page == 1 {
+                    self.explorer.rows(&self.data).len()
+                } else {
+                    self.explorer.section(&self.data, self.page).rows.len()
+                };
+                self.scroll = if y < 0.0 {
+                    (self.scroll + 2).min(count.saturating_sub(if self.page == 1 {
+                        ((window.inner_size().height as f32 - 244.0) / 68.0).max(1.0) as usize
+                    } else {
+                        1
+                    }))
+                } else {
+                    self.scroll.saturating_sub(2)
+                };
+                window.request_redraw();
+            }
             WindowEvent::MouseWheel { delta, .. } if self.menu.open => {
                 let delta = match delta {
                     MouseScrollDelta::LineDelta(_, y) => y,
@@ -407,6 +493,33 @@ impl ApplicationHandler<Event> for App {
                 };
                 self.menu
                     .wheel(delta, &self.config, window.inner_size().height);
+                window.request_redraw();
+            }
+            WindowEvent::KeyboardInput { event, .. }
+                if event.state == ElementState::Pressed
+                    && !self.menu.open
+                    && self.page == 1
+                    && self.explorer.searching =>
+            {
+                match event.logical_key {
+                    Key::Named(NamedKey::Escape) => {
+                        self.explorer.query.clear();
+                        self.explorer.searching = false;
+                    }
+                    Key::Named(NamedKey::Enter) => self.explorer.searching = false,
+                    Key::Named(NamedKey::Backspace) => {
+                        self.explorer.query.pop();
+                    }
+                    Key::Character(text) => {
+                        for ch in text.chars().filter(|c| !c.is_control()) {
+                            if self.explorer.query.len() < 128 {
+                                self.explorer.query.push(ch);
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                self.scroll = 0;
                 window.request_redraw();
             }
             WindowEvent::KeyboardInput { event, .. }

@@ -5,12 +5,38 @@ collector, renderer, settings UI, configuration, process lifecycle and local IPC
 It does not use a Quickshell controller, QML window, Python collector or Lua UI.
 Hyprshell can install and launch it, but is not required to run it.
 
-**Current status:** the standalone revision builds successfully, all 16 Rust unit
-tests pass, and strict all-target Clippy checks pass. The real-data preview renders.
-The native executable and focused Hyprshell migration files are installed on the
-local machine. Session reload and interactive Wayland/X11 checks require a desktop
-terminal because this agent sandbox cannot access compositor IPC. Earlier benchmark
-numbers belong to the previous implementation and do not validate this revision.
+## Task-manager window
+
+The window uses six tabs: Overview, Processes, Performance, Storage, Network,
+and System. Performance combines CPU, Memory, GPU / cooling, and Power through
+four selectors; all seven original detailed sections remain accessible. Overlay
+mode retains its configurable seven-card dashboard.
+
+Overview shows CPU, memory, process count, physical network traffic, disk
+throughput and battery draw alongside CPU leaders. CPU and storage details also
+show Linux pressure stall percentages averaged over ten seconds.
+
+Processes lists every readable process, including Hyprmonitor itself. Click the
+search box to filter by name or PID; Backspace edits, Enter leaves search, and
+Escape clears an active search. Click CPU, Memory, PID, Name, Threads, Read or
+Write to sort; click again to reverse. Scroll to explore the list. Pause freezes
+the displayed snapshot across tabs; Resume receives the next collector sample.
+Collection continues during this inspection pause, while hiding the application
+still pauses collection. Sorting and search last for the current session.
+
+Rows show parent PID, kernel state, thread count, resident memory and physical
+storage read/write bytes per second. CPU and I/O rates match PID plus start time
+between scans. First samples, inaccessible I/O counters and counter resets show
+an em dash; this is not zero. Process updates use the existing process interval
+(default six seconds). RSS includes shared memory; process CPU uses 100% per
+logical CPU. This explorer is read-only: it does not signal processes.
+
+The layout and process exploration were informed by the official
+[TMOG feature overview](https://tmog.org/) and
+[1.1 release notes](https://tmog.org/release-notes.html), reviewed October 28, 2026.
+This is not feature parity: service/startup management, connection ownership,
+trace recording/replay, disk-space scanning, benchmarks, and process actions
+remain outside this implementation.
 
 ## Desktop support
 
@@ -147,8 +173,7 @@ that the Rust language makes universally available.
 
 The Hyprshell source migration removes the old monitor-specific settings card,
 QML renderer, Python collector and Quickshell IPC controller. Other Quickshell
-panels, menus and settings remain separate and unchanged in purpose. The existing
-live setup has not been replaced while rebuilding is paused.
+panels, menus and settings remain separate and unchanged in purpose. The standalone binary is deployed independently of the Quickshell configuration.
 
 ## Comparison and validation
 
@@ -159,9 +184,7 @@ Hyprmonitor's seven detailed sections, glass cards and desktop geometry controls
 It does not claim Conky feature parity or better performance without a measured
 comparison using equivalent metrics and intervals.
 
-Native unit tests cover CPU/memory accounting, counter resets, process stat
-parsing, metadata parsing, bounded history, settings validation/persistence,
-section contents and premultiplied rendering. New dependencies, settings clicks,
-window fallback, hide/show, resize persistence, scaling and optional desktop
-integration remain to be built and exercised. Old measurements in `target/`
-are historical artifacts until the revised executable is rebuilt.
+Native tests cover accounting, counter resets, process parsing and I/O availability,
+search/sort behavior, grouped section preservation, settings, bounded history,
+and all window pages at minimum/default sizes with empty and populated samples.
+Live Wayland/X11 interaction and scaling still require desktop-session validation.

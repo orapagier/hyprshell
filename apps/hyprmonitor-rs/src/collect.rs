@@ -27,6 +27,8 @@ pub struct Snapshot {
     pub load: String,
     pub tasks: String,
     pub memory: Memory,
+    pub cpu_pressure: Option<f64>,
+    pub io_pressure: Option<f64>,
     pub pressure_some: Option<f64>,
     pub pressure_full: Option<f64>,
     pub networks: Vec<Network>,
@@ -34,6 +36,7 @@ pub struct Snapshot {
     pub sensors: Vec<Sensor>,
     pub gpus: Vec<Gpu>,
     pub batteries: Vec<Battery>,
+    pub processes: Vec<Process>,
     pub top_cpu: Vec<Process>,
     pub top_memory: Vec<Process>,
     pub cpu_history: VecDeque<f64>,
@@ -106,6 +109,12 @@ pub struct Battery {
 #[derive(Clone, Default, Debug, Serialize)]
 pub struct Process {
     pub pid: u32,
+    pub parent: u32,
+    pub start_ticks: u64,
+    pub state: String,
+    pub threads: u32,
+    pub read_rate: Option<f64>,
+    pub write_rate: Option<f64>,
     pub name: String,
     pub cpu: Option<f64>,
     pub memory: u64,
@@ -117,6 +126,10 @@ struct Ticks {
 }
 #[derive(Clone, Debug)]
 struct ProcessStat {
+    parent: u32,
+    state: String,
+    threads: u32,
+    io: Option<(u64, u64)>,
     name: String,
     ticks: u64,
     start: u64,
@@ -235,11 +248,40 @@ fn delta(old: u64, new: u64, elapsed: f64) -> Option<f64> {
     }
     Some(new.checked_sub(old)? as f64 / elapsed)
 }
+fn process_io_rates(
+    old: Option<&ProcessStat>,
+    current: &ProcessStat,
+    elapsed: Option<f64>,
+) -> (Option<f64>, Option<f64>) {
+    let rate = |write: bool| {
+        let previous = old.filter(|old| old.start == current.start)?.io?;
+        let current = current.io?;
+        delta(
+            if write { previous.1 } else { previous.0 },
+            if write { current.1 } else { current.0 },
+            elapsed?,
+        )
+    };
+    (rate(false), rate(true))
+}
+
+fn parse_process_io(text: &str) -> Option<(u64, u64)> {
+    let value = |key: &str| {
+        text.lines()
+            .find_map(|line| line.strip_prefix(key)?.trim().parse::<u64>().ok())
+    };
+    Some((value("read_bytes:")?, value("write_bytes:")?))
+}
+
 fn parse_process(text: &str) -> Option<ProcessStat> {
     let start = text.find('(')?;
     let end = text.rfind(')')?;
     let parts: Vec<_> = text.get(end + 1..)?.split_whitespace().collect();
     Some(ProcessStat {
+        parent: parts.get(1)?.parse().ok()?,
+        state: parts.first()?.to_string(),
+        threads: parts.get(17)?.parse().ok()?,
+        io: None,
         name: text
             .get(start + 1..end)?
             .chars()
@@ -339,6 +381,8 @@ impl Collector {
             .and_then(|s| s.parse::<f64>().ok())
             .unwrap_or(0.0) as u64;
         self.data.memory = parse_memory(&read("/proc/meminfo"));
+        self.data.cpu_pressure = psi(&read("/proc/pressure/cpu"), "some");
+        self.data.io_pressure = psi(&read("/proc/pressure/io"), "some");
         self.data.pressure_some = psi(&read("/proc/pressure/memory"), "some");
         self.data.pressure_full = psi(&read("/proc/pressure/memory"), "full");
         let load = read("/proc/loadavg");
@@ -432,9 +476,12 @@ impl Collector {
             else {
                 continue;
             };
-            let Some(stat) = parse_process(&read(path.join("stat"))) else {
+            let Some(mut stat) = parse_process(&read(path.join("stat"))) else {
                 continue;
             };
+            stat.io = parse_process_io(&read(path.join("io")));
+            let (read_rate, write_rate) =
+                process_io_rates(self.processes.get(&pid), &stat, elapsed);
             let cpu = elapsed.and_then(|elapsed| {
                 self.processes
                     .get(&pid)
@@ -444,6 +491,12 @@ impl Collector {
             });
             rows.push(Process {
                 pid,
+                parent: stat.parent,
+                start_ticks: stat.start,
+                state: stat.state.clone(),
+                threads: stat.threads,
+                read_rate,
+                write_rate,
                 name: stat.name.clone(),
                 cpu,
                 memory: stat.rss.saturating_mul(self.page_size),
@@ -458,7 +511,8 @@ impl Collector {
                 .total_cmp(&a.cpu.unwrap_or(0.0))
                 .then(a.pid.cmp(&b.pid))
         });
-        self.data.top_cpu = rows.into_iter().take(5).collect();
+        self.data.top_cpu = rows.iter().take(5).cloned().collect();
+        self.data.processes = rows;
         self.processes = current;
     }
 
@@ -725,6 +779,46 @@ mod tests {
         assert_eq!(p.name, "a (strange) name");
         assert_eq!((p.ticks, p.start, p.rss), (120, 999, 12));
         assert!(parse_process("gone").is_none());
+    }
+    #[test]
+    fn process_io_rates_reject_reused_pids_resets_and_missing_samples() {
+        let mut old =
+            parse_process("42 (worker) S 1 0 0 0 0 0 0 0 0 0 100 20 0 0 0 0 2 0 999 0 12").unwrap();
+        old.io = Some((100, 200));
+        let mut current = old.clone();
+        current.io = Some((300, 600));
+        assert_eq!(
+            process_io_rates(Some(&old), &current, Some(2.0)),
+            (Some(100.0), Some(200.0))
+        );
+        assert_eq!(process_io_rates(None, &current, Some(2.0)), (None, None));
+        current.start += 1;
+        assert_eq!(
+            process_io_rates(Some(&old), &current, Some(2.0)),
+            (None, None)
+        );
+        current.start = old.start;
+        current.io = Some((0, 0));
+        assert_eq!(
+            process_io_rates(Some(&old), &current, Some(2.0)),
+            (None, None)
+        );
+        current.io = None;
+        assert_eq!(
+            process_io_rates(Some(&old), &current, Some(2.0)),
+            (None, None)
+        );
+        assert_eq!((old.parent, old.threads), (1, 2));
+    }
+
+    #[test]
+    fn process_io_requires_actual_counters() {
+        assert_eq!(parse_process_io(""), None);
+        assert_eq!(
+            parse_process_io("read_bytes: 0\nwrite_bytes: 0"),
+            Some((0, 0))
+        );
+        assert_eq!(parse_process_io("read_bytes: 100"), None);
     }
     #[test]
     fn psi_is_not_memory_usage() {
