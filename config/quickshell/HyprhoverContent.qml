@@ -40,75 +40,42 @@ Column {
         Text { text: "HYPRHOVER"; color: content.menuColors.secondary; font.pixelSize: 10; font.letterSpacing: 2; width: parent.width - 40 }
         Text { text: "esc"; color: content.menuColors.secondary; font.pixelSize: 11 }
     }
-    Flickable {
+    Row {
         id: tabStrip
         objectName: "hyprhoverTabs"
         width: parent.width
-        height: tabRow.height + (contentWidth > width ? 6 : 0)
-        contentWidth: tabRow.width
-        contentHeight: height
-        clip: true
-        flickableDirection: Flickable.HorizontalFlick
-        boundsBehavior: Flickable.StopAtBounds
-        ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
-        function revealTab(tab) {
-            if (tab.x < contentX) contentX = tab.x;
-            else if (tab.x + tab.width > contentX + width) contentX = tab.x + tab.width - width;
-            contentX = Math.max(0, Math.min(Math.max(0, contentWidth - width), contentX));
-        }
-        WheelHandler {
-            target: null
-            onWheel: event => {
-                if (tabStrip.contentWidth <= tabStrip.width) { event.accepted = false; return; }
-                let delta = event.pixelDelta.x || event.pixelDelta.y || (event.angleDelta.x || event.angleDelta.y) / 3;
-                tabStrip.contentX = Math.max(0, Math.min(tabStrip.contentWidth - tabStrip.width, tabStrip.contentX - delta));
-                event.accepted = true;
-            }
-        }
-        Row {
-            id: tabRow
-            spacing: 6
-            Repeater {
-                model: content.tabs
-                delegate: Button {
-                    id: tab
-                    required property string modelData
-                    objectName: "hyprhoverTab-" + modelData
-                    readonly property bool selected: content.selected === modelData
-                    hoverEnabled: true
-                    implicitWidth: caption.implicitWidth + 24
-                    implicitHeight: 32
-                    onHoveredChanged: if (hovered) content.select(modelData)
-                    onClicked: content.select(modelData)
-                    onActiveFocusChanged: if (activeFocus) { content.select(modelData); tabStrip.revealTab(tab); }
-                    background: Rectangle {
-                        radius: height / 2
-                        color: Qt.rgba(content.menuColors.accent.r, content.menuColors.accent.g, content.menuColors.accent.b, tab.selected ? 0.24 : tab.hovered ? 0.12 : 0.045)
-                        border.width: 1
-                        border.color: Qt.rgba(content.menuColors.accent.r, content.menuColors.accent.g, content.menuColors.accent.b, tab.selected ? 0.4 : 0.10)
-                        Behavior on color { ColorAnimation { duration: 120 } }
-                    }
-                    contentItem: Row {
-                        id: caption
-                        spacing: 6
-                        Text {
-                            text: content.symbols[tab.modelData] || ""
-                            height: parent.height
-                            color: tab.selected ? content.menuColors.accent : content.menuColors.secondary
-                            font.family: "GoMono Nerd Font"
-                            font.pixelSize: 12
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        Text {
-                            text: content.labels[tab.modelData] || tab.modelData
-                            height: parent.height
-                            color: tab.selected ? content.menuColors.accent : content.menuColors.text
-                            font.family: "Noto Sans"
-                            font.pixelSize: 11
-                            font.weight: tab.selected ? Font.DemiBold : Font.Normal
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                    }
+        spacing: Math.min(6, width / Math.max(1, content.tabs.length * 6))
+        readonly property real diameter: Math.max(0, Math.min(32,
+            (width - spacing * Math.max(0, content.tabs.length - 1)) / Math.max(1, content.tabs.length)))
+        Repeater {
+            model: content.tabs
+            delegate: Button {
+                id: tab
+                required property string modelData
+                objectName: "hyprhoverTab-" + modelData
+                readonly property bool selected: content.selected === modelData
+                hoverEnabled: true
+                width: tabStrip.diameter
+                height: width
+                padding: 0
+                Accessible.name: content.labels[modelData] || modelData
+                onHoveredChanged: if (hovered) content.select(modelData)
+                onClicked: content.select(modelData)
+                onActiveFocusChanged: if (activeFocus) content.select(modelData)
+                background: Rectangle {
+                    radius: width / 2
+                    color: Qt.rgba(content.menuColors.accent.r, content.menuColors.accent.g, content.menuColors.accent.b, tab.selected ? 0.24 : tab.hovered ? 0.12 : 0.045)
+                    border.width: 1
+                    border.color: Qt.rgba(content.menuColors.accent.r, content.menuColors.accent.g, content.menuColors.accent.b, tab.selected ? 0.4 : 0.10)
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                }
+                contentItem: Text {
+                    text: content.symbols[tab.modelData] || ""
+                    color: tab.selected ? content.menuColors.accent : content.menuColors.text
+                    font.family: "GoMono Nerd Font"
+                    font.pixelSize: Math.max(1, tab.width * 0.46)
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
                 }
             }
         }
@@ -164,17 +131,47 @@ Column {
         ColumnLayout {
             id: workspaces
             property var preview: (content.owner.statusData.workspaces || []).find(w => w.active) || (content.owner.statusData.workspaces || [])[0] || null
-            Flow {
+            Row {
+                id: workspaceTabs
+                objectName: "hyprhoverWorkspaceTabs"
                 Layout.fillWidth: true
-                spacing: 6
+                readonly property int count: (content.owner.statusData.workspaces || []).length
+                spacing: Math.min(6, width / Math.max(1, count * 6))
+                readonly property real diameter: Math.max(0, Math.min(32,
+                    (width - spacing * Math.max(0, count - 1)) / Math.max(1, count)))
                 Repeater {
                     model: content.owner.statusData.workspaces || []
-                    MenuButton {
+                    Button {
+                        id: workspaceTab
                         required property var modelData
-                        text: String(modelData.name || modelData.id)
+                        objectName: "hyprhoverWorkspace-" + modelData.id
+                        readonly property bool previewed: workspaces.preview?.id === modelData.id
+                        width: workspaceTabs.diameter
+                        height: width
+                        padding: 0
+                        Accessible.name: "Workspace " + (modelData.name || modelData.id)
                         hoverEnabled: true
                         onHoveredChanged: if (hovered) workspaces.preview = modelData
+                        onActiveFocusChanged: if (activeFocus) workspaces.preview = modelData
                         onClicked: { content.owner.services.workspace(modelData.id); content.dismissRequested(); }
+                        background: Rectangle {
+                            radius: width / 2
+                            color: Qt.rgba(content.menuColors.accent.r, content.menuColors.accent.g, content.menuColors.accent.b,
+                                workspaceTab.previewed ? 0.24 : workspaceTab.modelData.active ? 0.14 : 0.045)
+                            border.width: 1
+                            border.color: Qt.rgba(content.menuColors.accent.r, content.menuColors.accent.g, content.menuColors.accent.b,
+                                workspaceTab.previewed || workspaceTab.modelData.active ? 0.4 : 0.10)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                        }
+                        contentItem: Text {
+                            text: String(workspaceTab.modelData.id)
+                            color: workspaceTab.previewed || workspaceTab.modelData.active ? content.menuColors.accent : content.menuColors.text
+                            font.family: "Noto Sans"
+                            font.pixelSize: Math.max(1, Math.min(12, workspaceTab.width * 0.4))
+                            font.weight: workspaceTab.modelData.active ? Font.DemiBold : Font.Normal
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignHCenter
+                        }
                     }
                 }
             }

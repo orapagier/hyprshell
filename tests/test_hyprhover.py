@@ -29,6 +29,17 @@ import "quickshell"
 ShellRoot {
     id: test
     function check(value, message) { if (!value) throw new Error(message); }
+    function checkCircles(row, prefix, expected) {
+        row.forceLayout();
+        let buttons = row.children.filter(child => child.objectName.startsWith(prefix));
+        check(buttons.length === expected, 'all circular tabs retained');
+        check(row.contentX === undefined, 'fixed row has no scrolling');
+        for (let button of buttons) {
+            check(button.y === 0, 'single row');
+            check(button.width === button.height, 'circular button proportions');
+            check(button.x + button.width <= row.width + 0.01, 'tab fits inside drawer');
+        }
+    }
     QtObject {
         id: fakeInbox
         property var rows: []
@@ -85,7 +96,8 @@ ShellRoot {
                     test.check(hover.controls.parent.children.find(child => child.objectName === 'hyprhoverTabPage').item !== null, 'inline page loaded: ' + id);
                 }
                 hover.reveal('left');
-                hover.controls.parent.select('audio');
+                hover.statusData = Object.assign({}, hover.statusData, {workspaces: Array.from({length:10}, (_, index) => ({id:index+1, name:String(index+1), active:index === 0}))});
+                hover.controls.parent.select('workspaces');
                 capture.restart();
             } catch(error) { console.error(error); Qt.exit(1); }
         }
@@ -95,6 +107,22 @@ ShellRoot {
         property int stage: 0
         interval: 1300
         onTriggered: {
+            try {
+                let content = hover.controls.parent;
+                let row = content.children.find(child => child.objectName === 'hyprhoverTabs');
+                test.checkCircles(row, 'hyprhoverTab-', content.tabs.length);
+                if (capture.stage === 0) {
+                    let workspacePage = content.children.find(child => child.objectName === 'hyprhoverTabPage').item;
+                    let numbers = workspacePage.children.find(child => child.objectName === 'hyprhoverWorkspaceTabs');
+                    test.checkCircles(numbers, 'hyprhoverWorkspace-', 10);
+                    // The whole row still fits when space is constrained.
+                    let savedWidth = row.width;
+                    row.width = 100;
+                    test.checkCircles(row, 'hyprhoverTab-', content.tabs.length);
+                    row.width = savedWidth;
+                    row.forceLayout();
+                }
+            } catch(error) { console.error(error); Qt.exit(1); return; }
             hover.drawerSurface.grabToImage(result => {
                 result.saveToFile('/tmp/hyprhover-' + ['left','center','right'][capture.stage] + '.png');
                 if (capture.stage < 2) {
