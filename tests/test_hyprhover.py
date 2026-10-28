@@ -29,12 +29,18 @@ import "quickshell"
 ShellRoot {
     id: test
     function check(value, message) { if (!value) throw new Error(message); }
+    QtObject {
+        id: fakeInbox
+        property var rows: []
+        property int unread: 0
+        function markRead() {}
+    }
     Hyprhover {
         id: hover
         width: 1200; height: 800
         available: true
-        services: ({workspace: function(id) {}, scrollWorkspace: function(delta) {}})
-        inbox: null
+        services: ({workspace: function(id) {}, scrollWorkspace: function(delta) {}, outputs: [], inputs: [], sink: null, microphone: null, wifiEnabled: false, wifiNetworks: [], bluetoothDevices: [], adapter: null, statusData: {network:{}}, scanWifi: function(enabled) {}})
+        inbox: fakeInbox
         statusData: ({workspaces: [], audio: {}, network: {}, bluetooth: {}, battery: {present:false}})
         settings: ({bar:{}, items:[{id:'audio',side:'left'},{id:'wifi',enabled:false}]})
     }
@@ -47,6 +53,11 @@ ShellRoot {
                 test.check(hover.controls !== null, 'controls loaded');
                 test.check(hover.controls.itemEnabled('audio'), 'saved reassignment follows group');
                 test.check(!hover.controls.itemEnabled('calendar'), 'other group excluded');
+                let content = hover.controls.parent;
+                content.select('audio');
+                test.check(content.selected === 'audio', 'tab selects controls inline');
+                content.select('calendar');
+                test.check(content.selected === 'audio', 'cannot select another group');
                 hover.reveal('center');
                 test.check(hover.controls.itemEnabled('calendar'), 'center clock available');
                 test.check(!hover.controls.itemEnabled('audio'), 'old group excluded');
@@ -60,12 +71,45 @@ ShellRoot {
                 test.check(!hover.opened, 'showing Hyprpane closes hover');
                 hover.reveal('left');
                 test.check(!hover.opened, 'cannot reveal while Hyprpane shown');
-                console.log('HYPRHOVER_OK');
-                Qt.quit();
+                hover.available = true;
+                hover.reveal('left');
+                test.check(hover.drawerSurface.bodyRect.y === 0 && hover.drawerSurface.bodyRect.x === 0, 'left drawer touches both edges');
+                hover.reveal('center');
+                test.check(hover.drawerSurface.bodyRect.y === 0, 'center drawer touches top');
+                test.check(Math.abs(hover.drawerSurface.bodyRect.x + hover.drawerSurface.bodyWidth / 2 - hover.width / 2) < 1, 'center drawer centered');
+                hover.reveal('right');
+                test.check(hover.drawerSurface.bodyRect.x + hover.drawerSurface.bodyWidth === hover.width, 'right drawer touches right edge');
+                // Exercise every inline page without invoking its external actions.
+                for (let id of ['settings','workspaces','media','calendar','tray','notifications','audio','wifi','bluetooth','battery','power','launcher']) {
+                    hover.controls.parent.selected = id;
+                    test.check(hover.controls.parent.children.find(child => child.objectName === 'hyprhoverTabPage').item !== null, 'inline page loaded: ' + id);
+                }
+                hover.reveal('left');
+                hover.controls.parent.select('audio');
+                capture.restart();
             } catch(error) { console.error(error); Qt.exit(1); }
         }
     }
-    Timer { interval:5000; running:true; onTriggered: Qt.exit(2) }
+    Timer {
+        id: capture
+        property int stage: 0
+        interval: 1300
+        onTriggered: {
+            hover.drawerSurface.grabToImage(result => {
+                result.saveToFile('/tmp/hyprhover-' + ['left','center','right'][capture.stage] + '.png');
+                if (capture.stage < 2) {
+                    capture.stage++;
+                    hover.reveal(['left','center','right'][capture.stage]);
+                    if (capture.stage === 2) hover.controls.parent.select('power');
+                    capture.restart();
+                } else {
+                    console.log('HYPRHOVER_OK');
+                    Qt.quit();
+                }
+            });
+        }
+    }
+    Timer { interval:8000; running:true; onTriggered: Qt.exit(2) }
 }''')
             runtime = root / 'runtime'
             runtime.mkdir(mode=0o700)

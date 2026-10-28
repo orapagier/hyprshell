@@ -1,16 +1,24 @@
 # Hyprhover
 
 When Hyprpane is hidden on an output's active workspace, Hyprhover automatically
-provides three top-edge hover drawers: left corner, screen center, and right
-corner. Alt+T and the existing workspace visibility settings switch between them.
-The existing bottom dashboard and activity corners remain available.
+provides three top-edge drawers: left corner, screen center, and right corner.
+Use the configured Hyprpane toggle (Alt+X on this desktop) or workspace visibility
+settings to switch between them. Bottom dashboard and activity corners remain.
 
-Each drawer uses the corresponding saved Hyprpane item group, order, enabled
-state, and actions. It shares the dashboard's immediate hover entry, 900 ms
-handoff grace, 320 ms leave dismissal, Escape/outside-click dismissal, and glass
-popover renderer. Controls open their usual menus; a child menu retains its
-parent drawer. Workspace changes and restoring Hyprpane close the drawers.
-Wide groups scroll horizontally. No new settings or preference migration is needed.
+Drawers attach directly to the screen with concave curved feet, matching the
+dashboard. Corner drawers join both adjacent edges; the centered drawer joins
+the top edge with two feet. There is no popdown stem. Glass and spring motion
+follow the dashboard's appearance.
 
-Implementation: `Hyprhover.qml`, per-output wiring in `shell.qml`, and the optional
-`Bar.onlySide` filter. Native offscreen coverage: `tests/test_hyprhover.py`.
+Each saved, available Hyprpane item becomes a labeled tab, preserving group and
+order. Hover, click, or keyboard focus selects a tab and loads its controls inside
+the drawer. Apps, workspaces, media, settings, calendar, tray, notifications,
+audio, Wi-Fi, Bluetooth, battery and power all have inline pages. Switching pages
+releases the previous page's scans/captures. Tabs wrap, and tall content scrolls.
+
+Entry is immediate, with the dashboard's 900 ms handoff grace and 320 ms leave
+dismissal. Escape, outside click, workspace changes and restoring Hyprpane close
+the drawer. No new preference migration is needed.
+
+Implementation: `Hyprhover.qml`, `HyprhoverSurface.qml`, `HyprhoverContent.qml`.
+Native lifecycle, tab and attachment checks: `tests/test_hyprhover.py`.
