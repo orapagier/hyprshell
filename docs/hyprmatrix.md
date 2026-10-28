@@ -90,37 +90,37 @@ Appearance → Effect switches immediately between **Matrix**, **Shooting stars*
 **Meteors**, and **Asteroids** and saves the choice. Existing configurations keep
 Matrix. Matrix retains evenly spaced character columns.
 
-Shooting stars and meteors use balanced left, center and right birth regions.
-Each group offers all three regions an event, with independent random positions,
-headings and birth times; there is no visible left/center/right rotation. About
-80% of events in every region start near the top and fall exactly straight down.
-The rest ignite across the upper and middle sky, randomly heading left or right
-at angles from 12° to 62° away from vertical.
-Streaks brighten and burn out inside the view, with irregular gaps,
-overlaps and occasional two- or three-event clusters.
+Shooting stars and meteors use evenly spaced horizontal lanes, following
+Matrix's density spacing. Independently staggered passes keep the rain spread
+across the screen, with occasional small clusters. About 95% of passes fall
+exactly straight down; the remaining 5% randomly head left or right at angles
+from 12° to 62° away from vertical. Passes enter from above the screen.
+About 88% continue through the bottom edge with their heads still bright, and
+their tails follow offscreen. The rest fade at varied heights between roughly
+18% and 82% of the screen. Rare diagonals may leave through a side edge.
 
 Shooting stars mixes fine streaks with brighter meteors (about 20% of non-comet
-events) and occasional comet-like streaks (about 8%). Meteors mode keeps its
+events) and occasional comet-like streaks (about 8% of lanes). Meteors mode keeps its
 brighter streaks and includes these longer, slower comet-like passes too. The
-latter have a faint spreading tail around a narrow luminous core. Ordinary
-streaks last at most about 7 seconds and comet-like passes at most about 20 seconds
-at the default Speed and Particle size. These are stylized sky effects, with procedural trails.
+latter have a faint spreading tail around a narrow luminous core. Pass duration
+follows screen height and speed, so slower passes still reach the bottom. These
+are stylized sky effects, with procedural trails.
 
-Fine tapered trails grow behind small neutral-white heads, then shorten as the
-event fades. Color tints the trail and halo. Density controls both the starfield
-and event frequency, with moving activity rising more strongly toward 100%.
-Moving activity is comparable to Matrix's simultaneous stream count
-at matching Density/Particle size, with about 10% fewer simultaneous streaks than
-the previous tuning. The gentle density curve keeps lower settings active too.
+Fine tapered trails grow behind small neutral-white heads; the minority of
+passes that burn out early shorten their tails as they fade. Color tints the
+trail and halo. Density controls both the starfield and lane spacing.
+Moving activity is comparable to Matrix's simultaneous stream
+count at matching Density/Particle size, with each lane starting a fresh pass as
+the previous head reaches the bottom. Slower lanes use a slower cadence to avoid
+overcrowding.
 Shooting stars and Meteors have about 15% more stationary stars (about
 120 at 1080p/100%), with a mix of small points and larger stars across the upper
 half of the screen. Comet-like passes share the adjusted event frequency.
-Screen width and streak lifetimes scale
-event frequency so smaller screens keep a similarly busy sky.
-Very low density retains quiet gaps.
-Speed scales motion and timing. Most streaks match Matrix's typical pixel
+Screen width and density determine the lane count. Very low density keeps
+at least one lane, with gaps when its occasional early burn-outs finish.
+Speed scales motion and timing. Most lanes match Matrix's typical pixel
 speed at the same Speed and size settings; about 15% use 40–65% of their ordinary
-speed, and comet-like passes remain slower too. Independently, about 12% of
+speed, and comet-like lanes remain slower too. Independently, about 12% of
 events have heads and trails 1.8–2.8 times their usual size. Each event keeps
 its chosen speed, size and straight trajectory throughout its pass.
 Particle size scales heads and trails, with motion following Matrix's character
