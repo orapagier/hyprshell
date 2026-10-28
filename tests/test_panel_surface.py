@@ -68,7 +68,7 @@ ShellRoot {
             test.check(panel.mask.height === (test.showPanel ? panelReveal.inputRect.height : 0), "input height");
             test.check(panel.exclusionMode === (test.showPanel ? ExclusionMode.Normal : ExclusionMode.Ignore), "reserved space");
             let thickness = panel.vertical ? panel.width : panel.height;
-            test.check(panel.exclusiveZone === (panel.autoHide ? 0 : thickness - 8), "visible strip reservation");
+            test.check(panel.exclusiveZone === (!test.showPanel || panel.autoHide ? 0 : thickness - 8), "only visible non-auto-hide panels reserve space");
             if (!test.showPanel) {
                 test.check(menuState.section === "" && !keybindings.opened, "hidden menus remained open");
             }

@@ -145,7 +145,9 @@ ShellRoot {
                 let ws = monitor && monitor.activeWorkspace;
                 return Settings.panelVisible(panelVisibility.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
             }
-            exclusiveZone: autoHide ? 0 : Math.ceil((vertical ? width : height) - bar.windowFacingInset) + (preferences.panelConfig.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
+            // Setting exclusiveZone can reset exclusionMode; hidden panels must
+            // explicitly reserve zero even when geometry changes while hidden.
+            exclusiveZone: !shown || autoHide ? 0 : Math.ceil((vertical ? width : height) - bar.windowFacingInset) + (preferences.panelConfig.bar.paddingBottom || 0) + outerMargins[({top:"bottom", bottom:"top", left:"right", right:"left"})[edge]]
             exclusionMode: shown ? ExclusionMode.Normal : ExclusionMode.Ignore
             onShownChanged: {
                 console.info("HYPRPANE_TIMING", Date.now(), "visible-request", shown);
