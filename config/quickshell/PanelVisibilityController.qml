@@ -16,15 +16,22 @@ Item {
         let result = Settings.copy(store.panelConfig);
         for (let workspace of Object.keys(previews))
             result.bar = Settings.withWorkspaceVisibility(result.bar, Number(workspace), previews[workspace].visible);
+        let latest = Object.values(previews).sort((a, b) => b.serial - a.serial)[0];
+        if (latest?.component) result.bar.dockEnabled = latest.component === "hyprdock";
         return result;
     }
 
-    function toggle(workspace) {
+    function toggle(workspace, component) {
+        let bar = editor ? editor.draft.bar : config.bar;
+        let switching = component && (bar.dockEnabled === true) !== (component === "hyprdock");
+        let visible = switching || !Settings.barVisible(bar, workspace);
         if (editor) {
-            editor.toggleWorkspacePanel('hyprpane', workspace);
+            let next = Settings.withWorkspaceVisibility(bar, workspace, visible);
+            if (component) next.dockEnabled = component === "hyprdock";
+            editor.updateBarSettings(next);
             return;
         }
-        let request = {workspace: workspace, visible: !Settings.barVisible(config.bar, workspace), serial: ++serial};
+        let request = {workspace: workspace, visible: visible, component: component, serial: ++serial};
         let next = Object.assign({}, previews);
         next[String(workspace)] = request;
         previews = next;
@@ -71,6 +78,7 @@ Item {
             controller.activeRequest = request;
             writer.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/backend.py").toString().replace(/^file:\/\//, "")),
                 "--set-bar-visibility", String(request.workspace), request.visible ? "show" : "hide"];
+            if (request.component) writer.command = writer.command.concat(["--panel-mode", request.component]);
             writer.running = true;
         }
     }

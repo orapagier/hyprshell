@@ -15,7 +15,7 @@ ShellRoot {
     Component.onDestruction: notificationInbox.flushHistory(true)
     property string clockText: ""
     property string dockClockText: ""
-    readonly property bool dockEnabled: preferences.panelConfig.bar.dockEnabled === true
+    readonly property bool dockEnabled: panelVisibility.config.bar.dockEnabled === true
     function focusedDock() {
         let focused = Hyprland.focusedMonitor;
         return docks.instances.find(d => focused && d.screen.name === focused.name) || docks.instances[0];
@@ -44,7 +44,7 @@ ShellRoot {
             return;
         }
         console.info("HYPRPANE_TIMING", Date.now(), "handler-entry", workspace);
-        panelVisibility.toggle(workspace);
+        panelVisibility.toggle(workspace, component);
         console.info("HYPRPANE_TIMING", Date.now(), "handler-return", workspace);
     }
     SettingsStore { id: preferences }
@@ -437,6 +437,10 @@ ShellRoot {
         }
         function dock(): void { if (shell.dockEnabled) shell.focusedDock()?.revealKeyboard(); }
         function activity(): void { if (shell.dockEnabled) shell.focusedDock()?.open("activity", true); }
+        function toggleDock(): void {
+            shell.focusedDock()?.collapse();
+            shell.toggleWorkspacePanel("hyprdock");
+        }
         function toggleBar(): void {
             if (shell.dockEnabled) shell.focusedDock()?.collapse();
             shell.toggleWorkspacePanel('hyprpane');

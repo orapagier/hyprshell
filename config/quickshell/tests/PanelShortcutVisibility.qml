@@ -32,6 +32,15 @@ ShellRoot {
                         || !Model.barVisible(prefs.config.bar, 1)) {
                     test.fail("SHORTCUT_DID_NOT_PERSIST"); return;
                 }
+                toggle.toggle(3, "hyprdock");
+                if (!toggle.config.bar.dockEnabled || !Model.barVisible(toggle.config.bar, 3)) { test.fail("DOCK_NOT_SHOWN"); return; }
+                toggle.toggle(3, "hyprpane");
+                if (toggle.config.bar.dockEnabled || !Model.barVisible(toggle.config.bar, 3)) { test.fail("PANE_NOT_SHOWN"); return; }
+                toggle.toggle(3, "hyprpane");
+                if (Model.barVisible(toggle.config.bar, 3)) { test.fail("PANE_NOT_HIDDEN"); return; }
+                test.phase = 3;
+            } else if (test.phase === 3 && !toggle.busy) {
+                if (prefs.config.bar.dockEnabled || Model.barVisible(prefs.config.bar, 3)) { test.fail("MODE_NOT_PERSISTED"); return; }
                 toggle.toggle(9);
                 if (Model.barVisible(toggle.config.bar, 9)) { test.fail("FAILURE_PREVIEW_NOT_IMMEDIATE"); return; }
                 test.phase = 2;

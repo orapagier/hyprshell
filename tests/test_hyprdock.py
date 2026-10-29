@@ -57,6 +57,16 @@ ShellRoot {
                     test.check(dock.targetHeight === 22, "compact clock has small vertical padding");
                     let bar = test.find(dock.contentItem, "dockBar");
                     test.check(bar.settings.items.find(i => i.id === "settings").enabled, "Settings is present");
+                    let vibrant = JSON.parse(JSON.stringify(store.config)); vibrant.bar.randomVibrantColors = true; store.acceptConfig(vibrant);
+                    let originalPalette = dock.itemPalette.join(",");
+                    dock.wallpaperSource = "file:///tmp/dock-wallpaper-alternate.png";
+                    test.check(dock.itemPalette.join(",") !== originalPalette, "wallpaper changes dock palette");
+                    for (let item of bar.settings.items) {
+                        test.check(item.iconColor === dock.itemColor(item.id), "wallpaper updates live ink " + item.id);
+                        test.check(!["#5dccff", "#86a6ff", "#b88aff"].includes(item.iconColor), "blue slots replaced");
+                    }
+                    dock.wallpaperSource = "";
+                    test.check(dock.itemPalette.join(",") === originalPalette, "returning wallpaper restores palette");
                     test.check(bar.settings.items.slice(-5).map(i => i.id).join(",") === "bluetooth,audio,wifi,battery,power", "status controls trail the strip");
                     test.check(bar.appearance("workspaces").background === "on" && bar.appearance("workspaces").uniformTextHeight === 8, "small workspace numbers with individual pills");
                     test.check(test.find(dock.contentItem, "hyprdockSurface").clip, "items reveal within animated background bounds");
@@ -71,6 +81,8 @@ ShellRoot {
                     }
                     let name = test.names[test.phase - 1]; dock.open(name, true);
                     test.check(dock.section === name, "route " + name);
+                    let bar = test.find(dock.contentItem, "dockBar");
+                    if (bar.menuTargets[name]) test.check(dock.headerColor.toString() === bar.menuAccent(name).toString(), "header follows icon " + name);
                 } else if (test.phase === test.names.length + 1) {
                     test.check(editor.window && editor.window.dockOpened && !editor.window.visible, "Settings embedded without native window");
                     let root = test.find(dock.contentItem, "settingsRoot");

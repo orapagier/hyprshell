@@ -37,6 +37,17 @@ PanelWindow {
     signal lockRequested()
     signal activated()
     readonly property var menuColors: glass.menuColors
+    readonly property var itemPalette: Model.wallpaperPalette(wallpaperSource.toString()).map(color => {
+        // Retain wallpaper-driven shuffling, replacing only the blue/violet slots.
+        return ({"#5dccff":"#ffb86b", "#86a6ff":"#f6c177", "#b88aff":"#f6a6d7"})[color] || color;
+    })
+    function itemColor(name) {
+        const aliases = {dashboard:"launcher", activity:"notifications", keybindings:"workspaces"};
+        let index = Model.vibrantIds.indexOf(aliases[name] || name);
+        return itemPalette[Math.max(0, index)];
+    }
+    readonly property color headerColor: stripBar.menuTargets[dockState.displayedSection]
+        ? stripBar.menuAccent(dockState.displayedSection) : itemColor(dockState.displayedSection)
     readonly property real stripSize: 26
     readonly property real compactLength: 76
     readonly property real naturalLength: Math.max(1, stripBar.groupLength("left"))
@@ -165,8 +176,8 @@ PanelWindow {
             start: 12
             end: (dock.vertical ? height : width) - 12
             surfaceColor: glass.bottomColor
-            outlineColor: glass.rimColor
-            raised: true
+            outlineColor: "transparent"
+            raised: false
         }
         // The first four pixels only reveal items, never activate their menus.
         MouseArea {
@@ -230,8 +241,17 @@ PanelWindow {
                         config.items = config.items.filter(item => !status.includes(item.id))
                             .concat(status.map(id => config.items.find(item => item.id === id)).filter(Boolean))
                             .map((item, index) => Object.assign(item, {side: "left", order: index, pillGroup: "",
-                                spacingLeft: 0, spacingRight: 0, paddingLeft: 3, paddingRight: 3,
+                                spacingLeft: 2, spacingRight: 2, paddingLeft: 5, paddingRight: 5,
                                 iconSize: 12, fontSize: 10}, item.id === "settings" ? {enabled: true, hideIcon: false} : {}));
+                        // The dock has its own dark backing: use bright ink directly,
+                        // rather than adapting bare glyphs to the wallpaper behind it.
+                        if (config.bar.randomVibrantColors) {
+                            for (let item of config.items) {
+                                if (item.adaptiveColors && item.adaptiveColors !== "inherit") continue;
+                                if (!item.iconColor) item.iconColor = dock.itemColor(item.id);
+                                if (!item.textColor) item.textColor = dock.itemColor(item.id);
+                            }
+                        }
                         return config;
                     }
                     statusIconsOnly: true
@@ -293,7 +313,7 @@ PanelWindow {
                         onHoveredChanged: { if (hovered) dockState.hover(modelData.name); else dockState.leave(modelData.name); }
                         onClicked: dock.open(modelData.name, false)
                         background: Rectangle { radius: 8; color: parent.hovered || parent.activeFocus ? Qt.rgba(dock.menuColors.text.r, dock.menuColors.text.g, dock.menuColors.text.b, 0.12) : "transparent"; border.width: parent.activeFocus ? 1 : 0; border.color: dock.menuColors.accent }
-                        contentItem: Text { text: parent.modelData.icon; color: dock.menuColors.text; font.family: "GoMono Nerd Font"; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        contentItem: Text { text: parent.modelData.icon; color: dock.itemColor(parent.modelData.name); font.family: "GoMono Nerd Font"; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     }
                 }
             }
@@ -320,7 +340,7 @@ PanelWindow {
                 }
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { Layout.fillWidth: true; text: ({settings:"Hyprsettings",dashboard:"Dashboard",activity:"Activity",keybindings:"Keyboard shortcuts",launcher:"Applications",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",battery:"Battery",power:"Power",media:"Now playing",notifications:"Notifications",displays:"Projector options",alerts:"Notifications",workspacePreview:"Workspace"})[dockState.displayedSection] || "Hyprdock"; color: dock.menuColors.text; font.pixelSize: 16 }
+                    Label { Layout.fillWidth: true; text: ({settings:"Hyprsettings",dashboard:"Dashboard",activity:"Activity",keybindings:"Keyboard shortcuts",launcher:"Applications",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",battery:"Battery",power:"Power",media:"Now playing",notifications:"Notifications",displays:"Projector options",alerts:"Notifications",workspacePreview:"Workspace"})[dockState.displayedSection] || "Hyprdock"; color: dock.headerColor; font.pixelSize: 16 }
                     ToolButton {
                         Accessible.name: "Close dock content"
                         implicitWidth: 30; implicitHeight: 30

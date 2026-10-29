@@ -357,6 +357,18 @@ class SettingsTests(unittest.TestCase):
         self.assertTrue(backend.save(self.data)['ok'])
         self.assertEqual(json.loads(self.path.read_text())['bar']['workspaceScope'], 'all')
 
+    def test_panel_mode_switch_preserves_other_preferences(self):
+        self.data['bar'].update(spacing=17, workspaceOverrides={'2': False})
+        backend.save(self.data)
+        for mode, visible in [('hyprdock', True), ('hyprdock', False), ('hyprpane', True), ('hyprpane', False), ('hyprdock', True)]:
+            result = backend.save(backend.DEFAULTS, workspace_visibility=(3, visible), panel_mode=mode)
+            self.assertTrue(result['ok'])
+            saved = json.loads(self.path.read_text())['bar']
+            self.assertEqual(saved['dockEnabled'], mode == 'hyprdock')
+            self.assertEqual(backend.bar_visible(saved, 3), visible)
+            self.assertFalse(backend.bar_visible(saved, 2))
+            self.assertEqual(saved['spacing'], 17)
+
     def test_shortcut_toggle_preserves_saved_settings(self):
         self.data['bar']['spacing'] = 17
         self.data['bar'].update(workspaceScope='selected', workspaceList=[1])

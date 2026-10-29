@@ -696,8 +696,10 @@ def bar_visible(bar, workspace):
     return bar['visible'] and (bar['workspaceScope'] == 'all' or workspace in bar['workspaceList'])
 
 
-def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpane', workspace_visibility=None, app_action=None, toggle_hover=None):
+def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpane', workspace_visibility=None, panel_mode=None, app_action=None, toggle_hover=None):
     data = validate(data)
+    if panel_mode is not None and (panel_mode not in ('hyprpane', 'hyprdock') or workspace_visibility is None):
+        raise ValueError('Choose a panel mode with workspace visibility')
     if workspace_visibility is not None:
         workspace, visible = workspace_visibility
         if type(workspace) is not int or not 1 <= workspace <= 99 or type(visible) is not bool:
@@ -725,6 +727,8 @@ def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpa
             data = copy.deepcopy(current)
             workspace, visible = workspace_visibility
             data['bar']['workspaceOverrides'][str(workspace)] = visible
+            if panel_mode is not None:
+                data['bar']['dockEnabled'] = panel_mode == 'hyprdock'
         if toggle_hover is not None:
             data = copy.deepcopy(current)
             bar = data['bar']
@@ -806,6 +810,7 @@ def save(data, expected=None, *, toggle_workspace=None, toggle_component='hyprpa
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--save-json')
+    parser.add_argument('--panel-mode', choices=('hyprpane', 'hyprdock'))
     parser.add_argument('--toggle-bar', type=int, metavar='WORKSPACE')
     parser.add_argument('--set-bar-visibility', nargs=2, metavar=('WORKSPACE', 'show|hide'))
     parser.add_argument('--toggle-panel', nargs=2, metavar=('COMPONENT', 'WORKSPACE'))
@@ -824,7 +829,7 @@ def main():
             workspace, action = args.set_bar_visibility
             if action not in ('show', 'hide'):
                 raise ValueError('Choose show or hide')
-            print(json.dumps(save(DEFAULTS, workspace_visibility=(int(workspace), action == 'show'))))
+            print(json.dumps(save(DEFAULTS, workspace_visibility=(int(workspace), action == 'show'), panel_mode=args.panel_mode)))
             return 0
         if args.toggle_panel is not None:
             component, workspace = args.toggle_panel

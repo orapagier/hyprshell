@@ -5,6 +5,7 @@ shell_bin=$(command -v quickshell || command -v qs || true)
 case "${1:-}" in
     topbar) method=toggleBar; args=() ;;
     dashboard) method=dashboard; args=() ;;
+    toggle-dock) method=toggleDock; args=() ;;
     dock) method=dock; args=() ;;
     activity) method=activity; args=() ;;
     settings) method=settings; args=() ;;

@@ -34,7 +34,7 @@ hl.bind("ALT + M", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmatrix" --toggle-works
 hl.bind("CTRL + ALT + M", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmatrix" --cycle-effect'), { description = "Cycle Hyprmatrix effects" })
 hl.bind("SUPER + ALT + M", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprmatrix" --settings'), { description = "Open Hyprmatrix settings" })
 hl.bind("ALT + SHIFT + D", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" dock'), { description = "Reveal and focus Hyprdock" })
-hl.bind("ALT + D", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" topbar'), { description = "Toggle Hyprdock on current workspace" })
+hl.bind("ALT + D", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" toggle-dock'), { description = "Toggle Hyprdock on current workspace" })
 hl.bind("ALT + T", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" topbar'), { description = "Toggle Hyprpane on current workspace" })
 hl.bind("ALT + C", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" calendar'), { description = "Toggle calendar" })
 hl.bind("ALT + S", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" settings'), { description = "Open Hyprshell Settings" })

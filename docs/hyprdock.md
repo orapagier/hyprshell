@@ -19,8 +19,10 @@ existing panel. Disabling it restores the saved ordinary Hyprpane layout.
   Enter activates, and Escape returns to the strip then collapses the dock.
 - Existing launcher, status-menu, **Super+D**, **Super+K**, **Alt+S**, and
   **Super+P** shortcuts open the corresponding dock content.
-- **Alt+D** toggles dock visibility on the current workspace using the saved
-  panel visibility choices. **Alt+T** retains its workspace visibility behavior. Direct menu shortcuts
+- **Alt+D** selects Hyprdock and **Alt+X** (the saved remap of Alt+T) selects
+  Hyprpane. Selecting the other presentation shows it on the current workspace
+  and turns off the previous presentation. Repeating the same shortcut toggles
+  that presentation on/off on the current workspace. Direct menu shortcuts
   can temporarily open the dock on a hidden workspace.
 
 The additional strip controls open Dashboard, Activity, and Keyboard shortcuts.
