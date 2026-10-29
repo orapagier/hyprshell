@@ -108,6 +108,8 @@ PanelWindow {
         objectName: "dockMenuState"
         hoverEnabled: true
         dismissPinnedOnLeave: false
+        dismissInhibited: dock.section === "settings" && !!card.Overlay.overlay
+            && Array.from(card.Overlay.overlay.children).some(child => child.visible)
         onSectionChanged: {
             if (section === "dashboard") dock.dashboardLoaded = true;
             if (section === "activity") dock.activityLoaded = true;

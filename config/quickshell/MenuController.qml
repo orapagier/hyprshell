@@ -16,13 +16,19 @@ Item {
     property bool pinned: false
     property bool openedByShortcut: false
     property bool dismissPinnedOnLeave: false
+    // Popups may take pointer focus away from their owning menu.
+    property bool dismissInhibited: false
+    onDismissInhibitedChanged: {
+        if (dismissInhibited) { openDelay.stop(); closeDelay.stop(); }
+        else retain(pointerInMenu);
+    }
     property bool pointerInMenu: false
     readonly property bool keyboardPowerMenu: pinned && openedByShortcut && section === "power"
 
     function hover(name) {
         hoveredMenu = name;
         closeDelay.stop();
-        if (hoverEnabled && section !== name) openDelay.restart();
+        if (!dismissInhibited && hoverEnabled && section !== name) openDelay.restart();
     }
     function leave(name) {
         if (hoveredMenu !== name) return;
@@ -32,7 +38,7 @@ Item {
     }
     function retain(inside) {
         pointerInMenu = inside;
-        if (inside || hoveredMenu.length || keyboardPowerMenu || (pinned && !dismissPinnedOnLeave)) closeDelay.stop();
+        if (dismissInhibited || inside || hoveredMenu.length || keyboardPowerMenu || (pinned && !dismissPinnedOnLeave)) closeDelay.stop();
         else if (section.length) closeDelay.restart();
     }
     function activate(name, fromShortcut) {
@@ -56,7 +62,7 @@ Item {
         id: openDelay
         interval: 110
         onTriggered: {
-            if (!controller.hoverEnabled || !controller.hoveredMenu.length) return;
+            if (controller.dismissInhibited || !controller.hoverEnabled || !controller.hoveredMenu.length) return;
             if (controller.section !== controller.hoveredMenu) {
                 controller.pinned = false;
                 controller.openedByShortcut = false;
@@ -68,7 +74,7 @@ Item {
         id: closeDelay
         interval: 320
         onTriggered: {
-            if (!controller.pointerInMenu && !controller.hoveredMenu.length && !controller.keyboardPowerMenu && (!controller.pinned || controller.dismissPinnedOnLeave))
+            if (!controller.dismissInhibited && !controller.pointerInMenu && !controller.hoveredMenu.length && !controller.keyboardPowerMenu && (!controller.pinned || controller.dismissPinnedOnLeave))
                 controller.close();
         }
     }
