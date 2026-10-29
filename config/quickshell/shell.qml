@@ -208,7 +208,7 @@ ShellRoot {
                 right: edge !== "left"
             }
             margins {
-                top: compact ? outerMargins.top + (availableHeight - outerMargins.top - outerMargins.bottom - implicitHeight) / 2 : outerMargins.top
+                top: compact ? outerMargins.top + (availableHeight - outerMargins.top - outerMargins.bottom - implicitHeight) / 2 : outerMargins.top - bar.screenFacingInset
                 bottom: outerMargins.bottom
                 left: outerMargins.left
                 right: outerMargins.right

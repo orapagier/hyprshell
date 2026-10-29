@@ -438,6 +438,39 @@ Item {
             ? Math.max(verticalThickness - 6,
                 ...Object.keys(moduleItems).filter(id => itemShown(id)).map(id => moduleItems[id].height + 4))
             : verticalThickness) + insetTop + insetBottom
+    // Outer top margin measures visible paint, excluding the transparent
+    // centering space in the panel's hit area. Explicit content padding stays.
+    readonly property real screenFacingInset: {
+        if (position !== "top" || edgeAttached) return 0;
+        let tops = [];
+        function include(item, offset) {
+            if (!item) return;
+            let rects = item.bare && item.glyphRect ? [item.glyphRect] : [];
+            if (item.bare && item.shownText?.length) rects.push(item.textGlyphRect);
+            if (item.bare && item.shownIcon?.length) rects.push(item.iconGlyphRect);
+            rects = rects.filter(r => r && r.width > 0 && r.height > 0);
+            tops.push(offset + (rects.length ? Math.min(...rects.map(r => r.y)) : 0));
+        }
+        for (let id of Object.keys(moduleItems).filter(id => itemShown(id))) {
+            let item = moduleItems[id];
+            if (id === "workspaces") {
+                for (let i = 0; i < workspaceRepeater.count; ++i) {
+                    let child = workspaceRepeater.itemAt(i);
+                    if (child) include(child, item.y + child.y);
+                }
+            } else if (id === "media") include(mediaSlot.item, item.y);
+            else include(item, item.y);
+        }
+        if (bell.visible && badge.participating) tops.push(bell.y + badge.glyphRect.y);
+        if (fullPill.participating) tops.push(fullPill.bounds.y);
+        for (let i = 0; i < sharedPillRepeater.count; ++i) {
+            let pill = sharedPillRepeater.itemAt(i);
+            if (pill && pill.visible) tops.push(pill.y);
+        }
+        if (knotsEnabled && connectors.segments.length)
+            tops.push(insetTop + contentHeight / 2 - Math.max(0.72 * knotSize, connectors.lineWidth / 2) - connectors.lineWidth / 2);
+        return tops.length ? Math.max(0, Math.min(...tops) - insetTop) : 0;
+    }
     // Reserve the occupied strip; the compositor supplies the window margin.
     readonly property real windowFacingInset: {
         let ids = Object.keys(moduleItems).filter(id => itemShown(id));
