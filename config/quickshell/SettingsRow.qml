@@ -17,19 +17,22 @@ ColumnLayout {
         Layout.fillWidth: true
         columns: row.stackOnNarrow && width < 460 ? 1 : 2
         columnSpacing: 24
-        rowSpacing: 10
+        rowSpacing: 8
+        Layout.leftMargin: 2
+        Layout.rightMargin: 2
         Layout.topMargin: 8
-        Layout.bottomMargin: 16
+        Layout.bottomMargin: 14
         ColumnLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             Layout.preferredWidth: fields.columns === 1 ? fields.width : fields.width * 0.38
-            spacing: 4
+            spacing: 3
             Label {
                 Layout.fillWidth: true
                 text: row.title
                 color: Style.SettingsTheme.text
                 font.pixelSize: Style.SettingsTheme.bodySize
+                font.weight: Font.Medium
                 wrapMode: Text.WordWrap
             }
             Label {
@@ -52,7 +55,9 @@ ColumnLayout {
     Rectangle {
         visible: row.separator
         Layout.fillWidth: true
+        Layout.leftMargin: 2
+        Layout.rightMargin: 2
         implicitHeight: 1
-        color: Style.SettingsTheme.separator
+        color: Style.SettingsTheme.divider
     }
 }

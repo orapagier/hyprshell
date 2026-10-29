@@ -16,7 +16,7 @@ ColumnLayout {
         return null;
     }
     property bool collapsible: sectionHost !== null
-    readonly property real contentHeight: body.implicitHeight + 40
+    readonly property real contentHeight: body.implicitHeight + 32
     property real collapseThreshold: 1000
     readonly property bool longSection: contentHeight > collapseThreshold
     property bool expanded: !longSection
@@ -44,18 +44,18 @@ ColumnLayout {
         return false;
     }
     Layout.minimumWidth: 0
-    spacing: 10
+    spacing: 8
     ColumnLayout {
         Layout.fillWidth: true
-        Layout.leftMargin: 2
-        Layout.rightMargin: 2
-        spacing: 4
+        Layout.leftMargin: 4
+        Layout.rightMargin: 4
+        spacing: 2
         ToolButton {
             id: heading
             objectName: "settingsSectionHeader"
             Layout.fillWidth: true
-            implicitHeight: Math.max(32, contentItem.implicitHeight + topPadding + bottomPadding)
-            leftPadding: 4; rightPadding: 8; topPadding: 4; bottomPadding: 4
+            implicitHeight: Math.max(30, contentItem.implicitHeight + topPadding + bottomPadding)
+            leftPadding: 4; rightPadding: 6; topPadding: 2; bottomPadding: 2
             enabled: root.collapsible
             hoverEnabled: true
             activeFocusOnTab: root.collapsible
@@ -67,11 +67,11 @@ ColumnLayout {
             Keys.onReturnPressed: clicked()
             Keys.onEnterPressed: clicked()
             contentItem: RowLayout {
-                spacing: 10
+                spacing: 8
                 Label {
                     Layout.fillWidth: true
                     text: root.title; color: Style.SettingsTheme.text
-                    font.pixelSize: Style.SettingsTheme.sectionSize; font.weight: Font.DemiBold
+                    font.pixelSize: Style.SettingsTheme.sectionSize; font.weight: Font.Medium
                     wrapMode: Text.WordWrap
                 }
                 Label {
@@ -94,17 +94,18 @@ ColumnLayout {
     Rectangle {
         visible: root.contentExpanded
         Layout.fillWidth: true
-        implicitHeight: body.implicitHeight + 40
-        color: Style.SettingsTheme.surface
-        radius: Style.SettingsTheme.radius
+        implicitHeight: body.implicitHeight + 32
+        color: Style.SettingsTheme.card
+        radius: Style.SettingsTheme.cardRadius
         border.color: Style.SettingsTheme.highContrast ? Style.SettingsTheme.border : "transparent"
+        border.width: Style.SettingsTheme.highContrast ? 1 : 0
         ColumnLayout {
             id: body
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: 20
-            spacing: 16
+            anchors.margins: 16
+            spacing: 12
         }
     }
 }

@@ -9,6 +9,7 @@ Button {
     leftPadding: 18; rightPadding: 18
     hoverEnabled: true
     font.pixelSize: Style.SettingsTheme.bodySize
+    font.weight: Font.Medium
     opacity: enabled ? 1 : 0.4
     contentItem: Text {
         text: control.text; font: control.font
@@ -18,7 +19,7 @@ Button {
         elide: Text.ElideRight
     }
     background: Rectangle {
-        radius: 10
+        radius: Math.round(height / 2)
         color: control.highlighted ? (control.down ? Style.SettingsTheme.accentPressed : control.hovered ? Style.SettingsTheme.accentHover : Style.SettingsTheme.accent) : control.down ? Style.SettingsTheme.pressed : control.hovered ? Style.SettingsTheme.hover : control.flat ? "transparent" : Style.SettingsTheme.button
         border.color: control.activeFocus ? Style.SettingsTheme.accentText : Style.SettingsTheme.highContrast ? Style.SettingsTheme.border : "transparent"
         border.width: control.activeFocus ? 2 : Style.SettingsTheme.highContrast && !control.flat ? 1 : 0

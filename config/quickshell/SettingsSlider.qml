@@ -120,9 +120,9 @@ ColumnLayout {
             handle: Rectangle {
                 x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width)
                 y: slider.topPadding + (slider.availableHeight - height) / 2
-                implicitWidth: 18
-                implicitHeight: 18
-                radius: 9
+                implicitWidth: 20
+                implicitHeight: 20
+                radius: 10
                 color: slider.pressed ? Style.SettingsTheme.accentForeground : Style.SettingsTheme.text
                 border.width: slider.activeFocus || slider.hovered ? 3 : 2
                 border.color: slider.activeFocus || slider.hovered ? Style.SettingsTheme.accentText : Style.SettingsTheme.accentForeground

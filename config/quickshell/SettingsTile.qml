@@ -8,27 +8,31 @@ Button {
     id: tile
     property string symbol: "󰒓"
     property string description: ""
-    implicitHeight: Math.max(100, contentItem.implicitHeight + 36)
+    implicitHeight: Math.max(108, contentItem.implicitHeight + 32)
     implicitWidth: 240
-    padding: 20
+    padding: 18
     hoverEnabled: true
     Accessible.name: text
     Accessible.description: description
     contentItem: RowLayout {
-        spacing: 16
+        spacing: 14
         Rectangle {
             Layout.alignment: Qt.AlignTop
-            implicitWidth: 38; implicitHeight: 38; radius: 12
-            color: Style.SettingsTheme.selection
+            implicitWidth: Math.round(44 * Style.SettingsTheme.textScale)
+            implicitHeight: Math.round(44 * Style.SettingsTheme.textScale)
+            radius: width / 2
+            color: Style.SettingsTheme.iconBadge
+            border.width: Style.SettingsTheme.highContrast ? 1 : 0
+            border.color: Style.SettingsTheme.highContrast ? Style.SettingsTheme.controlBorder : "transparent"
             Text {
                 anchors.centerIn: parent
-                text: tile.symbol; font.family: "GoMono Nerd Font"; font.pixelSize: 20
-                color: Style.SettingsTheme.accentText
+                text: tile.symbol; font.family: "GoMono Nerd Font"; font.pixelSize: Math.round(21 * Style.SettingsTheme.textScale)
+                color: Style.SettingsTheme.iconBadgeText
             }
         }
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 6
+            spacing: 4
             Label {
                 Layout.fillWidth: true
                 text: tile.text; wrapMode: Text.WordWrap
@@ -44,10 +48,12 @@ Button {
         Label { text: "›"; color: tile.hovered ? Style.SettingsTheme.accentText : Style.SettingsTheme.disabled; font.pixelSize: 20 }
     }
     background: Rectangle {
-        radius: Style.SettingsTheme.radius
-        color: tile.down ? Style.SettingsTheme.pressed : tile.hovered ? Style.SettingsTheme.hover : Style.SettingsTheme.surface
-        border.width: tile.activeFocus ? 2 : 1
-        border.color: tile.activeFocus ? Style.SettingsTheme.accentText : Style.SettingsTheme.highContrast ? Style.SettingsTheme.border : "transparent"
+        radius: Style.SettingsTheme.cardRadius
+        color: tile.down ? Style.SettingsTheme.pressed : tile.hovered ? Style.SettingsTheme.cardHover : Style.SettingsTheme.card
+        border.width: tile.activeFocus || tile.hovered ? 1 : Style.SettingsTheme.highContrast ? 1 : 0
+        border.color: tile.activeFocus ? Style.SettingsTheme.accentText : tile.hovered ? Style.SettingsTheme.controlBorder : Style.SettingsTheme.highContrast ? Style.SettingsTheme.border : "transparent"
         Behavior on color { ColorAnimation { duration: Style.SettingsTheme.duration(tile, 150) } }
+        scale: tile.down ? 0.99 : 1
+        Behavior on scale { NumberAnimation { duration: Style.SettingsTheme.duration(tile, 160); easing.type: Easing.OutCubic } }
     }
 }

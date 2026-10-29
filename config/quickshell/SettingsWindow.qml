@@ -176,40 +176,53 @@ FloatingWindow {
     property bool barItemsExpanded: false
     readonly property var navigation: [
         {group: "Personalize", pages: [
-            {section: -8, title: "Appearance", symbol: "󰔎", keywords: "theme colors font cursor"},
-            {section: -2, title: "Windows", symbol: "󰖲", keywords: "hyprland transparency blur gaps animations"},
-            {section: -1, title: "Hyprpane", symbol: "󰕮", keywords: "hyprpane panel topbar position screen edge top bottom left right spacing workspace workspaces"},
-            {section: -19, title: "Workspaces & rules", symbol: "󰍹", keywords: "workspace rules tiling layout focus pointer"},
-            {section: -13, title: "Applications", symbol: "󰀻", keywords: "default apps startup"}
+            {section: -8, title: "Appearance", symbol: "󰔎", hint: "Theme, colors, fonts & cursor", keywords: "theme colors font cursor"},
+            {section: -2, title: "Windows", symbol: "󰖲", hint: "Blur, gaps, shadows & motion", keywords: "hyprland transparency blur gaps animations"},
+            {section: -1, title: "Hyprpane", symbol: "󰕮", hint: "Panel layout, spacing & menus", keywords: "hyprpane panel topbar position screen edge top bottom left right spacing workspace workspaces"},
+            {section: -19, title: "Workspaces & rules", symbol: "󰍹", hint: "Tiling, focus & window rules", keywords: "workspace rules tiling layout focus pointer"},
+            {section: -13, title: "Applications", symbol: "󰀻", hint: "Default apps & startup", keywords: "default apps startup"}
         ]},
         {group: "Devices & connections", pages: [
-            {section: -7, title: "Displays", symbol: "󰍹", keywords: "monitor resolution scale rotation duplicate mirror extend HDMI TV projection"},
-            {section: -12, title: "Sound", symbol: "󰕾", keywords: "audio volume microphone speakers"},
-            {section: -25, title: "Bluetooth", symbol: "󰂯", keywords: "pair devices headphones wireless discoverable trusted wake battery"},
-            {section: -15, title: "Network", symbol: "󰤨", keywords: "wifi wi-fi hidden enterprise vpn wireguard ethernet connections dns"},
-            {section: -9, title: "Mouse & keyboard", symbol: "󰍽", keywords: "input touchpad scrolling typing layouts"},
-            {section: -6, title: "Keyboard shortcuts", symbol: "󰌌", keywords: "keybindings hotkeys"},
-            {section: -21, title: "Printing & scanning", symbol: "󰐪", keywords: "printer scanner cups paper documents"}
+            {section: -7, title: "Displays", symbol: "󰍹", hint: "Resolution, scale & arrangement", keywords: "monitor resolution scale rotation duplicate mirror extend HDMI TV projection"},
+            {section: -12, title: "Sound", symbol: "󰕾", hint: "Output, microphone & app volume", keywords: "audio volume microphone speakers"},
+            {section: -25, title: "Bluetooth", symbol: "󰂯", hint: "Pair devices & wireless", keywords: "pair devices headphones wireless discoverable trusted wake battery"},
+            {section: -15, title: "Network", symbol: "󰤨", hint: "Wi-Fi, Ethernet & VPN", keywords: "wifi wi-fi hidden enterprise vpn wireguard ethernet connections dns"},
+            {section: -9, title: "Mouse & keyboard", symbol: "󰍽", hint: "Pointer, scrolling & layouts", keywords: "input touchpad scrolling typing layouts"},
+            {section: -6, title: "Keyboard shortcuts", symbol: "󰌌", hint: "Hotkeys & keybindings", keywords: "keybindings hotkeys"},
+            {section: -21, title: "Printing & scanning", symbol: "󰐪", hint: "Printers & scanners", keywords: "printer scanner cups paper documents"}
         ]},
         {group: "Preferences", pages: [
-            {section: -11, title: "Notifications", symbol: "󰂚", keywords: "delivery popups disturb"},
-            {section: -20, title: "Clipboard history", symbol: "󰅍", keywords: "copy paste clips text images"},
-            {section: -16, title: "Accessibility", symbol: "󰋁", keywords: "large text size contrast reduced motion animations"},
-            {section: -17, title: "Language & region", symbol: "󰗊", keywords: "locale timezone date time number formats"},
-            {section: -10, title: "Power & battery", symbol: "󰁹", keywords: "brightness sleep lid profiles"},
-            {section: -3, title: "Screen locking", symbol: "󰌾", keywords: "security idle lock"}
+            {section: -11, title: "Notifications", symbol: "󰂚", hint: "Popups, Do Not Disturb & apps", keywords: "delivery popups disturb"},
+            {section: -20, title: "Clipboard history", symbol: "󰅍", hint: "Copied text & images", keywords: "copy paste clips text images"},
+            {section: -16, title: "Accessibility", symbol: "󰋁", hint: "Text size, contrast & motion", keywords: "large text size contrast reduced motion animations"},
+            {section: -17, title: "Language & region", symbol: "󰗊", hint: "Language, timezone & formats", keywords: "locale timezone date time number formats"},
+            {section: -10, title: "Power & battery", symbol: "󰁹", hint: "Brightness, sleep & profiles", keywords: "brightness sleep lid profiles"},
+            {section: -3, title: "Screen locking", symbol: "󰌾", hint: "Idle timeout & security", keywords: "security idle lock"}
         ]},
         {group: "System", pages: [
-            {section: -22, title: "Firewall", symbol: "󰒃", keywords: "firewalld security rules ports services zones block incoming tcp udp website dns custom cloudflare adult porn malware malicious phishing protection"},
-            {section: -4, title: "Cleanup", symbol: "󰃢", keywords: "storage files maintenance"},
-            {section: -23, title: "Backup & restore", symbol: "󰁯", keywords: "hyprshell setup backup restore date time configuration checkpoints snapshots"},
-            {section: -14, title: "Updates & recovery", symbol: "󰚰", keywords: "backup restore checkpoints"},
-            {section: -18, title: "Help & diagnostics", symbol: "󰋖", keywords: "welcome guide health diagnostics support getting started version build rolling"},
-            {section: -5, title: "Hyprskill", symbol: "󰒓", keywords: "agents coding knowledge"}
+            {section: -22, title: "Firewall", symbol: "󰒃", hint: "Network rules & blocked sites", keywords: "firewalld security rules ports services zones block incoming tcp udp website dns custom cloudflare adult porn malware malicious phishing protection"},
+            {section: -4, title: "Cleanup", symbol: "󰃢", hint: "Storage & maintenance", keywords: "storage files maintenance"},
+            {section: -23, title: "Backup & restore", symbol: "󰁯", hint: "Setup snapshots & restore", keywords: "hyprshell setup backup restore date time configuration checkpoints snapshots"},
+            {section: -14, title: "Updates & recovery", symbol: "󰚰", hint: "System updates & recovery", keywords: "backup restore checkpoints"},
+            {section: -18, title: "Help & diagnostics", symbol: "󰋖", hint: "Guide, health & support", keywords: "welcome guide health diagnostics support getting started version build rolling"},
+            {section: -5, title: "Hyprskill", symbol: "󰒓", hint: "Agent knowledge & tools", keywords: "agents coding knowledge"}
         ]}
     ]
     readonly property var barNavigation: draft.items.map((item, index) => ({section: index, title: names[item.id] || item.id, symbol: symbols[item.id] || "󰒓", keywords: "bar item " + item.id, itemEnabled: item.enabled}))
     readonly property var searchResults: navigation.reduce((pages, group) => pages.concat(matchingPages(group.pages)), []).concat(matchingPages(barNavigation))
+    readonly property var flatPages: navigation.reduce((pages, group) => pages.concat(group.pages), [])
+    function cycleSection(step) {
+        let pages = [homeSection].concat(flatPages.map(page => page.section));
+        let index = pages.indexOf(section);
+        if (index < 0) index = 0;
+        searchField.clear();
+        section = pages[(index + step + pages.length) % pages.length];
+    }
+    function goBack() {
+        if (section === homeSection) return;
+        searchField.clear();
+        section = section >= 0 ? -1 : homeSection;
+    }
     function matchingPages(pages) {
         let query = searchQuery.toLowerCase().replace(/\s+/g, " ").trim();
         return pages.filter(page => {
@@ -501,8 +514,27 @@ FloatingWindow {
     }
     Shortcut {
         sequence: "Ctrl+F"
-        enabled: window.visible
+        context: Qt.ApplicationShortcut
+        enabled: window.uiOpened
         onActivated: { searchField.forceActiveFocus(); searchField.selectAll(); }
+    }
+    Shortcut {
+        sequence: "Ctrl+Tab"
+        context: Qt.ApplicationShortcut
+        enabled: window.uiOpened
+        onActivated: window.cycleSection(1)
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+Tab"
+        context: Qt.ApplicationShortcut
+        enabled: window.uiOpened
+        onActivated: window.cycleSection(-1)
+    }
+    Shortcut {
+        sequence: "Alt+Left"
+        context: Qt.ApplicationShortcut
+        enabled: window.uiOpened
+        onActivated: window.goBack()
     }
     SettingsGithubUpdate { id: githubUpdate; parent: settingsRoot; hostWidth: window.hostWidth; hostHeight: window.hostHeight }
     Popup {
@@ -585,7 +617,11 @@ FloatingWindow {
     Pane {
         id: settingsRoot
         Keys.onPressed: event => {
-            if (event.key === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
+            if (event.key === Qt.Key_Tab && (event.modifiers & Qt.ControlModifier)) {
+                window.cycleSection(event.modifiers & Qt.ShiftModifier ? -1 : 1); event.accepted = true;
+            } else if (event.key === Qt.Key_Left && (event.modifiers & Qt.AltModifier)) {
+                window.goBack(); event.accepted = true;
+            } else if (event.key === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
                 window.focusSearch(); event.accepted = true;
             }
         }
@@ -612,33 +648,58 @@ FloatingWindow {
         contentItem: ColumnLayout {
             spacing: 0
             RowLayout {
+                id: appBar
                 Layout.fillWidth: true
                 Layout.fillHeight: false
-                Layout.preferredHeight: 72
-                Layout.leftMargin: 22
-                Layout.rightMargin: 22
+                Layout.preferredHeight: Math.max(56, Math.round(64 * Style.SettingsTheme.textScale))
+                Layout.leftMargin: window.hostWidth < 900 ? 12 : 18
+                Layout.rightMargin: window.hostWidth < 900 ? 12 : 18
+                spacing: 6
                 ToolButton {
                     id: homeButton
                     objectName: "settingsHomeButton"
                     Accessible.name: "Hyprshell Settings overview"
                     hoverEnabled: true
-                    leftPadding: 8; rightPadding: 8
+                    implicitHeight: Math.max(42, Math.round(44 * Style.SettingsTheme.textScale))
+                    leftPadding: 7; rightPadding: 14
                     onClicked: window.goHome()
                     Keys.onReturnPressed: clicked()
                     Keys.onEnterPressed: clicked()
                     contentItem: RowLayout {
-                        spacing: 12
-                        Label { text: "󰒓"; font.family: "GoMono Nerd Font"; font.pixelSize: 23; color: Style.SettingsTheme.accentText }
-                        Label { text: "Hyprsettings"; font.pixelSize: 17; font.weight: Font.DemiBold; color: Style.SettingsTheme.text }
+                        spacing: 10
+                        Rectangle {
+                            implicitWidth: Math.round(32 * Style.SettingsTheme.textScale)
+                            implicitHeight: Math.round(32 * Style.SettingsTheme.textScale)
+                            radius: width / 2
+                            color: Style.SettingsTheme.iconBadge
+                            border.width: Style.SettingsTheme.highContrast ? 1 : 0
+                            border.color: Style.SettingsTheme.controlBorder
+                            Label {
+                                anchors.centerIn: parent
+                                text: "󰒓"; font.family: "GoMono Nerd Font"
+                                font.pixelSize: Math.round(18 * Style.SettingsTheme.textScale)
+                                color: Style.SettingsTheme.iconBadgeText
+                            }
+                        }
+                        Label { text: "Hyprsettings"; font.pixelSize: Math.round(17 * Style.SettingsTheme.textScale); font.weight: Font.DemiBold; color: Style.SettingsTheme.text }
                     }
                     background: Rectangle {
-                        radius: Style.SettingsTheme.controlRadius
+                        radius: Math.round(height / 2)
                         color: homeButton.hovered ? Style.SettingsTheme.hover : "transparent"
+                        border.width: homeButton.activeFocus ? 2 : 0
                         border.color: homeButton.activeFocus ? Style.SettingsTheme.accentText : "transparent"
                     }
                 }
                 Item {
                     Layout.fillWidth: true
+                    Label {
+                        anchors.centerIn: parent
+                        visible: window.hostWidth >= 980
+                        text: "Settings"
+                        color: Style.SettingsTheme.muted
+                        font.pixelSize: Style.SettingsTheme.bodySize
+                        font.weight: Font.Medium
+                    }
                 }
                 SettingsGithubButton {
                     objectName: "githubSyncButton"
@@ -671,67 +732,93 @@ FloatingWindow {
                     }
                 }
             }
-            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Style.SettingsTheme.separator }
             RowLayout {
                 enabled: !githubSync.running && !githubUpdate.busy && !recoveryPage.busy
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: 0
+                Layout.leftMargin: window.hostWidth < 900 ? 10 : 14
+                Layout.rightMargin: window.hostWidth < 900 ? 10 : 14
+                Layout.topMargin: 4
+                Layout.bottomMargin: window.hostWidth < 900 ? 10 : 14
+                spacing: 12
                 Rectangle {
-                    Layout.preferredWidth: window.hostWidth < 900 ? 224 : 250
+                    id: sidebarPane
+                    Layout.preferredWidth: window.hostWidth < 820 ? 224 : window.hostWidth < 1000 ? 260 : 292
                     Layout.fillHeight: true
+                    radius: Style.SettingsTheme.paneRadius
                     color: Style.SettingsTheme.sidebar
+                    border.width: Style.SettingsTheme.highContrast ? 1 : 0
+                    border.color: Style.SettingsTheme.border
                     ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: 14
-                        spacing: 16
+                        anchors.margins: 12
+                        spacing: 10
                         TextField {
                             id: searchField
                             objectName: "settingsSearch"
                             Layout.fillWidth: true
-                            implicitHeight: Style.SettingsTheme.controlHeight
+                            implicitHeight: Math.max(42, Math.round(46 * Style.SettingsTheme.textScale))
                             placeholderText: "Search settings"
                             color: Style.SettingsTheme.text
                             placeholderTextColor: Style.SettingsTheme.muted
                             selectionColor: Style.SettingsTheme.selection
                             selectedTextColor: Style.SettingsTheme.text
                             font.pixelSize: Style.SettingsTheme.bodySize
-                            leftPadding: 36
-                            rightPadding: searchClear.visible ? 34 : 12
+                            leftPadding: Math.round(42 * Style.SettingsTheme.textScale)
+                            rightPadding: searchClear.visible ? 40 : searchHint.visible ? 62 : 14
                             selectByMouse: true
                             Accessible.name: "Search settings"
                             onTextChanged: window.searchQuery = text
                             onAccepted: if (window.searchResults.length) window.section = window.searchResults[Math.max(0, window.searchResultIndex)].section
                             Keys.onDownPressed: window.moveSearchSelection(1)
                             Keys.onUpPressed: window.moveSearchSelection(-1)
+                            Keys.onPressed: event => {
+                                if (event.key === Qt.Key_Tab && (event.modifiers & Qt.ControlModifier)) {
+                                    window.cycleSection(event.modifiers & Qt.ShiftModifier ? -1 : 1); event.accepted = true;
+                                } else if (event.key === Qt.Key_Left && (event.modifiers & Qt.AltModifier)) {
+                                    window.goBack(); event.accepted = true;
+                                }
+                            }
                             Keys.onEscapePressed: event => {
                                 if (text.length) { clear(); event.accepted = true; }
                                 else event.accepted = false;
                             }
                             background: Rectangle {
-                                radius: Style.SettingsTheme.controlRadius
-                                color: Style.SettingsTheme.field
-                                border.width: 1
+                                radius: Math.round(height / 2)
+                                color: searchField.hovered && !searchField.activeFocus ? Style.SettingsTheme.hover : Style.SettingsTheme.field
+                                border.width: searchField.activeFocus ? 2 : 1
                                 border.color: searchField.activeFocus ? Style.SettingsTheme.accentText : Style.SettingsTheme.border
                                 Behavior on border.color { ColorAnimation { duration: Style.SettingsTheme.duration(searchField, 150) } }
+                                Behavior on color { ColorAnimation { duration: Style.SettingsTheme.duration(searchField, 150) } }
                             }
                             Text {
-                                x: 12; anchors.verticalCenter: parent.verticalCenter
-                                text: "󰍉"; font.family: "GoMono Nerd Font"; font.pixelSize: 17
+                                x: Math.round(15 * Style.SettingsTheme.textScale); anchors.verticalCenter: parent.verticalCenter
+                                text: "󰍉"; font.family: "GoMono Nerd Font"; font.pixelSize: Math.round(17 * Style.SettingsTheme.textScale)
                                 color: Style.SettingsTheme.muted
+                            }
+                            Label {
+                                id: searchHint
+                                anchors.right: parent.right
+                                anchors.rightMargin: 14
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: searchField.text.length === 0 && window.hostWidth >= 820
+                                text: "Ctrl F"
+                                color: Style.SettingsTheme.muted
+                                font.pixelSize: Style.SettingsTheme.captionSize
                             }
                             ToolButton {
                                 id: searchClear
                                 objectName: "settingsSearchClear"
                                 anchors.right: parent.right
+                                anchors.rightMargin: 7
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 34; height: 34
+                                width: Math.round(30 * Style.SettingsTheme.textScale); height: width
                                 text: "×"
                                 visible: searchField.text.length > 0
                                 Accessible.name: "Clear search"
                                 onClicked: { searchField.clear(); searchField.forceActiveFocus(); }
-                                contentItem: Text { text: searchClear.text; color: Style.SettingsTheme.muted; font.pixelSize: 20; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                background: Rectangle { radius: 6; color: searchClear.hovered ? Style.SettingsTheme.hover : "transparent"; border.color: searchClear.activeFocus ? Style.SettingsTheme.accentText : "transparent" }
+                                contentItem: Text { text: searchClear.text; color: Style.SettingsTheme.muted; font.pixelSize: Math.round(20 * Style.SettingsTheme.textScale); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                background: Rectangle { radius: width / 2; color: searchClear.hovered ? Style.SettingsTheme.hover : "transparent"; border.width: searchClear.activeFocus ? 2 : 0; border.color: Style.SettingsTheme.accentText }
                             }
                         }
                         ScrollView {
@@ -744,13 +831,14 @@ FloatingWindow {
                             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                             ColumnLayout {
                                 width: sidebar.availableWidth
-                                spacing: 4
+                                spacing: 2
                                 SettingsNavButton {
                                     objectName: "settingsOverviewNav"
                                     Layout.fillWidth: true
-                                    Layout.bottomMargin: 10
+                                    Layout.bottomMargin: 6
                                     visible: !window.searchQuery.trim()
                                     text: "Overview"; symbol: "󰋜"
+                                    hint: "All settings at a glance"
                                     highlighted: window.section === window.homeSection
                                     onClicked: window.goHome()
                                 }
@@ -769,37 +857,56 @@ FloatingWindow {
                                         onContainsCurrentChanged: if (containsCurrent) expanded = true
                                         visible: pages.length > 0
                                         Layout.fillWidth: true
-                                        spacing: 3
+                                        spacing: 1
                                         ToolButton {
                                             id: groupButton
                                             objectName: "settingsGroup" + navGroup.index
                                             Layout.fillWidth: true
-                                            Layout.topMargin: 8
-                                            implicitHeight: Math.round(36 * Style.SettingsTheme.textScale)
-                                            leftPadding: 12; rightPadding: 10
+                                            Layout.topMargin: navGroup.index === 0 ? 2 : 8
+                                            implicitHeight: Math.round(30 * Style.SettingsTheme.textScale)
+                                            leftPadding: 8; rightPadding: 6
                                             hoverEnabled: true
                                             Accessible.name: navGroup.modelData.group
                                             Accessible.description: navGroup.revealed ? "Collapse group" : "Expand group"
                                             onClicked: navGroup.expanded = !navGroup.expanded
                                             contentItem: RowLayout {
-                                                Label { Layout.fillWidth: true; text: navGroup.modelData.group; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                                                Label { Layout.fillWidth: true; text: navGroup.modelData.group; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; font.weight: Font.DemiBold; font.letterSpacing: 0.5; elide: Text.ElideRight }
                                                 Label { text: "›"; rotation: navGroup.revealed ? 90 : 0; color: Style.SettingsTheme.muted; font.pixelSize: 17; Behavior on rotation { NumberAnimation { duration: Style.SettingsTheme.duration(groupButton, 180); easing.type: Easing.OutCubic } } }
                                             }
-                                            background: Rectangle { radius: 8; color: groupButton.hovered ? Style.SettingsTheme.hover : "transparent"; border.color: groupButton.activeFocus ? Style.SettingsTheme.accentText : "transparent" }
+                                            background: Rectangle { radius: 9; color: groupButton.hovered ? Style.SettingsTheme.hover : "transparent"; border.width: groupButton.activeFocus ? 2 : 0; border.color: Style.SettingsTheme.accentText }
                                         }
-                                        Repeater {
-                                            id: pageResults
-                                            model: navGroup.pages
-                                            delegate: SettingsNavButton {
-                                                required property var modelData
-                                                objectName: "settingsNav" + modelData.section
-                                                visible: navGroup.revealed
-                                                text: modelData.title
-                                                symbol: modelData.symbol
-                                                Layout.fillWidth: true
-                                                keyboardSelected: searchField.activeFocus && window.searchResultIndex >= 0 && window.searchResults[window.searchResultIndex]?.section === modelData.section
-                                                highlighted: window.section === modelData.section
-                                                onClicked: window.section = modelData.section
+                                        Rectangle {
+                                            id: navGroupCard
+                                            Layout.fillWidth: true
+                                            visible: navGroup.revealed
+                                            implicitHeight: navGroupCardColumn.implicitHeight + 6
+                                            radius: 16
+                                            color: Style.SettingsTheme.navRow
+                                            border.width: Style.SettingsTheme.highContrast ? 1 : 0
+                                            border.color: Style.SettingsTheme.border
+                                            ColumnLayout {
+                                                id: navGroupCardColumn
+                                                anchors.left: parent.left
+                                                anchors.right: parent.right
+                                                anchors.top: parent.top
+                                                anchors.margins: 3
+                                                spacing: 1
+                                                Repeater {
+                                                    id: pageResults
+                                                    model: navGroup.pages
+                                                    delegate: SettingsNavButton {
+                                                        required property var modelData
+                                                        objectName: "settingsNav" + modelData.section
+                                                        visible: navGroup.revealed
+                                                        text: modelData.title
+                                                        symbol: modelData.symbol
+                                                        hint: modelData.hint || ""
+                                                        Layout.fillWidth: true
+                                                        keyboardSelected: searchField.activeFocus && window.searchResultIndex >= 0 && window.searchResults[window.searchResultIndex]?.section === modelData.section
+                                                        highlighted: window.section === modelData.section
+                                                        onClicked: window.section = modelData.section
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -807,25 +914,44 @@ FloatingWindow {
                                 SettingsButton {
                                     objectName: "settingsBarItemsToggle"
                                     Layout.fillWidth: true
-                                    Layout.topMargin: 16
+                                    Layout.topMargin: 10
                                     flat: true
                                     text: "Hyprpane items  " + (window.barItemsExpanded || window.searchQuery.trim() ? "⌃" : "⌄")
                                     visible: window.matchingPages(window.barNavigation).length > 0
                                     Accessible.description: window.barItemsExpanded ? "Expanded" : "Collapsed"
                                     onClicked: window.barItemsExpanded = !window.barItemsExpanded
                                 }
-                                Repeater {
-                                    id: barResults
-                                    model: window.barItemsExpanded || window.searchQuery.trim() ? window.matchingPages(window.barNavigation) : []
-                                    delegate: SettingsNavButton {
-                                        required property var modelData
-                                        text: modelData.title
-                                        symbol: modelData.symbol
-                                        itemEnabled: modelData.itemEnabled
-                                        Layout.fillWidth: true
-                                        keyboardSelected: searchField.activeFocus && window.searchResultIndex >= 0 && window.searchResults[window.searchResultIndex]?.section === modelData.section
-                                        highlighted: window.section === modelData.section
-                                        onClicked: window.section = modelData.section
+                                Rectangle {
+                                    id: barItemsCard
+                                    Layout.fillWidth: true
+                                    visible: barResults.count > 0
+                                    implicitHeight: barResultsColumn.implicitHeight + 6
+                                    radius: 16
+                                    color: Style.SettingsTheme.navRow
+                                    border.width: Style.SettingsTheme.highContrast ? 1 : 0
+                                    border.color: Style.SettingsTheme.border
+                                    ColumnLayout {
+                                        id: barResultsColumn
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        anchors.top: parent.top
+                                        anchors.margins: 3
+                                        spacing: 1
+                                        Repeater {
+                                            id: barResults
+                                            model: window.barItemsExpanded || window.searchQuery.trim() ? window.matchingPages(window.barNavigation) : []
+                                            delegate: SettingsNavButton {
+                                                required property var modelData
+                                                text: modelData.title
+                                                symbol: modelData.symbol
+                                                hint: modelData.itemEnabled ? "Hyprpane item" : "Hidden from Hyprpane"
+                                                itemEnabled: modelData.itemEnabled
+                                                Layout.fillWidth: true
+                                                keyboardSelected: searchField.activeFocus && window.searchResultIndex >= 0 && window.searchResults[window.searchResultIndex]?.section === modelData.section
+                                                highlighted: window.section === modelData.section
+                                                onClicked: window.section = modelData.section
+                                            }
+                                        }
                                     }
                                 }
                                 Label {
@@ -842,380 +968,446 @@ FloatingWindow {
                         }
                     }
                 }
-                Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Style.SettingsTheme.separator }
-                ScrollView {
-                    id: editorScroll
-                    objectName: "settingsEditorScroll"
+                Rectangle {
+                    id: contentPane
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    clip: true
-                    contentWidth: availableWidth
-                    padding: window.hostWidth < 900 ? 24 : 44
-                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                    background: Rectangle { color: Style.SettingsTheme.background }
+                    radius: Style.SettingsTheme.paneRadius
+                    color: Style.SettingsTheme.pane
+                    border.width: Style.SettingsTheme.highContrast ? 1 : 0
+                    border.color: Style.SettingsTheme.border
                     ColumnLayout {
-                        id: pageContent
-                        objectName: "settingsPageContent"
-                        // Section folding is scoped to settings pages, outside review dialogs.
-                        readonly property string settingsSectionQuery: window.searchQuery
-                        width: Math.min(820, editorScroll.availableWidth)
-                        x: Math.max(0, (editorScroll.availableWidth - width) / 2)
-                        spacing: 24
-                        Connections {
-                            target: window
-                            function onSectionChanged() { pageReveal.restart(); }
-                        }
-                        transform: Translate { id: pageOffset }
-                        ParallelAnimation {
-                            id: pageReveal
-                            NumberAnimation { target: pageContent; property: "opacity"; from: 0.6; to: 1; duration: Style.SettingsTheme.duration(pageContent, 180); easing.type: Easing.OutCubic }
-                            NumberAnimation { target: pageOffset; property: "y"; from: 8; to: 0; duration: Style.SettingsTheme.duration(pageContent, 220); easing.type: Easing.OutCubic }
-                        }
-                        Label {
-                            visible: window.section !== window.homeSection
-                            text: window.section >= 0 ? "Hyprpane  /  Items" : window.navigation.find(group => group.pages.some(page => page.section === window.section))?.group || "Settings"
-                            color: Style.SettingsTheme.muted
-                            font.pixelSize: Style.SettingsTheme.captionSize
-                            Layout.bottomMargin: -10
-                        }
-                        Label {
-                            objectName: "settingsPageTitle"
-                            visible: window.section !== window.homeSection
-                            text: window.section >= 0 ? window.names[window.selected.id] || "" : window.navigation.reduce((pages, group) => pages.concat(group.pages), []).find(page => page.section === window.section)?.title || "Settings"
-                            font.pixelSize: Style.SettingsTheme.titleSize
-                            font.weight: Font.DemiBold
+                        anchors.fill: parent
+                        spacing: 0
+                        ScrollView {
+                            id: editorScroll
+                            objectName: "settingsEditorScroll"
                             Layout.fillWidth: true
-                            wrapMode: Text.WordWrap
+                            Layout.fillHeight: true
+                            clip: true
+                            contentWidth: availableWidth
+                            leftPadding: window.hostWidth < 900 ? 22 : 36
+                            rightPadding: window.hostWidth < 900 ? 22 : 36
+                            topPadding: 26
+                            bottomPadding: 34
+                            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                            background: Rectangle { color: "transparent" }
+                            ColumnLayout {
+                                id: pageContent
+                                objectName: "settingsPageContent"
+                                // Section folding is scoped to settings pages, outside review dialogs.
+                                readonly property string settingsSectionQuery: window.searchQuery
+                                width: Math.min(Style.SettingsTheme.pageMaxWidth, editorScroll.availableWidth)
+                                x: Math.max(0, (editorScroll.availableWidth - width) / 2)
+                                spacing: 24
+                                Connections {
+                                    target: window
+                                    function onSectionChanged() { pageReveal.restart(); }
+                                }
+                                transform: Translate { id: pageOffset }
+                                ParallelAnimation {
+                                    id: pageReveal
+                                    NumberAnimation { target: pageContent; property: "opacity"; from: 0.6; to: 1; duration: Style.SettingsTheme.duration(pageContent, 180); easing.type: Easing.OutCubic }
+                                    NumberAnimation { target: pageOffset; property: "y"; from: 8; to: 0; duration: Style.SettingsTheme.duration(pageContent, 220); easing.type: Easing.OutCubic }
+                                }
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    visible: window.section !== window.homeSection
+                                    spacing: 12
+                                    ToolButton {
+                                        id: pageBack
+                                        objectName: "settingsBackButton"
+                                        Layout.alignment: Qt.AlignVCenter
+                                        implicitWidth: Math.max(38, Math.round(40 * Style.SettingsTheme.textScale))
+                                        implicitHeight: implicitWidth
+                                        hoverEnabled: true
+                                        Accessible.name: "Back"
+                                        Accessible.description: window.section >= 0 ? "Back to Hyprpane settings" : "Back to overview"
+                                        onClicked: window.goBack()
+                                        Keys.onReturnPressed: clicked()
+                                        Keys.onEnterPressed: clicked()
+                                        contentItem: Text {
+                                            text: "←"
+                                            color: pageBack.activeFocus ? Style.SettingsTheme.accentText : Style.SettingsTheme.text
+                                            font.pixelSize: Math.round(20 * Style.SettingsTheme.textScale)
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                        background: Rectangle {
+                                            radius: width / 2
+                                            color: pageBack.hovered ? Style.SettingsTheme.hover : Style.SettingsTheme.field
+                                            border.width: pageBack.activeFocus ? 2 : 1
+                                            border.color: pageBack.activeFocus ? Style.SettingsTheme.accentText : Style.SettingsTheme.border
+                                        }
+                                    }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        spacing: 1
+                                        Label {
+                                            Layout.fillWidth: true
+                                            text: window.section >= 0 ? "Hyprpane  /  Items" : window.navigation.find(group => group.pages.some(page => page.section === window.section))?.group || "Settings"
+                                            color: Style.SettingsTheme.muted
+                                            font.pixelSize: Style.SettingsTheme.captionSize
+                                            elide: Text.ElideRight
+                                        }
+                                        Label {
+                                            objectName: "settingsPageTitle"
+                                            text: window.section >= 0 ? window.names[window.selected.id] || "" : window.navigation.reduce((pages, group) => pages.concat(group.pages), []).find(page => page.section === window.section)?.title || "Settings"
+                                            font.pixelSize: window.hostWidth < 900 ? Style.SettingsTheme.pageTitleCompactSize : Style.SettingsTheme.pageTitleSize
+                                            font.weight: Font.DemiBold
+                                            Layout.fillWidth: true
+                                            wrapMode: Text.WordWrap
+                                        }
+                                    }
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    Layout.topMargin: -14
+                                    Layout.leftMargin: Math.round(52 * Style.SettingsTheme.textScale)
+                                    visible: window.section !== window.homeSection
+                                    font.pixelSize: Style.SettingsTheme.bodySize
+                                    text: window.section === -25 ? "Your headphones, keyboards, and other wireless devices." : window.section === -23 ? "Save your Hyprshell setup and choose a dated backup to restore." : window.section === -22 ? "Manage network rules and blocked websites." : window.section === -20 ? "Optional local clipboard history" : window.section === -21 ? "Printers and scanners when you need them" : window.section === -19 ? "Choose workspace layouts and rules for application windows." : window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover personal configuration, and back up personal files." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Browse layout, visibility, item spacing, appearance, menus, and clock settings." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
+                                    wrapMode: Text.WordWrap
+                                    color: Style.SettingsTheme.muted
+                                }
+                                SettingsButton {
+                                    objectName: "hyprpaneBackToSettings"
+                                    visible: window.section >= 0
+                                    text: "← Hyprpane settings"
+                                    onClicked: window.section = -1
+                                }
+                                Rectangle {
+                                    objectName: "settingsBarPreview"
+                                    Layout.fillWidth: true
+                                    visible: window.section >= -1
+                                    Layout.preferredHeight: previewBar.y + previewBar.height * previewBar.scale + 16
+                                    radius: Style.SettingsTheme.radius
+                                    color: Style.SettingsTheme.surface
+                                    border.color: Style.SettingsTheme.border
+                                    Label {
+                                        id: previewLabel
+                                        x: 16
+                                        y: 12
+                                        width: parent.width - 32
+                                        wrapMode: Text.WordWrap
+                                        text: "Hyprpane preview · drag to rearrange, click to customize"
+                                        color: Style.SettingsTheme.muted
+                                        font.pixelSize: Style.SettingsTheme.captionSize
+                                        font.letterSpacing: 0
+                                    }
+                                    Bar {
+                                        id: previewBar
+                                        x: 12
+                                        y: previewLabel.y + previewLabel.height + 12
+                                        width: vertical ? implicitWidth : Math.max(1000, parent.width - 24)
+                                        height: vertical && !compact ? Math.max(720, window.screen ? window.screen.height - 2 * (window.draft.bar.marginSide || 0) : 720) : implicitHeight
+                                        scale: vertical ? Math.min(1, 320 / height) : Math.min(1, (parent.width - 24) / width)
+                                        transformOrigin: Item.TopLeft
+                                        settings: window.draft
+                                        screenHeight: window.screen ? window.screen.height : 768
+                                        wallpaperSource: window.screen ? window.wallpaperSources[window.screen.name] || "" : ""
+                                        trayModel: [{icon: Qt.resolvedUrl("icons/preview-tray.svg")} ]
+                                        clockText: Qt.formatDateTime(new Date(), window.draft.bar.clockFormat)
+                                        statusData: ({
+                                                workspaces: [
+                                                    {
+                                                        id: 1,
+                                                        name: "1",
+                                                        active: true
+                                                    },
+                                                    {
+                                                        id: 2,
+                                                        name: "2"
+                                                    }
+                                                ],
+                                                audio: {
+                                                    text: "64%",
+                                                    icon: "󰕾"
+                                                },
+                                                network: {
+                                                    text: "󰤨",
+                                                    connected: true
+                                                },
+                                                bluetooth: {
+                                                    text: "󰂯",
+                                                    powered: true
+                                                },
+                                                battery: {
+                                                    present: true,
+                                                    text: "󰁹 86%"
+                                                }
+                                            })
+                                        mediaData: ({
+                                                playing: true,
+                                                title: "Your favorite track",
+                                                levels: [0.2, 0.5, 0.8, 0.4, 0.9, 0.6, 0.3, 0.7, 0.5, 0.9, 0.3, 0.6]
+                                            })
+                                        notificationData: ({
+                                                count: 2
+                                            })
+                                        PreviewLayoutEditor {
+                                            anchors.fill: parent
+                                            bar: previewBar
+                                            names: window.names
+                                            onItemSelected: id => window.section = window.draft.items.findIndex(i => i.id === id)
+                                            onItemDropped: (id, side, beforeId) => window.rearrangeItem(id, side, beforeId)
+                                        }
+                                    }
+                                }
+                                SettingsHome {
+                                    objectName: "settingsHome"
+                                    Layout.fillWidth: true
+                                    visible: window.section === window.homeSection
+                                    navigation: window.navigation
+                                    firstRunPending: window.firstRunPending
+                                    onNavigate: section => window.section = section
+                                    onSearchRequested: window.focusSearch()
+                                }
+                                SettingsAccessibility {
+                                    visible: window.section === -16
+                                    Layout.fillWidth: true
+                                    settings: window.draft.accessibility
+                                    onEdited: (key, value) => window.updateAccessibility(key, value)
+                                    onNavigate: section => window.section = section
+                                }
+                                SettingsBarEditor {
+                                    visible: window.section === -1
+                                    Layout.fillWidth: true
+                                    settings: window.draft.bar
+                                    searchQuery: window.searchQuery
+                                    itemPages: window.barNavigation
+                                    onItemChosen: section => window.section = section
+                                    fullConfig: window.draft
+                                    onLayoutChosen: config => window.draft = config
+                                    currentWorkspace: window.currentWorkspace
+                                    onVisibilityEdited: bar => window.updateBarSettings(bar)
+                                    onEdited: (key, value) => window.updateBar(key, value)
+                                }
+                                SettingsItemEditor {
+                                    visible: window.section >= 0
+                                    Layout.fillWidth: true
+                                    settings: window.selected
+                                    allItems: window.draft.items
+                                    barSettings: window.draft.bar
+                                    saving: window.saving
+                                    onEdited: (key, value) => window.updateItem(key, value)
+                                    onMoveRequested: direction => window.moveItem(direction)
+                                    onResetRequested: window.resetItem()
+                                }
+                                SettingsLocking {
+                                    id: lockPage
+                                    visible: window.section === -3
+                                    Layout.fillWidth: true
+                                    settings: window.draft.locking
+                                    saved: !window.dirty && !window.saving && window.success
+                                    runtimeError: window.lockingError
+                                    onLockRequested: window.lockRequested()
+                                    onEdited: (key, value) => window.updateLocking(key, value)
+                                }
+                                SettingsTheme {
+                                    id: themePage
+                                    visible: window.section === -8
+                                    Layout.fillWidth: true
+                                }
+                                SettingsApplications {
+                                    id: applicationsPage
+                                    visible: window.section === -13
+                                    Layout.fillWidth: true
+                                }
+                                SettingsPageLoader {
+                                    id: firewallPage
+                                    objectName: "settingsFirewallLoader"
+                                    Layout.fillWidth: true
+                                    visible: window.uiOpened && window.section === -22
+                                    sourceComponent: SettingsFirewall {
+                                        onReviewRequested: card => {
+                                            let viewport = editorScroll.contentItem;
+                                            let position = card.mapToItem(viewport.contentItem, 0, 0);
+                                            viewport.contentY = Math.max(0, Math.min(position.y, viewport.contentHeight - viewport.height));
+                                        }
+                                    }
+                                }
+                                SettingsPageLoader {
+                                    id: networkPage
+                                    objectName: "settingsNetworkLoader"
+                                    Layout.fillWidth: true
+                                    visible: window.uiOpened && window.section === -15
+                                    sourceComponent: SettingsNetwork {}
+                                }
+                                SettingsPageLoader {
+                                    id: regionalPage
+                                    objectName: "settingsRegionalLoader"
+                                    visible: window.uiOpened && window.section === -17
+                                    Layout.fillWidth: true
+                                    sourceComponent: SettingsRegional {}
+                                }
+                                SettingsPageLoader {
+                                    id: helpPage
+                                    visible: window.uiOpened && window.section === -18
+                                    Layout.fillWidth: true
+                                    sourceComponent: SettingsHelp { onNavigate: section => window.section = section; onGuideFinished: window.firstRunPending = false }
+                                }
+                                SettingsPageLoader {
+                                    id: behaviorPage
+                                    objectName: "settingsBehaviorLoader"
+                                    visible: window.uiOpened && window.section === -19
+                                    Layout.fillWidth: true
+                                    sourceComponent: SettingsBehavior {}
+                                }
+                                SettingsPageLoader {
+                                    id: clipboardPage
+                                    visible: window.uiOpened && window.section === -20
+                                    Layout.fillWidth: true
+                                    sourceComponent: SettingsClipboard { settings: window.draft.clipboard; runtimeError: window.clipboardError; onEdited: (key, value) => window.updateClipboard(key, value) }
+                                }
+                                SettingsPageLoader {
+                                    id: peripheralsPage
+                                    visible: window.uiOpened && window.section === -21
+                                    Layout.fillWidth: true
+                                    sourceComponent: SettingsPeripherals {}
+                                }
+                                SettingsPageLoader {
+                                    id: setupBackupPage
+                                    objectName: "settingsSetupBackupLoader"
+                                    visible: window.uiOpened && window.section === -23
+                                    Layout.fillWidth: true
+                                    sourceComponent: SettingsConfigurationRecovery {
+                                        ready: !window.dirty && !window.manualDirty && !window.saving && window.success && window.store.loaded
+                                        onRestored: settings => {
+                                            window.editingSession = false;
+                                            window.initial = Model.copy(settings);
+                                            window.draft = Model.copy(settings);
+                                            window.store.config = Model.copy(settings);
+                                            window.store.reload();
+                                            window.editingSession = true;
+                                        }
+                                    }
+                                }
+                                SettingsRecovery {
+                                    id: recoveryPage
+                                    visible: window.uiOpened && window.section === -14
+                                    Layout.fillWidth: true
+                                    ready: !window.dirty && !window.saving && window.success && window.store.loaded
+                                    onRestored: settings => {
+                                        window.editingSession = false;
+                                        window.initial = Model.copy(settings);
+                                        window.draft = Model.copy(settings);
+                                        window.store.config = Model.copy(settings);
+                                        window.store.reload();
+                                        window.editingSession = true;
+                                    }
+                                }
+                                SettingsDisplays {
+                                    id: displayPage
+                                    visible: window.section === -7
+                                    Layout.fillWidth: true
+                                }
+                                SettingsKeybindings {
+                                    id: keybindingsPage
+                                    targetWindow: window
+                                    visible: window.section === -6
+                                    Layout.fillWidth: true
+                                    onEditorRequested: if (editorScroll.contentItem) editorScroll.contentItem.contentY = 0
+                                }
+                                SettingsCleanup {
+                                    id: cleanupPage
+                                    visible: window.section === -4
+                                    Layout.fillWidth: true
+                                    resetReady: !window.dirty && !window.manualDirty && !window.saving && window.success && window.store.loaded
+                                    onRestored: settings => {
+                                        window.editingSession = false;
+                                        window.initial = Model.copy(settings);
+                                        window.draft = Model.copy(settings);
+                                        window.store.config = Model.copy(settings);
+                                        window.store.reload();
+                                        window.editingSession = true;
+                                    }
+                                }
+                                SettingsHyprskill {
+                                    id: hyprskillPage
+                                    visible: window.section === -5
+                                    Layout.fillWidth: true
+                                }
+                                SettingsPower {
+                                    id: powerPage
+                                    visible: window.section === -10
+                                    Layout.fillWidth: true
+                                    settings: window.draft.power
+                                    runtimeError: window.powerError
+                                    batteryInfo: window.batteryInfo
+                                    onEdited: (key, value) => window.updatePower(key, value)
+                                }
+                                SettingsNotifications {
+                                    visible: window.section === -11
+                                    Layout.fillWidth: true
+                                    settings: window.draft.notifications
+                                    applications: window.notificationApps
+                                    onEdited: (key, value) => window.updateNotifications(key, value)
+                                }
+                                SoundTest {
+                                    id: soundTester
+                                    sink: window.audioServices ? window.audioServices.sink : null
+                                    visible: window.uiOpened && window.section === -12
+                                }
+                                SettingsSound {
+                                    id: soundPage
+                                    visible: window.uiOpened && window.section === -12
+                                    Layout.fillWidth: true
+                                    services: window.audioServices
+                                    testSound: soundTester
+                                }
+                                SettingsPageLoader {
+                                    id: bluetoothPage
+                                    visible: window.uiOpened && window.section === -25
+                                    Layout.fillWidth: true
+                                    sourceComponent: SettingsBluetooth {}
+                                }
+                                SettingsInput {
+                                    visible: window.section === -9
+                                    Layout.fillWidth: true
+                                    settings: window.draft.hyprland
+                                    onEdited: (key, value) => window.updateHypr(key, value)
+                                }
+                                SettingsAppearance {
+                                    visible: window.section === -2
+                                    Layout.fillWidth: true
+                                    settings: window.draft.hyprland
+                                    onEdited: (key, value) => window.updateHypr(key, value)
+                                }
+                            }
                         }
-                        Label {
+                        Rectangle { Layout.fillWidth: true; Layout.leftMargin: 18; Layout.rightMargin: 18; implicitHeight: 1; color: Style.SettingsTheme.divider }
+                        RowLayout {
                             Layout.fillWidth: true
-                            Layout.topMargin: -14
-                            visible: window.section !== window.homeSection
-                            font.pixelSize: Style.SettingsTheme.bodySize
-                            text: window.section === -25 ? "Your headphones, keyboards, and other wireless devices." : window.section === -23 ? "Save your Hyprshell setup and choose a dated backup to restore." : window.section === -22 ? "Manage network rules and blocked websites." : window.section === -20 ? "Optional local clipboard history" : window.section === -21 ? "Printers and scanners when you need them" : window.section === -19 ? "Choose workspace layouts and rules for application windows." : window.section === -18 ? "Get started, check desktop services, and create a private diagnostic report." : window.section === -17 ? "Choose application language, timezone, and regional formats." : window.section === -16 ? "Make controls easier to read and reduce desktop motion." : window.section === -15 ? "Manage saved connections, hidden and enterprise Wi-Fi, and VPNs." : window.section === -14 ? "Keep your system updated, recover personal configuration, and back up personal files." : window.section === -13 ? "Choose which apps open files and which start when you log in." : window.section === -12 ? "Choose sound devices, check your microphone, and adjust application volumes." : window.section === -11 ? "Choose popups, Do Not Disturb, and preferences for each application." : window.section === -10 ? "Adjust brightness, inactivity timers, laptop lid behavior, and supported power profiles." : window.section === -9 ? "Adjust pointing, scrolling, typing, and keyboard layouts. Changes save and apply automatically." : window.section === -8 ? "Choose application colors, fonts, and cursors." : window.section === -7 ? "Set resolution, refresh rate, scale, rotation, and monitor positions. Confirm changes before they are saved." : window.section === -6 ? "Record a shortcut, choose its action, and save. Changes appear in Super + K." : window.section === -5 ? "Give your coding agents reusable knowledge of your machine." : window.section === -4 ? "Schedule cleanup and review files before removing them." : window.section === -3 ? "Choose your lock screen and when it activates." : window.section === -1 ? "Browse layout, visibility, item spacing, appearance, menus, and clock settings." : window.section === -2 ? "Fine-tune transparency, frosted glass, and window details. Changes save and apply automatically." : "Customize this item. Empty fields follow the original appearance."
-                            wrapMode: Text.WordWrap
-                            color: Style.SettingsTheme.muted
-                        }
-                        SettingsButton {
-                            objectName: "hyprpaneBackToSettings"
-                            visible: window.section >= 0
-                            text: "← Hyprpane settings"
-                            onClicked: window.section = -1
-                        }
-                        Rectangle {
-                            objectName: "settingsBarPreview"
-                            Layout.fillWidth: true
-                            visible: window.section >= -1
-                            Layout.preferredHeight: previewBar.y + previewBar.height * previewBar.scale + 16
-                            radius: Style.SettingsTheme.radius
-                            color: Style.SettingsTheme.surface
-                            border.color: Style.SettingsTheme.border
+                            Layout.leftMargin: 18
+                            Layout.rightMargin: 18
+                            Layout.topMargin: 8
+                            Layout.bottomMargin: 10
+                            spacing: 10
+                            Rectangle {
+                                Layout.alignment: Qt.AlignVCenter
+                                implicitWidth: 7; implicitHeight: 7; radius: 3.5
+                                color: !window.success ? Style.SettingsTheme.danger : (window.manualDirty || window.pageDirty) ? Style.SettingsTheme.warning : window.saving ? Style.SettingsTheme.accentText : Style.SettingsTheme.success
+                            }
                             Label {
-                                id: previewLabel
-                                x: 16
-                                y: 12
-                                width: parent.width - 32
+                                Layout.fillWidth: true
+                                objectName: "settingsSaveNotice"
+                                text: !window.success ? (window.message || window.store.error) : window.saving ? "Saving changes…" : window.savedNotice || (window.pageDirty ? "Unapplied edits kept while Settings is running · " : window.manualDirty ? "Another page has unapplied edits · " : "") + window.savingPolicy()
+                                horizontalAlignment: Text.AlignLeft
                                 wrapMode: Text.WordWrap
-                                text: "Hyprpane preview · drag to rearrange, click to customize"
+                                font.pixelSize: Style.SettingsTheme.captionSize
+                                color: !window.success ? Style.SettingsTheme.danger : window.manualDirty ? Style.SettingsTheme.warning : Style.SettingsTheme.muted
+                            }
+                            Label {
+                                visible: window.hostWidth >= 1120
+                                text: "Ctrl F search  ·  Ctrl Tab next"
                                 color: Style.SettingsTheme.muted
                                 font.pixelSize: Style.SettingsTheme.captionSize
-                                font.letterSpacing: 0
                             }
-                            Bar {
-                                id: previewBar
-                                x: 12
-                                y: previewLabel.y + previewLabel.height + 12
-                                width: vertical ? implicitWidth : Math.max(1000, parent.width - 24)
-                                height: vertical && !compact ? Math.max(720, window.screen ? window.screen.height - 2 * (window.draft.bar.marginSide || 0) : 720) : implicitHeight
-                                scale: vertical ? Math.min(1, 320 / height) : Math.min(1, (parent.width - 24) / width)
-                                transformOrigin: Item.TopLeft
-                                settings: window.draft
-                                screenHeight: window.screen ? window.screen.height : 768
-                                wallpaperSource: window.screen ? window.wallpaperSources[window.screen.name] || "" : ""
-                                trayModel: [{icon: Qt.resolvedUrl("icons/preview-tray.svg")} ]
-                                clockText: Qt.formatDateTime(new Date(), window.draft.bar.clockFormat)
-                                statusData: ({
-                                        workspaces: [
-                                            {
-                                                id: 1,
-                                                name: "1",
-                                                active: true
-                                            },
-                                            {
-                                                id: 2,
-                                                name: "2"
-                                            }
-                                        ],
-                                        audio: {
-                                            text: "64%",
-                                            icon: "󰕾"
-                                        },
-                                        network: {
-                                            text: "󰤨",
-                                            connected: true
-                                        },
-                                        bluetooth: {
-                                            text: "󰂯",
-                                            powered: true
-                                        },
-                                        battery: {
-                                            present: true,
-                                            text: "󰁹 86%"
-                                        }
-                                    })
-                                mediaData: ({
-                                        playing: true,
-                                        title: "Your favorite track",
-                                        levels: [0.2, 0.5, 0.8, 0.4, 0.9, 0.6, 0.3, 0.7, 0.5, 0.9, 0.3, 0.6]
-                                    })
-                                notificationData: ({
-                                        count: 2
-                                    })
-                                PreviewLayoutEditor {
-                                    anchors.fill: parent
-                                    bar: previewBar
-                                    names: window.names
-                                    onItemSelected: id => window.section = window.draft.items.findIndex(i => i.id === id)
-                                    onItemDropped: (id, side, beforeId) => window.rearrangeItem(id, side, beforeId)
-                                }
-                            }
-                        }
-                        SettingsHome {
-                            objectName: "settingsHome"
-                            Layout.fillWidth: true
-                            visible: window.section === window.homeSection
-                            navigation: window.navigation
-                            firstRunPending: window.firstRunPending
-                            onNavigate: section => window.section = section
-                            onSearchRequested: window.focusSearch()
-                        }
-                        SettingsAccessibility {
-                            visible: window.section === -16
-                            Layout.fillWidth: true
-                            settings: window.draft.accessibility
-                            onEdited: (key, value) => window.updateAccessibility(key, value)
-                            onNavigate: section => window.section = section
-                        }
-                        SettingsBarEditor {
-                            visible: window.section === -1
-                            Layout.fillWidth: true
-                            settings: window.draft.bar
-                            searchQuery: window.searchQuery
-                            itemPages: window.barNavigation
-                            onItemChosen: section => window.section = section
-                            fullConfig: window.draft
-                            onLayoutChosen: config => window.draft = config
-                            currentWorkspace: window.currentWorkspace
-                            onVisibilityEdited: bar => window.updateBarSettings(bar)
-                            onEdited: (key, value) => window.updateBar(key, value)
-                        }
-                        SettingsItemEditor {
-                            visible: window.section >= 0
-                            Layout.fillWidth: true
-                            settings: window.selected
-                            allItems: window.draft.items
-                            barSettings: window.draft.bar
-                            saving: window.saving
-                            onEdited: (key, value) => window.updateItem(key, value)
-                            onMoveRequested: direction => window.moveItem(direction)
-                            onResetRequested: window.resetItem()
-                        }
-                        SettingsLocking {
-                            id: lockPage
-                            visible: window.section === -3
-                            Layout.fillWidth: true
-                            settings: window.draft.locking
-                            saved: !window.dirty && !window.saving && window.success
-                            runtimeError: window.lockingError
-                            onLockRequested: window.lockRequested()
-                            onEdited: (key, value) => window.updateLocking(key, value)
-                        }
-                        SettingsTheme {
-                            id: themePage
-                            visible: window.section === -8
-                            Layout.fillWidth: true
-                        }
-                        SettingsApplications {
-                            id: applicationsPage
-                            visible: window.section === -13
-                            Layout.fillWidth: true
-                        }
-                        SettingsPageLoader {
-                            id: firewallPage
-                            objectName: "settingsFirewallLoader"
-                            Layout.fillWidth: true
-                            visible: window.uiOpened && window.section === -22
-                            sourceComponent: SettingsFirewall {
-                                onReviewRequested: card => {
-                                    let viewport = editorScroll.contentItem;
-                                    let position = card.mapToItem(viewport.contentItem, 0, 0);
-                                    viewport.contentY = Math.max(0, Math.min(position.y, viewport.contentHeight - viewport.height));
-                                }
-                            }
-                        }
-                        SettingsPageLoader {
-                            id: networkPage
-                            objectName: "settingsNetworkLoader"
-                            Layout.fillWidth: true
-                            visible: window.uiOpened && window.section === -15
-                            sourceComponent: SettingsNetwork {}
-                        }
-                        SettingsPageLoader {
-                            id: regionalPage
-                            objectName: "settingsRegionalLoader"
-                            visible: window.uiOpened && window.section === -17
-                            Layout.fillWidth: true
-                            sourceComponent: SettingsRegional {}
-                        }
-                        SettingsPageLoader {
-                            id: helpPage
-                            visible: window.uiOpened && window.section === -18
-                            Layout.fillWidth: true
-                            sourceComponent: SettingsHelp { onNavigate: section => window.section = section; onGuideFinished: window.firstRunPending = false }
-                        }
-                        SettingsPageLoader {
-                            id: behaviorPage
-                            objectName: "settingsBehaviorLoader"
-                            visible: window.uiOpened && window.section === -19
-                            Layout.fillWidth: true
-                            sourceComponent: SettingsBehavior {}
-                        }
-                        SettingsPageLoader {
-                            id: clipboardPage
-                            visible: window.uiOpened && window.section === -20
-                            Layout.fillWidth: true
-                            sourceComponent: SettingsClipboard { settings: window.draft.clipboard; runtimeError: window.clipboardError; onEdited: (key, value) => window.updateClipboard(key, value) }
-                        }
-                        SettingsPageLoader {
-                            id: peripheralsPage
-                            visible: window.uiOpened && window.section === -21
-                            Layout.fillWidth: true
-                            sourceComponent: SettingsPeripherals {}
-                        }
-                        SettingsPageLoader {
-                            id: setupBackupPage
-                            objectName: "settingsSetupBackupLoader"
-                            visible: window.uiOpened && window.section === -23
-                            Layout.fillWidth: true
-                            sourceComponent: SettingsConfigurationRecovery {
-                                ready: !window.dirty && !window.manualDirty && !window.saving && window.success && window.store.loaded
-                                onRestored: settings => {
-                                    window.editingSession = false;
-                                    window.initial = Model.copy(settings);
-                                    window.draft = Model.copy(settings);
-                                    window.store.config = Model.copy(settings);
-                                    window.store.reload();
-                                    window.editingSession = true;
-                                }
-                            }
-                        }
-                        SettingsRecovery {
-                            id: recoveryPage
-                            visible: window.uiOpened && window.section === -14
-                            Layout.fillWidth: true
-                            ready: !window.dirty && !window.saving && window.success && window.store.loaded
-                            onRestored: settings => {
-                                window.editingSession = false;
-                                window.initial = Model.copy(settings);
-                                window.draft = Model.copy(settings);
-                                window.store.config = Model.copy(settings);
-                                window.store.reload();
-                                window.editingSession = true;
-                            }
-                        }
-                        SettingsDisplays {
-                            id: displayPage
-                            visible: window.section === -7
-                            Layout.fillWidth: true
-                        }
-                        SettingsKeybindings {
-                            id: keybindingsPage
-                            targetWindow: window
-                            visible: window.section === -6
-                            Layout.fillWidth: true
-                            onEditorRequested: if (editorScroll.contentItem) editorScroll.contentItem.contentY = 0
-                        }
-                        SettingsCleanup {
-                            id: cleanupPage
-                            visible: window.section === -4
-                            Layout.fillWidth: true
-                            resetReady: !window.dirty && !window.manualDirty && !window.saving && window.success && window.store.loaded
-                            onRestored: settings => {
-                                window.editingSession = false;
-                                window.initial = Model.copy(settings);
-                                window.draft = Model.copy(settings);
-                                window.store.config = Model.copy(settings);
-                                window.store.reload();
-                                window.editingSession = true;
-                            }
-                        }
-                        SettingsHyprskill {
-                            id: hyprskillPage
-                            visible: window.section === -5
-                            Layout.fillWidth: true
-                        }
-                        SettingsPower {
-                            id: powerPage
-                            visible: window.section === -10
-                            Layout.fillWidth: true
-                            settings: window.draft.power
-                            runtimeError: window.powerError
-                            batteryInfo: window.batteryInfo
-                            onEdited: (key, value) => window.updatePower(key, value)
-                        }
-                        SettingsNotifications {
-                            visible: window.section === -11
-                            Layout.fillWidth: true
-                            settings: window.draft.notifications
-                            applications: window.notificationApps
-                            onEdited: (key, value) => window.updateNotifications(key, value)
-                        }
-                        SoundTest {
-                            id: soundTester
-                            sink: window.audioServices ? window.audioServices.sink : null
-                            visible: window.uiOpened && window.section === -12
-                        }
-                        SettingsSound {
-                            id: soundPage
-                            visible: window.uiOpened && window.section === -12
-                            Layout.fillWidth: true
-                            services: window.audioServices
-                            testSound: soundTester
-                        }
-                        SettingsPageLoader {
-                            id: bluetoothPage
-                            visible: window.uiOpened && window.section === -25
-                            Layout.fillWidth: true
-                            sourceComponent: SettingsBluetooth {}
-                        }
-                        SettingsInput {
-                            visible: window.section === -9
-                            Layout.fillWidth: true
-                            settings: window.draft.hyprland
-                            onEdited: (key, value) => window.updateHypr(key, value)
-                        }
-                        SettingsAppearance {
-                            visible: window.section === -2
-                            Layout.fillWidth: true
-                            settings: window.draft.hyprland
-                            onEdited: (key, value) => window.updateHypr(key, value)
                         }
                     }
                 }
-            }
-            Label {
-                Layout.fillWidth: true
-                objectName: "settingsSaveNotice"
-                Layout.minimumHeight: 38
-                Layout.leftMargin: 16
-                Layout.rightMargin: 16
-                topPadding: 7
-                bottomPadding: 7
-                text: !window.success ? (window.message || window.store.error) : window.saving ? "Saving changes…" : window.savedNotice || (window.pageDirty ? "Unapplied edits kept while Settings is running · " : window.manualDirty ? "Another page has unapplied edits · " : "") + window.savingPolicy()
-                horizontalAlignment: Text.AlignLeft
-                wrapMode: Text.WordWrap
-                font.pixelSize: Style.SettingsTheme.captionSize
-                color: !window.success ? Style.SettingsTheme.danger : window.manualDirty ? Style.SettingsTheme.warning : Style.SettingsTheme.muted
             }
         }
     }

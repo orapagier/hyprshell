@@ -17,7 +17,7 @@ ComboBox {
     }
     indicator: Text { text: "⌄"; color: Style.SettingsTheme.muted; font.pixelSize: 18; x: control.width - 26; y: (control.height - height) / 2 - 2 }
     background: Rectangle {
-        radius: 10; color: control.hovered ? Style.SettingsTheme.hover : Style.SettingsTheme.field
+        radius: Style.SettingsTheme.fieldRadius; color: control.hovered ? Style.SettingsTheme.hover : Style.SettingsTheme.field
         border.width: control.activeFocus ? 2 : 1
         border.color: control.activeFocus ? Style.SettingsTheme.accentText : Style.SettingsTheme.highContrast ? Style.SettingsTheme.controlBorder : Style.SettingsTheme.border
         Behavior on color { ColorAnimation { duration: Style.SettingsTheme.duration(control, 130) } }
@@ -25,10 +25,10 @@ ComboBox {
     delegate: ItemDelegate {
         required property var modelData
         required property int index
-        width: control.width - 12; height: 36
+        width: control.width - 12; height: 38
         highlighted: control.highlightedIndex === index
         contentItem: Text { text: modelData; textFormat: Text.PlainText; color: Style.SettingsTheme.text; font.pixelSize: Style.SettingsTheme.bodySize; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-        background: Rectangle { radius: Style.SettingsTheme.controlRadius; color: parent.highlighted ? Style.SettingsTheme.selection : "transparent" }
+        background: Rectangle { radius: Style.SettingsTheme.fieldRadius; color: parent.highlighted ? Style.SettingsTheme.navSelected : "transparent" }
     }
     popup: Popup {
         y: control.height + 6; width: control.width
@@ -42,7 +42,7 @@ ComboBox {
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Style.SettingsTheme.duration(control, 90) }
         }
-        background: Rectangle { radius: 14; color: Style.SettingsTheme.surface; border.color: Style.SettingsTheme.border }
+        background: Rectangle { radius: Style.SettingsTheme.cardRadius; color: Style.SettingsTheme.surface; border.color: Style.SettingsTheme.border }
         contentItem: ListView {
             id: list
             clip: true; implicitHeight: contentHeight

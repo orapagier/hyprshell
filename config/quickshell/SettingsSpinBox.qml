@@ -28,7 +28,7 @@ SpinBox {
         Text { anchors.centerIn: parent; text: "−"; color: Style.SettingsTheme.text; font.pixelSize: 18 }
     }
     background: Rectangle {
-        radius: 10
+        radius: Style.SettingsTheme.fieldRadius
         color: Style.SettingsTheme.field
         border.width: control.activeFocus ? 2 : 1
         border.color: control.activeFocus ? Style.SettingsTheme.accentText : Style.SettingsTheme.highContrast ? Style.SettingsTheme.controlBorder : Style.SettingsTheme.border

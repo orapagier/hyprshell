@@ -8,14 +8,14 @@ SettingsButton {
         Text {
             text: "\uf09b"
             font.family: "GoMono Nerd Font"
-            font.pixelSize: 18
-            color: Style.SettingsTheme.text
+            font.pixelSize: 17
+            color: control.highlighted ? Style.SettingsTheme.accentForeground : Style.SettingsTheme.text
             anchors.verticalCenter: parent.verticalCenter
         }
         Text {
             text: control.text
             font: control.font
-            color: Style.SettingsTheme.text
+            color: control.highlighted ? Style.SettingsTheme.accentForeground : Style.SettingsTheme.text
             anchors.verticalCenter: parent.verticalCenter
         }
     }
