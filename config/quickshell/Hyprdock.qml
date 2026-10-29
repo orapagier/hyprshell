@@ -184,7 +184,7 @@ PanelWindow {
             visible: !dock.expanded
             text: dock.clockText
             color: dock.menuColors.text
-            font.family: "Noto Sans"; font.pixelSize: 12; font.bold: true
+            font.family: "Noto Sans"; font.pixelSize: 12; font.bold: true; font.letterSpacing: 1
         }
         FocusScope {
             id: strip
