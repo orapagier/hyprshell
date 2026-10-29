@@ -14,8 +14,24 @@ ShellRoot {
     // Flush before Quickshell stops child JavaScript during generation teardown.
     Component.onDestruction: notificationInbox.flushHistory(true)
     property string clockText: ""
+    property string dockClockText: ""
+    readonly property bool dockEnabled: preferences.panelConfig.bar.dockEnabled === true
+    function focusedDock() {
+        let focused = Hyprland.focusedMonitor;
+        return docks.instances.find(d => focused && d.screen.name === focused.name) || docks.instances[0];
+    }
+    onDockEnabledChanged: {
+        let reopenSettings = settingsController.window?.uiOpened === true;
+        dashboardWindow.close(); activityWindow.close();
+        for (let panel of panels.instances) panel.closeMenu();
+        for (let dock of docks.instances) dock.collapse();
+        projectorWindow.dismiss();
+        projectorWindow.dockHost = null;
+        if (reopenSettings) Qt.callLater(() => settingsController.open());
+    }
     // Root properties keep panel properties from shadowing service IDs.
     readonly property var services: desktopServices
+    readonly property var settingsEditor: settingsController
     readonly property var inbox: notificationInbox
     readonly property var statusData: desktopServices.statusData
     readonly property var mediaData: desktopServices.mediaData
@@ -43,6 +59,7 @@ ShellRoot {
     }
     Dashboard {
         id: dashboardWindow
+        cornersEnabled: !shell.dockEnabled
         services: desktopServices
         wallpaperSource: wallpapers.sources[dashboardWindow.screen?.name] || ""
         translucency: preferences.panelConfig.bar.popdownTranslucency ?? 0.06
@@ -61,6 +78,7 @@ ShellRoot {
     }
     Dashboard {
         id: activityWindow
+        cornersEnabled: !shell.dockEnabled
         services: desktopServices
         rightCorner: true
         wallpaperSource: wallpapers.sources[activityWindow.screen?.name] || ""
@@ -83,6 +101,7 @@ ShellRoot {
         }
     }
     function toggleDashboard() {
+        if (dockEnabled) { focusedDock()?.open("dashboard", true); return; }
         for (let panel of panels.instances) panel.closeMenu();
         let focused = Hyprland.focusedMonitor;
         let output = Quickshell.screens.find(s => focused && s.name === focused.name) || Quickshell.screens[0];
@@ -93,6 +112,8 @@ ShellRoot {
     Hyprview { id: hyprviewWindow }
     SettingsController {
         id: settingsController
+        dockEnabled: shell.dockEnabled
+        dockResolver: () => shell.focusedDock()?.prepareSettings() || null
         store: preferences
         wallpaperSources: wallpapers.sources
         lockingError: locking.error
@@ -114,13 +135,14 @@ ShellRoot {
     function updateClock() {
         let now = new Date();
         clockText = Qt.formatDateTime(now, preferences.panelConfig.bar.clockFormat);
+        dockClockText = Qt.formatDateTime(now, "HH:mm");
     }
     ClipboardController { id: clipboard; store: preferences }
     LockingController { id: locking; store: preferences; onBattery: desktopServices.batteryInfo.present && !desktopServices.batteryInfo.pluggedIn }
     PowerController { id: power; store: preferences }
     DesktopServices { id: desktopServices }
     NotificationInbox { id: notificationInbox; preferences: preferences.config.notifications }
-    NotificationPopups { inbox: notificationInbox }
+    NotificationPopups { inbox: notificationInbox; dockEnabled: shell.dockEnabled }
     Tray { id: tray }
     WallpaperWatcher { id: wallpapers }
     Component.onCompleted: updateClock()
@@ -143,7 +165,7 @@ ShellRoot {
                 // back into the window's own visibility binding.
                 let monitor = Hyprland.monitorFor(panel.modelData);
                 let ws = monitor && monitor.activeWorkspace;
-                return Settings.panelVisible(panelVisibility.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
+                return !shell.dockEnabled && Settings.panelVisible(panelVisibility.config, "hyprpane", panel.modelData.name, ws ? ws.id : null);
             }
             // Setting exclusiveZone can reset exclusionMode; hidden panels must
             // explicitly reserve zero even when geometry changes while hidden.
@@ -292,7 +314,7 @@ ShellRoot {
             Hyprhover {
                 id: hoverWindows
                 screen: panel.modelData
-                available: !panel.shown
+                available: !shell.dockEnabled && !panel.shown
                 workspace: panel.workspace
                 settings: preferences.panelConfig
                 services: shell.services
@@ -317,9 +339,35 @@ ShellRoot {
             function refreshSettings() {
                 if (!panel.shown || (menuState.section && !bar.itemEnabled(bar.menuItemId(menuState.section)))) menuState.close();
             }
-            function toggleMenu(name) { hoverWindows.close(); keybindings.opened = false; menuState.activate(name, true); }
+            function toggleMenu(name) { if (shell.dockEnabled) { shell.focusedDock()?.open(name, true); return; } hoverWindows.close(); keybindings.opened = false; menuState.activate(name, true); }
             function toggleLauncher() { toggleMenu("launcher"); }
-            function toggleKeybindings() { hoverWindows.close(); menuState.close(); keybindings.opened = !keybindings.opened; }
+            function toggleKeybindings() { if (shell.dockEnabled) { shell.focusedDock()?.open("keybindings", true); return; } hoverWindows.close(); menuState.close(); keybindings.opened = !keybindings.opened; }
+        }
+    }
+    Variants {
+        id: docks
+        model: preferences.loaded ? Quickshell.screens : []
+        Hyprdock {
+            id: dockPanel
+            modeEnabled: shell.dockEnabled
+            onActivated: { for (let other of docks.instances) if (other !== dockPanel) other.collapse(); }
+            required property var modelData
+            screen: modelData
+            store: preferences
+            services: desktopServices
+            inbox: notificationInbox
+            applicationService: applications
+            settingsController: shell.settingsEditor
+            projector: projectorWindow
+            notificationTarget: modelData.name === (Hyprland.focusedMonitor?.name || Quickshell.screens[0]?.name)
+            trayModel: tray.items
+            clockText: shell.dockClockText
+            wallpaperSource: wallpapers.sources[modelData.name] || ""
+            available: shell.dockEnabled && (requested || Settings.panelVisible(panelVisibility.config, "hyprpane", modelData.name, Hyprland.monitorFor(modelData)?.activeWorkspace?.id ?? null))
+            motionEnabled: preferences.config.accessibility?.reducedMotion !== true && preferences.config.hyprland?.animations !== false
+            property var workspace: Hyprland.monitorFor(modelData)?.activeWorkspace?.id ?? null
+            onWorkspaceChanged: collapse()
+            onLockRequested: locking.lockNow()
         }
     }
     Connections {
@@ -374,6 +422,7 @@ ShellRoot {
             settingsController.open();
         }
         function displays(): void {
+            if (shell.dockEnabled) { shell.focusedDock()?.open("displays", true); return; }
             for (let panel of panels.instances) panel.closeMenu();
             let focused = Hyprland.focusedMonitor;
             let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
@@ -386,6 +435,8 @@ ShellRoot {
         function closeHyprview(): void {
             hyprviewWindow.dismiss();
         }
+        function dock(): void { if (shell.dockEnabled) shell.focusedDock()?.revealKeyboard(); }
+        function activity(): void { if (shell.dockEnabled) shell.focusedDock()?.open("activity", true); }
         function toggleBar(): void {
             shell.toggleWorkspacePanel('hyprpane');
         }

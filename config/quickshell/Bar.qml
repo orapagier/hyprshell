@@ -10,6 +10,9 @@ Item {
     property string onlySide: ""
     property bool compactItemPadding: false
     property bool statusIconsOnly: false
+    property bool dockStyle: false
+    property real dockBatteryLevel: 0
+    property real dockSignalLevel: 0
     property bool hoverPopdowns: true
     readonly property string position: settings.bar?.position || "top"
     readonly property bool vertical: position === "left" || position === "right"
@@ -244,6 +247,12 @@ Item {
                 style.pillTransparency = settings.bar?.groupPillTransparency ?? -1;
             } else style.sharedBackgroundShown = Settings.sharedBackground(settings, group.ids[0]) !== "off";
         }
+        if (dockStyle) {
+            style.uniformGlyphHeight = 12;
+            style.uniformTextHeight = 10;
+            style.background = "off";
+            if (id === "calendar") { style.text = ""; style.hideText = false; style.hideIcon = true; }
+        }
         return style;
     }
     function sharedStyle(id) {
@@ -256,6 +265,15 @@ Item {
         return style;
     }
     function itemPosition(id) {
+        if (dockStyle && !vertical) {
+            let ids = orderedItems("left").concat(orderedItems("center"), orderedItems("right"));
+            let cursor = 0;
+            for (let i = 0; i < ids.length; ++i) {
+                if (ids[i] === id) return cursor;
+                cursor += moduleItems[ids[i]].width + (i + 1 < ids.length ? gapBetween(ids[i], ids[i + 1]) : 0);
+            }
+            return cursor;
+        }
         if (vertical) {
             let ids = orderedItems(side(id));
             let cursor = verticalGroupStart(side(id)) + (ids.length ? Math.max(0, spacingOffset(ids[0], "spacingLeft")) : 0);
@@ -980,13 +998,14 @@ Item {
         menu: "calendar"
         x: bar.itemX("calendar")
         y: bar.itemY("calendar")
-        vertical: bar.iconPills
-        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
+        vertical: !bar.dockStyle && bar.iconPills
+        maximumWidth: bar.vertical && !bar.dockStyle ? bar.verticalThickness - 4 : 10000
         settings: bar.appearance("calendar")
         opacity: Settings.item(bar.settings, "calendar").opacity ?? 1
         visible: bar.itemEnabled("calendar")
         leftPadding: bar.vertical ? 6 : 11
         rightPadding: bar.vertical ? 6 : 11
+        iconOnly: !bar.dockStyle && bar.iconsOnly
         text: bar.clockText
         foreground: "#b4befe"
         tint: bar.rgba("#b4befe", 0.20)
@@ -1151,6 +1170,15 @@ Item {
     }
     BarMenuButton {
         id: wifi
+        glyphOpacity: bar.dockStyle ? 0 : 1
+        DockStatusIcon {
+            anchors.centerIn: parent
+            visible: bar.dockStyle
+            kind: "signal"
+            level: bar.dockSignalLevel
+            connected: bar.statusData.network.connected === true
+            ink: wifi.textColor
+        }
         x: bar.itemX("wifi")
         y: bar.itemY("wifi")
         vertical: bar.iconPills
@@ -1203,6 +1231,14 @@ Item {
     }
     BarMenuButton {
         id: battery
+        glyphOpacity: bar.dockStyle ? 0 : 1
+        DockStatusIcon {
+            anchors.centerIn: parent
+            visible: bar.dockStyle
+            level: bar.dockBatteryLevel
+            charging: bar.statusData.battery.charging === true
+            ink: battery.textColor
+        }
         // Percentage labels remain available in centered horizontal layouts.
         iconOnly: bar.vertical || bar.statusIconsOnly
         x: bar.itemX("battery")
@@ -1215,7 +1251,7 @@ Item {
         menu: "battery"
         visible: bar.itemEnabled("battery") && !!bar.statusData.battery.present
         readonly property string batteryLabel: bar.statusData.battery.text || ""
-        blink: bar.statusData.battery.low === true
+        blink: !bar.dockStyle && bar.statusData.battery.low === true
         icon: batteryLabel.indexOf(" ") >= 0 ? batteryLabel.slice(0, batteryLabel.indexOf(" ")) : ""
         text: batteryLabel.indexOf(" ") >= 0 ? batteryLabel.slice(batteryLabel.indexOf(" ") + 1) : batteryLabel
         foreground: bar.statusData.battery.charging ? "#fab387" : bar.statusData.battery.warning ? "#f38ba8" : "#a6e3a1"

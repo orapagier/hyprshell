@@ -8,8 +8,9 @@ import Quickshell.Wayland
 PanelWindow {
     id: window
     required property var inbox
+    property bool dockEnabled: false
     // One stack avoids duplicating alerts on every monitor.
-    visible: inbox.popups.length > 0
+    visible: !dockEnabled && inbox.popups.length > 0
     anchors { top: true; right: true }
     margins { top: 52; right: 16 }
     implicitWidth: screen ? Math.min(380, screen.width - 32) : 380
@@ -23,10 +24,11 @@ PanelWindow {
         clip: true
         contentWidth: availableWidth
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-        NotificationPopupStack {
+        Loader {
             id: stack
             width: viewport.availableWidth
-            inbox: window.inbox
+            active: !window.dockEnabled
+            sourceComponent: Component { NotificationPopupStack { inbox: window.inbox } }
         }
     }
 }

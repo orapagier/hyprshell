@@ -124,6 +124,18 @@ ColumnLayout {
         visible: root.showCategory("layout")
         title: "Panel background & autohide"
         subtitle: "The full pill enables screen-edge attachment; attachment enables autohide."
+        SettingsSwitch {
+            objectName: "hyprdockControl"
+            Layout.fillWidth: true
+            text: "Use Hyprdock"
+            checked: root.settings.dockEnabled === true
+            onToggled: root.edited("dockEnabled", checked)
+        }
+        Label {
+            Layout.fillWidth: true
+            text: "A compact clock attached to this edge. Hover its base to reveal items; menus and Settings expand inside the dock. Your ordinary Hyprpane layout is retained."
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
+        }
         SettingsBackgroundControl {
             objectName: "fullBackgroundControl"
             Layout.fillWidth: true

@@ -99,7 +99,7 @@ def validate(data):
         raise ValueError('Bar position must be top, left, right, or bottom')
     if type(bar['uniformItems']) is not bool:
         raise ValueError('Uniform icon size and spacing must be boolean')
-    for key in ('edgeAttached', 'autoHide'):
+    for key in ('dockEnabled', 'edgeAttached', 'autoHide'):
         if type(bar[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     if type(bar['centerItems']) is not bool:

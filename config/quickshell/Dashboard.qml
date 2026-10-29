@@ -10,6 +10,7 @@ PanelWindow {
     property url wallpaperSource: ""
     property real translucency: 0.06
     property bool rightCorner: false
+    property bool cornersEnabled: true
     property Component contentPage: dashboardPage
     property real preferredBodyWidth: rightCorner ? 390 : 760
     function close() { menuState.close(); }
@@ -38,7 +39,7 @@ PanelWindow {
         dismissPinnedOnLeave: true
     }
     Variants {
-        model: Quickshell.screens
+        model: dashboard.cornersEnabled ? Quickshell.screens : []
         PanelWindow {
             id: edge
             objectName: "dashboardCornerReveal"

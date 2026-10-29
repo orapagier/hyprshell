@@ -7,6 +7,13 @@ Item {
     id: controller
     required property var store
     property var wallpaperSources: ({})
+    property bool dockEnabled: false
+    property var dockResolver: null
+    property Item dockHost: null
+    function hideEmbedded() {
+        if (editor.item) editor.item.dockOpened = false;
+        release.restart();
+    }
     property string lockingError: ""
     property string powerError: ""
     property var audioServices: null
@@ -22,9 +29,12 @@ Item {
     signal focusRequested(var settingsWindow)
 
     function open() {
+        dockHost = dockEnabled && dockResolver ? dockResolver() : null;
         editor.active = true;
         let ui = editor.item;
         if (!ui) return;
+        if (dockHost && ui.visible) { ui.visible = false; ui.dockOpened = true; }
+        else if (!dockHost && ui.dockOpened) { ui.dockOpened = false; ui.visible = true; }
         if (retainedSession) {
             ui.editingSession = false;
             ui.initial = Model.copy(retainedSession.initial);
@@ -48,7 +58,7 @@ Item {
         let ui = editor.item;
         // Process startup is deferred. Dirty edits without a reported error
         // may still be waiting to start, even while running is briefly false.
-        if (!ui || ui.visible || !ui.idle || ui.manualDirty || (ui.dirty && ui.success)) return;
+        if (!ui || ui.uiOpened || !ui.idle || ui.manualDirty || (ui.dirty && ui.success)) return;
         retainedSession = ui.dirty ? {
             initial: Model.copy(ui.initial),
             draft: Model.copy(ui.draft),
@@ -65,6 +75,7 @@ Item {
         SettingsWindow {
             id: settingsWindow
             store: controller.store
+            dockHost: controller.dockHost
             wallpaperSources: controller.wallpaperSources
             lockingError: controller.lockingError
             powerError: controller.powerError
@@ -80,6 +91,7 @@ Item {
     Connections {
         target: editor.item
         function onVisibleChanged() { release.restart(); }
+        function onDockOpenedChanged() { release.restart(); }
         function onIdleChanged() { release.restart(); }
         function onDirtyChanged() { release.restart(); }
         function onSuccessChanged() { release.restart(); }

@@ -10,6 +10,10 @@ import "style" as Style
 PanelWindow {
     id: window
     property string error: ""
+    property Item dockHost: null
+    property bool dockOpened: false
+    readonly property bool uiOpened: visible || dockOpened
+    function dismiss() { visible = false; dockOpened = false; }
     readonly property bool busy: worker.running
     visible: false
     anchors { top: true; bottom: true; left: true; right: true }
@@ -20,7 +24,7 @@ PanelWindow {
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     function open() {
         error = "";
-        visible = true;
+        if (dockHost) dockOpened = true; else visible = true;
         Qt.callLater(() => duplicateButton.forceActiveFocus());
     }
     function choose(layout) {
@@ -36,7 +40,7 @@ PanelWindow {
             onStreamFinished: {
                 try {
                     let result = JSON.parse(text);
-                    if (result.ok) window.visible = false;
+                    if (result.ok) window.dismiss();
                     else window.error = result.message || "Could not change displays.";
                 } catch (e) { window.error = "Could not change displays."; }
             }
@@ -45,12 +49,14 @@ PanelWindow {
     }
     MouseArea {
         anchors.fill: parent
-        onClicked: window.visible = false
+        onClicked: window.dismiss()
     }
     Rectangle {
         id: card
+        parent: window.dockHost || window.contentItem
+        visible: window.uiOpened
         anchors.centerIn: parent
-        width: Math.min(320, window.width - 40)
+        width: Math.min(320, parent.width - 40)
         height: contents.implicitHeight + 40
         radius: 22
         color: Style.Theme.background
@@ -112,5 +118,5 @@ PanelWindow {
             }
         }
     }
-    Shortcut { sequence: "Escape"; enabled: window.visible; onActivated: window.visible = false }
+    Shortcut { sequence: "Escape"; enabled: window.uiOpened; onActivated: window.dismiss() }
 }

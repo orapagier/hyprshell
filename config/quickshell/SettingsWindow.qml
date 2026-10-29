@@ -10,15 +10,30 @@ import "SettingsModel.js" as Model
 FloatingWindow {
     id: window
     required property var store
+    property Item dockHost: null
+    property bool dockOpened: false
+    readonly property bool uiOpened: visible || dockOpened
+    readonly property real hostWidth: dockHost ? dockHost.width : width
+    readonly property real hostHeight: dockHost ? dockHost.height : height
+    function showEditor() {
+        if (dockHost) { dockOpened = true; Qt.callLater(focusSearch); }
+        else visible = true;
+    }
+    function hideEditor() { dockOpened = false; visible = false; }
+    onDockOpenedChanged: {
+        if (dockOpened) Qt.callLater(focusSearch);
+        else if (editingSession && dirty) apply();
+    }
     property var wallpaperSources: ({})
+    readonly property var wallpaperScreen: dockHost?.output || screen
     // Sample the current output once at thumbnail size. Window resizing and
     // page navigation reuse these pixels; moving to another output resamples.
     WallpaperColors {
         id: windowWallpaper
         objectName: "settingsWallpaperSampler"
-        source: window.wallpaperSources[window.screen?.name] || ""
-        screenWidth: window.screen?.width || 1366
-        screenHeight: window.screen?.height || 768
+        source: window.wallpaperSources[window.wallpaperScreen?.name] || ""
+        screenWidth: window.wallpaperScreen?.width || 1366
+        screenHeight: window.wallpaperScreen?.height || 768
         offsetY: 0
         bandHeight: screenHeight
         sampleWidth: 96
@@ -102,7 +117,7 @@ FloatingWindow {
         section = homeSection;
     }
     function focusSearch() {
-        if (!visible) return;
+        if (!uiOpened) return;
         searchField.forceActiveFocus();
         searchField.selectAll();
     }
@@ -271,13 +286,13 @@ FloatingWindow {
     }
     function open() {
         minimized = false;
-        if (visible) {
-            focusRequested();
+        if (uiOpened) {
+            if (!dockHost) focusRequested();
             Qt.callLater(focusSearch);
             return;
         }
         if (editingSession && (dirty || saving || manualDirty)) {
-            visible = true;
+            showEditor();
             return;
         }
         savedNotice = "";
@@ -288,7 +303,7 @@ FloatingWindow {
         message = store.error;
         success = !store.error;
         editingSession = true;
-        visible = true;
+        showEditor();
     }
     function updateItem(key, value) {
         let next = Model.copy(draft);
@@ -489,12 +504,13 @@ FloatingWindow {
         enabled: window.visible
         onActivated: { searchField.forceActiveFocus(); searchField.selectAll(); }
     }
-    SettingsGithubUpdate { id: githubUpdate; hostWidth: window.width; hostHeight: window.height }
+    SettingsGithubUpdate { id: githubUpdate; parent: settingsRoot; hostWidth: window.hostWidth; hostHeight: window.hostHeight }
     Popup {
         id: githubDialog
+        parent: settingsRoot
         objectName: "githubSyncDialog"
         anchors.centerIn: parent
-        width: Math.min(480, window.width - 40)
+        width: Math.min(480, window.hostWidth - 40)
         padding: 24
         modal: true
         closePolicy: githubSync.running ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
@@ -567,6 +583,14 @@ FloatingWindow {
         }
     }
     Pane {
+        id: settingsRoot
+        Keys.onPressed: event => {
+            if (event.key === Qt.Key_F && (event.modifiers & Qt.ControlModifier)) {
+                window.focusSearch(); event.accepted = true;
+            }
+        }
+        parent: window.dockHost || window.contentItem
+        visible: window.uiOpened
         objectName: "settingsRoot"
         anchors.fill: parent
         padding: 0
@@ -654,7 +678,7 @@ FloatingWindow {
                 Layout.fillHeight: true
                 spacing: 0
                 Rectangle {
-                    Layout.preferredWidth: window.width < 900 ? 224 : 250
+                    Layout.preferredWidth: window.hostWidth < 900 ? 224 : 250
                     Layout.fillHeight: true
                     color: Style.SettingsTheme.sidebar
                     ColumnLayout {
@@ -826,7 +850,7 @@ FloatingWindow {
                     Layout.fillHeight: true
                     clip: true
                     contentWidth: availableWidth
-                    padding: window.width < 900 ? 24 : 44
+                    padding: window.hostWidth < 900 ? 24 : 44
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     background: Rectangle { color: Style.SettingsTheme.background }
                     ColumnLayout {
@@ -1020,7 +1044,7 @@ FloatingWindow {
                             id: firewallPage
                             objectName: "settingsFirewallLoader"
                             Layout.fillWidth: true
-                            visible: window.visible && window.section === -22
+                            visible: window.uiOpened && window.section === -22
                             sourceComponent: SettingsFirewall {
                                 onReviewRequested: card => {
                                     let viewport = editorScroll.contentItem;
@@ -1033,45 +1057,45 @@ FloatingWindow {
                             id: networkPage
                             objectName: "settingsNetworkLoader"
                             Layout.fillWidth: true
-                            visible: window.visible && window.section === -15
+                            visible: window.uiOpened && window.section === -15
                             sourceComponent: SettingsNetwork {}
                         }
                         SettingsPageLoader {
                             id: regionalPage
                             objectName: "settingsRegionalLoader"
-                            visible: window.visible && window.section === -17
+                            visible: window.uiOpened && window.section === -17
                             Layout.fillWidth: true
                             sourceComponent: SettingsRegional {}
                         }
                         SettingsPageLoader {
                             id: helpPage
-                            visible: window.visible && window.section === -18
+                            visible: window.uiOpened && window.section === -18
                             Layout.fillWidth: true
                             sourceComponent: SettingsHelp { onNavigate: section => window.section = section; onGuideFinished: window.firstRunPending = false }
                         }
                         SettingsPageLoader {
                             id: behaviorPage
                             objectName: "settingsBehaviorLoader"
-                            visible: window.visible && window.section === -19
+                            visible: window.uiOpened && window.section === -19
                             Layout.fillWidth: true
                             sourceComponent: SettingsBehavior {}
                         }
                         SettingsPageLoader {
                             id: clipboardPage
-                            visible: window.visible && window.section === -20
+                            visible: window.uiOpened && window.section === -20
                             Layout.fillWidth: true
                             sourceComponent: SettingsClipboard { settings: window.draft.clipboard; runtimeError: window.clipboardError; onEdited: (key, value) => window.updateClipboard(key, value) }
                         }
                         SettingsPageLoader {
                             id: peripheralsPage
-                            visible: window.visible && window.section === -21
+                            visible: window.uiOpened && window.section === -21
                             Layout.fillWidth: true
                             sourceComponent: SettingsPeripherals {}
                         }
                         SettingsPageLoader {
                             id: setupBackupPage
                             objectName: "settingsSetupBackupLoader"
-                            visible: window.visible && window.section === -23
+                            visible: window.uiOpened && window.section === -23
                             Layout.fillWidth: true
                             sourceComponent: SettingsConfigurationRecovery {
                                 ready: !window.dirty && !window.manualDirty && !window.saving && window.success && window.store.loaded
@@ -1087,7 +1111,7 @@ FloatingWindow {
                         }
                         SettingsRecovery {
                             id: recoveryPage
-                            visible: window.visible && window.section === -14
+                            visible: window.uiOpened && window.section === -14
                             Layout.fillWidth: true
                             ready: !window.dirty && !window.saving && window.success && window.store.loaded
                             onRestored: settings => {
@@ -1149,18 +1173,18 @@ FloatingWindow {
                         SoundTest {
                             id: soundTester
                             sink: window.audioServices ? window.audioServices.sink : null
-                            visible: window.visible && window.section === -12
+                            visible: window.uiOpened && window.section === -12
                         }
                         SettingsSound {
                             id: soundPage
-                            visible: window.visible && window.section === -12
+                            visible: window.uiOpened && window.section === -12
                             Layout.fillWidth: true
                             services: window.audioServices
                             testSound: soundTester
                         }
                         SettingsPageLoader {
                             id: bluetoothPage
-                            visible: window.visible && window.section === -25
+                            visible: window.uiOpened && window.section === -25
                             Layout.fillWidth: true
                             sourceComponent: SettingsBluetooth {}
                         }

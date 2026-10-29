@@ -32,6 +32,7 @@
     "spacing": 8,
     "compactSpacing": 2,
     "centerItems": false,
+    "dockEnabled": true,
     "edgeAttached": true,
     "autoHide": false,
     "uniformItems": true,
