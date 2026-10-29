@@ -438,6 +438,7 @@ ShellRoot {
         function dock(): void { if (shell.dockEnabled) shell.focusedDock()?.revealKeyboard(); }
         function activity(): void { if (shell.dockEnabled) shell.focusedDock()?.open("activity", true); }
         function toggleBar(): void {
+            if (shell.dockEnabled) shell.focusedDock()?.collapse();
             shell.toggleWorkspacePanel('hyprpane');
         }
         function toggleMenu(name: string): void {

@@ -15,16 +15,19 @@ existing panel. Disabling it restores the saved ordinary Hyprpane layout.
   pin it. Moving between the strip and content retains the expansion.
 - Leaving the entire dock closes an unpinned expansion after a short delay. The strip then
   returns to the compact clock when the pointer is outside.
-- **Alt+Shift+T** reveals and focuses the strip. Arrows/Tab navigate controls,
+- **Alt+Shift+D** reveals and focuses the strip. Arrows/Tab navigate controls,
   Enter activates, and Escape returns to the strip then collapses the dock.
 - Existing launcher, status-menu, **Super+D**, **Super+K**, **Alt+S**, and
   **Super+P** shortcuts open the corresponding dock content.
-- **Alt+T** retains its workspace visibility behavior. Direct menu shortcuts
+- **Alt+D** toggles dock visibility on the current workspace using the saved
+  panel visibility choices. **Alt+T** retains its workspace visibility behavior. Direct menu shortcuts
   can temporarily open the dock on a hidden workspace.
 
 The additional strip controls open Dashboard, Activity, and Keyboard shortcuts.
-The existing enabled item order and workspace/tray behavior are reused. The
-strip scrolls when it cannot fit. The dock expands horizontally on top/bottom
+Settings is always present, workspace numbers have individual compact pills, and
+Bluetooth, audio, Wi-Fi, battery and power form the trailing group. Other enabled
+items retain their relative order and workspace/tray behavior. The
+strip scrolls when it cannot fit. Menus fit their content height, bounded by the screen. The dock expands horizontally on top/bottom
 edges and vertically on side edges; larger content is bounded by the screen.
 Settings retains its existing scrollable editor, with horizontal scrolling on
 screens narrower than the editor's minimum useful width.

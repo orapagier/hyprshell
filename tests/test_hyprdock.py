@@ -54,9 +54,21 @@ ShellRoot {
             try {
                 if (test.phase === 0) {
                     test.check(!dock.expanded, "starts compact");
+                    test.check(dock.targetHeight === 22, "compact clock has small vertical padding");
+                    let bar = test.find(dock.contentItem, "dockBar");
+                    test.check(bar.settings.items.find(i => i.id === "settings").enabled, "Settings is present");
+                    test.check(bar.settings.items.slice(-5).map(i => i.id).join(",") === "bluetooth,audio,wifi,battery,power", "status controls trail the strip");
+                    test.check(bar.appearance("workspaces").background === "on" && bar.appearance("workspaces").uniformTextHeight === 8, "small workspace numbers with individual pills");
+                    test.check(test.find(dock.contentItem, "hyprdockSurface").clip, "items reveal within animated background bounds");
                     dock.revealKeyboard();
                     test.check(dock.expanded && !dock.section, "keyboard reveal only opens strip");
                 } else if (test.phase <= test.names.length) {
+                    if (dock.section === "power") {
+                        let page = test.find(dock.contentItem, "dockMenuPage");
+                        test.check(Math.abs(dock.contentHeight - page.item.implicitHeight - 40) < 1, "Power height follows its buttons");
+                        test.check(Math.abs(test.find(dock.contentItem, "hyprdockBody").height - dock.contentHeight) < 1, "Power has no unused space below its content");
+                        test.find(dock.contentItem, "hyprdockSurface").grabToImage(result => result.saveToFile("/tmp/hyprdock-power-preview.png"));
+                    }
                     let name = test.names[test.phase - 1]; dock.open(name, true);
                     test.check(dock.section === name, "route " + name);
                 } else if (test.phase === test.names.length + 1) {

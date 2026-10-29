@@ -37,27 +37,30 @@ PanelWindow {
     signal lockRequested()
     signal activated()
     readonly property var menuColors: glass.menuColors
-    readonly property real stripSize: 42
-    readonly property real compactLength: 100
-    readonly property real naturalLength: Math.max(120, stripBar.groupLength("left") + stripBar.groupLength("center") + stripBar.groupLength("right") + 2 * stripBar.sectionGap + 24)
+    readonly property real stripSize: 26
+    readonly property real compactLength: 76
+    readonly property real naturalLength: Math.max(1, stripBar.groupLength("left"))
     readonly property real contentWidth: section === "settings" ? 1120 : section === "dashboard" ? 780 : section === "activity" ? 440 : section === "launcher" || section === "keybindings" ? 560 : 400
-    readonly property real contentHeight: section === "settings" ? 820 : section === "dashboard" ? 700 : section === "launcher" || section === "keybindings" || section === "activity" ? 620 : 440
+    readonly property real contentHeight: (section === "settings" ? 820 : section === "dashboard" ? (dashboardLoader.item?.implicitHeight || 0) + 40
+        : section === "activity" ? (activityLoader.item?.implicitHeight || 0) + 40
+        : section === "displays" ? (projectorSlot.children[0]?.height || 0) + 40 : Math.max(0, page.item?.implicitHeight || 0) + 40)
+        + (popupLoader.active ? Math.min(150, popupLoader.implicitHeight) + 10 : 0)
     // The strip stays centered on the output, independent of the content width.
-    readonly property real stripLength: Math.min(vertical ? height : width, naturalLength + 108)
+    readonly property real stripLength: Math.min(vertical ? height : width, naturalLength + 118)
     readonly property real targetWidth: Math.min(width, vertical
-        ? (section ? contentWidth + stripSize + 24 : expanded ? stripSize : 36)
+        ? (section ? contentWidth + stripSize + 24 : expanded ? stripSize : 24)
         : expanded ? Math.max(stripLength, section ? contentWidth + 32 : 0) : compactLength)
     readonly property real targetHeight: Math.min(height, vertical
-        ? expanded ? Math.max(stripLength, section ? contentHeight + 32 : 0) : compactLength
-        : section ? contentHeight + stripSize + 24 : expanded ? stripSize : 32)
+        ? expanded ? Math.max(stripLength, section ? contentHeight + 40 : 0) : compactLength
+        : section ? contentHeight + stripSize + 28 : expanded ? stripSize : 22)
     property real animatedWidth: targetWidth
     property real animatedHeight: targetHeight
     readonly property rect targetRect: Qt.rect(
         edge === "left" ? 0 : edge === "right" ? width - targetWidth : (width - targetWidth) / 2,
         edge === "top" ? 0 : edge === "bottom" ? height - targetHeight : (height - targetHeight) / 2,
         targetWidth, targetHeight)
-    readonly property real surfaceWidth: Math.max(32, Math.min(width, animatedWidth))
-    readonly property real surfaceHeight: Math.max(32, Math.min(height, animatedHeight))
+    readonly property real surfaceWidth: Math.max(1, Math.min(width, animatedWidth))
+    readonly property real surfaceHeight: Math.max(1, Math.min(height, animatedHeight))
     readonly property rect surfaceRect: Qt.rect(
         edge === "left" ? 0 : edge === "right" ? width - surfaceWidth : (width - surfaceWidth) / 2,
         edge === "top" ? 0 : edge === "bottom" ? height - surfaceHeight : (height - surfaceHeight) / 2,
@@ -144,6 +147,7 @@ PanelWindow {
     }
     FocusScope {
         id: card
+        clip: true
         parent: interaction
         objectName: "hyprdockSurface"
         visible: dock.available
@@ -199,24 +203,33 @@ PanelWindow {
             }
             Flickable {
                 id: stripScroll
-                x: dock.vertical ? 0 : 12
-                y: dock.vertical ? 12 : 4
-                width: dock.vertical ? parent.width : Math.max(1, parent.width - 120)
-                height: dock.vertical ? Math.max(1, parent.height - 120) : parent.height - 8
+                x: dock.vertical ? 0 : 98
+                y: dock.vertical ? 98 : 4
+                width: dock.vertical ? parent.width : Math.max(1, parent.width - 118)
+                height: dock.vertical ? Math.max(1, parent.height - 118) : parent.height - 8
                 contentWidth: dock.vertical ? width : stripBar.width
                 contentHeight: dock.vertical ? stripBar.height : height
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 Bar {
                     id: stripBar
+                    objectName: "dockBar"
                     width: dock.vertical ? stripScroll.width : dock.naturalLength
                     height: dock.vertical ? dock.naturalLength : stripScroll.height
                     settings: {
                         let config = Model.copy(dock.store.panelConfig);
                         Object.assign(config.bar, {fullBackground: "off", edgeAttached: false, autoHide: false, centerItems: false,
-                            background: "off", hyprknots: false, uniformItems: false, height: 32,
+                            background: "off", hyprknots: false, uniformItems: false, height: 26,
                             contentPaddingTop: 0, contentPaddingBottom: 0, contentPaddingLeft: 0, contentPaddingRight: 0,
                             verticalPresentation: "compact"});
+                        const status = ["bluetooth", "audio", "wifi", "battery", "power"];
+                        const sideOrder = {left: 0, center: 1, right: 2};
+                        config.items.sort((a, b) => (sideOrder[a.side] - sideOrder[b.side]) || a.order - b.order);
+                        config.items = config.items.filter(item => !status.includes(item.id))
+                            .concat(status.map(id => config.items.find(item => item.id === id)).filter(Boolean))
+                            .map((item, index) => Object.assign(item, {side: "left", order: index, pillGroup: "",
+                                spacingLeft: 0, spacingRight: 0, paddingLeft: 3, paddingRight: 3,
+                                iconSize: 12, fontSize: 10}, item.id === "settings" ? {enabled: true, hideIcon: false} : {}));
                         return config;
                     }
                     statusIconsOnly: true
@@ -260,25 +273,25 @@ PanelWindow {
                 }
             }
             Item {
-                x: dock.vertical ? 4 : parent.width - 108
-                y: dock.vertical ? parent.height - 108 : 4
-                width: dock.vertical ? 34 : 102
-                height: dock.vertical ? 102 : 34
+                x: dock.vertical ? 0 : 20
+                y: dock.vertical ? 20 : 4
+                width: dock.vertical ? 26 : 78
+                height: dock.vertical ? 78 : 18
                 Repeater {
                     model: [{name:"dashboard", icon:"󰕮", label:"Dashboard"}, {name:"activity", icon:"󰂚", label:"Activity"}, {name:"keybindings", icon:"󰌌", label:"Keyboard shortcuts"}]
                     ToolButton {
                         required property var modelData
                         required property int index
-                        x: dock.vertical ? 0 : index * 34
-                        y: dock.vertical ? index * 34 : 0
-                        width: 34; height: 34
+                        x: dock.vertical ? 0 : index * 26
+                        y: dock.vertical ? index * 26 : 0
+                        width: 26; height: 18
                         Accessible.name: modelData.label
                         activeFocusOnTab: true
                         hoverEnabled: true
                         onHoveredChanged: { if (hovered) dockState.hover(modelData.name); else dockState.leave(modelData.name); }
                         onClicked: dock.open(modelData.name, false)
                         background: Rectangle { radius: 8; color: parent.hovered || parent.activeFocus ? Qt.rgba(dock.menuColors.text.r, dock.menuColors.text.g, dock.menuColors.text.b, 0.12) : "transparent"; border.width: parent.activeFocus ? 1 : 0; border.color: dock.menuColors.accent }
-                        contentItem: Text { text: parent.modelData.icon; color: dock.menuColors.text; font.family: "GoMono Nerd Font"; font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        contentItem: Text { text: parent.modelData.icon; color: dock.menuColors.text; font.family: "GoMono Nerd Font"; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     }
                 }
             }
@@ -296,6 +309,8 @@ PanelWindow {
                 anchors.fill: parent
                 spacing: 10
                 Loader {
+                    id: popupLoader
+                    visible: active
                     Layout.fillWidth: true
                     Layout.preferredHeight: item ? Math.min(150, item.implicitHeight) : 0
                     active: dock.notificationTarget && dock.inbox.popups.length > 0
@@ -333,12 +348,14 @@ PanelWindow {
                         clip: true
                         contentWidth: availableWidth
                         Loader {
+                            id: dashboardLoader
                             width: dashboardViewport.availableWidth
                             active: dock.dashboardLoaded
                             sourceComponent: dashboardPage
                         }
                     }
                     Loader {
+                        id: activityLoader
                         anchors.fill: parent
                         visible: dock.section === "activity"
                         active: dock.activityLoaded
@@ -352,8 +369,9 @@ PanelWindow {
                         contentWidth: availableWidth
                         Loader {
                             id: page
+                            objectName: "dockMenuPage"
                             width: menuViewport.availableWidth
-                            height: ["launcher", "keybindings"].includes(dock.section) ? menuViewport.availableHeight : implicitHeight
+                            height: implicitHeight
                             active: dock.section.length > 0 && !["settings", "displays", "dashboard", "activity"].includes(dock.section)
                             sourceComponent: ({dashboard:dashboardPage,activity:activityPage,keybindings:keysPage,launcher:launcherPage,calendar:calendarPage,audio:audioPage,wifi:wifiPage,bluetooth:bluetoothPage,battery:batteryPage,power:powerPage,notifications:inboxPage,media:mediaPage,workspacePreview:workspacePage})[dockState.displayedSection] || null
                             onLoaded: if (dockState.openedByShortcut) Qt.callLater(() => { if (page.item) { if (page.item.focusFirst) page.item.focusFirst(); else if (!["launcher", "keybindings"].includes(dock.section)) page.item.forceActiveFocus(); } });
@@ -389,8 +407,8 @@ PanelWindow {
     }
     Component { id: dashboardPage; DashboardContent { services: dock.services; resourceData: dock.resourceData; active: dock.section === "dashboard"; wallpaperSource: dock.wallpaperSource; screenWidth: dock.width; screenHeight: dock.height; wallpaperRegion: glass.region; onDismissRequested: dock.closeContent(); onSettingsRequested: dock.open("settings", true); onLockRequested: dock.lockRequested(); onMenuRequested: name => dock.open(name, true) } }
     Component { id: activityPage; ActivityContent { inbox: dock.inbox; store: dock.store; active: dock.section === "activity"; wallpaperSource: dock.wallpaperSource; screenWidth: dock.width; screenHeight: dock.height; wallpaperRegion: glass.region; onDismissRequested: dock.closeContent() } }
-    Component { id: keysPage; KeybindingsMenu {} }
-    Component { id: launcherPage; LauncherMenu { applicationService: dock.applicationService; wallpaperSource: dock.wallpaperSource; active: dock.section === "launcher"; onLaunched: dock.collapse() } }
+    Component { id: keysPage; KeybindingsMenu { fitContent: true } }
+    Component { id: launcherPage; LauncherMenu { fitContent: true; applicationService: dock.applicationService; wallpaperSource: dock.wallpaperSource; active: dock.section === "launcher"; onLaunched: dock.collapse() } }
     Component { id: calendarPage; CalendarMenu {} }
     Component { id: audioPage; AudioMenu { services: dock.services } }
     Component { id: wifiPage; WifiMenu { services: dock.services } }

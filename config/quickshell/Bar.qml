@@ -28,7 +28,7 @@ Item {
     readonly property real panelTextSize: panelIconSize * 10 / 12
     readonly property bool iconPills: vertical || centerItems
     readonly property real panelSlotSize: verticalThickness * 0.6
-    readonly property real workspacePillSize: panelSlotSize * 0.72
+    readonly property real workspacePillSize: dockStyle ? 16 : panelSlotSize * 0.72
     readonly property real panelItemInset: verticalThickness * 0.2
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Resolve thickness from settings, independently of child geometry.
@@ -248,9 +248,9 @@ Item {
             } else style.sharedBackgroundShown = Settings.sharedBackground(settings, group.ids[0]) !== "off";
         }
         if (dockStyle) {
-            style.uniformGlyphHeight = 12;
-            style.uniformTextHeight = 10;
-            style.background = "off";
+            style.uniformGlyphHeight = id === "workspaces" ? 8 : 12;
+            style.uniformTextHeight = id === "workspaces" ? 8 : 10;
+            style.background = id === "workspaces" ? "on" : "off";
             if (id === "calendar") { style.text = ""; style.hideText = false; style.hideIcon = true; }
         }
         return style;

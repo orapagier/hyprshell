@@ -9,6 +9,7 @@ import "KeybindingsGuide.js" as Guide
 
 ColumnLayout {
     id: page
+    property bool fitContent: false
     readonly property var menuColors: Colors.menuColorsFor(page)
     QtObject {
         id: theme
@@ -74,6 +75,7 @@ ColumnLayout {
         objectName: "keybindingsList"
         Layout.fillWidth: true
         Layout.fillHeight: true; Layout.minimumHeight: 120
+        Layout.preferredHeight: page.fitContent ? Math.max(120, Math.min(520, list.contentHeight)) : -1
         model: page.entries
         clip: true; spacing: 6
         keyNavigationEnabled: true

@@ -8,6 +8,7 @@ import "ApplicationModel.js" as Apps
 
 ColumnLayout {
     id: page
+    property bool fitContent: false
     readonly property var menuColors: Colors.menuColorsFor(page)
     signal launched()
     property url wallpaperSource: ""
@@ -72,7 +73,7 @@ ColumnLayout {
         id: applications
         objectName: "applicationsList"
         Layout.fillWidth: true; Layout.fillHeight: true
-        Layout.preferredHeight: 300; Layout.minimumHeight: 120
+        Layout.preferredHeight: page.fitContent ? Math.max(120, Math.min(520, applications.contentHeight)) : 300; Layout.minimumHeight: 120
         model: page.entries
         clip: true; spacing: 6
         keyNavigationEnabled: true

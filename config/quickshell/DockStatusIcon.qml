@@ -7,7 +7,7 @@ Canvas {
     property bool charging: false
     property bool connected: true
     property color ink: "white"
-    implicitWidth: 16; implicitHeight: 18
+    implicitWidth: 12; implicitHeight: 12
     onLevelChanged: requestPaint()
     onChargingChanged: requestPaint()
     onConnectedChanged: requestPaint()
