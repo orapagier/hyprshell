@@ -173,7 +173,7 @@ FloatingWindow {
         view.contentY = Math.max(0, Math.min(view.contentHeight - view.height,
             Math.max(y + button.height - view.height, Math.min(view.contentY, y))));
     }
-    property bool barItemsExpanded: false
+    property bool barItemsExpanded: true
     readonly property var navigation: [
         {group: "Personalize", pages: [
             {section: -8, title: "Appearance", symbol: "󰔎", hint: "Theme, colors, fonts & cursor", keywords: "theme colors font cursor"},
@@ -692,14 +692,6 @@ FloatingWindow {
                 }
                 Item {
                     Layout.fillWidth: true
-                    Label {
-                        anchors.centerIn: parent
-                        visible: window.hostWidth >= 980
-                        text: "Settings"
-                        color: Style.SettingsTheme.muted
-                        font.pixelSize: Style.SettingsTheme.bodySize
-                        font.weight: Font.Medium
-                    }
                 }
                 SettingsGithubButton {
                     objectName: "githubSyncButton"
@@ -851,34 +843,24 @@ FloatingWindow {
                                         required property int index
                                         readonly property var pages: window.matchingPages(modelData.pages)
                                         property alias buttons: pageResults
-                                        property bool expanded: index === 0
                                         readonly property bool containsCurrent: modelData.pages.some(page => page.section === window.section)
-                                        readonly property bool revealed: expanded || window.searchQuery.trim().length > 0
-                                        onContainsCurrentChanged: if (containsCurrent) expanded = true
                                         visible: pages.length > 0
                                         Layout.fillWidth: true
                                         spacing: 1
-                                        ToolButton {
-                                            id: groupButton
-                                            objectName: "settingsGroup" + navGroup.index
+                                        Label {
                                             Layout.fillWidth: true
-                                            Layout.topMargin: navGroup.index === 0 ? 2 : 8
-                                            implicitHeight: Math.round(30 * Style.SettingsTheme.textScale)
-                                            leftPadding: 8; rightPadding: 6
-                                            hoverEnabled: true
-                                            Accessible.name: navGroup.modelData.group
-                                            Accessible.description: navGroup.revealed ? "Collapse group" : "Expand group"
-                                            onClicked: navGroup.expanded = !navGroup.expanded
-                                            contentItem: RowLayout {
-                                                Label { Layout.fillWidth: true; text: navGroup.modelData.group; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize; font.weight: Font.DemiBold; font.letterSpacing: 0.5; elide: Text.ElideRight }
-                                                Label { text: "›"; rotation: navGroup.revealed ? 90 : 0; color: Style.SettingsTheme.muted; font.pixelSize: 17; Behavior on rotation { NumberAnimation { duration: Style.SettingsTheme.duration(groupButton, 180); easing.type: Easing.OutCubic } } }
-                                            }
-                                            background: Rectangle { radius: 9; color: groupButton.hovered ? Style.SettingsTheme.hover : "transparent"; border.width: groupButton.activeFocus ? 2 : 0; border.color: Style.SettingsTheme.accentText }
+                                            Layout.topMargin: navGroup.index === 0 ? 2 : 12
+                                            Layout.bottomMargin: 4
+                                            text: navGroup.modelData.group
+                                            color: Style.SettingsTheme.muted
+                                            font.pixelSize: Style.SettingsTheme.captionSize
+                                            font.weight: Font.DemiBold
+                                            font.letterSpacing: 0.5
+                                            elide: Text.ElideRight
                                         }
                                         Rectangle {
                                             id: navGroupCard
                                             Layout.fillWidth: true
-                                            visible: navGroup.revealed
                                             implicitHeight: navGroupCardColumn.implicitHeight + 6
                                             radius: 16
                                             color: Style.SettingsTheme.navRow
@@ -897,7 +879,6 @@ FloatingWindow {
                                                     delegate: SettingsNavButton {
                                                         required property var modelData
                                                         objectName: "settingsNav" + modelData.section
-                                                        visible: navGroup.revealed
                                                         text: modelData.title
                                                         symbol: modelData.symbol
                                                         hint: modelData.hint || ""

@@ -43,51 +43,6 @@ ColumnLayout {
                 color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.bodySize
                 wrapMode: Text.WordWrap
             }
-            SettingsButton {
-                id: homeSearch
-                objectName: "settingsHomeSearch"
-                Layout.fillWidth: true
-                Layout.topMargin: 8
-                implicitHeight: Math.round(48 * Style.SettingsTheme.textScale)
-                text: "Search settings"
-                flat: true
-                leftPadding: 16
-                rightPadding: 16
-                onClicked: home.searchRequested()
-                contentItem: RowLayout {
-                    spacing: 10
-                    Label {
-                        text: "󰍉"; color: Style.SettingsTheme.muted
-                        font.family: "GoMono Nerd Font"; font.pixelSize: Math.round(18 * Style.SettingsTheme.textScale)
-                    }
-                    Label {
-                        Layout.fillWidth: true
-                        text: homeSearch.text; color: Style.SettingsTheme.muted
-                        font.pixelSize: Style.SettingsTheme.bodySize
-                        elide: Text.ElideRight
-                    }
-                    Rectangle {
-                        implicitWidth: shortcutLabel.implicitWidth + 16
-                        implicitHeight: Math.round(24 * Style.SettingsTheme.textScale)
-                        radius: height / 2
-                        color: Style.SettingsTheme.statusPill
-                        Label {
-                            id: shortcutLabel
-                            anchors.centerIn: parent
-                            text: "Ctrl F"
-                            color: Style.SettingsTheme.muted
-                            font.pixelSize: Style.SettingsTheme.captionSize
-                        }
-                    }
-                }
-                background: Rectangle {
-                    radius: Math.round(height / 2)
-                    color: homeSearch.hovered ? Style.SettingsTheme.hover : Style.SettingsTheme.field
-                    border.width: homeSearch.activeFocus ? 2 : 1
-                    border.color: homeSearch.activeFocus ? Style.SettingsTheme.accentText : Style.SettingsTheme.border
-                    Behavior on color { ColorAnimation { duration: Style.SettingsTheme.duration(homeSearch, 150) } }
-                }
-            }
         }
     }
     Label {
