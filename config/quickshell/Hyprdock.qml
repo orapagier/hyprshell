@@ -6,6 +6,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import "SettingsModel.js" as Model
 
 PanelWindow {
@@ -154,7 +155,19 @@ PanelWindow {
             onHoveredChanged: {
                 dockState.retain(hovered);
                 if (hovered) { collapseDelay.stop(); dock.revealed = true; }
-                else { dockState.leave(dockState.hoveredMenu); collapseDelay.restart(); }
+                else {
+                    dockState.leave(dockState.hoveredMenu);
+                    collapseDelay.restart();
+                    // For keyboard-opened or shortcut-opened items, full collapse on mouse leave
+                    if (dock.keyboardSession && dock.section) {
+                        // Give a short delay so user can briefly move mouse out without immediate close
+                        Qt.callLater(() => {
+                            if (!cardHover.hovered && dock.keyboardSession && dock.section) {
+                                dock.collapse();
+                            }
+                        }, 400);
+                    }
+                }
             }
         }
     }
@@ -400,6 +413,84 @@ PanelWindow {
                         }
                     }
                 }
+            }
+        }
+    }
+    // Focus tracking: when focus moves out of dock content on search-autofocus windows,
+    // trigger auto-close behavior for non-pinned keyboard sessions.
+    Timer {
+        id: focusTracker
+        interval: 150; running: dock.section.length > 0; repeat: true
+        onTriggered: {
+            if (!dock.section) return;
+            // Only track for windows with autofocus search bars
+            if (!["launcher", "keybindings", "settings"].includes(dock.section)) return;
+            // Check if focus moved outside dock content
+            let activeItem = Window.activeFocusItem;
+            let focusInsideDock = false;
+            if (activeItem) {
+                try {
+                    let mapped = activeItem.mapToItem(card, 0, 0);
+                    focusInsideDock = mapped !== null && mapped.x >= -200 && mapped.y >= -200
+                        && mapped.x <= card.width + 200 && mapped.y <= card.height + 200;
+                } catch (e) {
+                    focusInsideDock = false;
+                }
+            }
+            // When focus leaves dock content and we're not pinned, trigger close behavior
+            if (!focusInsideDock && !dockState.pinned && dock.keyboardSession) {
+                collapseDelay.restart();
+                dockState.retain(false);
+            } else if (focusInsideDock) {
+                collapseDelay.stop();
+                dockState.retain(true);
+            }
+        }
+    }
+    Connections {
+        target: Window
+        function onActiveFocusItemChanged() {
+            if (!dock.section || dockState.pinned) return;
+            // For keyboard session windows, detect focus out quickly
+            if (dock.keyboardSession && ["launcher", "keybindings", "settings"].includes(dock.section)) {
+                Qt.callLater(() => {
+                    let activeItem = Window.activeFocusItem;
+                    let inside = false;
+                    if (activeItem) {
+                        try {
+                            let p = activeItem.mapToItem(card, 0, 0);
+                            inside = (p !== null && p.x >= -100 && p.y >= -100
+                                && p.x <= card.width + 100 && p.y <= card.height + 100);
+                        } catch (e) { inside = false; }
+                    }
+                    if (!inside && !dockState.pinned) {
+                        dockState.retain(false);
+                    }
+                });
+            }
+        }
+    }
+    // When opening via keyboard (keyboardSession or openedByShortcut),
+    // bring mouse cursor to the header of the opened window.
+    Connections {
+        target: dockState
+        function onSectionChanged() {
+            if (dock.section && (dock.keyboardSession || dockState.openedByShortcut)) {
+                Qt.callLater(() => {
+                    // The header is at the top of the body inside card; use approximate position
+                    // Map a point near the top-center of the card content (header area) to screen space
+                    let targetX = card.width / 2 + (dock.edge === "left" ? dock.stripSize + 8 + 30 : 20 + 60);
+                    let targetY = card.height / 6 + (dock.edge === "top" ? dock.stripSize + 8 + 20 : 20 + 30);
+                    // Get screen position using the dock's screen info
+                    let screen = dock.screen || null;
+                    if (screen) {
+                        // Compute global position: map from card to root, then add screen offset
+                        let pointInDock = card.mapToItem(dock, targetX, targetY);
+                        let globalX = Math.round((screen.x || 0) + pointInDock.x);
+                        let globalY = Math.round((screen.y || 0) + pointInDock.y);
+                        Hyprland.dispatch("hl.dsp.cursor.move({ x = " + globalX + ", y = " + globalY + " })");
+                    }
+                });
             }
         }
     }
