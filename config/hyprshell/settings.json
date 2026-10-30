@@ -7,7 +7,7 @@
       1
     ],
     "workspaceOverrides": {
-      "1": false,
+      "1": true,
       "2": true,
       "3": false,
       "4": false,
@@ -32,7 +32,7 @@
     "spacing": 8,
     "compactSpacing": 2,
     "centerItems": false,
-    "dockEnabled": false,
+    "dockEnabled": true,
     "edgeAttached": true,
     "autoHide": false,
     "uniformItems": true,
