@@ -374,11 +374,25 @@ PanelWindow {
                             readonly property var button: parent
                             scale: button.hovered || button.activeFocus || dock.section === button.modelData.name ? 1.22 : 1
                             Behavior on scale { enabled: dock.motionEnabled; NumberAnimation { duration: 120 } }
-                            Text { anchors.fill: parent; text: shortcutIcon.button.modelData.icon; visible: shortcutIcon.button.modelData.name !== "settings"; color: dock.itemColor(shortcutIcon.button.modelData.name); font.family: "GoMono Nerd Font"; font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            TextMetrics {
+                                id: shortcutMetrics
+                                font.family: "GoMono Nerd Font"; font.pixelSize: 128
+                                text: shortcutIcon.button.modelData.icon
+                            }
+                            Text {
+                                text: shortcutMetrics.text
+                                visible: shortcutIcon.button.modelData.name !== "settings"
+                                color: dock.itemColor(shortcutIcon.button.modelData.name)
+                                font: shortcutMetrics.font
+                                scale: 16 / Math.max(1, shortcutMetrics.tightBoundingRect.height)
+                                transformOrigin: Item.TopLeft
+                                x: (parent.width - shortcutMetrics.tightBoundingRect.width * scale) / 2 - shortcutMetrics.tightBoundingRect.x * scale
+                                y: (parent.height - shortcutMetrics.tightBoundingRect.height * scale) / 2 - (baselineOffset + shortcutMetrics.tightBoundingRect.y) * scale
+                            }
                             GlassCog {
                                 anchors.centerIn: parent
                                 visible: shortcutIcon.button.modelData.name === "settings"
-                                width: 16; height: 16; iconSize: 16
+                                width: 16; height: 16; iconSize: (16 - 1.2) / (20 / 24 + 0.018)
                                 accent: dock.itemColor("settings")
                                 highlighted: shortcutIcon.button.hovered || dock.section === "settings"
                                 vivid: true
@@ -387,7 +401,7 @@ PanelWindow {
                                 anchors.centerIn: parent
                                 visible: shortcutIcon.button.modelData.name === "launcher"
                                 columns: 3; spacing: 2
-                                Repeater { model: 9; Rectangle { required property int index; width: 3; height: 3; radius: 1.5; color: dock.itemColor("launcher") } }
+                                Repeater { model: 9; Rectangle { required property int index; width: 4; height: 4; radius: 2; color: dock.itemColor("launcher") } }
                             }
                         }
                     }

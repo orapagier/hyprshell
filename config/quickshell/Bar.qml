@@ -30,7 +30,7 @@ Item {
     readonly property real panelTextSize: panelIconSize * 10 / 12
     readonly property bool iconPills: vertical || centerItems
     readonly property real panelSlotSize: verticalThickness * 0.6
-    readonly property real workspacePillSize: dockStyle ? 14 : panelSlotSize * 0.72
+    readonly property real workspacePillSize: dockStyle ? 16 : panelSlotSize * 0.72
     readonly property real panelItemInset: verticalThickness * 0.2
     readonly property bool compact: vertical && settings.bar?.verticalPresentation === "compact"
     // Resolve thickness from settings, independently of child geometry.
@@ -251,7 +251,7 @@ Item {
         }
         if (dockStyle) {
             style.dockHoverZoom = true;
-            style.uniformGlyphHeight = id === "workspaces" ? 7 : 16;
+            style.uniformGlyphHeight = 16;
             style.uniformTextHeight = id === "workspaces" ? 7 : 12;
             style.background = id === "workspaces" ? "on" : "off";
             if (id === "calendar") { style.text = ""; style.hideText = false; style.hideIcon = true; }

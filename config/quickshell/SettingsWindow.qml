@@ -19,6 +19,18 @@ FloatingWindow {
         if (dockHost) { dockOpened = true; Qt.callLater(focusSearch); }
         else visible = true;
     }
+    // Popups are reparented into the window overlay, so hiding the editor
+    // alone does not hide them. Keep their lifetime tied to the editor.
+    function closeEditorPopups(item) {
+        for (let child of item.data || []) {
+            if (child instanceof Popup) child.close();
+            else if (child instanceof Item) closeEditorPopups(child);
+        }
+    }
+    onUiOpenedChanged: if (!uiOpened) {
+        closeEditorPopups(contentItem);
+        closeEditorPopups(settingsRoot);
+    }
     function hideEditor() { dockOpened = false; visible = false; }
     onDockOpenedChanged: {
         if (dockOpened) Qt.callLater(focusSearch);

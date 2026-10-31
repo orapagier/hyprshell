@@ -57,6 +57,11 @@ ShellRoot {
                 let strip = test.find(dock.contentItem, "dockItemStrip");
                 let state = test.find(dock.contentItem, "dockMenuState");
                 let base = test.find(dock.contentItem, "dockBase");
+                let bar = test.find(dock.contentItem, "dockBar");
+                test.check(bar.workspacePillSize === 16, "workspace marker matches icon height");
+                for (let id of ["workspaces", "audio", "wifi", "battery", "power"])
+                    test.check(bar.appearance(id).uniformGlyphHeight === 16, "uniform icon height: " + id);
+                test.check(bar.appearance("workspaces").uniformTextHeight === 7, "workspace numbers stay small");
                 keys.mouseMove(dock.contentItem, dock.width / 2, 1);
                 keys.wait(150);
                 strip.forceActiveFocus();
@@ -119,7 +124,12 @@ ShellRoot {
                 test.check(state.dismissInhibited, "popup inhibits every automatic dismissal path");
                 keys.keyClick(Qt.Key_Tab); keys.wait(100);
                 test.check(dock.section === "settings" && syncPopup.visible, "popup keyboard navigation retains Settings");
-                syncPopup.close();
+                test.pressEscape("real sync popup");
+                test.check(!syncPopup.visible, "sync popup closes with Settings on Escape");
+                dock.open("settings", true); keys.wait(200);
+                syncPopup.open(); keys.wait(100);
+                dock.closeContent(); keys.wait(150);
+                test.check(!syncPopup.visible, "parent close also closes sync popup");
                 dock.collapse();
                 // A focused popup lives in the window overlay, outside the card.
                 dock.open("settings", true); keys.wait(200);
