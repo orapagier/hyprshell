@@ -932,7 +932,7 @@ Item {
         horizontalItemAlignment: Grid.AlignHCenter
         verticalItemAlignment: Grid.AlignVCenter
         height: implicitHeight
-        spacing: bar.statusIconsOnly ? 2 : bar.uniformItems || bar.centerItems || bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
+        spacing: bar.dockStyle ? 6 : bar.statusIconsOnly ? 2 : bar.uniformItems || bar.centerItems || bar.settings.bar?.hyprknots === false ? bar.itemSpacing : Math.max(18, bar.itemSpacing)
         // Match the power circle's visible inset at the full panel ends.
         readonly property real endPadding: {
             if (!bar.uniformItems || !bar.fullBackgroundEnabled || bar.vertical || !power.circular) return 0;
