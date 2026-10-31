@@ -9,7 +9,7 @@
     "workspaceOverrides": {
       "1": true,
       "2": true,
-      "3": false,
+      "3": true,
       "4": false,
       "5": false,
       "6": false,
@@ -33,6 +33,7 @@
     "compactSpacing": 2,
     "centerItems": false,
     "dockEnabled": true,
+    "dockTransparency": 0,
     "edgeAttached": true,
     "autoHide": false,
     "uniformItems": true,
@@ -412,7 +413,9 @@
     "blurOptimizations": true,
     "blurPopups": true,
     "blurInputMethods": true,
-    "gapsOut": 10
+    "gapsOut": 10,
+    "blurBrightness": 0,
+    "blurNoise": 0
   },
   "locking": {
     "enabled": true,
