@@ -7,6 +7,7 @@ import hashlib
 import tempfile
 import os
 import re
+import signal
 from pathlib import Path
 import shutil
 import subprocess
@@ -15,11 +16,28 @@ import sys
 FORK_URL = 'https://github.com/orapagier/hyprshell/fork'
 
 
+def run_command(command, *, timeout, env=None):
+    """Bound Git/gh and their credential/transport children as one job."""
+    with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          text=True, env=env, start_new_session=True) as process:
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired as error:
+            # Killing only Git leaves git-remote-https or a credential helper
+            # holding its output pipes open, so collecting the error can hang.
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            stdout, stderr = process.communicate()
+            raise subprocess.TimeoutExpired(command, timeout, output=stdout, stderr=stderr) from error
+    return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
+
+
 def git(repo, *args):
     env = dict(os.environ, GIT_TERMINAL_PROMPT='0', GCM_INTERACTIVE='never')
     env.setdefault('GIT_SSH_COMMAND', 'ssh -oBatchMode=yes -oConnectTimeout=15')
-    result = subprocess.run(['git', '-C', str(repo), *args], capture_output=True,
-                            text=True, env=env, timeout=120)
+    result = run_command(['git', '-C', str(repo), *args], env=env, timeout=120)
     if result.returncode:
         raise RuntimeError((result.stderr or result.stdout).strip() or 'Git command failed')
     return result.stdout.strip()
@@ -378,7 +396,22 @@ def friendly_error(error):
     """Keep subprocess commands and diagnostics out of the settings UI."""
     detail = str(error)
     diagnostic = (getattr(error, 'stderr', None) or detail).lower()
-    if isinstance(error, subprocess.TimeoutExpired) or 'timed out' in diagnostic:
+    if isinstance(error, subprocess.TimeoutExpired):
+        command = error.cmd if isinstance(error.cmd, (list, tuple)) else []
+        program = Path(command[0]).name if command else ''
+        if program == 'git':
+            if 'push' in command[1:]:
+                return 'Uploading to GitHub took too long. Your changes are committed locally. Check your connection and try Sync to GitHub again.'
+            return 'Saving your configuration locally took too long. No upload was started. Try again.'
+        if program == 'gh' and 'api' in command:
+            step = 'sign-in' if command[-1] == 'user' else 'repository'
+            return f'Checking your GitHub {step} took too long. No upload was started. Check your connection and try again.'
+        if program == 'luac':
+            return 'Checking the local configuration took too long. No upload was started. Try again.'
+        if program == 'kitty':
+            return 'GitHub sign-in took too long. Click Authenticate to retry.'
+        return 'GitHub took too long to respond. Check your internet connection and try again.'
+    if 'timed out' in diagnostic:
         return 'GitHub took too long to respond. Check your internet connection and try again.'
     if any(term in diagnostic for term in ('could not resolve', 'no such host', 'network unavailable', 'network is unreachable', 'connection refused', 'connection reset', 'dial tcp', 'failed to connect')):
         return 'Could not reach GitHub. Check your internet connection and try again.'
@@ -396,8 +429,7 @@ def friendly_error(error):
 
 
 def api(endpoint, missing_ok=False):
-    result = subprocess.run(['gh', 'api', '--hostname', 'github.com', endpoint],
-                            capture_output=True, text=True, timeout=30)
+    result = run_command(['gh', 'api', '--hostname', 'github.com', endpoint], timeout=30)
     if result.returncode:
         if missing_ok and '(HTTP 404)' in result.stderr:
             return None

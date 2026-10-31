@@ -1152,29 +1152,41 @@ FloatingWindow {
                                     onEdited: (key, value) => window.updateAccessibility(key, value)
                                     onNavigate: section => window.section = section
                                 }
-                                SettingsBarEditor {
-                                    visible: window.section === -1
+                                Loader {
+                                    objectName: "settingsBarEditorLoader"
+                                    active: false
+                                    onVisibleChanged: if (visible) active = true
+                                    Component.onCompleted: if (visible) active = true
+                                    visible: window.uiOpened && (window.section === -1)
                                     Layout.fillWidth: true
-                                    settings: window.draft.bar
-                                    searchQuery: window.searchQuery
-                                    itemPages: window.barNavigation
-                                    onItemChosen: section => window.section = section
-                                    fullConfig: window.draft
-                                    onLayoutChosen: config => window.draft = config
-                                    currentWorkspace: window.currentWorkspace
-                                    onVisibilityEdited: bar => window.updateBarSettings(bar)
-                                    onEdited: (key, value) => window.updateBar(key, value)
+                                    sourceComponent: SettingsBarEditor {
+                                        settings: window.draft.bar
+                                        searchQuery: window.searchQuery
+                                        itemPages: window.barNavigation
+                                        onItemChosen: section => window.section = section
+                                        fullConfig: window.draft
+                                        onLayoutChosen: config => window.draft = config
+                                        currentWorkspace: window.currentWorkspace
+                                        onVisibilityEdited: bar => window.updateBarSettings(bar)
+                                        onEdited: (key, value) => window.updateBar(key, value)
+                                    }
                                 }
-                                SettingsItemEditor {
-                                    visible: window.section >= 0
+                                Loader {
+                                    objectName: "settingsItemEditorLoader"
+                                    active: false
+                                    onVisibleChanged: if (visible) active = true
+                                    Component.onCompleted: if (visible) active = true
+                                    visible: window.uiOpened && (window.section >= 0)
                                     Layout.fillWidth: true
-                                    settings: window.selected
-                                    allItems: window.draft.items
-                                    barSettings: window.draft.bar
-                                    saving: window.saving
-                                    onEdited: (key, value) => window.updateItem(key, value)
-                                    onMoveRequested: direction => window.moveItem(direction)
-                                    onResetRequested: window.resetItem()
+                                    sourceComponent: SettingsItemEditor {
+                                        settings: window.selected
+                                        allItems: window.draft.items
+                                        barSettings: window.draft.bar
+                                        saving: window.saving
+                                        onEdited: (key, value) => window.updateItem(key, value)
+                                        onMoveRequested: direction => window.moveItem(direction)
+                                        onResetRequested: window.resetItem()
+                                    }
                                 }
                                 SettingsLocking {
                                     id: lockPage
@@ -1350,11 +1362,17 @@ FloatingWindow {
                                     settings: window.draft.hyprland
                                     onEdited: (key, value) => window.updateHypr(key, value)
                                 }
-                                SettingsAppearance {
-                                    visible: window.section === -2
+                                Loader {
+                                    objectName: "settingsAppearanceLoader"
+                                    active: false
+                                    onVisibleChanged: if (visible) active = true
+                                    Component.onCompleted: if (visible) active = true
+                                    visible: window.uiOpened && (window.section === -2)
                                     Layout.fillWidth: true
-                                    settings: window.draft.hyprland
-                                    onEdited: (key, value) => window.updateHypr(key, value)
+                                    sourceComponent: SettingsAppearance {
+                                        settings: window.draft.hyprland
+                                        onEdited: (key, value) => window.updateHypr(key, value)
+                                    }
                                 }
                             }
                         }

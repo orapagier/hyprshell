@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -15,6 +16,42 @@ spec.loader.exec_module(syncer)
 
 
 class SyncTests(unittest.TestCase):
+    def test_timeout_stops_transport_children_that_hold_output_pipes(self):
+        script = ('import subprocess, sys, time\n'
+                  'child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])\n'
+                  'print(child.pid, flush=True)\n'
+                  'time.sleep(60)\n')
+        started = time.monotonic()
+        with self.assertRaises(subprocess.TimeoutExpired) as caught:
+            syncer.run_command([sys.executable, '-c', script], timeout=0.3)
+        self.assertLess(time.monotonic() - started, 3)
+        child_pid = int(caught.exception.output.strip())
+        status = Path(f'/proc/{child_pid}/stat')
+        if status.exists():
+            self.assertEqual(status.read_text().rsplit(') ', 1)[1].split()[0], 'Z',
+                             'transport child survived the timeout')
+
+    def test_bounded_command_preserves_output_and_exit_status(self):
+        result = syncer.run_command([sys.executable, '-c',
+            'import sys; print("result"); print("diagnostic", file=sys.stderr); sys.exit(7)'], timeout=3)
+        self.assertEqual((result.returncode, result.stdout, result.stderr), (7, 'result\n', 'diagnostic\n'))
+
+    def test_timeout_messages_identify_stage_without_exposing_commands(self):
+        cases = [
+            (['git', '-C', '/private/repo', 'push', 'https://example.com'], 'Uploading to GitHub', 'committed locally'),
+            (['git', '-C', '/private/repo', 'commit', '-m', 'private'], 'locally took too long', 'No upload was started'),
+            (['gh', 'api', '--hostname', 'github.com', 'user'], 'sign-in took too long', 'No upload was started'),
+            (['gh', 'api', '--hostname', 'github.com', 'repos/private/hyprshell'], 'repository took too long', 'No upload was started'),
+            (['luac', '-p', '/private/config.lua'], 'local configuration took too long', 'No upload was started'),
+        ]
+        for command, step, saved in cases:
+            with self.subTest(command=command[0]):
+                message = syncer.friendly_error(subprocess.TimeoutExpired(command, 30))
+                self.assertIn(step, message)
+                self.assertIn(saved, message)
+                self.assertNotIn('/private', message)
+                self.assertNotIn('https://', message)
+
     def test_candidate_keeps_matrix_config_but_excludes_executable(self):
         import shutil
         with tempfile.TemporaryDirectory() as directory:
@@ -260,7 +297,7 @@ class SyncTests(unittest.TestCase):
 
     def test_api_distinguishes_missing_repository_from_connection_error(self):
         for error, missing in [('gh: Not Found (HTTP 404)', True), ('network unavailable', False), ('gh: Forbidden (HTTP 403)', False)]:
-            with self.subTest(error=error), patch.object(syncer.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, '', error)):
+            with self.subTest(error=error), patch.object(syncer, 'run_command', return_value=subprocess.CompletedProcess([], 1, '', error)):
                 if missing:
                     self.assertIsNone(syncer.api('repos/example/hyprshell', missing_ok=True))
                 else:

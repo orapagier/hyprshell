@@ -427,10 +427,13 @@ PanelWindow {
                         anchors.fill: parent
                         visible: dock.section === "settings"
                         clip: true
-                        contentWidth: Math.max(width, 760)
-                        contentHeight: height
+                        // Lay out the editor at its destination size once;
+                        // the animated viewport clips it into view.
+                        contentWidth: Math.max(760, dock.targetWidth - (dock.vertical ? dock.stripSize + 28 : 40))
+                        contentHeight: Math.max(1, dock.targetHeight - (dock.vertical ? 40 : dock.stripSize + 28)
+                            - headingRow.implicitHeight - 10 - (popupLoader.active ? popupLoader.Layout.preferredHeight + 10 : 0))
                         boundsBehavior: Flickable.StopAtBounds
-                        Item { id: settingsInner; property var output: dock.screen; width: settingsSlot.contentWidth; height: settingsSlot.height }
+                        Item { id: settingsInner; property var output: dock.screen; width: settingsSlot.contentWidth; height: settingsSlot.contentHeight }
                         ScrollBar.horizontal: ScrollBar {}
                     }
                     Item { id: projectorSlot; anchors.fill: parent; visible: dock.section === "displays" }
