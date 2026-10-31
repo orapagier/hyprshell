@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
-import "SettingsModel.js" as Model
 
 Item {
     id: controller
@@ -12,7 +11,6 @@ Item {
     property Item dockHost: null
     function hideEmbedded() {
         if (editor.item) editor.item.dockOpened = false;
-        release.restart();
     }
     property string lockingError: ""
     property string powerError: ""
@@ -23,29 +21,16 @@ Item {
     property int currentWorkspace: 1
     readonly property var window: editor.item
     readonly property bool loaded: editor.active
-    // Only failed, unsaved edits survive unloading; the controls do not.
-    property var retainedSession: null
     signal lockRequested()
     signal focusRequested(var settingsWindow)
 
     function open() {
-        release.stop();
         dockHost = dockEnabled && dockResolver ? dockResolver() : null;
         editor.active = true;
         let ui = editor.item;
         if (!ui) return;
         if (dockHost && ui.visible) { ui.visible = false; ui.dockOpened = true; }
         else if (!dockHost && ui.dockOpened) { ui.dockOpened = false; ui.visible = true; }
-        if (retainedSession) {
-            ui.editingSession = false;
-            ui.initial = Model.copy(retainedSession.initial);
-            ui.draft = Model.copy(retainedSession.draft);
-            ui.section = retainedSession.section;
-            ui.message = retainedSession.message;
-            ui.success = retainedSession.success;
-            ui.editingSession = true;
-            retainedSession = null;
-        }
         ui.open();
     }
     function openDisplays() {
@@ -55,24 +40,10 @@ Item {
             window.section = -7;
         }
     }
-    function releaseIfClosed() {
-        let ui = editor.item;
-        // Process startup is deferred. Dirty edits without a reported error
-        // may still be waiting to start, even while running is briefly false.
-        if (!ui || ui.uiOpened || !ui.idle || ui.manualDirty || (ui.dirty && ui.success)) return;
-        retainedSession = ui.dirty ? {
-            initial: Model.copy(ui.initial),
-            draft: Model.copy(ui.draft),
-            section: ui.section,
-            message: ui.message,
-            success: ui.success
-        } : null;
-        editor.active = false;
-    }
+    // Cache the editor for this shell session; open() refreshes clean drafts.
     LazyLoader {
         id: editor
         active: false
-        onItemChanged: release.restart()
         SettingsWindow {
             id: settingsWindow
             store: controller.store
@@ -89,15 +60,4 @@ Item {
             onLockRequested: controller.lockRequested()
         }
     }
-    Connections {
-        target: editor.item
-        function onVisibleChanged() { release.restart(); }
-        function onDockOpenedChanged() { release.restart(); }
-        function onIdleChanged() { release.restart(); }
-        function onDirtyChanged() { release.restart(); }
-        function onSuccessChanged() { release.restart(); }
-        function onManualDirtyChanged() { release.restart(); }
-    }
-    // Keep controls warm for quick reopening; release after a minute idle.
-    Timer { id: release; interval: 60000; onTriggered: controller.releaseIfClosed() }
 }
