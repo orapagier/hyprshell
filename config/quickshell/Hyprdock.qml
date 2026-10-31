@@ -267,6 +267,7 @@ PanelWindow {
                 boundsBehavior: Flickable.StopAtBounds
                 Bar {
                     id: stripBar
+                    animateMedia: dock.available && dock.expanded
                     objectName: "dockBar"
                     width: dock.vertical ? stripScroll.width : dock.naturalLength
                     height: dock.vertical ? dock.naturalLength : stripScroll.height
@@ -467,11 +468,11 @@ PanelWindow {
             }
         }
     }
-    // Focus tracking: when focus moves out of dock content on search-autofocus windows,
-    // trigger auto-close behavior for non-pinned keyboard sessions.
+    // Coalesce focus/state notifications after Qt finishes its focus handoff.
+    // Keep the 150 ms settling delay, without repeatedly sampling idle pages.
     Timer {
         id: focusTracker
-        interval: 150; running: dock.section.length > 0; repeat: true
+        interval: 150
         onTriggered: {
             if (!dock.section || dockState.dismissInhibited) return;
             // Only track for windows with autofocus search bars
@@ -500,27 +501,19 @@ PanelWindow {
     }
     Connections {
         target: card.Window.window
-        function onActiveFocusItemChanged() {
-            if (!dock.section || dockState.pinned || dockState.dismissInhibited) return;
-            // For keyboard session windows, detect focus out quickly
-            if (dock.keyboardSession && ["launcher", "keybindings", "settings"].includes(dock.section)) {
-                Qt.callLater(() => {
-                    if (!dock.section || dockState.dismissInhibited) return;
-                    let activeItem = card.Window.window?.activeFocusItem;
-                    let inside = false;
-                    if (activeItem) {
-                        try {
-                            let p = activeItem.mapToItem(card, 0, 0);
-                            inside = (p !== null && p.x >= -100 && p.y >= -100
-                                && p.x <= card.width + 100 && p.y <= card.height + 100);
-                        } catch (e) { inside = false; }
-                    }
-                    if (!inside && !dockState.pinned) {
-                        dockState.retain(false);
-                    }
-                });
-            }
-        }
+        function onActiveFocusItemChanged() { dock.scheduleFocusCheck(); }
+    }
+    function scheduleFocusCheck() {
+        focusTracker.stop();
+        if (["launcher", "keybindings", "settings"].includes(section) && !dockState.dismissInhibited)
+            focusTracker.start();
+    }
+    onKeyboardSessionChanged: scheduleFocusCheck()
+    Connections {
+        target: dockState
+        function onSectionChanged() { dock.scheduleFocusCheck(); }
+        function onPinnedChanged() { dock.scheduleFocusCheck(); }
+        function onDismissInhibitedChanged() { dock.scheduleFocusCheck(); }
     }
     // Target the final header position on the next event-loop turn, without
     // waiting for the spring animation. Pointer hover never warps the cursor.

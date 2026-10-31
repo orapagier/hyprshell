@@ -15,36 +15,11 @@ Item {
     function acceptFrame(frame) {
         if (!validFrame(frame)) return;
         // Silence and rounded, identical FFT frames need no new UI bindings.
-        // Changed frames apply immediately; the live pipeline coalesces through offerFrame.
+        // The native helper already coalesces speaker output to five frames/s.
         if (frame.some((value, index) => value !== levels[index])) levels = frame;
-    }
-    property var pendingFrame: null
-    // The helper streams one frame per audio hop (~62/s). Applying every hop
-    // re-evaluates the whole binding/animation chain and repaints the bars each
-    // time for no visible gain, so coalesce to at most one delivery per interval.
-    // Each extra delivery/s costs about a core-percent while media plays; 200 ms
-    // keeps the bars lively at 5 Hz while the 40 ms Behavior smooths the steps.
-    function offerFrame(frame) {
-        if (!validFrame(frame)) return;
-        // Even a return to the currently displayed frame supersedes a queued
-        // peak. Otherwise a short sound can leave stale bars after silence.
-        if (pendingFrame === null && !frame.some((value, index) => value !== levels[index])) return;
-        pendingFrame = frame;
-        if (!applyFrame.running) applyFrame.start();
-    }
-    Timer {
-        id: applyFrame
-        interval: 200
-        onTriggered: {
-            let frame = spectrum.pendingFrame;
-            spectrum.pendingFrame = null;
-            if (frame) spectrum.acceptFrame(frame);
-        }
     }
     function restart() {
         capture.running = false;
-        pendingFrame = null;
-        applyFrame.stop();
         levels = Array(12).fill(0);
         reconnect.interval = 100;
         if (wanted) reconnect.restart();
@@ -61,18 +36,17 @@ Item {
     Process {
         id: capture
         objectName: "spectrumCapture"
-        command: [spectrum.helper, spectrum.sinkName + ".monitor"]
+        command: [spectrum.helper, "--coalesce", spectrum.sinkName + ".monitor"]
         stdout: SplitParser {
             onRead: line => {
                 if (!spectrum.wanted) return;
                 try {
-                    spectrum.offerFrame(JSON.parse(line));
+                    spectrum.acceptFrame(JSON.parse(line));
                 } catch (error) { /* Ignore incomplete frames during shutdown. */ }
             }
         }
         stderr: StdioCollector {}
         onExited: {
-            spectrum.pendingFrame = null;
             spectrum.levels = Array(12).fill(0);
             // Output changes restart promptly; a lost audio server retries gently.
             if (spectrum.wanted && !reconnect.running) {

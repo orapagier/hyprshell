@@ -32,6 +32,18 @@ def spectrum(pcm):
 
 
 class SpectrumTests(unittest.TestCase):
+    def test_coalescing_preserves_fft_frames_and_silence_at_five_hz(self):
+        pcm = signal([500], hops=63) + signal([], hops=62)
+        full = spectrum(pcm)
+        result = subprocess.run([str(HELPER), "--coalesce", "--stdin"], input=pcm,
+                                capture_output=True, check=True)
+        frames = [json.loads(line) for line in result.stdout.splitlines()]
+        indices = [i for i in range(len(full)) if (i + 1) * HOP // 3200 > i * HOP // 3200]
+        self.assertEqual(len(frames), 10)
+        self.assertEqual(frames, [full[i] for i in indices])
+        self.assertGreater(frames[0][5], 0.75)
+        self.assertEqual(frames[-1], [0] * 12)
+
     def test_bass_midrange_and_treble_use_separate_bands(self):
         for frequency, band in [(46.875, 0), (125, 2), (500, 5), (2000, 8), (5000, 11)]:
             with self.subTest(frequency=frequency):

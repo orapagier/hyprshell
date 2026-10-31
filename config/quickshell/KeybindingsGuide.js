@@ -1,5 +1,26 @@
 .pragma library
 
+// Hyprland Lua bindings omit symbolic names from JSON. Pair the text registry
+// only after validating both snapshots, retaining duplicate and code bindings.
+function namedBindings(rows, text) {
+    let blocks = text.split(/^bind[a-z]*\n/m).slice(1);
+    if (blocks.length !== rows.length) throw new Error("Shortcut registry changed while reading it");
+    return rows.map((row, index) => {
+        let fields = {};
+        for (let line of blocks[index].split("\n")) {
+            let match = /^\t(modmask|submap|key|keycode|catchall|description|dispatcher): (.*)$/.exec(line);
+            if (match) fields[match[1]] = match[2];
+        }
+        let expected = {modmask: String(row.modmask), submap: row.submap,
+            keycode: String(row.keycode), catchall: row.catch_all ? "true" : "false",
+            description: row.description, dispatcher: row.dispatcher};
+        if (Object.keys(expected).some(key => fields[key] !== expected[key])
+                || (row.key && fields.key !== row.key))
+            throw new Error("Shortcut registry changed while reading it");
+        return Object.assign({}, row, {key: row.key || fields.key || ""});
+    });
+}
+
 // Local controls do not appear in Hyprland's global binding registry.
 const localBindings = [
     {shortcut: "Ctrl + F", action: "Focus Settings search", context: "Settings"},

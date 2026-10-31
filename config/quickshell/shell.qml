@@ -8,6 +8,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "SettingsModel.js" as Settings
+import "ClockSchedule.js" as ClockSchedule
 
 ShellRoot {
     id: shell
@@ -136,6 +137,8 @@ ShellRoot {
         let now = new Date();
         clockText = Qt.formatDateTime(now, preferences.panelConfig.bar.clockFormat);
         dockClockText = Qt.formatDateTime(now, "HH:mm");
+        clockTick.interval = ClockSchedule.delay(preferences.panelConfig.bar.clockFormat, now.getTime());
+        clockTick.restart();
     }
     ClipboardController { id: clipboard; store: preferences }
     LockingController { id: locking; store: preferences; onBattery: desktopServices.batteryInfo.present && !desktopServices.batteryInfo.pluggedIn }
@@ -146,7 +149,7 @@ ShellRoot {
     Tray { id: tray }
     WallpaperWatcher { id: wallpapers }
     Component.onCompleted: updateClock()
-    Timer { interval: 1000; running: true; repeat: true; onTriggered: shell.updateClock() }
+    Timer { id: clockTick; onTriggered: shell.updateClock() }
     Variants {
         id: panels
         // Create layer surfaces with saved margins and attachment on the first map.
@@ -221,6 +224,7 @@ ShellRoot {
             WlrLayershell.namespace: "hyprshell"
             Bar {
                 id: bar
+                animateMedia: panel.shown && panel.revealProgress > 0
                 // Keep controls beneath the hover tracker so their MouseAreas
                 // cannot make auto-hide lose the pointer over the panel itself.
                 parent: panelReveal

@@ -11,6 +11,8 @@ Item {
     property bool compactItemPadding: false
     property bool statusIconsOnly: false
     property bool dockStyle: false
+    // Keep media geometry ready while suspending invisible spectrum updates.
+    property bool animateMedia: visible
     property real dockBatteryLevel: 0
     property real dockSignalLevel: 0
     property bool hoverPopdowns: true
@@ -1007,6 +1009,7 @@ Item {
         onActiveChanged: if (!active && bar.activeMenu === "media") bar.previewUnavailable()
         visible: active
         sourceComponent: MediaPill {
+            animateSpectrum: bar.animateMedia
             vertical: bar.iconPills
             iconOnly: bar.iconsOnly || bar.statusIconsOnly
             settings: {
@@ -1017,7 +1020,7 @@ Item {
             colorSampler: Settings.adaptive(bar.settings, "media") ? bar.wallpaperColors : null
             colorRoot: bar
             text: bar.mediaData.title || ""
-            levels: bar.mediaData.levels || []
+            levels: bar.animateMedia ? bar.mediaData.levels || [] : []
             maximumWidth: bar.vertical ? bar.verticalThickness - 4 : bar.mediaMaximumWidth
             interactive: !bar.hoverPopdowns
             onClicked: bar.action("media", null)

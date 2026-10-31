@@ -21,6 +21,18 @@ ColumnLayout {
     }
     property var bindings: []
     property string error: ""
+    property string registryJson: ""
+    property string registryText: ""
+    property string acceptedRegistry: ""
+    property var pendingRows: []
+    function acceptRegistry(rows, text) {
+        let signature = registryJson + "\n" + text;
+        if (signature !== acceptedRegistry) {
+            bindings = Guide.desktopBindings(text === null ? rows : Guide.namedBindings(rows, text));
+            acceptedRegistry = signature;
+        }
+        error = "";
+    }
     readonly property var entries: Guide.matching(bindings, search.text)
     function moveSelection(step) {
         if (!entries.length) return;
@@ -29,22 +41,39 @@ ColumnLayout {
         list.positionViewAtIndex(list.currentIndex, ListView.Contain);
     }
     spacing: 12
-    Timer { interval: 1500; running: true; repeat: true; onTriggered: if (!bindingReader.running) bindingReader.running = true }
+    // Runtime bind/unbind commands need not emit configreloaded. Retain live
+    // detection while open, without launching Python or rebuilding unchanged rows.
+    Timer { interval: 1500; running: true; repeat: true; onTriggered: if (!bindingReader.running && !nameReader.running) bindingReader.running = true }
+    // Preserve the helper's per-query timeout without extra timeout processes.
+    Timer { interval: 5000; running: bindingReader.running; onTriggered: bindingReader.signal(9) }
+    Timer { interval: 5000; running: nameReader.running; onTriggered: nameReader.signal(9) }
     Process {
         id: bindingReader
-        command: ["python3", decodeURIComponent(Qt.resolvedUrl("settings/keybindings_guide.py").toString().replace(/^file:\/\//, ""))]
+        command: ["hyprctl", "-j", "binds"]
         running: true
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    let rows = JSON.parse(text);
-                    if (!Array.isArray(rows)) throw new Error("Expected a binding list");
-                    page.bindings = Guide.desktopBindings(rows);
-                    page.error = "";
-                } catch (e) { page.error = "Could not load keybindings"; }
-            }
+        stdout: StdioCollector { onStreamFinished: page.registryJson = text }
+        onExited: (code, status) => {
+            if (code !== 0) { page.error = "Could not load keybindings"; return; }
+            try {
+                let rows = JSON.parse(page.registryJson);
+                if (!Array.isArray(rows)) throw new Error("Expected a binding list");
+                if (rows.some(row => !row.key && !row.keycode && !row.catch_all)) {
+                    page.pendingRows = rows;
+                    nameReader.running = true;
+                } else page.acceptRegistry(rows, null);
+            } catch (e) { page.error = "Could not load keybindings"; }
         }
-        onExited: (code, status) => { if (code !== 0) page.error = "Could not load keybindings"; }
+    }
+    Process {
+        id: nameReader
+        command: ["hyprctl", "binds"]
+        stdout: StdioCollector { onStreamFinished: page.registryText = text }
+        onExited: (code, status) => {
+            if (code !== 0) { page.error = "Could not load keybindings"; return; }
+            try {
+                page.acceptRegistry(page.pendingRows, page.registryText);
+            } catch (e) { page.error = "Could not load keybindings"; }
+        }
     }
     Text {
         objectName: "keybindingsError"

@@ -10,6 +10,8 @@
 enum { RATE = 16000, WINDOW = 1024, HOP = 256, BANDS = 12 };
 
 int main(int argc, char **argv) {
+    const int coalesce = argc == 3 && strcmp(argv[1], "--coalesce") == 0;
+    if (coalesce) { --argc; ++argv; }
     const int microphone = argc == 3 && strcmp(argv[1], "--source") == 0;
     const char *device = microphone ? argv[2] : argc == 2 ? argv[1] : "";
     const int from_stdin = strcmp(device, "--stdin") == 0;
@@ -17,7 +19,7 @@ int main(int argc, char **argv) {
     if ((!microphone && argc != 2) || !strlen(device) || strlen(device) > 1024 ||
         (!from_stdin && (device[0] == '-' || device[0] == '@' ||
         (!microphone && (strlen(device) <= 8 || strcmp(device + strlen(device) - 8, ".monitor")))))) {
-        fprintf(stderr, "Usage: audio-spectrum SINK.monitor | --source SOURCE | [--source] --stdin (mono s16le, 16000 Hz)\n");
+        fprintf(stderr, "Usage: audio-spectrum [--coalesce] SINK.monitor | --source SOURCE | [--source|--coalesce] --stdin (mono s16le, 16000 Hz)\n");
         return 2;
     }
 
@@ -58,6 +60,7 @@ int main(int argc, char **argv) {
     // Slow gain recovery preserves differences between soft and loud passages.
     double reference = 0.02;
     int primed = 0;
+    int output_samples = 0;
     uint8_t pcm[HOP * 2];
     setvbuf(stdout, NULL, _IOLBF, 0);
     while (1) {
@@ -108,8 +111,6 @@ int main(int argc, char **argv) {
         reference = fmax(0.02, fmax(reference * 0.999, strongest * 1.12));
         // Ignore a quiet microphone noise floor without amplifying it to full scale.
         const int audible = microphone ? sqrt(ac_energy / WINDOW) > 0.0031623 : sqrt(energy / HOP) > 0.0001;
-        if (microphone) printf("{\"ok\":true,\"clipping\":%s,\"levels\":", clipped >= 3 ? "true" : "false");
-        putchar('[');
         double peak = 0;
         for (int band = 0; band < BANDS; ++band) {
             double ratio = magnitudes[band] / reference;
@@ -119,8 +120,18 @@ int main(int argc, char **argv) {
             levels[band] += (target - levels[band]) * blend;
             if (levels[band] < 0.001) levels[band] = 0;
             peak = fmax(peak, levels[band]);
-            printf("%s%.4f", band ? "," : "", levels[band]);
         }
+        // Still process every hop: thinning the FFT would change attack/release
+        // and gain recovery. Only serialize the latest frame at the UI cadence.
+        if (coalesce) {
+            output_samples += HOP;
+            if (output_samples < RATE / 5) continue;
+            output_samples -= RATE / 5;
+        }
+        if (microphone) printf("{\"ok\":true,\"clipping\":%s,\"levels\":", clipped >= 3 ? "true" : "false");
+        putchar('[');
+        for (int band = 0; band < BANDS; ++band)
+            printf("%s%.4f", band ? "," : "", levels[band]);
         if (microphone) printf("],\"peak\":%.4f}\n", peak);
         else puts("]");
         if (ferror(stdout)) break;

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(shutil.which('quickshell'), 'Native Qt runtime required')
 class MediaActivityTests(unittest.TestCase):
-    def test_spectrum_coalescing_delivers_latest_valid_frame(self):
+    def test_spectrum_accepts_native_coalesced_frames_and_resets(self):
         # Quickshell.Io is linked into Quickshell, not the standalone Qt runner.
         with tempfile.TemporaryDirectory(prefix='hyprshell-spectrum-frames-') as directory:
             root = Path(directory)
@@ -30,18 +30,15 @@ ShellRoot {
     }
     Timer { interval: 100; running: true; onTriggered: {
         try {
-            spectrum.offerFrame(Array(12).fill(1));
-            spectrum.offerFrame(Array(12).fill(0));
-            input.wait(250); check(0);
+            spectrum.acceptFrame(Array(12).fill(1)); check(1);
+            spectrum.acceptFrame(Array(12).fill(0)); check(0);
             spectrum.acceptFrame(Array(12).fill(0.4));
-            spectrum.offerFrame(Array(12).fill(0.9));
-            spectrum.offerFrame(Array(12).fill(0.4));
-            input.wait(250); check(0.4);
-            spectrum.offerFrame(Array(12).fill(0.2));
-            spectrum.offerFrame(Array(12).fill(0.8));
-            spectrum.offerFrame(Array(12).fill(NaN));
-            input.wait(250); check(0.8);
-            spectrum.offerFrame(Array(12).fill(1));
+            spectrum.acceptFrame(Array(12).fill(0.9)); check(0.9);
+            spectrum.acceptFrame(Array(12).fill(0.4)); check(0.4);
+            spectrum.acceptFrame(Array(12).fill(0.2));
+            spectrum.acceptFrame(Array(12).fill(0.8));
+            spectrum.acceptFrame(Array(12).fill(NaN)); check(0.8);
+            spectrum.acceptFrame(Array(12).fill(1));
             spectrum.restart();
             input.wait(250); check(0);
             console.info("SPECTRUM_FRAMES_OK"); Qt.quit();

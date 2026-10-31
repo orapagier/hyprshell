@@ -36,7 +36,7 @@ ShellRoot {
             if (spectrum.data[i].objectName === "spectrumCapture") capture = spectrum.data[i];
         assertThat(!!capture, "capture object exists");
         spectrum.sinkName = "test-speaker";
-        assertThat(capture.command[1] === "test-speaker.monitor", "explicit speaker monitor");
+        assertThat(capture.command[1] === "--coalesce" && capture.command[2] === "test-speaker.monitor", "coalesced explicit speaker monitor");
         // Feed FFT frames through a real Process/SplitParser, with no audio socket.
         capture.stdinEnabled = true;
         capture.command = Qt.binding(() => ["sh", "-c", 'cat "$1"; exec cat', "_",

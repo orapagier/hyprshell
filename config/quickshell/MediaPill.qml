@@ -4,6 +4,7 @@ import QtQuick
 Pill {
     id: media
     property var levels: []
+    property bool animateSpectrum: visible
     readonly property real spectrumScale: (settings.iconSize || 16) / 16
     readonly property real spectrumWidth: settings.hideIcon ? 0 : uniformItems ? (settings.iconSize || 16) * (vertical ? 1 : 2.9) : Math.ceil(58 * spectrumScale)
     glyphRect: settings.hideIcon ? textGlyphRect : Qt.rect(spectrum.x, spectrum.y, spectrum.width, spectrum.height)
@@ -21,6 +22,7 @@ Pill {
     AudioSpectrumBars {
         id: spectrum
         objectName: "mediaSpectrum"
+        active: media.animateSpectrum && visible
         visible: !media.settings.hideIcon
         x: media.iconOnly ? (parent.width - width) / 2 : media.uniformItems ? (media.settings.panelItemPadding ?? 4) : Math.max(0, (media.settings.panelItemPadding ?? 9) + (media.settings.paddingLeft || 0))
         width: media.uniformItems ? media.spectrumWidth : media.vertical ? Math.min(parent.width * 0.8, 28 * media.spectrumScale) : 58 * media.spectrumScale
