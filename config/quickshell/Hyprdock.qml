@@ -108,7 +108,14 @@ PanelWindow {
         // Release the layer's exclusive keyboard grab before asking Hyprland
         // to focus a workspace. Suppress reopening under the stationary pointer.
         dismissWithEscape();
-        Qt.callLater(() => dock.services.workspace(id));
+        workspaceDispatch.targetWorkspace = id;
+        workspaceDispatch.restart();
+    }
+    Timer {
+        id: workspaceDispatch
+        property int targetWorkspace: 0
+        interval: 50
+        onTriggered: dock.services.workspace(targetWorkspace)
     }
     function closeContent() { dockState.close(); revealed = true; if (keyboardSession) dockState.pinned = true; strip.forceActiveFocus(); }
     function open(name, keyboard) {

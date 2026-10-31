@@ -89,6 +89,7 @@ Item {
     })
     function wifiIcon(strength, warning) { return (warning ? ["󰤫", "󰤠", "󰤣", "󰤦", "󰤩"] : ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"])[Math.min(4, Math.floor(Math.max(0, strength) * 5))]; }
     function workspace(id) {
+        console.info("WORKSPACE_REQUEST", id, Hyprland.usingLua, spaces.map(w => w.id).join(","));
         let target = Number(id);
         if (!Number.isInteger(target) || target <= 0) return;
         if (Hyprland.usingLua) Quickshell.execDetached(['hyprctl', 'eval', 'hl.dispatch(hl.dsp.focus({ workspace = ' + target + ' }))']);

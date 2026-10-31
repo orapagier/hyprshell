@@ -29,6 +29,7 @@ Item {
     signal focusRequested(var settingsWindow)
 
     function open() {
+        release.stop();
         dockHost = dockEnabled && dockResolver ? dockResolver() : null;
         editor.active = true;
         let ui = editor.item;
@@ -97,6 +98,6 @@ Item {
         function onSuccessChanged() { release.restart(); }
         function onManualDirtyChanged() { release.restart(); }
     }
-    // Defer destruction until close handlers and process collectors finish.
-    Timer { id: release; interval: 0; onTriggered: controller.releaseIfClosed() }
+    // Keep controls warm for quick reopening; release after a minute idle.
+    Timer { id: release; interval: 60000; onTriggered: controller.releaseIfClosed() }
 }

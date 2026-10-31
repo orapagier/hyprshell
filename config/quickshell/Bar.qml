@@ -989,6 +989,7 @@ Item {
                 onEntered: if (bar.hoverPopdowns) { bar.previewWorkspaceId = modelData.id; bar.menuHovered("workspacePreview"); }
                 onExited: bar.menuLeft("workspacePreview")
                 onClicked: mouse => {
+                    console.info("WORKSPACE_CLICK", modelData.id, bar.dockStyle, bar.hoverPopdowns);
                     if (!bar.hoverPopdowns && (!mouse || mouse.button !== Qt.RightButton)) {
                         let changePreview = bar.activeMenu === "workspacePreview" && bar.previewWorkspaceId !== modelData.id;
                         bar.previewWorkspaceId = modelData.id;
