@@ -337,7 +337,7 @@ PanelWindow {
                             GlassCog {
                                 anchors.centerIn: parent
                                 visible: shortcutIcon.button.modelData.name === "settings"
-                                width: 19; height: 22; iconSize: 19
+                                width: 16; height: 16; iconSize: 16
                                 accent: dock.itemColor("settings")
                                 highlighted: shortcutIcon.button.hovered || dock.section === "settings"
                                 vivid: true
@@ -345,7 +345,7 @@ PanelWindow {
                             Grid {
                                 anchors.centerIn: parent
                                 visible: shortcutIcon.button.modelData.name === "launcher"
-                                columns: 3; spacing: 3
+                                columns: 3; spacing: 2
                                 Repeater { model: 9; Rectangle { required property int index; width: 3; height: 3; radius: 1.5; color: dock.itemColor("launcher") } }
                             }
                         }
@@ -494,8 +494,8 @@ PanelWindow {
             }
         }
     }
-    // Wait for the surface to settle, then target the actual heading in logical
-    // output coordinates. A section change from pointer hover never warps it.
+    // Target the final header position on the next event-loop turn, without
+    // waiting for the spring animation. Pointer hover never warps the cursor.
     Connections {
         target: dockState
         function onSectionChanged() {
@@ -505,15 +505,17 @@ PanelWindow {
     }
     Timer {
         id: headerPointer
-        interval: 100; repeat: true
+        interval: 0
         onTriggered: {
-            if (!dock.section || !dockState.openedByShortcut) { stop(); return; }
-            if (Math.abs(dock.surfaceWidth - dock.targetWidth) > 0.5
-                || Math.abs(dock.surfaceHeight - dock.targetHeight) > 0.5) return;
-            stop();
+            if (!dock.section || !dockState.openedByShortcut) return;
             let monitor = Hyprland.monitorFor(dock.screen);
             if (!monitor) return;
-            let point = headingRow.mapToItem(dock.contentItem, headingRow.width / 2, headingRow.height / 2);
+            // The body margins and header height are fixed; its width and origin
+            // follow the destination rather than the currently animated surface.
+            let bodyWidth = dock.targetWidth - (dock.vertical ? dock.stripSize + 28 : 40);
+            let popupOffset = popupLoader.active ? popupLoader.Layout.preferredHeight + 10 : 0;
+            let point = Qt.point(dock.targetRect.x + body.x + bodyWidth / 2,
+                dock.targetRect.y + body.y + popupOffset + headingRow.implicitHeight / 2);
             let x = Math.round(monitor.x + point.x), y = Math.round(monitor.y + point.y);
             Hyprland.dispatch("hl.dsp.cursor.move({ x = " + x + ", y = " + y + " })");
         }

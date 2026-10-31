@@ -19,6 +19,11 @@ class DockHoverTests(unittest.TestCase):
             dock = '\n'.join(line for line in dock.splitlines() if not any(token in line for token in (
                 'anchors { top: true;', 'exclusionMode:', 'exclusiveZone:', 'WlrLayershell.', 'mask: Region')))
             dock = dock.replace('visible: true\n    color:', 'visible: true\n    implicitWidth: 1200; implicitHeight: 900\n    color:', 1)
+            # Intercept only the compositor boundary so real QML timing and
+            # geometry can run without moving the user's pointer.
+            dock = dock.replace('id: dock\n', 'id: dock\n    property var pointerMoves: []\n', 1)
+            dock = dock.replace('Hyprland.monitorFor(dock.screen)', '({x: 100, y: -200})')
+            dock = dock.replace('Hyprland.dispatch(', 'dock.pointerMoves.push(')
             (payload / 'Hyprdock.qml').write_text(dock)
             (payload / 'HoverProbe.qml').write_text('''pragma ComponentBehavior: Bound
 import QtQuick
@@ -82,6 +87,30 @@ ShellRoot {
                     pointer.wait(900);
                     test.check(Math.abs(trigger.scale - 1) < 0.01, "hover zoom resets: " + edge);
                     test.check(!dock.section && !dock.expanded, "leaving whole dock should collapse: " + edge);
+                    // Start from a compact dock and verify dispatch occurs before
+                    // the spring settles, then compare against the actual header.
+                    for (let name of ["power", "launcher"]) {
+                        let count = dock.pointerMoves.length;
+                        dock.open(name, true);
+                        pointer.wait(50);
+                        test.check(dock.pointerMoves.length === count + 1, "immediate shortcut pointer: " + edge + "/" + name);
+                        let move = dock.pointerMoves[count];
+                        let coords = /x = (-?\\d+), y = (-?\\d+)/.exec(move);
+                        test.check(coords !== null, "valid compositor dispatch");
+                        pointer.wait(1400);
+                        let heading = test.find(dock.contentItem, "dockHeading");
+                        let center = heading.mapToItem(dock.contentItem, heading.width / 2, heading.height / 2);
+                        test.check(Math.abs(Number(coords[1]) - (100 + center.x)) <= 1
+                            && Math.abs(Number(coords[2]) - (-200 + center.y)) <= 1,
+                            "final header destination: " + edge + "/" + name + "/" + move + "/" + center);
+                        test.check(dock.pointerMoves.length === count + 1, "single move per shortcut");
+                    }
+                    dock.collapse();
+                    let count = dock.pointerMoves.length;
+                    dock.open("calendar", false);
+                    pointer.wait(50);
+                    test.check(dock.pointerMoves.length === count, "pointer-opened content never warps");
+                    dock.collapse();
                 }
                 console.log("DOCK_HOVER_OK"); Qt.quit();
             } catch (e) { console.error("DOCK_HOVER_FAILED", e); Qt.exit(1); }
@@ -94,7 +123,7 @@ ShellRoot {
                        XDG_RUNTIME_DIR=str(runtime), HYPRLAND_INSTANCE_SIGNATURE='', QT_QPA_PLATFORMTHEME='',
                        QT_QPA_PLATFORM='offscreen', QT_QUICK_BACKEND='software')
             result = subprocess.run(['quickshell', '--log-rules', 'qml=true', '-p', str(payload / 'HoverProbe.qml')],
-                                    env=env, capture_output=True, text=True, timeout=35)
+                                    env=env, capture_output=True, text=True, timeout=55)
             output = result.stdout + result.stderr
             Path('/tmp/hyprdock-pointer-test.log').write_text(output)
             self.assertEqual(result.returncode, 0, output)
