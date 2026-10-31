@@ -91,12 +91,13 @@ Item {
     function workspace(id) {
         let target = Number(id);
         if (!Number.isInteger(target) || target <= 0) return;
-        if (Hyprland.usingLua) Hyprland.dispatch('hl.dsp.focus({ workspace = ' + target + ' })');
+        if (Hyprland.usingLua) Quickshell.execDetached(['hyprctl', 'eval', 'hl.dispatch(hl.dsp.focus({ workspace = ' + target + ' }))']);
         else { let w = spaces.find(w => w.id === target); if (w) w.activate(); }
     }
     function scrollWorkspace(direction) {
         let step = Number(direction) < 0 ? "-1" : "+1";
-        Hyprland.dispatch(Hyprland.usingLua ? 'hl.dsp.focus({ workspace = "e' + step + '" })' : "workspace e" + step);
+        if (Hyprland.usingLua) Quickshell.execDetached(['hyprctl', 'eval', 'hl.dispatch(hl.dsp.focus({ workspace = "e' + step + '" }))']);
+        else Hyprland.dispatch("workspace e" + step);
     }
     function toggleWifi() { Networking.wifiEnabled = !Networking.wifiEnabled; }
     function scanWifi(enabled) { for (let device of wifiDevices) device.scannerEnabled = enabled; }
