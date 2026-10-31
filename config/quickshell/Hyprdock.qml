@@ -104,6 +104,12 @@ PanelWindow {
         dockState.leave(dockState.hoveredMenu);
         collapse();
     }
+    function activateWorkspace(id) {
+        // Release the layer's exclusive keyboard grab before asking Hyprland
+        // to focus a workspace. Suppress reopening under the stationary pointer.
+        dismissWithEscape();
+        Qt.callLater(() => dock.services.workspace(id));
+    }
     function closeContent() { dockState.close(); revealed = true; if (keyboardSession) dockState.pinned = true; strip.forceActiveFocus(); }
     function open(name, keyboard) {
         hoverDismissed = false;
@@ -322,7 +328,7 @@ PanelWindow {
                     onMenuLeft: name => dockState.leave(name)
                     onPreviewUnavailable: dockState.close()
                     onAction: (name, argument) => {
-                        if (name === "workspace") { dockState.close(); dock.services.workspace(argument); }
+                        if (name === "workspace") dock.activateWorkspace(argument);
                         else if (name === "workspace-scroll") dock.services.scrollWorkspace(argument);
                         else dock.open(name, false);
                     }
@@ -577,5 +583,5 @@ PanelWindow {
     Component { id: powerPage; PowerMenu {} }
     Component { id: inboxPage; InboxMenu { inbox: dock.inbox } }
     Component { id: mediaPage; MediaPreview { mediaData: dock.services.mediaData; active: dock.section === "media" } }
-    Component { id: workspacePage; WorkspacePreview { workspaceId: stripBar.previewWorkspace?.id || 0; output: dock.screen; wallpaperSource: dock.wallpaperSource; active: dock.section === "workspacePreview"; interactive: true; onActivated: workspaceId => { dock.services.workspace(workspaceId); dockState.close(); } } }
+    Component { id: workspacePage; WorkspacePreview { workspaceId: stripBar.previewWorkspace?.id || 0; output: dock.screen; wallpaperSource: dock.wallpaperSource; active: dock.section === "workspacePreview"; interactive: true; onActivated: workspaceId => dock.activateWorkspace(workspaceId) } }
 }
