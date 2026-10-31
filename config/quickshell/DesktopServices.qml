@@ -88,7 +88,12 @@ Item {
         battery: {present: !!(battery && battery.isPresent && battery.isLaptopBattery), text: (battery && battery.state === UPowerDeviceState.FullyCharged ? "󰂅" : (charging ? chargingIcons : batteryIcons)[Math.max(0, Math.min(9, Math.floor(capacity * 10 / 101)))]) + " " + capacity + "%", charging: charging, low: batteryAlert.low, warning: capacity <= 30, tooltip: capacity + "% · " + (battery ? UPowerDeviceState.toString(battery.state) : "Unavailable")}
     })
     function wifiIcon(strength, warning) { return (warning ? ["󰤫", "󰤠", "󰤣", "󰤦", "󰤩"] : ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"])[Math.min(4, Math.floor(Math.max(0, strength) * 5))]; }
-    function workspace(id) { let w = spaces.find(w => w.id === Number(id)); if (w) w.activate(); }
+    function workspace(id) {
+        let target = Number(id);
+        if (!Number.isInteger(target) || target <= 0) return;
+        if (Hyprland.usingLua) Hyprland.dispatch('hl.dsp.focus({ workspace = ' + target + ' })');
+        else { let w = spaces.find(w => w.id === target); if (w) w.activate(); }
+    }
     function scrollWorkspace(direction) {
         let step = Number(direction) < 0 ? "-1" : "+1";
         Hyprland.dispatch(Hyprland.usingLua ? 'hl.dsp.focus({ workspace = "e' + step + '" })' : "workspace e" + step);

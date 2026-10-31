@@ -577,5 +577,5 @@ PanelWindow {
     Component { id: powerPage; PowerMenu {} }
     Component { id: inboxPage; InboxMenu { inbox: dock.inbox } }
     Component { id: mediaPage; MediaPreview { mediaData: dock.services.mediaData; active: dock.section === "media" } }
-    Component { id: workspacePage; WorkspacePreview { workspaceId: stripBar.previewWorkspace?.id || 0; output: dock.screen; wallpaperSource: dock.wallpaperSource; active: dock.section === "workspacePreview" } }
+    Component { id: workspacePage; WorkspacePreview { workspaceId: stripBar.previewWorkspace?.id || 0; output: dock.screen; wallpaperSource: dock.wallpaperSource; active: dock.section === "workspacePreview"; interactive: true; onActivated: workspaceId => { dock.services.workspace(workspaceId); dockState.close(); } } }
 }

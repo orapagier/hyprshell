@@ -10,6 +10,8 @@ Item {
     property var output: null
     property url wallpaperSource: ""
     property bool active: false
+    property bool interactive: false
+    signal activated(int workspaceId)
     property var windows: Hyprland.toplevels.values
     property var monitor: output ? Hyprland.monitorFor(output) : null
     readonly property var workspaceWindows: windows.filter(t => (t.workspace?.id ?? t.lastIpcObject?.workspace?.id) === workspaceId)
@@ -63,4 +65,11 @@ Item {
         style: Text.Outline
         styleColor: "#181825"
     }
+    MouseArea {
+        anchors.fill: parent
+        enabled: preview.interactive && preview.workspaceId > 0
+        cursorShape: Qt.PointingHandCursor
+        onClicked: preview.activated(preview.workspaceId)
+    }
+
 }
