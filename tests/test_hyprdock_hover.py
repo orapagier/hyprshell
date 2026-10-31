@@ -58,6 +58,7 @@ ShellRoot {
                     let position = trigger.mapToItem(dock.contentItem, trigger.width / 2, trigger.height / 2);
                     pointer.mouseMove(dock.contentItem, position.x, position.y);
                     pointer.wait(450);
+                    test.check(Math.abs(trigger.scale - 1.08) < 0.01, "subtle hover zoom: " + edge);
                     test.check(dock.section === "calendar", "hover opens calendar: " + edge + "/" + dock.section + "/" + trigger.hovered + "/" + test.find(dock.contentItem, "dockMenuState").hoveredMenu);
                     for (let frame = 0; frame < 30; ++frame) {
                         pointer.wait(25);
@@ -79,6 +80,7 @@ ShellRoot {
                     test.check(dock.section === "calendar", "content hover should retain expansion: " + edge);
                     pointer.mouseMove(dock.contentItem, edge === "left" ? dock.width - 20 : 20, edge === "top" ? dock.height - 20 : 20);
                     pointer.wait(900);
+                    test.check(Math.abs(trigger.scale - 1) < 0.01, "hover zoom resets: " + edge);
                     test.check(!dock.section && !dock.expanded, "leaving whole dock should collapse: " + edge);
                 }
                 console.log("DOCK_HOVER_OK"); Qt.quit();

@@ -25,8 +25,17 @@ existing panel. Disabling it restores the saved ordinary Hyprpane layout.
   that presentation on/off on the current workspace. Direct menu shortcuts
   can temporarily open the dock on a hidden workspace.
 
-The additional strip controls open Dashboard, Activity, and Keyboard shortcuts.
-Settings is always present, workspace numbers have individual compact pills, and
+The leading strip controls are Applications (a nine-dot grid), Dashboard,
+Settings, Keyboard shortcuts, and the Activity notification bell. Revealing the
+strip uses 16-pixel icons in a 36-pixel rail; hovering a control adds an 8% zoom
+without moving its neighbors. Leaving returns to the small clock. Shortcuts move
+the pointer to the actual heading center after the opening animation settles.
+
+**Hyprpane → Layout & spacing → Hyprdock window transparency** adjusts the dock
+background from opaque dark (0%, the default) to transparent (100%). This setting
+(`bar.dockTransparency`) is independent of ordinary panel popdown translucency.
+
+Workspace numbers have individual compact pills, and
 Bluetooth, audio, Wi-Fi, battery and power form the trailing group. Other enabled
 items retain their relative order and workspace/tray behavior. The
 strip scrolls when it cannot fit. Menus fit their content height, bounded by the screen. The dock expands horizontally on top/bottom

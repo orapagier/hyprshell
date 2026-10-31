@@ -136,6 +136,15 @@ ColumnLayout {
             text: "A compact clock attached to this edge. Hover its base to reveal items; menus and Settings expand inside the dock. Your ordinary Hyprpane layout is retained."
             wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
         }
+        SettingsSlider {
+            Layout.fillWidth: true
+            objectName: "dockTransparencyControl"
+            label: "Hyprdock window transparency"
+            settingValue: (root.settings.dockTransparency ?? 0) * 100
+            suffix: "%"
+            resetDescription: "Restore opaque dark windows (0%)"
+            onEdited: value => root.edited("dockTransparency", value === "" ? 0 : value / 100)
+        }
         SettingsBackgroundControl {
             objectName: "fullBackgroundControl"
             Layout.fillWidth: true

@@ -49,7 +49,7 @@ PanelWindow {
     }
     readonly property color headerColor: stripBar.menuTargets[dockState.displayedSection]
         ? stripBar.menuAccent(dockState.displayedSection) : itemColor(dockState.displayedSection)
-    readonly property real stripSize: 26
+    readonly property real stripSize: 36
     readonly property real compactLength: 76
     readonly property real naturalLength: Math.max(1, stripBar.groupLength("left"))
     readonly property real contentWidth: section === "settings" ? 1120 : section === "dashboard" ? 780 : section === "activity" ? 440 : section === "launcher" || section === "keybindings" ? 560 : 400
@@ -58,7 +58,7 @@ PanelWindow {
         : section === "displays" ? (projectorSlot.children[0]?.height || 0) + 40 : Math.max(0, page.item?.implicitHeight || 0) + 40)
         + (popupLoader.active ? Math.min(150, popupLoader.implicitHeight) + 10 : 0)
     // The strip stays centered on the output, independent of the content width.
-    readonly property real stripLength: Math.min(vertical ? height : width, naturalLength + 118)
+    readonly property real stripLength: Math.min(vertical ? height : width, naturalLength + 200)
     readonly property real targetWidth: Math.min(width, vertical
         ? (section ? contentWidth + stripSize + 24 : expanded ? stripSize : 24)
         : expanded ? Math.max(stripLength, section ? contentWidth + 32 : 0) : compactLength)
@@ -137,11 +137,12 @@ PanelWindow {
     Timer { id: collapseDelay; interval: 350; onTriggered: { if (!cardHover.hovered && !dockState.pinned && !dock.section) dock.collapse(); } }
     GlassSurface {
         id: glass
+        objectName: "dockGlass"
         wallpaperSource: dock.wallpaperSource
         screenWidth: dock.width; screenHeight: dock.height
         region: dock.surfaceRect
         cacheFullWallpaper: true
-        translucency: dock.store.panelConfig.bar.popdownTranslucency ?? 0.06
+        translucency: dock.store.panelConfig.bar.dockTransparency ?? 0
     }
     Item {
         id: interaction
@@ -159,7 +160,7 @@ PanelWindow {
                     dockState.leave(dockState.hoveredMenu);
                     collapseDelay.restart();
                     // For keyboard-opened or shortcut-opened items, full collapse on mouse leave
-                    if (dock.keyboardSession && dock.section) {
+                    if (dock.keyboardSession && dock.section && !headerPointer.running) {
                         // Give a short delay so user can briefly move mouse out without immediate close
                         Qt.callLater(() => {
                             if (!cardHover.hovered && dock.keyboardSession && dock.section) {
@@ -229,10 +230,10 @@ PanelWindow {
             }
             Flickable {
                 id: stripScroll
-                x: dock.vertical ? 0 : 98
-                y: dock.vertical ? 98 : 4
-                width: dock.vertical ? parent.width : Math.max(1, parent.width - 118)
-                height: dock.vertical ? Math.max(1, parent.height - 118) : parent.height - 8
+                x: dock.vertical ? 0 : 180
+                y: dock.vertical ? 180 : 4
+                width: dock.vertical ? parent.width : Math.max(1, parent.width - 200)
+                height: dock.vertical ? Math.max(1, parent.height - 200) : parent.height - 8
                 contentWidth: dock.vertical ? width : stripBar.width
                 contentHeight: dock.vertical ? stripBar.height : height
                 clip: true
@@ -245,7 +246,7 @@ PanelWindow {
                     settings: {
                         let config = Model.copy(dock.store.panelConfig);
                         Object.assign(config.bar, {fullBackground: "off", edgeAttached: false, autoHide: false, centerItems: false,
-                            background: "off", hyprknots: false, uniformItems: false, height: 26,
+                            background: "off", hyprknots: false, uniformItems: false, height: 36,
                             contentPaddingTop: 0, contentPaddingBottom: 0, contentPaddingLeft: 0, contentPaddingRight: 0,
                             verticalPresentation: "compact"});
                         const status = ["bluetooth", "audio", "wifi", "battery", "power"];
@@ -255,7 +256,7 @@ PanelWindow {
                             .concat(status.map(id => config.items.find(item => item.id === id)).filter(Boolean))
                             .map((item, index) => Object.assign(item, {side: "left", order: index, pillGroup: "",
                                 spacingLeft: 2, spacingRight: 2, paddingLeft: 5, paddingRight: 5,
-                                iconSize: 12, fontSize: 10}, item.id === "settings" ? {enabled: true, hideIcon: false} : {}));
+                                iconSize: 16, fontSize: 12}, ["launcher", "settings"].includes(item.id) ? {enabled: false} : {}));
                         // The dock has its own dark backing: use bright ink directly,
                         // rather than adapting bare glyphs to the wallpaper behind it.
                         if (config.bar.randomVibrantColors) {
@@ -310,23 +311,44 @@ PanelWindow {
             Item {
                 x: dock.vertical ? 0 : 20
                 y: dock.vertical ? 20 : 4
-                width: dock.vertical ? 26 : 78
-                height: dock.vertical ? 78 : 18
+                width: dock.vertical ? dock.stripSize : 160
+                height: dock.vertical ? 160 : dock.stripSize - 8
                 Repeater {
-                    model: [{name:"dashboard", icon:"󰕮", label:"Dashboard"}, {name:"activity", icon:"󰂚", label:"Activity"}, {name:"keybindings", icon:"󰌌", label:"Keyboard shortcuts"}]
+                    model: [{name:"launcher", icon:"", label:"Applications"}, {name:"dashboard", icon:"󰕮", label:"Dashboard"}, {name:"settings", icon:"󰒓", label:"Settings"}, {name:"keybindings", icon:"󰌌", label:"Keyboard shortcuts"}, {name:"activity", icon:"󰂚", label:"Activity and notifications"}]
                     ToolButton {
                         required property var modelData
                         required property int index
-                        x: dock.vertical ? 0 : index * 26
-                        y: dock.vertical ? index * 26 : 0
-                        width: 26; height: 18
+                        x: dock.vertical ? 0 : index * 32
+                        y: dock.vertical ? index * 32 : 0
+                        width: dock.vertical ? dock.stripSize : 32; height: dock.vertical ? 32 : dock.stripSize - 8
+                        objectName: modelData.name + "DockTrigger"
                         Accessible.name: modelData.label
                         activeFocusOnTab: true
                         hoverEnabled: true
                         onHoveredChanged: { if (hovered) dockState.hover(modelData.name); else dockState.leave(modelData.name); }
                         onClicked: dock.open(modelData.name, false)
                         background: Rectangle { radius: 8; color: parent.hovered || parent.activeFocus ? Qt.rgba(dock.menuColors.text.r, dock.menuColors.text.g, dock.menuColors.text.b, 0.12) : "transparent"; border.width: parent.activeFocus ? 1 : 0; border.color: dock.menuColors.accent }
-                        contentItem: Text { text: parent.modelData.icon; color: dock.itemColor(parent.modelData.name); font.family: "GoMono Nerd Font"; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        contentItem: Item {
+                            id: shortcutIcon
+                            readonly property var button: parent
+                            scale: button.hovered || button.activeFocus ? 1.08 : 1
+                            Behavior on scale { enabled: dock.motionEnabled; NumberAnimation { duration: 120 } }
+                            Text { anchors.fill: parent; text: shortcutIcon.button.modelData.icon; visible: shortcutIcon.button.modelData.name !== "settings"; color: dock.itemColor(shortcutIcon.button.modelData.name); font.family: "GoMono Nerd Font"; font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            GlassCog {
+                                anchors.centerIn: parent
+                                visible: shortcutIcon.button.modelData.name === "settings"
+                                width: 19; height: 22; iconSize: 19
+                                accent: dock.itemColor("settings")
+                                highlighted: shortcutIcon.button.hovered || dock.section === "settings"
+                                vivid: true
+                            }
+                            Grid {
+                                anchors.centerIn: parent
+                                visible: shortcutIcon.button.modelData.name === "launcher"
+                                columns: 3; spacing: 3
+                                Repeater { model: 9; Rectangle { required property int index; width: 3; height: 3; radius: 1.5; color: dock.itemColor("launcher") } }
+                            }
+                        }
                     }
                 }
             }
@@ -352,6 +374,8 @@ PanelWindow {
                     sourceComponent: Component { ScrollView { implicitHeight: popupStack.implicitHeight; clip: true; contentWidth: availableWidth; NotificationPopupStack { id: popupStack; width: parent.width; inbox: dock.inbox } } }
                 }
                 RowLayout {
+                    id: headingRow
+                    objectName: "dockHeading"
                     Layout.fillWidth: true
                     Label { Layout.fillWidth: true; text: ({settings:"Hyprsettings",dashboard:"Dashboard",activity:"Activity",keybindings:"Keyboard shortcuts",launcher:"Applications",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",battery:"Battery",power:"Power",media:"Now playing",notifications:"Notifications",displays:"Projector options",alerts:"Notifications",workspacePreview:"Workspace"})[dockState.displayedSection] || "Hyprdock"; color: dock.headerColor; font.pixelSize: 16 }
                     ToolButton {
@@ -470,28 +494,28 @@ PanelWindow {
             }
         }
     }
-    // When opening via keyboard (keyboardSession or openedByShortcut),
-    // bring mouse cursor to the header of the opened window.
+    // Wait for the surface to settle, then target the actual heading in logical
+    // output coordinates. A section change from pointer hover never warps it.
     Connections {
         target: dockState
         function onSectionChanged() {
-            if (dock.section && (dock.keyboardSession || dockState.openedByShortcut)) {
-                Qt.callLater(() => {
-                    // The header is at the top of the body inside card; use approximate position
-                    // Map a point near the top-center of the card content (header area) to screen space
-                    let targetX = card.width / 2 + (dock.edge === "left" ? dock.stripSize + 8 + 30 : 20 + 60);
-                    let targetY = card.height / 6 + (dock.edge === "top" ? dock.stripSize + 8 + 20 : 20 + 30);
-                    // Get screen position using the dock's screen info
-                    let screen = dock.screen || null;
-                    if (screen) {
-                        // Compute global position: map from card to root, then add screen offset
-                        let pointInDock = card.mapToItem(dock, targetX, targetY);
-                        let globalX = Math.round((screen.x || 0) + pointInDock.x);
-                        let globalY = Math.round((screen.y || 0) + pointInDock.y);
-                        Hyprland.dispatch("hl.dsp.cursor.move({ x = " + globalX + ", y = " + globalY + " })");
-                    }
-                });
-            }
+            headerPointer.stop();
+            if (dock.section && dockState.openedByShortcut) headerPointer.restart();
+        }
+    }
+    Timer {
+        id: headerPointer
+        interval: 100; repeat: true
+        onTriggered: {
+            if (!dock.section || !dockState.openedByShortcut) { stop(); return; }
+            if (Math.abs(dock.surfaceWidth - dock.targetWidth) > 0.5
+                || Math.abs(dock.surfaceHeight - dock.targetHeight) > 0.5) return;
+            stop();
+            let monitor = Hyprland.monitorFor(dock.screen);
+            if (!monitor) return;
+            let point = headingRow.mapToItem(dock.contentItem, headingRow.width / 2, headingRow.height / 2);
+            let x = Math.round(monitor.x + point.x), y = Math.round(monitor.y + point.y);
+            Hyprland.dispatch("hl.dsp.cursor.move({ x = " + x + ", y = " + y + " })");
         }
     }
     function showNotifications() {

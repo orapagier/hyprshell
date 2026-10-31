@@ -55,8 +55,22 @@ ShellRoot {
                 if (test.phase === 0) {
                     test.check(!dock.expanded, "starts compact");
                     test.check(dock.targetHeight === 22, "compact clock has small vertical padding");
+                    let glass = test.find(dock.contentItem, "dockGlass");
+                    test.check(glass.bottomColor.a === 1, "dock defaults to opaque");
+                    let transparent = JSON.parse(JSON.stringify(store.config)); transparent.bar.dockTransparency = 0.4; store.acceptConfig(transparent);
+                    test.check(Math.abs(glass.bottomColor.a - 0.6) < 0.01, "dock transparency changes background only");
+                    transparent.bar.dockTransparency = 0; store.acceptConfig(transparent);
                     let bar = test.find(dock.contentItem, "dockBar");
-                    test.check(bar.settings.items.find(i => i.id === "settings").enabled, "Settings is present");
+                    test.check(test.find(dock.contentItem, "settingsDockTrigger") !== null, "Settings is present");
+                    let names = ["launcher", "dashboard", "settings", "keybindings", "activity"];
+                    let previous = -1;
+                    for (let name of names) {
+                        let button = test.find(dock.contentItem, name + "DockTrigger");
+                        test.check(button && button.x > previous, "leading control order: " + name);
+                        previous = button.x;
+                    }
+                    test.check(dock.stripSize === 36 && bar.appearance("audio").uniformGlyphHeight === 16, "revealed controls are larger");
+                    test.check(!bar.itemEnabled("launcher") && !bar.itemEnabled("settings"), "moved controls have no duplicates");
                     let vibrant = JSON.parse(JSON.stringify(store.config)); vibrant.bar.randomVibrantColors = true; store.acceptConfig(vibrant);
                     let originalPalette = dock.itemPalette.join(",");
                     dock.wallpaperSource = "file:///tmp/dock-wallpaper-alternate.png";

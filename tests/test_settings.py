@@ -16,6 +16,21 @@ spec.loader.exec_module(backend)
 
 
 class SettingsTests(unittest.TestCase):
+    def test_dock_transparency_default_validation_and_persistence(self):
+        self.assertEqual(backend.validate({'version': 1})['bar']['dockTransparency'], 0)
+        data = copy.deepcopy(self.data)
+        for value in (0, 0.35, 1):
+            data['bar']['dockTransparency'] = value
+            backend.save(data)
+            saved = json.loads(self.path.read_text())
+            self.assertEqual(saved['bar']['dockTransparency'], value)
+            self.assertEqual(saved['bar']['popdownTranslucency'], data['bar']['popdownTranslucency'])
+            self.assertEqual(saved['items'], data['items'])
+        for value in (-0.01, 1.01, True, '0.5', None):
+            data['bar']['dockTransparency'] = value
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                backend.validate(data)
+
     def test_pill_transparency_defaults_validation_and_persistence(self):
         keys = ('individualPillTransparency', 'groupPillTransparency', 'fullPillTransparency')
         defaults = backend.validate({'version': 1})['bar']

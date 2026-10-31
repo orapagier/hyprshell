@@ -130,6 +130,7 @@ def validate(data):
     ):
         raise ValueError('Hover popdown overrides must map workspace numbers 1–99 to booleans')
     number(bar['popdownTranslucency'], 0, 1)
+    number(bar['dockTransparency'], 0, 1)
     for key in ('individualPillTransparency', 'groupPillTransparency', 'fullPillTransparency'):
         number(bar[key], -1, 100, True)
     if type(bar['adaptiveColors']) is not bool:

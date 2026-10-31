@@ -70,6 +70,9 @@ Item {
     readonly property color textEdge: Colors.glyphEdge(textColor)
     readonly property color iconEdge: Colors.glyphEdge(iconColor)
     readonly property bool hovered: pointer.containsMouse
+    // Visual-only magnification keeps layout and neighboring targets stationary.
+    scale: settings.dockHoverZoom && (hovered || activeFocus) ? 1.08 : 1
+    Behavior on scale { enabled: !Style.Theme.reducedMotion; NumberAnimation { duration: 120 } }
     property bool selected: false
     property color hoverTint: Qt.rgba(tint.r, tint.g, tint.b, Math.min(1, tint.a + 0.12))
     readonly property real backgroundAlpha: backgroundShown ? opacity * (settings.pillTransparency >= 0 ? 1 - settings.pillTransparency / 100 : 1) : 0

@@ -248,8 +248,9 @@ Item {
             } else style.sharedBackgroundShown = Settings.sharedBackground(settings, group.ids[0]) !== "off";
         }
         if (dockStyle) {
-            style.uniformGlyphHeight = id === "workspaces" ? 8 : 12;
-            style.uniformTextHeight = id === "workspaces" ? 8 : 10;
+            style.dockHoverZoom = true;
+            style.uniformGlyphHeight = id === "workspaces" ? 8 : 16;
+            style.uniformTextHeight = id === "workspaces" ? 8 : 12;
             style.background = id === "workspaces" ? "on" : "off";
             if (id === "calendar") { style.text = ""; style.hideText = false; style.hideIcon = true; }
         }
@@ -1207,6 +1208,7 @@ Item {
         DockStatusIcon {
             anchors.centerIn: parent
             visible: bar.dockStyle
+            width: 16; height: 16
             kind: "signal"
             level: bar.dockSignalLevel
             connected: bar.statusData.network.connected === true
@@ -1268,6 +1270,7 @@ Item {
         DockStatusIcon {
             anchors.centerIn: parent
             visible: bar.dockStyle
+            width: 16; height: 16
             level: bar.dockBatteryLevel
             charging: bar.statusData.battery.charging === true
             ink: battery.textColor
