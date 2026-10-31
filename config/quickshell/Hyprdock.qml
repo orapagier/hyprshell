@@ -358,7 +358,7 @@ PanelWindow {
                         contentItem: Item {
                             id: shortcutIcon
                             readonly property var button: parent
-                            scale: button.hovered || button.activeFocus ? 1.08 : 1
+                            scale: button.hovered || button.activeFocus || dock.section === button.modelData.name ? 1.22 : 1
                             Behavior on scale { enabled: dock.motionEnabled; NumberAnimation { duration: 120 } }
                             Text { anchors.fill: parent; text: shortcutIcon.button.modelData.icon; visible: shortcutIcon.button.modelData.name !== "settings"; color: dock.itemColor(shortcutIcon.button.modelData.name); font.family: "GoMono Nerd Font"; font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             GlassCog {

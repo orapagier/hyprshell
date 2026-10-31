@@ -71,7 +71,7 @@ Item {
     readonly property color iconEdge: Colors.glyphEdge(iconColor)
     readonly property bool hovered: pointer.containsMouse
     // Visual-only magnification keeps layout and neighboring targets stationary.
-    scale: settings.dockHoverZoom && (hovered || activeFocus) ? 1.08 : 1
+    scale: settings.dockHoverZoom && (hovered || activeFocus || selected) ? 1.22 : 1
     Behavior on scale { enabled: !Style.Theme.reducedMotion; NumberAnimation { duration: 120 } }
     property bool selected: false
     property color hoverTint: Qt.rgba(tint.r, tint.g, tint.b, Math.min(1, tint.a + 0.12))

@@ -63,7 +63,7 @@ ShellRoot {
                     let position = trigger.mapToItem(dock.contentItem, trigger.width / 2, trigger.height / 2);
                     pointer.mouseMove(dock.contentItem, position.x, position.y);
                     pointer.wait(450);
-                    test.check(Math.abs(trigger.scale - 1.08) < 0.01, "subtle hover zoom: " + edge);
+                    test.check(Math.abs(trigger.scale - 1.22) < 0.01, "noticeable hover zoom: " + edge);
                     test.check(dock.section === "calendar", "hover opens calendar: " + edge + "/" + dock.section + "/" + trigger.hovered + "/" + test.find(dock.contentItem, "dockMenuState").hoveredMenu);
                     for (let frame = 0; frame < 30; ++frame) {
                         pointer.wait(25);
@@ -78,6 +78,7 @@ ShellRoot {
                     pointer.mouseMove(dock.contentItem, gap.x, gap.y);
                     pointer.wait(600);
                     test.check(dock.section === "calendar", "blank strip should retain content: " + edge);
+                    test.check(Math.abs(trigger.scale - 1.22) < 0.01, "open item retains zoom without hover: " + edge);
                     let surface = test.find(dock.contentItem, "hyprdockSurface");
                     let content = surface.mapToItem(dock.contentItem, surface.width / 2, surface.height / 2);
                     pointer.mouseMove(dock.contentItem, content.x, content.y);
@@ -104,6 +105,14 @@ ShellRoot {
                             && Math.abs(Number(coords[2]) - (-200 + center.y)) <= 1,
                             "final header destination: " + edge + "/" + name + "/" + move + "/" + center);
                         test.check(dock.pointerMoves.length === count + 1, "single move per shortcut");
+                        let opened = test.find(dock.contentItem, name === "power" ? "powerTrigger" : "launcherDockTrigger");
+                        let visual = name === "power" ? opened : opened.contentItem;
+                        test.check(!opened.hovered && !opened.activeFocus, "shortcut zoom is independent of hover/focus: " + edge + "/" + name);
+                        test.check(Math.abs(visual.scale - 1.22) < 0.01, "shortcut-opened item zooms: " + edge + "/" + name);
+                        test.check(Math.abs(trigger.scale - 1) < 0.01, "previous item zoom resets: " + edge);
+                        dock.collapse();
+                        pointer.wait(150);
+                        test.check(Math.abs(visual.scale - 1) < 0.01, "closed shortcut item resets zoom: " + edge + "/" + name);
                     }
                     dock.collapse();
                     let count = dock.pointerMoves.length;
