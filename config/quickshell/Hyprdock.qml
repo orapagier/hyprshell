@@ -96,7 +96,7 @@ PanelWindow {
     WlrLayershell.keyboardFocus: available && expanded ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     mask: Region { x: dock.inputRect.x; y: dock.inputRect.y; width: dock.available ? dock.inputRect.width : 0; height: dock.available ? dock.inputRect.height : 0 }
     onAvailableChanged: if (!available) collapse()
-    function collapse() { dockState.close(); revealed = false; requested = false; keyboardSession = false; }
+    function collapse() { keyboardLeaveDelay.stop(); dockState.close(); revealed = false; requested = false; keyboardSession = false; }
     function dismissWithEscape() {
         // Do not reopen under a stationary pointer as the surface shrinks.
         hoverDismissed = cardHover.hovered;
@@ -106,12 +106,18 @@ PanelWindow {
     }
     function closeContent() { dockState.close(); revealed = true; if (keyboardSession) dockState.pinned = true; strip.forceActiveFocus(); }
     function open(name, keyboard) {
+        hoverDismissed = false;
+        keyboardLeaveDelay.stop();
+        collapseDelay.stop();
         requested = true;
         revealed = true;
         if (keyboard === true) keyboardSession = true;
         dockState.activate(name, keyboard === true);
     }
     function prepareSettings() {
+        hoverDismissed = false;
+        keyboardLeaveDelay.stop();
+        collapseDelay.stop();
         requested = true;
         revealed = true;
         if (dockState.section !== "settings") {
@@ -122,7 +128,7 @@ PanelWindow {
         }
         return settingsInner;
     }
-    function revealKeyboard() { activated(); keyboardSession = true; requested = true; revealed = true; dockState.pinned = true; strip.forceActiveFocus(); }
+    function revealKeyboard() { hoverDismissed = false; keyboardLeaveDelay.stop(); collapseDelay.stop(); activated(); keyboardSession = true; requested = true; revealed = true; dockState.pinned = true; strip.forceActiveFocus(); }
     MenuController {
         id: dockState
         objectName: "dockMenuState"
@@ -130,6 +136,9 @@ PanelWindow {
         dismissPinnedOnLeave: false
         dismissInhibited: dock.section === "settings" && !!card.Overlay.overlay
             && Array.from(card.Overlay.overlay.children).some(child => child.visible)
+        onDismissInhibitedChanged: {
+            if (dismissInhibited) { keyboardLeaveDelay.stop(); collapseDelay.stop(); }
+        }
         onSectionChanged: {
             if (section === "dashboard") dock.dashboardLoaded = true;
             if (section === "activity") dock.activityLoaded = true;
@@ -140,6 +149,14 @@ PanelWindow {
             }
             if (section === "settings" && !dock.settingsController.window?.dockOpened) Qt.callLater(() => { if (dockState.section === "settings") dock.settingsController.open(); });
             if (section) { dock.revealed = true; dock.activated(); }
+        }
+    }
+    Timer {
+        id: keyboardLeaveDelay
+        interval: 400
+        onTriggered: {
+            if (!cardHover.hovered && dock.keyboardSession && dock.section && !dockState.dismissInhibited)
+                dock.collapse();
         }
     }
     Timer { id: collapseDelay; interval: 350; onTriggered: { if (!cardHover.hovered && !dockState.pinned && !dock.section) dock.collapse(); } }
@@ -163,20 +180,15 @@ PanelWindow {
             blocking: false
             onHoveredChanged: {
                 dockState.retain(hovered);
-                if (hovered) { if (!dock.hoverDismissed) { collapseDelay.stop(); dock.revealed = true; } }
+                if (hovered) { keyboardLeaveDelay.stop(); if (!dock.hoverDismissed) { collapseDelay.stop(); dock.revealed = true; } }
                 else {
                     dock.hoverDismissed = false;
                     dockState.leave(dockState.hoveredMenu);
                     collapseDelay.restart();
-                    // For keyboard-opened or shortcut-opened items, full collapse on mouse leave
-                    if (dock.keyboardSession && dock.section && !headerPointer.running) {
-                        // Give a short delay so user can briefly move mouse out without immediate close
-                        Qt.callLater(() => {
-                            if (!cardHover.hovered && dock.keyboardSession && dock.section) {
-                                dock.collapse();
-                            }
-                        }, 400);
-                    }
+                    // Popup grabs can remove hover without leaving the dock.
+                    // Allow shortcut pointer movement to settle before closing.
+                    if (dock.keyboardSession && dock.section && !headerPointer.running && !dockState.dismissInhibited)
+                        keyboardLeaveDelay.restart();
                 }
             }
         }
@@ -461,11 +473,11 @@ PanelWindow {
         id: focusTracker
         interval: 150; running: dock.section.length > 0; repeat: true
         onTriggered: {
-            if (!dock.section) return;
+            if (!dock.section || dockState.dismissInhibited) return;
             // Only track for windows with autofocus search bars
             if (!["launcher", "keybindings", "settings"].includes(dock.section)) return;
             // Check if focus moved outside dock content
-            let activeItem = Window.activeFocusItem;
+            let activeItem = card.Window.window?.activeFocusItem;
             let focusInsideDock = false;
             if (activeItem) {
                 try {
@@ -487,13 +499,14 @@ PanelWindow {
         }
     }
     Connections {
-        target: Window
+        target: card.Window.window
         function onActiveFocusItemChanged() {
-            if (!dock.section || dockState.pinned) return;
+            if (!dock.section || dockState.pinned || dockState.dismissInhibited) return;
             // For keyboard session windows, detect focus out quickly
             if (dock.keyboardSession && ["launcher", "keybindings", "settings"].includes(dock.section)) {
                 Qt.callLater(() => {
-                    let activeItem = Window.activeFocusItem;
+                    if (!dock.section || dockState.dismissInhibited) return;
+                    let activeItem = card.Window.window?.activeFocusItem;
                     let inside = false;
                     if (activeItem) {
                         try {

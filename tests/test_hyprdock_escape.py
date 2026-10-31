@@ -72,7 +72,6 @@ ShellRoot {
                 keys.mouseMove(dock.contentItem, 20, dock.height - 20);
                 for (let keyboard of [false, true]) {
                     for (let name of ["launcher", "keybindings", "wifi", "calendar", "audio", "bluetooth", "battery", "power", "notifications", "dashboard", "activity", "settings"]) {
-                        dock.hoverDismissed = false;
                         if (keyboard) dock.open(name, true);
                         else { dock.revealed = true; state.hover(name); }
                         keys.wait(200);
@@ -86,6 +85,42 @@ ShellRoot {
                         test.pressEscape(name + "/" + keyboard);
                     }
                 }
+                // A shortcut must work immediately after Escape while the cursor
+                // is still on the minimal dock, without resetting internal state.
+                keys.mouseMove(dock.contentItem, dock.width / 2, 1);
+                keys.wait(100);
+                dock.revealKeyboard(); strip.forceActiveFocus();
+                test.pressEscape("keyboard strip");
+                for (let name of ["launcher", "keybindings", "wifi", "settings"]) {
+                    dock.open(name, true); keys.wait(100);
+                    test.check(!dock.hoverDismissed, "shortcut clears hover suppression: " + name);
+                    test.check(dock.section === name, "shortcut reopens after Escape: " + name);
+                    strip.forceActiveFocus(); test.pressEscape("reopened " + name);
+                }
+                // Real 400 ms leave delay: brief movement retains a shortcut
+                // view, but sustained departure still closes it.
+                dock.open("wifi", true); keys.wait(150);
+                keys.mouseMove(dock.contentItem, dock.width / 2, 1); keys.wait(50);
+                keys.mouseMove(dock.contentItem, 20, dock.height - 20); keys.wait(80);
+                test.check(dock.section === "wifi", "brief pointer departure preserves shortcut view");
+                keys.mouseMove(dock.contentItem, dock.width / 2, 1); keys.wait(450);
+                test.check(dock.section === "wifi", "reentry cancels pending departure");
+                keys.mouseMove(dock.contentItem, 20, dock.height - 20); keys.wait(550);
+                test.check(!dock.expanded, "sustained departure still collapses keyboard view");
+                // Pointer leave can be queued before a modal popup opens.
+                dock.open("settings", true); keys.wait(300);
+                keys.mouseMove(dock.contentItem, dock.width / 2, 1); keys.wait(50);
+                let syncPopup = keys.findChild(editor.window, "githubSyncDialog");
+                test.check(!!syncPopup, "real sync popup found");
+                keys.mouseMove(dock.contentItem, 20, dock.height - 20);
+                syncPopup.open(); keys.wait(650);
+                test.check(dock.section === "settings" && editor.window.dockOpened && syncPopup.visible,
+                    "Settings and sync popup survive pointer/focus departure");
+                test.check(state.dismissInhibited, "popup inhibits every automatic dismissal path");
+                keys.keyClick(Qt.Key_Tab); keys.wait(100);
+                test.check(dock.section === "settings" && syncPopup.visible, "popup keyboard navigation retains Settings");
+                syncPopup.close();
+                dock.collapse();
                 // A focused popup lives in the window overlay, outside the card.
                 dock.open("settings", true); keys.wait(200);
                 let popup = Qt.createQmlObject('import QtQuick; import QtQuick.Controls.Basic; Popup { width: 100; height: 80; focus: true; closePolicy: Popup.CloseOnEscape; TextField { focus: true } }', strip);
