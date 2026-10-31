@@ -30,6 +30,7 @@ PanelWindow {
     readonly property alias section: dockState.section
     readonly property alias settingsHost: settingsInner
     readonly property bool expanded: revealed || section.length > 0
+    property bool hoverDismissed: false
     property bool revealed: false
     property bool requested: false
     property var resourceData: ({})
@@ -92,10 +93,17 @@ PanelWindow {
     exclusiveZone: 0
     WlrLayershell.namespace: "hyprshell-dock"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: !available ? WlrKeyboardFocus.None : (dockState.pinned || keyboardSession) ? WlrKeyboardFocus.Exclusive : section ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: available && expanded ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     mask: Region { x: dock.inputRect.x; y: dock.inputRect.y; width: dock.available ? dock.inputRect.width : 0; height: dock.available ? dock.inputRect.height : 0 }
     onAvailableChanged: if (!available) collapse()
     function collapse() { dockState.close(); revealed = false; requested = false; keyboardSession = false; }
+    function dismissWithEscape() {
+        // Do not reopen under a stationary pointer as the surface shrinks.
+        hoverDismissed = cardHover.hovered;
+        collapseDelay.stop();
+        dockState.leave(dockState.hoveredMenu);
+        collapse();
+    }
     function closeContent() { dockState.close(); revealed = true; if (keyboardSession) dockState.pinned = true; strip.forceActiveFocus(); }
     function open(name, keyboard) {
         requested = true;
@@ -118,7 +126,7 @@ PanelWindow {
     MenuController {
         id: dockState
         objectName: "dockMenuState"
-        hoverEnabled: true
+        hoverEnabled: !dock.hoverDismissed
         dismissPinnedOnLeave: false
         dismissInhibited: dock.section === "settings" && !!card.Overlay.overlay
             && Array.from(card.Overlay.overlay.children).some(child => child.visible)
@@ -155,8 +163,9 @@ PanelWindow {
             blocking: false
             onHoveredChanged: {
                 dockState.retain(hovered);
-                if (hovered) { collapseDelay.stop(); dock.revealed = true; }
+                if (hovered) { if (!dock.hoverDismissed) { collapseDelay.stop(); dock.revealed = true; } }
                 else {
+                    dock.hoverDismissed = false;
                     dockState.leave(dockState.hoveredMenu);
                     collapseDelay.restart();
                     // For keyboard-opened or shortcut-opened items, full collapse on mouse leave
@@ -183,7 +192,13 @@ PanelWindow {
         x: dock.surfaceRect.x - interaction.x
         y: dock.surfaceRect.y - interaction.y
         readonly property var menuColors: dock.menuColors
-        Keys.onEscapePressed: { if (dock.section) dock.closeContent(); else dock.collapse(); }
+        Shortcut {
+            sequence: "Escape"
+            // Application scope also reaches focused popups in the overlay.
+            context: Qt.ApplicationShortcut
+            enabled: dock.available && dock.expanded && card.Window.active
+            onActivated: dock.dismissWithEscape()
+        }
         AttachedPanelSurface {
             anchors.fill: parent
             edge: dock.edge
@@ -202,7 +217,7 @@ PanelWindow {
             width: dock.vertical ? 4 : parent.width
             height: dock.vertical ? parent.height : 4
             hoverEnabled: true
-            onEntered: { collapseDelay.stop(); dockState.retain(true); dockState.leave(dockState.hoveredMenu); dock.revealed = true; }
+            onEntered: { if (dock.hoverDismissed) return; collapseDelay.stop(); dockState.retain(true); dockState.leave(dockState.hoveredMenu); dock.revealed = true; }
         }
         Text {
             anchors.centerIn: parent
