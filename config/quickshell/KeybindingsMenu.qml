@@ -22,6 +22,12 @@ ColumnLayout {
     property var bindings: []
     property string error: ""
     readonly property var entries: Guide.matching(bindings, search.text)
+    function moveSelection(step) {
+        if (!entries.length) return;
+        list.currentIndex = list.currentIndex < 0 ? 0
+            : Math.max(0, Math.min(entries.length - 1, list.currentIndex + step));
+        list.positionViewAtIndex(list.currentIndex, ListView.Contain);
+    }
     spacing: 12
     Timer { interval: 1500; running: true; repeat: true; onTriggered: if (!bindingReader.running) bindingReader.running = true }
     Process {
@@ -67,8 +73,12 @@ ColumnLayout {
             Behavior on border.color { ColorAnimation { duration: 140 } }
         }
         Component.onCompleted: forceActiveFocus()
-        onTextChanged: list.currentIndex = 0
-        Keys.onDownPressed: { list.forceActiveFocus(); list.currentIndex = 0; }
+        onTextChanged: {
+            list.currentIndex = page.entries.length ? 0 : -1;
+            list.positionViewAtBeginning();
+        }
+        Keys.onDownPressed: page.moveSelection(1)
+        Keys.onUpPressed: page.moveSelection(-1)
     }
     ListView {
         id: list
@@ -84,7 +94,7 @@ ColumnLayout {
             id: row
             required property var modelData
             required property int index
-            readonly property bool highlighted: hover.hovered || (list.activeFocus && list.currentIndex === index)
+            readonly property bool highlighted: hover.hovered || ((list.activeFocus || search.activeFocus) && list.currentIndex === index)
             width: list.width
             height: labels.implicitHeight + 24
             radius: 12
