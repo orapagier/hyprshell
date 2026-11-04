@@ -7,6 +7,8 @@ import Quickshell
 Item {
     id: icons
     property var catalog: ({})
+    // The catalog is only a fallback for icons the theme lookup cannot resolve.
+    property bool catalogRequested: false
     readonly property var folders: {
         let result = [];
         for (let root of StandardPaths.standardLocations(StandardPaths.GenericDataLocation)) {
@@ -25,7 +27,11 @@ Item {
         if (!name) return "";
         if (name.startsWith("/")) return "file://" + name.split("/").map(encodeURIComponent).join("/");
         let themed = Quickshell.iconPath(name, true);
-        return themed || catalog[name.replace(/\.(svg|png|xpm)$/i, "")] || "";
+        if (themed) return themed;
+        // Scan icon directories lazily, on the first unresolved lookup. The
+        // catalog binding re-evaluates as directories report their contents.
+        if (!catalogRequested) catalogRequested = true;
+        return catalog[name.replace(/\.(svg|png|xpm)$/i, "")] || "";
     }
     function rebuild() {
         let next = {};
@@ -41,7 +47,8 @@ Item {
     }
     Instantiator {
         id: directories
-        model: icons.folders
+        active: icons.catalogRequested
+        model: icons.catalogRequested ? icons.folders : []
         delegate: FolderListModel {
             required property string modelData
             folder: modelData

@@ -3,7 +3,8 @@
 Media playback detection follows speaker peak changes rather than a repeating
 67 ms timer. MPRIS playback remains active even during silent passages;
 non-MPRIS streams retain the 900 ms silence grace period. The speaker peak
-monitor remains enabled so new audio is detected without polling.
+monitor runs only while a non-MPRIS output stream is linked; event-driven link
+tracking stays active, so new audio is still detected without polling.
 
 Only an actively playing title longer than 28 Unicode code points schedules
 marquee updates, at the next character change. The two-second opening pause,

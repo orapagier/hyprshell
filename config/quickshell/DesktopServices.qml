@@ -105,8 +105,10 @@ Item {
     function setOutput(node) { Pipewire.preferredDefaultAudioSink = node; }
     function setInput(node) { Pipewire.preferredDefaultAudioSource = node; }
     PwObjectTracker { objects: Pipewire.nodes.values.filter(n => !!n.audio) }
-    // This monitors speaker output; it never records the microphone.
-    PwNodePeakMonitor { id: meter; node: services.sink; enabled: !!services.sink }
+    // This monitors speaker output; it never records the microphone. Capture
+    // peaks only while a non-MPRIS output stream is linked; the event-driven
+    // tracker below still wakes it when new audio starts.
+    PwNodePeakMonitor { id: meter; node: services.sink; enabled: !!services.sink && !!services.stream }
     PwNodeLinkTracker { id: outputLinks; node: services.sink }
     // Link states stay unavailable until bound, including non-MPRIS players such as mpv.
     PwObjectTracker { objects: outputLinks.linkGroups }
@@ -118,7 +120,8 @@ Item {
         id: mediaActivity
         hasPlayer: !!services.player
         hasStream: !!services.stream
-        peak: meter.peak
+        // Do not reuse the last captured peak after the linked stream closes.
+        peak: services.stream ? meter.peak : 0
         fullTitle: services.fullTitle
     }
     readonly property bool playing: mediaActivity.playing

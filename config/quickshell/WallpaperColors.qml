@@ -107,9 +107,11 @@ Item {
         source: sampler.source
         // All samplers on one output use the same decode size, allowing Qt's
         // image cache to share it. Keep the aspect ratio for the crop below.
-        // Sampling colors needs no more than output resolution, even for a
-        // much larger original. The desktop wallpaper itself is unchanged.
-        sourceSize.width: Math.min(4096, Math.max(1, Math.ceil(sampler.screenWidth)))
+        // Palettes are averaged and thresholded, so a 1024 px long edge keeps
+        // their detail while avoiding a full-output decode copy per sampler.
+        // Canvas output sizes below are unchanged; the desktop wallpaper itself
+        // is untouched. The 800 px test fixture still decodes at full size.
+        sourceSize.width: Math.min(1024, Math.max(1, Math.ceil(sampler.screenWidth)))
         asynchronous: true
         visible: false
         onStatusChanged: {
