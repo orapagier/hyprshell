@@ -1145,6 +1145,7 @@ For focused usage details, see [panel layout controls](docs/panel-layout-setting
 | `assets/` | Wallpapers and application desktop entries. |
 | `tools/` | Installer and runtime validation helpers. |
 | `docs/boot-splash.md` / `docs/login-appearance.md` | Boot/login installation, previews, portability limits, and recovery. |
+| `docs/optimization-audit.md` | Verified process/timer model, resource baselines, completed optimizations, open targets, and measurement commands. |
 | `tests/` | Python tests for installation, settings, sync, locking, and cleanup. |
 | `config/quickshell/tests/` | QML component tests and spectrum checks. |
 | `packages.txt` / `packages-apps.txt` | Base desktop and optional application manifests. |
