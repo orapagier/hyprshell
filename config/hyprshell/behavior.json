@@ -9,16 +9,16 @@
       "name": "",
       "layout": "inherit",
       "persistent": false,
-      "floating": false,
-      "pseudotiled": true
+      "floating": true,
+      "pseudotiled": false
     },
     {
       "id": 2,
       "name": "",
       "layout": "inherit",
       "persistent": false,
-      "floating": true,
-      "pseudotiled": false
+      "floating": false,
+      "pseudotiled": true
     },
     {
       "id": 5,
@@ -41,8 +41,8 @@
       "name": "",
       "layout": "inherit",
       "persistent": false,
-      "floating": true,
-      "pseudotiled": false
+      "floating": false,
+      "pseudotiled": true
     }
   ],
   "rules": []
