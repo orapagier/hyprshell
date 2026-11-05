@@ -63,7 +63,7 @@ PanelWindow {
         : section === "displays" ? (projectorSlot.children[0]?.height || 0) + 40 : Math.max(0, page.item?.implicitHeight || 0) + 40)
         + (popupLoader.active ? Math.min(150, popupLoader.implicitHeight) + 10 : 0)
     // The strip stays centered on the output, independent of the content width.
-    readonly property real stripLength: Math.min(vertical ? height : width, naturalLength + 200)
+    readonly property real stripLength: Math.min(vertical ? height : width, naturalLength + 168)
     readonly property real targetWidth: Math.min(width, vertical
         ? (section ? contentWidth + stripSize + 40 : expanded ? stripSize : 24)
         : expanded ? Math.max(stripLength, section ? contentWidth + 64 : 0) : compactLength)
@@ -347,10 +347,10 @@ PanelWindow {
             }
             Flickable {
                 id: stripScroll
-                x: dock.vertical ? 0 : 180
-                y: dock.vertical ? 180 : 4
-                width: dock.vertical ? parent.width : Math.max(1, parent.width - 200)
-                height: dock.vertical ? Math.max(1, parent.height - 200) : parent.height - 8
+                x: dock.vertical ? 0 : 148
+                y: dock.vertical ? 148 : 4
+                width: dock.vertical ? parent.width : Math.max(1, parent.width - 168)
+                height: dock.vertical ? Math.max(1, parent.height - 168) : parent.height - 8
                 contentWidth: dock.vertical ? width : stripBar.width
                 contentHeight: dock.vertical ? stripBar.height : height
                 clip: true
@@ -367,14 +367,14 @@ PanelWindow {
                             background: "off", hyprknots: false, uniformItems: false, height: 36,
                             contentPaddingTop: 0, contentPaddingBottom: 0, contentPaddingLeft: 0, contentPaddingRight: 0,
                             verticalPresentation: "compact"});
-                        const status = ["bluetooth", "audio", "wifi", "battery", "power"];
+                        const status = ["notifications", "bluetooth", "audio", "wifi", "battery", "power"];
                         const sideOrder = {left: 0, center: 1, right: 2};
                         config.items.sort((a, b) => (sideOrder[a.side] - sideOrder[b.side]) || a.order - b.order);
                         config.items = config.items.filter(item => !status.includes(item.id))
                             .concat(status.map(id => config.items.find(item => item.id === id)).filter(Boolean))
                             .map((item, index) => Object.assign(item, {side: "left", order: index, pillGroup: "",
                                 spacingLeft: 2, spacingRight: 2, paddingLeft: 5, paddingRight: 5,
-                                iconSize: 16, fontSize: 12}, ["launcher", "settings"].includes(item.id) ? {enabled: false} : {}));
+                                iconSize: 16, fontSize: 12}, ["launcher", "settings"].includes(item.id) ? {enabled: false} : item.id === "notifications" ? {enabled: true} : {}));
                         // The dock has its own dark backing: use bright ink directly,
                         // rather than adapting bare glyphs to the wallpaper behind it.
                         if (config.bar.randomVibrantColors) {
@@ -402,19 +402,19 @@ PanelWindow {
                     screenWidth: dock.width; screenHeight: dock.height
                     screenOffsetX: dock.surfaceRect.x + strip.x + stripScroll.x - stripScroll.contentX
                     screenOffsetY: dock.surfaceRect.y + strip.y + stripScroll.y - stripScroll.contentY
-                    activeMenu: dock.section
+                    activeMenu: dock.section === "activity" ? "notifications" : dock.section
                     onItemFocusRequested: item => {
                         let point = item.mapToItem(stripBar, 0, 0);
                         if (dock.vertical) stripScroll.contentY = Math.max(0, Math.min(stripScroll.contentHeight - stripScroll.height, point.y - stripScroll.height / 2));
                         else stripScroll.contentX = Math.max(0, Math.min(stripScroll.contentWidth - stripScroll.width, point.x - stripScroll.width / 2));
                     }
-                    onMenuHovered: name => dockState.hover(name)
-                    onMenuLeft: name => dockState.leave(name)
+                    onMenuHovered: name => dockState.hover(name === "notifications" ? "activity" : name)
+                    onMenuLeft: name => dockState.leave(name === "notifications" ? "activity" : name)
                     onPreviewUnavailable: dockState.close()
                     onAction: (name, argument) => {
                         if (name === "workspace") dock.activateWorkspace(argument);
                         else if (name === "workspace-scroll") dock.services.scrollWorkspace(argument);
-                        else dock.open(name, false);
+                        else dock.open(name === "notifications" ? "activity" : name, false);
                     }
                     onTrayAction: (item, source, button) => {
                         if (button === Qt.MiddleButton) item.secondaryActivate();
@@ -429,10 +429,10 @@ PanelWindow {
             Item {
                 x: dock.vertical ? 0 : 20
                 y: dock.vertical ? 20 : 4
-                width: dock.vertical ? dock.stripSize : 160
-                height: dock.vertical ? 160 : dock.stripSize - 8
+                width: dock.vertical ? dock.stripSize : 128
+                height: dock.vertical ? 128 : dock.stripSize - 8
                 Repeater {
-                    model: [{name:"launcher", icon:"", label:"Applications"}, {name:"dashboard", icon:"󰕮", label:"Dashboard"}, {name:"settings", icon:"󰒓", label:"Settings"}, {name:"keybindings", icon:"󰌌", label:"Keyboard shortcuts"}, {name:"activity", icon:"󰂚", label:"Activity and notifications"}]
+                    model: [{name:"launcher", icon:"", label:"Applications"}, {name:"dashboard", icon:"󰕮", label:"Dashboard"}, {name:"settings", icon:"󰒓", label:"Settings"}, {name:"keybindings", icon:"󰌌", label:"Keyboard shortcuts"}]
                     ToolButton {
                         required property var modelData
                         required property int index

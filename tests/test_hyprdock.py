@@ -62,7 +62,7 @@ ShellRoot {
                     transparent.bar.dockTransparency = 0; store.acceptConfig(transparent);
                     let bar = test.find(dock.contentItem, "dockBar");
                     test.check(test.find(dock.contentItem, "settingsDockTrigger") !== null, "Settings is present");
-                    let names = ["launcher", "dashboard", "settings", "keybindings", "activity"];
+                    let names = ["launcher", "dashboard", "settings", "keybindings"];
                     let previous = -1;
                     for (let name of names) {
                         let button = test.find(dock.contentItem, name + "DockTrigger");
@@ -81,7 +81,7 @@ ShellRoot {
                     }
                     dock.wallpaperSource = "";
                     test.check(dock.itemPalette.join(",") === originalPalette, "returning wallpaper restores palette");
-                    test.check(bar.settings.items.slice(-5).map(i => i.id).join(",") === "bluetooth,audio,wifi,battery,power", "status controls trail the strip");
+                    test.check(bar.settings.items.slice(-6).map(i => i.id).join(",") === "notifications,bluetooth,audio,wifi,battery,power", "status controls trail the strip");
                     test.check(bar.appearance("workspaces").background === "on" && bar.appearance("workspaces").uniformTextHeight === 7 && bar.appearance("workspaces").uniformGlyphHeight === 16 && bar.workspacePillSize === 16, "small workspace numbers with individual pills");
                     test.check(test.find(dock.contentItem, "hyprdockSurface").clip, "items reveal within animated background bounds");
                     dock.revealKeyboard();
