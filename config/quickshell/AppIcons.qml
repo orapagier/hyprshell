@@ -3,12 +3,19 @@ import QtQuick
 import QtCore
 import Qt.labs.folderlistmodel
 import Quickshell
+import Quickshell.Io
 
 Item {
     id: icons
     property var catalog: ({})
     // The catalog is only a fallback for icons the theme lookup cannot resolve.
     property bool catalogRequested: false
+    // Keep the original directory models for a helper that fails before its
+    // first catalog. A post-ready failure retains the last catalog and retries.
+    property bool helperReady: false
+    property bool useFolderModels: false
+    readonly property string helperPath: decodeURIComponent(
+        Qt.resolvedUrl("helpers/icon-catalog.py").toString().replace(/^file:\/\//, ""))
     readonly property var folders: {
         let result = [];
         for (let root of StandardPaths.standardLocations(StandardPaths.GenericDataLocation)) {
@@ -45,10 +52,52 @@ Item {
         }
         catalog = next;
     }
+    function startCatalog() {
+        if (catalogRequested && !useFolderModels && !catalogProcess.running)
+            catalogProcess.running = true;
+    }
+    onCatalogRequestedChanged: if (catalogRequested) startCatalog()
+    Process {
+        id: catalogProcess
+        command: ["python3", icons.helperPath, "--folders-json", JSON.stringify(icons.folders)]
+        stdout: SplitParser {
+            onRead: line => {
+                let message;
+                try { message = JSON.parse(line); } catch (error) { return; }
+                if (!message || message.version !== 1 || !message.catalog
+                        || typeof message.catalog !== "object") return;
+                icons.catalog = message.catalog;
+                icons.helperReady = true;
+                catalogStartup.stop();
+                catalogRestart.stop();
+            }
+        }
+        stderr: StdioCollector {}
+        onRunningChanged: if (running) catalogStartup.restart()
+        onExited: (code, status) => {
+            catalogStartup.stop();
+            if (!icons.helperReady) icons.useFolderModels = true;
+            else if (icons.catalogRequested && !icons.useFolderModels) catalogRestart.restart();
+        }
+    }
+    Timer {
+        id: catalogStartup
+        interval: 5000
+        onTriggered: {
+            if (icons.helperReady) return;
+            icons.useFolderModels = true;
+            catalogProcess.running = false;
+        }
+    }
+    Timer {
+        id: catalogRestart
+        interval: 30000
+        onTriggered: if (icons.catalogRequested && !icons.useFolderModels) catalogProcess.running = true
+    }
     Instantiator {
         id: directories
-        active: icons.catalogRequested
-        model: icons.catalogRequested ? icons.folders : []
+        active: icons.catalogRequested && icons.useFolderModels
+        model: icons.catalogRequested && icons.useFolderModels ? icons.folders : []
         delegate: FolderListModel {
             required property string modelData
             folder: modelData

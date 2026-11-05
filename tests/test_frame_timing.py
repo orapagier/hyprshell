@@ -43,8 +43,13 @@ ShellRoot {
             frames.record('synthetic', 134);
             frames.record('synthetic', 450);
             let report = frames.finish().synthetic;
-            root.check(report.intervals === 2 && report.median_ms === 16 && report.p95_ms === 18
+            root.check(report.intervals === 2 && report.median_ms === 16 && report.p95_ms === 18 && report.p99_ms === 18
                 && report.gaps_over_250ms === 1, 'Cadence summary or idle gap accounting is wrong');
+            frames.start(1, 120);
+            frames.record('budget', 0); frames.record('budget', 8); frames.record('budget', 24);
+            report = frames.finish().budget;
+            root.check(report.over_1_5_budget === 1 && report.fraction_over_1_5_budget === 0.5
+                && Math.abs(report.frame_budget_ms - 1000/120) < 0.001, 'Display frame budget is wrong');
             frames.start(1);
             root.check(!frames.start(1), 'Concurrent captures must not replace each other');
             finish.start();
@@ -71,3 +76,49 @@ ShellRoot {
             self.assertIn('FRAME_TIMING_OK', output)
             for error in ('ReferenceError', 'TypeError', 'Unable to assign', 'Binding loop'):
                 self.assertNotIn(error, output)
+
+    def test_frame_ipc_accepts_fractional_refresh_rate(self):
+        import json
+        import time
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'runtime').mkdir(mode=0o700)
+            (root / 'shell').symlink_to(ROOT / 'config/quickshell', target_is_directory=True)
+            entry = root / 'Check.qml'
+            entry.write_text('''import QtQuick
+import Quickshell
+import Quickshell.Io
+import "shell"
+ShellRoot {
+    FrameTiming { id: timing }
+    IpcHandler {
+        target: "performance"
+        function startWorkloadFrames(seconds: int, refreshHz: string): string {
+            return JSON.stringify({ok: timing.start(seconds, Number(refreshHz)), budget: timing.frameBudgetMs});
+        }
+    }
+    Timer { interval: 5000; running: true; onTriggered: Qt.quit() }
+}''')
+            env = dict(os.environ, XDG_RUNTIME_DIR=str(root / 'runtime'), XDG_STATE_HOME=str(root / 'state'),
+                       QT_QPA_PLATFORM='offscreen', QT_QPA_PLATFORMTHEME='', QT_QUICK_BACKEND='software')
+            with (root / 'log').open('w') as log, subprocess.Popen(
+                    ['quickshell', '-p', str(entry)], env=env, stdout=log, stderr=log) as child:
+                try:
+                    deadline = time.monotonic() + 3
+                    while time.monotonic() < deadline:
+                        result = subprocess.run(['quickshell', 'ipc', '--path', str(entry), 'call',
+                                                 'performance', 'startWorkloadFrames', '1', '60.008'],
+                                                env=env, capture_output=True, text=True, timeout=2)
+                        if result.returncode == 0:
+                            break
+                        time.sleep(0.05)
+                    log_text = (root / 'log').read_text()
+                    if result.returncode != 0 and 'Failed to start IPC server' in log_text:
+                        self.skipTest('Environment prevents binding the isolated Quickshell IPC socket')
+                    self.assertEqual(result.returncode, 0, result.stderr + log_text)
+                    data = json.loads(result.stdout)
+                    self.assertTrue(data['ok'])
+                    self.assertAlmostEqual(data['budget'], 1000 / 60.008)
+                finally:
+                    child.terminate()
+                    child.wait(timeout=3)

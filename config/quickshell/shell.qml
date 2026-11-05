@@ -398,12 +398,32 @@ ShellRoot {
         id: frameTiming
         windows: [{name: "dashboard", window: dashboardWindow}, {name: "activity", window: activityWindow}]
             .concat(panels.instances.map(panel => ({name: "panel-" + panel.screen.name, window: panel})))
+            .concat(docks.instances.map(dock => ({name: "dock-" + dock.screen.name, window: dock})))
+            .concat(settingsController.window ? [{name: "settings", window: settingsController.window}] : [])
+    }
+    WorkloadControl {
+        id: workload
+        supported: shell.dockEnabled && docks.instances.length === 1
+        dock: shell.focusedDock() || null
+        settings: settingsController
+        otherUiOpen: dashboardWindow.opened || activityWindow.opened || projectorWindow.uiOpened || hyprviewWindow.projectionOpen
     }
     IpcHandler {
         target: "performance"
         function startFrames(seconds: int): string {
             return JSON.stringify({ok: frameTiming.start(seconds), instance: Quickshell.instanceId, capture: frameTiming.captureId});
         }
+        function startWorkloadFrames(seconds: int, refreshHz: string): string {
+            return JSON.stringify({ok: frameTiming.start(seconds, Number(refreshHz)), instance: Quickshell.instanceId, capture: frameTiming.captureId});
+        }
+        function workloadState(): string {
+            return JSON.stringify(Object.assign(workload.snapshot(), {instance: Quickshell.instanceId,
+                focusedWindow: Hyprland.activeToplevel?.address || "",
+                notificationHistoryCount: notificationInbox.rows.length}));
+        }
+        function workloadOpen(name: string): string { return JSON.stringify(workload.openPage(name)); }
+        function workloadClose(): string { return JSON.stringify(workload.closePage()); }
+        function workloadRestoreFocus(address: string): bool { return applications.windowAction("focus", address); }
         function frameResults(): string {
             return JSON.stringify({instance: Quickshell.instanceId, capture: frameTiming.captureId, windows: frameTiming.finish(),
                 limits: "Frame-swap intervals, not GPU render time; gaps over 250 ms reported separately; millisecond clock resolution."});

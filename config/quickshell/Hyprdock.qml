@@ -97,6 +97,15 @@ PanelWindow {
     mask: Region { x: dock.inputRect.x; y: dock.inputRect.y; width: dock.available ? dock.inputRect.width : 0; height: dock.available ? dock.inputRect.height : 0 }
     onAvailableChanged: if (!available) collapse()
     function collapse() { keyboardLeaveDelay.stop(); dockState.close(); revealed = false; requested = false; keyboardSession = false; }
+    // Queried only by the explicit performance workload; no normal-use polling.
+    function workloadState() {
+        let loaded = section === "settings" ? settingsController.window?.uiOpened === true
+            : section === "dashboard" ? !!dashboardLoader.item
+            : section === "activity" ? !!activityLoader.item : !!page.item;
+        return {section: section, expanded: expanded, available: available,
+            surfaceVisible: backingWindowVisible, pageReady: !!section && loaded,
+            settled: Math.abs(animatedWidth - targetWidth) < 0.5 && Math.abs(animatedHeight - targetHeight) < 0.5};
+    }
     function dismissWithEscape() {
         // Do not reopen under a stationary pointer as the surface shrinks.
         hoverDismissed = cardHover.hovered;

@@ -192,6 +192,39 @@ measured change using the safe workflow below. Do not bundle unrelated changes.
 
 ### Phase 0 — reproducible baseline and acceptance criteria
 
+Implementation started 2026-11-05: `tools/measure_shell.py` now captures recursive
+descendant snapshots alongside the existing shell CPU/RSS samples. JSON includes
+per-process PSS, FD counts, thread identities and scheduling counters; the
+`tree_summary` separates shell/helper/tree median PSS, reports observed CPU and
+per-thread scheduling deltas, and records process/thread creation and exit.
+Process and thread identities include start ticks to detect ID reuse. Missing
+PSS is reported as unavailable rather than zero; read errors and observed churn
+mark the capture incomplete. Collection time is recorded separately.
+
+This is measurement infrastructure, **not a completed Phase 0 baseline or an
+optimization result**. One-second discovery can miss short-lived tasks and
+reparented helpers; observed lifetime deltas are lower bounds when tasks change.
+Zero schedstat counters may mean kernel accounting is disabled. Inspect raw
+snapshot errors and completeness before applying acceptance gates.
+
+Validation: six focused measurement tests pass, covering recursive descendants,
+non-leader thread activity, PID reuse, thread creation and unavailable counters.
+A two-second controlled-process smoke capture verified the CLI/JSON path. The
+agent session could list the desktop instance, but its PID was absent from the
+available `/proc`; compositor and media queries also failed. No desktop restart,
+live deployment, baseline resource claim, or acceptance decision was made.
+
+Remaining Phase 0 work: run three 60–300 second captures in the desktop session
+after recording state and a clean restart; implement the observable-state workload
+driver; capture playback, interactions and animation timing; then evaluate all
+applicable gates. Phase 1–4 changes remain pending those measurements. Example
+for each independently named baseline (choose a fresh output path):
+
+```sh
+python3 tools/measure_shell.py --seconds 60 --label idle-1 --output /tmp/hyprshell-idle-1.json
+python3 -m unittest discover -s tests -p test_shell_measurements.py -v
+```
+
 1. Record checkout, live/repo differences, display configuration, media state,
    enabled features, process tree, and session age. Restart cleanly and check
    for old helper processes using the documented procedure.
@@ -338,6 +371,305 @@ visual tradeoff requires separate user authorization and is not part of this pla
 
 ### Completion and reporting
 
+#### First completed live UI workload — 2026-11-05
+
+The four workload probes were deployed successfully from the desktop terminal.
+The complete 39-cycle sequence finished in approximately 173 seconds with
+`status: completed` and `restored: true`. Probe/settings hashes were unchanged,
+notification history count remained five, and resource snapshots had no read
+errors. Initial focused-window identity was empty, so application-focus restoration
+was not independently established; closed-UI/cursor restoration was reported.
+Matching live/repo payloads were verified through the sync snapshot, and the
+baseline was advanced for only those four probe files. No optimization was adopted.
+
+| Stage | Shell PSS before | Shell PSS settled after | Difference |
+| --- | ---: | ---: | ---: |
+| Launcher ×20 | 168.945 MiB | 194.352 MiB | +25.407 MiB |
+| Settings ×10 | 194.352 MiB | 252.117 MiB | +57.765 MiB |
+| Remaining drawers/menus | 252.117 MiB | 261.075 MiB | +8.958 MiB |
+| Entire sequence | 168.945 MiB | 261.075 MiB | +92.130 MiB |
+
+Tree PSS increased from 201.267 to 293.399 MiB; persistent helper PSS was nearly
+unchanged. Launcher first use activated **75 FileInfoThread threads**, matching
+the isolated catalog evidence. Its PSS increase contained about 23.152 MiB of
+anonymous memory. Settings added about 56.430 MiB anonymous memory. These figures
+locate growth by workload, not by retaining object: the intentional cached editor,
+QML/image caches and transient allocations still need separation. Later launcher
+cycles hovered around 193–195 MiB; Settings cycles around 249–252 MiB after the
+first open. One block does not establish a bounded long-session plateau or a leak.
+
+The launcher block captured 2,127 dock swap intervals, 288 over 1.5 frame budgets;
+Settings captured 1,074 intervals, 146 over budget. Per-transition maximum p99
+values reached 172 ms and 171 ms respectively. Capture windows include settling
+and intermittent repaint gaps, so these numbers do not by themselves establish
+visible animation stalls. Driver CPU was 2.636 seconds plus 32.941 seconds in IPC
+and other driver child processes; preserve this overhead and identical polling
+when comparing workloads.
+
+**Visual validation is inconclusive.** The user initially said the animations
+looked smooth, then clarified they had left for part of the run and were unsure.
+This is not a visual pass. Automated UI readiness/restoration checks passed, but
+formal animation acceptance still needs matched runs and an observed visual check.
+The next memory-attribution step is repetition in the warmed session to distinguish
+cache warm-up from continued retention; cold and warm runs must remain separate.
+
+#### Observable workload implementation — 2026-11-05
+
+The missing Phase 0 driver is now implemented for the current **single-display,
+dock-enabled** scenario. Other layouts fail explicitly rather than silently
+running an incomplete sequence. Desktop deployment and live execution are still
+pending; these changes are instrumentation, not an accepted resource optimization.
+
+- `WorkloadControl.qml` exposes explicit open/close/state operations through the
+  `performance` IPC target. It rejects unknown actions, other active overlays,
+  unsupported layouts and dirty Settings. It never changes preference values or
+  clicks application, notification, network, power or locking actions.
+- `Hyprdock.workloadState()` reports the selected page, loaded content, backing
+  surface visibility and whether animated dimensions reached their targets.
+  The controller and query add no polling timers during normal desktop use.
+- `tools/run_shell_workload.py` opens/closes launcher 20 times, Settings 10 times,
+  dashboard and activity once each, then calendar, audio, Wi-Fi, Bluetooth,
+  battery, notifications and power once each. Each transition waits for three
+  consecutive ready/settled observations at 100 ms poll spacing, with a 12 s
+  timeout. Dwell is 0.5 s after opening and closing; each block settles for 3 s.
+  Media must remain paused, and the pointer/keyboard must remain idle.
+- Open and close animations have separate opt-in frame captures. The recorder
+  now includes dock and Settings windows, p99 intervals, the actual display frame
+  budget and counts/fractions above 1.5 budgets. Gaps over 250 ms remain separate
+  because they cannot distinguish idle from stalls. Observers stop on completion
+  or timeout; the driver does not stop an already-active capture it does not own.
+- Reports include before/after/settled process snapshots, per-cycle command-to-
+  settled timings, frame summaries, notification history counts (no contents),
+  source/settings hashes, display geometry and driver/child CPU overhead. The
+  first launcher open is recorded separately as cycle 1; its timing includes IPC
+  and polling and must not be called pure icon-miss latency. Thread names are now
+  recorded alongside scheduling counters for subsequent attribution.
+- Initial UI must be closed. The driver restores closed UI, application focus
+  and cursor position on success or failure when the same safe shell generation
+  remains available. Pending Settings edits are left for the user; reloads,
+  timeouts, altered inputs and restoration failures mark the report incomplete.
+
+`tools/install_workload_probes.py --install` installs only `shell.qml`,
+`Hyprdock.qml`, `FrameTiming.qml` and the new `WorkloadControl.qml`. It accepts
+only the inspected original live hashes or matching new files, checkpoints live
+copies and runtime state, stops the selected shell and its verified idle leftovers,
+and copies while the shell is stopped. Startup/probe/idle-helper checks run before
+reporting success. A failed deployment attempts restoration from the checkpoint
+and one restart of the original files. No installer/package upgrade is involved.
+The separate live checkpoint records the later, explicit sync-baseline command;
+advance those four matching paths only after successful live validation.
+
+From the desktop terminal, with media paused and shell menus/Settings closed:
+
+```sh
+python3 tools/install_workload_probes.py --install && python3 tools/run_shell_workload.py
+```
+
+Do not use the pointer or keyboard during the run. Observe the animations for
+stutter and retain the resulting report even on failure. The agent has not run
+this live workload or advanced the sync baseline yet. Repeat the exact sequence
+before/after any accepted optimization; one successful execution does not finish
+all Phase 0 acceptance measurements or the approximately 22-hour memory check.
+
+Validation: 33 focused checks pass across workload/controller, frame statistics,
+resource scheduling/production compilation, restart lifecycle and sampler tests;
+native prerequisites pass. One IPC integration check is skipped because this
+environment cannot bind even an isolated Quickshell IPC socket. The existing
+`test_hyprdock.py` layout check fails at `attached bottom` on both the changed
+checkout and a temporary copy using the original HEAD payload; this is retained
+as a pre-existing failure, not fixed as part of instrumentation.
+The new native workload test exercises the real dock's loaded/settled state and
+calendar/embedded-Settings opening and closing in an isolated scene; it passes.
+
+#### Desktop playback observations — 2026-11-05
+
+The user supplied three playback captures from the same shell instance as the
+fresh idle measurements. All durations exceed 60 seconds; raw PSS snapshots have
+no read errors. Thread turnover still makes observed scheduling totals incomplete.
+
+| Run | Shell CPU, one core | Shell PSS median | Helper PSS median | Tree PSS median |
+| --- | ---: | ---: | ---: | ---: |
+| playback-1 | 7.581% | 166.633 MiB | 36.092 MiB | 202.725 MiB |
+| playback-2 | 7.981% | 166.482 MiB | 36.091 MiB | 202.573 MiB |
+| playback-3 | 8.114% | 166.482 MiB | 36.093 MiB | 202.575 MiB |
+
+Median shell CPU is 7.981%, with a 0.533 percentage-point range. Median tree PSS
+is 202.575 MiB, about 6.061 MiB above fresh idle, and remains broadly stable
+across the three runs. The spectrum helper contributes about 4.037 MiB PSS.
+Observed tree CPU is 9.580%, 10.180%, 10.229% of one core; these are lower-bound
+estimates for observed lifetimes, excluding external player/compositor processes.
+
+Summed common-thread schedstat deltas attribute approximately 5.1% of one core
+to the shell main thread and 2.85% to one other shell thread during run 2. The
+spectrum helper's two threads together use about 2.12%. Thread names were not
+captured, so the second shell thread cannot yet be labeled as a renderer. These
+are thread-level measurements, not attribution to a QML component or hot function.
+The spectrum helper first appears during run 1 (57 of 60 snapshots), so that run
+includes startup and is not a purely steady-state playback capture.
+
+The historical 0.8–1.2% playback figure used a different session/workload and is
+not a matched regression comparison. The current higher CPU warrants targeted
+attribution, not reduced animation cadence or disabled features. Saved desktop
+settings enable the dock; the existing performance frame recorder covers panels
+and drawers but omits dock windows, which must be addressed before claiming
+complete dock-animation coverage. No runtime optimization was deployed. Playback
+observations are now available; the observable-state UI workload driver, complete
+animation captures and formal matched acceptance evidence remain outstanding.
+
+#### Fresh desktop observations and measurement correction — 2026-11-05
+
+The user-run recovery/capture completed. The post-restart record includes a new
+`hypridle` descendant of the new shell's backend; the prior leftover no longer
+blocked startup. This confirms startup recovery, not full idle/locking behavior.
+Three idle runs reported shell CPU of **0.250%, 0.217%, 0.217%**; median shell PSS
+was **164.313 MiB**, helper PSS **32.205 MiB**, and tree PSS **196.515 MiB** (medians
+of the three run medians). Shell endpoint counts were **45 threads / 79 FDs**.
+No snapshot read errors occurred. All runs still observed thread turnover; run 2
+also observed a short-lived `curl` child.
+
+Compared with the long-session observations, shell PSS is about 114.32 MiB lower
+and endpoint counts are 76 threads / 151 FDs lower. No optimization was deployed:
+these differences follow a restart and different cache/lifecycle state. They do
+not attribute retained memory or demonstrate an optimization gain.
+
+Before further comparison, two tooling corrections are needed. The sampler's
+deadline was measured from before the first snapshot, but its reported duration
+is last minus first snapshot timestamp. Variable collection overhead let run 2
+finish at 59.998738 seconds (displayed as 59.999). Future captures must run for
+the requested interval **between recorded samples**. Original artifacts remain
+unchanged; the short run is not silently rounded up for the 60 s gate.
+
+The PSS screen also incorrectly coupled memory validity to thread-lifetime
+completeness. Thread creation/exit makes scheduling deltas incomplete, but does
+not invalidate successfully read PSS snapshots. The corrected screen checks raw
+snapshots for read errors, missing PSS, and a stable shell identity separately;
+scheduling remains explicitly incomplete. Sampling can still miss short-lived
+processes, so this permits only a descriptive PSS metric comparison, not whole-tree
+CPU approval or an overall acceptance decision. This changes the validity check,
+not the 5 MiB/25%, variation or duration thresholds. Phase 0 still needs playback,
+the observable-state interaction driver and animation captures; later phases
+remain unaccepted.
+
+#### Desktop-supplied idle observations — 2026-11-05
+
+The user ran three 60-second captures in the existing desktop session using the
+new sampler. The files were inspected successfully; there were no `/proc` read
+errors. These are long-session observations, not the required fresh-start or
+before/after acceptance baseline.
+
+| Run | Shell CPU, one core | Shell PSS median | Helper PSS median | Tree PSS median |
+| --- | ---: | ---: | ---: | ---: |
+| idle-1 | 1.400% | 279.109 MiB | 32.309 MiB | 311.453 MiB |
+| idle-2 | 0.233% | 278.634 MiB | 32.310 MiB | 310.943 MiB |
+| idle-3 | 0.350% | 278.530 MiB | 32.307 MiB | 310.837 MiB |
+
+Median run CPU is 0.350%, with a 1.167 percentage-point range. The first run
+contains several CPU bursts; these samples do not identify their cause. Shell
+endpoint counts remain 121 threads and 230 FDs. Memory is broadly stable over
+these three minutes; this neither establishes nor rules out long-session growth.
+
+Thread turnover occurs in all captures; short-lived `curl` children appear in
+runs 1 and 3. Their command lines were intentionally not captured, so attribution
+to the Wi-Fi probe is not established. Observed-lifetime completeness is false:
+scheduling/process-tree CPU deltas omit unobserved lifetime portions. PSS
+snapshots are still useful descriptive evidence, but the strict comparison tool
+will reject these captures. The live data must not be relabeled complete.
+
+`tools/capture_shell_baseline.py --restart` prepares the next desktop-side step.
+It verifies paused media, desktop IPC and process readability; saves the prior
+process tree and display geometry; stops only the selected shell; waits for its
+exit; cleans up verified owned idle survivors before starting the same installed
+config and checking readiness. It refuses capture if other recorded helpers
+survive. After 30 seconds of settling it collects three
+60-second idle runs in a new private `/tmp/hyprshell-fresh-*` directory. It does
+not edit installed configuration or stop unrelated helpers. Existing reparented
+helpers outside the initial tree still require separate inspection. Media checks
+at capture boundaries do not establish continuous inactivity, and the user must
+keep menus/drawers closed. Ten mocked lifecycle/recovery/preflight tests pass.
+Run inside the Hyprland desktop:
+
+```sh
+python3 tools/capture_shell_baseline.py --restart
+```
+
+The first user-run restart restored the desktop but stopped capture because its
+old `hypridle` child survived the idle backend's exit. The saved parent chain
+establishes ownership by the old shell; the backend's existing single-instance
+check can then reject the new idle daemon. The capture tool originally checked
+for survivors after starting the replacement, which was too late for this case.
+No fresh baseline was produced.
+
+Recovery now accepts `--recover-from /path/to/before-restart.json`. After the
+current shell exits, it checks the saved ancestry, PID start ticks, UID and exact
+`hypridle -c <config>/hyprshell/hypridle.conf` arguments. Only matching idle
+survivors receive SIGTERM through a stable pidfd; unrelated processes are left
+running. Cleanup happens before replacement startup. The desktop is restarted
+even when cleanup fails, but no measurements are collected then. When the saved
+tree contained an idle helper, capture also waits for a new idle descendant;
+`bar.ready` alone is insufficient. The host-side recovery remains to be verified;
+the production idle backend is unchanged.
+
+#### Implementation status — 2026-11-05 continuation
+
+Runtime optimizations remain **blocked on the Phase 0 desktop baseline**, not
+accepted or completed. A second access check returned Quickshell
+`SocketAccessError`, inaccessible Hyprland/media interfaces and a desktop PID
+outside the agent's visible `/proc`. Offscreen Quickshell subprocesses do work.
+No runtime payload, installed copy, sync baseline or local commit was changed.
+
+Independent measurement work completed:
+
+- `tools/measure_shell.py` additionally captures anonymous/file/shared PSS and
+  private clean/dirty memory where the kernel exposes them, plus per-process
+  median PSS for helper ranking. It records process names without command-line
+  arguments. These fields support attribution; they do not identify a retaining
+  object or establish a leak.
+- `tools/profile_app_icons.py` instruments a temporary copy with the production
+  helper disabled, retaining the legacy `FolderListModel` path, the same
+  `Qt.callLater(icons.rebuild)` callback identity and original rebuild body. It
+  records request/rebuild timestamps and callback batch IDs (not global event-loop
+  turn IDs), before/after process trees and source SHA-256. Three final offscreen
+  runs each produced **75 extra threads, 150 extra FDs, 198 requests, 3 rebuilds,
+  75 ready directory models and 1,242 catalog entries**. An earlier set produced
+  3/3/5 rebuilds. Instrumentation affects timing; no first-use CPU or icon-ready
+  latency claim follows from these runs.
+- `tools/compare_shell_measurements.py` screens the Phase 2 absolute PSS and
+  Phase 3 helper PSS thresholds using medians, max–min variation and measurement
+  resolution. It requires at least three matched captures, rejects short or
+  incomplete samples, and reports only a metric pass, never overall acceptance.
+  Scenario equivalence, other resource metrics, plateau/long-session evidence,
+  functional behavior and animation checks still require separate verification.
+- Three isolated wallpaper-helper startup snapshots with empty temporary cache
+  directories measured **6.158, 6.158 and 6.195 MiB PSS**. They are not a live or
+  steady-state baseline. `inotifywait` was not installed; installed Quickshell IO
+  metadata exposes `FileView.watchChanges` but does not establish equivalent
+  recursive directory/recreation coverage. No replacement has been justified.
+
+| Phase / gate | Decision and next required evidence |
+| --- | --- |
+| 0 — baseline and workloads | Incomplete. Need an accessible desktop session, clean baseline, observable-state workload driver and matched idle/playback/interaction captures. `bar.ready` alone does not establish menu state. |
+| 1 — rebuild delay | Not adopted. Existing batching collapses 198 requests to 3–5 callbacks in isolated runs; first-use CPU and latency gates remain unmeasured. |
+| 1 — watcher replacement | Fan-out reproduced in isolation. Still requires the desktop baseline and a prototype with install/remove, theme, icon-file and missing-directory recovery checks before acceptance. |
+| 2 — retained memory | No attributed retaining object. Added memory-category capture; repeated UI workloads and the approximately 22-hour comparison remain pending. |
+| 3 — helper replacement | Retain existing helpers pending live helper ranking and equivalent watcher/recovery evidence. Isolated startup PSS does not authorize a rewrite. |
+| 4 — conditional work | Retain Wi-Fi probing, 30 s wallpaper watchdog, 1024 px palette cap and PipeWire tracking. Activation, equivalence, visual and hotplug gates remain unmeasured. |
+
+Reproduction commands (use fresh artifact filenames; run desktop captures from
+the actual desktop session):
+
+```sh
+python3 tools/profile_app_icons.py --runs 3 --output /tmp/hyprshell-icons.json
+python3 tools/compare_shell_measurements.py --gate phase2-pss \
+  --before /tmp/before-1.json /tmp/before-2.json /tmp/before-3.json \
+  --after /tmp/after-1.json /tmp/after-2.json /tmp/after-3.json
+python3 -m unittest discover -s tests -p test_shell_measurements.py -v
+python3 -m unittest discover -s tests -p test_optimization_tools.py -v
+```
+
+Validation: seven sampler tests and seven optimization-tool tests pass; the native
+frame-timing test and native runtime prerequisite check pass. Those checks do not
+substitute for physical display observations or certify an optimization gain.
+
 For each phase, report changed files, baseline and resulting measurements,
 functional/frame-timing checks, uncertainties, and rollback instructions. Run
 only relevant tests and the required runtime checks; review and deploy matching
@@ -347,11 +679,106 @@ changes, update this audit with the new commit and measured scenarios, retaining
 historical baselines. Stop optimizing a path when remaining cost is intentional
 or no reproducible improvement is demonstrated.
 
+#### Icon catalog watcher replacement — live result — 2026-11-05
+
+The Phase 1 watcher replacement is implemented and live-tested. It keeps the
+original catalog semantics but moves the directory scan and change watching into
+`config/quickshell/helpers/icon-catalog.py`. `AppIcons.qml` starts it only on the
+first unresolved theme lookup, accepts complete version-1 JSON catalogs, preserves
+the original lookup order and themed/generic fallback, and keeps the original
+`Instantiator`/`FolderListModel` set as a startup-failure fallback (5 s silence).
+After a ready helper exits, the last catalog is retained and the helper is retried
+after 30 s. One inotify descriptor covers existing folders, their ancestors for
+missing-directory recovery, and all configured roots; no polling timer was added.
+
+Functional checks:
+- Production helper tests: 5 pass, including initial stream, live create/rewrite/
+  remove, missing directory and recreation, and prototype parity. Prototype
+  catalog tests: 8 pass.
+- QML integration tests: 4 pass, covering lazy activation, live update, source
+  lookup, immediate helper failure, startup timeout fallback and post-ready restart.
+- Full offscreen QML suite: 467 cases pass across 23 files. Launcher popup,
+  launcher routing, themed-app and optimization-tool tests pass.
+- The retained-fallback profiler now forces `useFolderModels` in its temporary
+  copy. One check still reproduced +75 threads, +150 FDs, 75 ready directory
+  models and 1,242 catalog entries, so the legacy reproduction remains meaningful.
+- Live watcher check: creating then removing a temporary PNG in
+  `~/.local/share/icons/hicolor/32x32/apps` increased the running helper's
+  `/proc/<pid>/io` `wchar` by 122,399 then 122,285 bytes. Both events produced a
+  new catalog without restarting the shell; the temporary file was removed.
+
+First-launcher activation, median of three clean restarts:
+
+| Metric | Legacy `FolderListModel` | Icon helper | Difference |
+| --- | ---: | ---: | ---: |
+| Shell thread delta | +74 | −1 | −75 |
+| Shell FD delta | +150 | +4 | −146 |
+| Replacement helper threads / FDs | 0 / 0 | +1 / +5 | +1 / +5 |
+| Shell PSS delta | +25.123 MiB | +10.552 MiB | −14.571 MiB |
+| Helper PSS | 0 | +10.746 MiB | +10.746 MiB |
+| Process-tree PSS delta | +25.123 MiB | +21.210 MiB | −3.913 MiB |
+| Launcher UI-ready median | 0.824 s | 0.886 s | +0.062 s |
+
+The shell-thread count stays at 53 instead of rising to 127, and the shell FD
+count rises from 81 to 85 instead of 85 to 235. Counting the helper, the catalog
+now costs 1 thread and 9 FDs rather than 74 threads and 150 FDs. **The Phase 1
+resource-count gate passes**: it required removal of at least 70 threads and 140
+FDs from the documented 75/~150 overhead, counting replacements.
+
+Memory is **not** an accepted gain. The process-tree delta fell from 25.123 to
+21.210 MiB (median), but that 3.913 MiB improvement is below twice the larger
+max–min variation (6.788 MiB) and below 5 MiB. Shell-only PSS fell while the
+helper gained 10.746 MiB; only the process-tree figure is comparable. No leak or
+settled-memory improvement is claimed.
+
+The launcher UI-ready median rose 0.062 s, below twice the larger activation
+variation (0.366 s), so no repeatable latency regression is established. These
+are command-to-UI-ready timings, not first-miss CPU or icon-ready latency; the
+latter was not measured.
+
+The matched fresh workload used `tools/run_shell_workload.py` with 20 launcher
+opens and closes, one display, paused media and unchanged probe/settings hashes;
+the report completed and restored the UI. The legacy artifact is
+`/tmp/opencode/workload-before-icons.json`; the helper artifact is
+`/tmp/opencode/workload-after-icons.json`.
+
+| Launcher block | Legacy | Icon helper | Difference |
+| --- | ---: | ---: | ---: |
+| Shell PSS before → settled | 168.945 → 194.352 MiB | 167.242 → 175.655 MiB | +25.407 vs +8.413 MiB |
+| Process-tree PSS before → settled | 201.267 → 226.673 MiB | 186.133 → 205.200 MiB | +25.406 vs +19.067 MiB |
+| Maximum shell threads | 128 | 53 | −75 |
+| Maximum shell FDs | 235 | 85 | −150 |
+| Helper threads / FDs after activation | 0 / 0 | 1 / 5 | +1 / +5 |
+| First open command-to-settled | 1.188 s | 1.225 s | +0.037 s |
+| Median open command-to-settled | 1.179 s | 1.205 s | +0.026 s |
+
+The legacy workload ran in the long-session shell that still had `backend.py
+--idle` and `hypridle` descendants; the fresh helper run did not. Those extra
+processes were constant across the launcher before/after snapshots, so the shell
+columns and the tree delta remain the relevant comparison, but the absolute tree
+levels are not matched. The single-run workload tree delta of 19.067 MiB is also
+below the variation gate and is not used as a memory acceptance result.
+
+Launcher-open frame captures contained 1,045 intervals versus 1,072 legacy, with
+median p99 165.5 ms versus 164.0 ms and 155/1,045 versus 143/1,072 intervals over
+1.5 frame budgets. Capture windows include settling and are not a matched animation
+gate. **Visual smoothness was not observed by a person in this run**, so no visual
+or animation acceptance claim is made.
+
+Rollback remains checkpoint `20261105T045623Z-30jh0vj7` plus a shell restart. The
+live/repo `AppIcons.qml` and helper payloads match, and the sync baseline is
+advanced only for those two paths.
+
 ## Open optimization targets
 
 Ranked by measured impact and risk. Treat all as hypotheses until reproduced.
 
 ### 1. Icon catalog fan-out — highest leverage
+
+**Status (2026-11-05).** The watcher replacement is implemented and live-tested;
+the thread/FD gate passes, while memory, latency and visual claims remain
+inconclusive. See “Icon catalog watcher replacement — live result” above. The
+rebuild-coalescing question and any retained-memory attribution remain open.
 
 **Evidence.** The first call to `AppIcons.source()` that misses the theme lookup
 activates 75 `FolderListModel` delegates: 5 data roots × (8 hicolor sizes +

@@ -10,8 +10,10 @@ QtObject {
     property string captureId: ""
     property var samples: ({})
     property var previous: ({})
-    function start(seconds) {
+    property real frameBudgetMs: 1000 / 60
+    function start(seconds, refreshHz) {
         if (recording) return false;
+        frameBudgetMs = 1000 / (Number.isFinite(refreshHz) && refreshHz > 0 ? refreshHz : 60);
         captureId = Date.now().toString() + "-" + Math.random().toString(36).slice(2);
         samples = ({});
         previous = ({});
@@ -43,7 +45,11 @@ QtObject {
             let sorted = row.intervals.slice().sort((a,b) => a-b);
             let percentile = p => sorted.length ? sorted[Math.ceil(p * sorted.length) - 1] : null;
             result[key] = {intervals: sorted.length, median_ms: percentile(0.5),
-                p95_ms: percentile(0.95), max_ms: sorted.length ? sorted[sorted.length-1] : null,
+                p95_ms: percentile(0.95), p99_ms: percentile(0.99),
+                frame_budget_ms: frameBudgetMs,
+                over_1_5_budget: sorted.filter(value => value > 1.5 * frameBudgetMs).length,
+                fraction_over_1_5_budget: sorted.length ? sorted.filter(value => value > 1.5 * frameBudgetMs).length / sorted.length : null,
+                max_ms: sorted.length ? sorted[sorted.length-1] : null,
                 gaps_over_250ms: row.idleGaps, samples_over_limit: row.dropped};
         }
         return result;
