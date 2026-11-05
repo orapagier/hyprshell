@@ -185,7 +185,9 @@ language rewrite are excluded from this plan. This section defines future work;
 the historical measurements above do not establish a new baseline or completed
 results.
 
-Execute phases in order. Each implementation is a separate checkpointed,
+Complete Phase 0 first, then reassess priority. Icon fan-out is the default first
+code change; move Phase 2 attribution ahead of it if baseline evidence makes
+memory the dominant concern. Each implementation is a separate checkpointed,
 measured change using the safe workflow below. Do not bundle unrelated changes.
 
 ### Phase 0 — reproducible baseline and acceptance criteria
@@ -194,10 +196,20 @@ measured change using the safe workflow below. Do not bundle unrelated changes.
    enabled features, process tree, and session age. Restart cleanly and check
    for old helper processes using the documented procedure.
 2. Sample idle CPU for 60–300 seconds, three times. Record shell and helper PSS
-   separately, total process-tree PSS, threads, FDs, and available wakeup/context
-   switch evidence. RSS is supporting evidence, not the memory acceptance metric.
+   separately, total process-tree PSS, threads, and FDs. Collect deltas from
+   `/proc/<pid>/task/<tid>/status` voluntary/nonvoluntary context-switch counters
+   and, where available, `/proc/<pid>/task/<tid>/schedstat` runtime, run-queue wait,
+   and timeslice counters for shell and helper threads. Track thread/process
+   creation and exit; mark incomplete samples. These are scheduling proxies, not
+   direct wakeup counts; process-leader counters alone miss other threads.
+   RSS is supporting evidence, not the memory acceptance metric.
 3. Repeat with playback and a fixed interaction sequence: launcher open/close
    20 times, Settings 10 times, then each drawer and representative menus.
+   Build a workload driver using verified Quickshell IPC and hyprctl interfaces;
+   record the exact menu list, action order, dwell times, readiness assertions,
+   timeouts, and settling interval. Wait for observable state and fail on timeout
+   rather than relying only on sleeps. Use the same driver and fixtures before
+   and after, restore initial UI state, and isolate measurement-driver overhead.
    Record first icon-miss cost separately from subsequent opens.
 4. Capture frame-swap intervals with opt-in FrameTiming during the same animations
    before and after each UI-affecting change. Compare median, p95/p99, and long
@@ -208,16 +220,44 @@ measured change using the safe workflow below. Do not bundle unrelated changes.
    other resource metrics have no unexplained material regression, and functional
    and animation checks pass. An inconclusive result is not a demonstrated gain.
 
-Deliverable: a baseline table and repeatable workload, including helper costs.
-Do not invent an absolute memory target or promise savings before attribution.
+Use these initial decision gates; they are project acceptance policies, not
+predicted savings or statistical confidence guarantees:
+
+- Report median of at least three matched runs. Define variation as max minus min
+  within each set; require improvement greater than twice the larger before/after
+  variation and above measurement resolution. Extend noisy/borderline cases to at
+  least five runs and longer sampling; unresolved results remain inconclusive.
+- Phase 1 batching: target at least 20% lower first-miss CPU time plus the variation
+  gate. Record rebuild counts and icon-ready latency; reject a repeatable latency
+  regression beyond baseline variation. Skip the timer if this cannot be achieved.
+- Phase 1 watcher replacement: target removal of at least 70 catalog-attributed
+  threads and 140 FDs from the documented 75/~150 overhead, counting replacement
+  helpers too. Rebase these targets if Phase 0 finds a different fan-out. Report
+  PSS/CPU separately; resource-count success does not prove memory savings.
+- Phase 2 fixes: require at least 5 MiB lower settled process-tree PSS or at least
+  20% lower reproduced per-cycle growth, plus the variation gate. A growth fix
+  must also demonstrate a bounded plateau over repeated workload blocks.
+- Phase 3 replacements: require at least 5 MiB and 25% lower helper-tree PSS,
+  plus the variation gate, without a reproducible CPU or responsiveness regression.
+  If baseline helper PSS leaves insufficient room, skip a memory-driven rewrite.
+- For animations, record display frame budget T (16.67 ms at 60 Hz), sample count,
+  p95/p99 intervals, and fraction exceeding 1.5T during active animations. Compare
+  identical animation windows; reject repeatable regressions beyond baseline
+  variation or any visible stutter. Short samples cannot establish tail latency.
+
+Deliverable: baseline artifacts, workload driver, and a recorded go/no-go decision
+for each applicable gate. If a gate needs revision, document the reason before
+implementation rather than relaxing it after seeing an unfavorable result.
 
 ### Phase 1 — eliminate icon catalog redundant work and watcher fan-out
 
-1. Instrument catalog activation and rebuild counts. Reproduce a first theme
-   lookup miss and confirm the thread/FD increase before editing.
-2. Coalesce rebuild signals with a short single-shot timer; verify that initial
-   discovery and later icon changes still settle promptly. Measure rebuild count,
-   first-miss CPU, and visible icon latency before proceeding.
+1. Reproduce a first theme lookup miss and confirm the thread/FD increase before
+   editing. Instrument signal requests, actual rebuilds, timestamps, and event-loop
+   turns. Existing `Qt.callLater(icons.rebuild)` already coalesces requests within
+   a turn; distinguish those requests from rebuilds across asynchronous load turns.
+2. Trial a short single-shot timer only if cross-turn rebuilds are significant.
+   Measure rebuild count, first-miss CPU, and icon-ready latency; preserve prompt
+   initial discovery and live updates. Skip the delay if it fails the Phase 0 gate.
 3. Replace the persistent per-directory model fan-out with a bounded scan and
    cached catalog if measurements confirm the documented cost. Define and test
    invalidation for application installs/removals, theme changes, and icon-file
@@ -233,7 +273,8 @@ alone as eliminating the steady-state cost.
 
 ### Phase 2 — attribute and reduce retained memory
 
-1. After Phase 1, establish a fresh baseline. Run each Phase 0 workload separately
+1. Establish a fresh baseline at the chosen priority point (repeat it after any
+   intervening code change). Run each Phase 0 workload separately
    and measure settled PSS after each block; repeat blocks to distinguish bounded
    cache warm-up from continuing retention.
 2. Include wallpaper switches, notification history, and playback start/stop.
@@ -252,10 +293,16 @@ unattributed growth a leak or impose a notification retention limit.
 
 ### Phase 3 — selective persistent-helper optimization
 
-1. Rank helpers by measured PSS, CPU, wakeups, and restart frequency. Measure
+1. Rank helpers by measured PSS, CPU, scheduling activity, and restart frequency. Measure
    enabled feature scenarios explicitly; an inactive helper is not free when used.
 2. Evaluate the wallpaper event bridge first if interpreter memory is material.
-   Prototype a small native helper only when there is a measurable opportunity;
+   Check the installed Quickshell API and existing dependencies for a consolidated
+   watcher or an existing event bridge (for example inotifywait) before writing a
+   native helper. Verify recursion, replacement/recreation handling, output parsing,
+   and failure recovery; include dependencies and all child processes in costs.
+   This is not a Bash migration and must not introduce shell polling loops.
+   Prototype a small native helper only when simpler options are unsuitable and
+   baseline PSS leaves room to meet the Phase 0 replacement gate;
    choose Rust or C/C++ according to integration and maintenance needs, not a
    blanket language migration. Preserve its protocol, event-driven waiting,
    cache/socket recreation handling, retries, and fallback behavior.
@@ -313,17 +360,19 @@ process has 75 `FileInfoThread`s and roughly 150 extra inotify/eventfd
 descriptors for the rest of the session. At 22 h: 121 threads / 230 FDs versus
 45 / 75 at a fresh start.
 
-**Second issue.** Every delegate can call `icons.rebuild()` on `statusChanged`,
-`countChanged`, and object creation. `rebuild()` scans every folder and every
-entry. During the initial asynchronous load this can rebuild the whole catalog
-many times. A ~2.36 s CPU burst was observed around the time the catalog
+**Second issue.** Every delegate schedules `icons.rebuild()` through
+`Qt.callLater` on `statusChanged`, `countChanged`, and object creation. This
+already coalesces same-turn requests, but not requests across asynchronous load
+turns. `rebuild()` scans every folder and every entry. During the initial
+asynchronous load this can rebuild the whole catalog many times. A ~2.36 s CPU burst was observed around the time the catalog
 appeared; attribution is plausible but not instrumented.
 
 **Options, least invasive first:**
 
 1. Coalesce rebuilds with one short single-shot timer (for example 200–500 ms)
-   instead of rebuilding per delegate signal. Keeps live icon updates and the
-   existing model structure.
+   only if instrumentation shows redundant rebuilds across event-loop turns.
+   Existing `Qt.callLater` already batches same-turn signals. Check icon-ready
+   latency; keep live icon updates and the existing model structure.
 2. Build the catalog in one scan (a small helper or one `FolderListModel` pass),
    cache it, and re-scan only when `DesktopEntries.applications` changes.
 3. Tear down the `Instantiator` once the catalog is stable and re-arm it on
