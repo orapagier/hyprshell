@@ -175,6 +175,131 @@ Note that the 1024 px palette cap preserves Canvas output sizes and leaves the
 800 px test fixture at full decode; it is a decode-working-copy reduction, not a
 rendering change.
 
+## Concrete implementation plan
+
+**Objective:** reduce total Hyprshell CPU use, wakeups, and proportional memory
+while preserving every feature, visual effect, animation cadence, and interaction
+behavior. Keep Quickshell/QML and existing Python/JavaScript unless a measured
+component warrants a targeted replacement. Bash migration and a whole-shell
+language rewrite are excluded from this plan. This section defines future work;
+the historical measurements above do not establish a new baseline or completed
+results.
+
+Execute phases in order. Each implementation is a separate checkpointed,
+measured change using the safe workflow below. Do not bundle unrelated changes.
+
+### Phase 0 — reproducible baseline and acceptance criteria
+
+1. Record checkout, live/repo differences, display configuration, media state,
+   enabled features, process tree, and session age. Restart cleanly and check
+   for old helper processes using the documented procedure.
+2. Sample idle CPU for 60–300 seconds, three times. Record shell and helper PSS
+   separately, total process-tree PSS, threads, FDs, and available wakeup/context
+   switch evidence. RSS is supporting evidence, not the memory acceptance metric.
+3. Repeat with playback and a fixed interaction sequence: launcher open/close
+   20 times, Settings 10 times, then each drawer and representative menus.
+   Record first icon-miss cost separately from subsequent opens.
+4. Capture frame-swap intervals with opt-in FrameTiming during the same animations
+   before and after each UI-affecting change. Compare median, p95/p99, and long
+   frame counts; report that these measure swap intervals, not GPU render time.
+   Disable observers afterward. Verify visually on the live desktop as well.
+5. Retain before/after artifacts with scenario and commands. Accept a change only
+   when its intended metric improves reproducibly beyond baseline variation,
+   other resource metrics have no unexplained material regression, and functional
+   and animation checks pass. An inconclusive result is not a demonstrated gain.
+
+Deliverable: a baseline table and repeatable workload, including helper costs.
+Do not invent an absolute memory target or promise savings before attribution.
+
+### Phase 1 — eliminate icon catalog redundant work and watcher fan-out
+
+1. Instrument catalog activation and rebuild counts. Reproduce a first theme
+   lookup miss and confirm the thread/FD increase before editing.
+2. Coalesce rebuild signals with a short single-shot timer; verify that initial
+   discovery and later icon changes still settle promptly. Measure rebuild count,
+   first-miss CPU, and visible icon latency before proceeding.
+3. Replace the persistent per-directory model fan-out with a bounded scan and
+   cached catalog if measurements confirm the documented cost. Define and test
+   invalidation for application installs/removals, theme changes, and icon-file
+   changes, including changes that do not alter DesktopEntries. Use consolidated
+   event watching where needed; do not silently discard live update behavior.
+4. Preserve lookup order, absolute paths, generic fallback, launcher/dock icons,
+   and missing-directory recovery. Use the application and launcher checks listed
+   under target 1 plus a live install/remove or equivalent controlled fixture.
+
+Deliverable: measured reduction in rebuild work and persistent catalog threads/
+FDs, with correct first-use and live-update behavior. Do not count lazy activation
+alone as eliminating the steady-state cost.
+
+### Phase 2 — attribute and reduce retained memory
+
+1. After Phase 1, establish a fresh baseline. Run each Phase 0 workload separately
+   and measure settled PSS after each block; repeat blocks to distinguish bounded
+   cache warm-up from continuing retention.
+2. Include wallpaper switches, notification history, and playback start/stop.
+   Record history size so intentional retained notifications are not mistaken
+   for a leak. Separate anonymous/private growth from file-backed mappings where
+   the available tools permit it.
+3. Identify a specific retaining object, cache, image buffer, or lifecycle path
+   before changing it. Release unnecessary transient objects or duplicate decoded
+   data while preserving instant-opening surfaces and image quality.
+4. Repeat the triggering workload, then perform a comparable long-session check
+   (approximately 22 hours for comparison with the historical observation).
+
+Deliverable: attributed growth and before/after repeated-workload measurements.
+If memory plateaus as an intentional cache, document that result; do not label
+unattributed growth a leak or impose a notification retention limit.
+
+### Phase 3 — selective persistent-helper optimization
+
+1. Rank helpers by measured PSS, CPU, wakeups, and restart frequency. Measure
+   enabled feature scenarios explicitly; an inactive helper is not free when used.
+2. Evaluate the wallpaper event bridge first if interpreter memory is material.
+   Prototype a small native helper only when there is a measurable opportunity;
+   choose Rust or C/C++ according to integration and maintenance needs, not a
+   blanket language migration. Preserve its protocol, event-driven waiting,
+   cache/socket recreation handling, retries, and fallback behavior.
+3. Compare the complete process tree, including any replacement child commands.
+   Adopt the prototype only if it passes the acceptance criteria and existing
+   wallpaper watcher checks plus live recovery checks.
+4. Evaluate lid/idle watchers separately only if remaining measurements justify
+   it. Test lid policy, AC/battery transitions, timer resets, suspend/resume, and
+   locker handoff. Keep process separation unless a measured consolidation gain
+   justifies the larger failure domain and all behavior can be preserved.
+
+Deliverable: one justified helper change at a time, or a documented decision to
+retain existing helpers. Keep short-lived settings/install scripts and in-process
+QML JavaScript unless profiling identifies a relevant cost. Do not move UI logic
+into external command processes or replace event subscriptions with polling.
+
+### Phase 4 — conditional lower-priority work
+
+- Verify Wi-Fi probe activation first. Evaluate NetworkManager connectivity state
+  only if it provides equivalent online/offline semantics and freshness; preserve
+  the icon and tooltip and test disconnect/reconnect and captive-network behavior.
+- Profile wallpaper query wakeups. Prefer equivalent event coverage; retain the
+  existing watchdog interval if increasing it would slow uncached-change detection.
+- Revisit palette decoding only for measured remaining image-memory cost. Require
+  the existing 62 checks and visual comparisons; retain the current cap if smaller
+  decodes change contrast, extrema, or appearance.
+- Narrow PipeWire tracking only if a profile identifies it as significant and
+  hotplug, mpv/non-MPRIS playback, silent playback, and stream transitions remain
+  correct. Otherwise leave it intact.
+
+Deliverable: measured, behavior-preserving changes only. A responsiveness or
+visual tradeoff requires separate user authorization and is not part of this plan.
+
+### Completion and reporting
+
+For each phase, report changed files, baseline and resulting measurements,
+functional/frame-timing checks, uncertainties, and rollback instructions. Run
+only relevant tests and the required runtime checks; review and deploy matching
+payload changes, advance the sync baseline, and commit as described below.
+Documentation-only edits require no live deployment or restart. After accepted
+changes, update this audit with the new commit and measured scenarios, retaining
+historical baselines. Stop optimizing a path when remaining cost is intentional
+or no reproducible improvement is demonstrated.
+
 ## Open optimization targets
 
 Ranked by measured impact and risk. Treat all as hypotheses until reproduced.
