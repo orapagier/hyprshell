@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Window
+import QtQuick.Window as QtWindow
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell
@@ -110,11 +110,22 @@ PanelWindow {
             surfaceVisible: backingWindowVisible, pageReady: !!section && loaded,
             settled: Math.abs(animatedWidth - targetWidth) < 0.5 && Math.abs(animatedHeight - targetHeight) < 0.5};
     }
+    function closeDockPopups(item) {
+        // Popup contents move to the overlay; traverse their QObject ownership
+        // as well as their content items so nested menus close in one action.
+        for (let child of item.data || []) {
+            if (child instanceof Popup) {
+                closeDockPopups(child.contentItem);
+                child.close();
+            } else if (child instanceof Item) closeDockPopups(child);
+        }
+    }
     function dismissWithEscape() {
         // Do not reopen under a stationary pointer as the surface shrinks.
         hoverDismissed = cardHover.hovered;
         collapseDelay.stop();
         dockState.leave(dockState.hoveredMenu);
+        closeDockPopups(contentItem);
         collapse();
     }
     function activateWorkspace(id) {
@@ -287,7 +298,7 @@ PanelWindow {
             sequence: "Escape"
             // Application scope also reaches focused popups in the overlay.
             context: Qt.ApplicationShortcut
-            enabled: dock.available && dock.expanded && card.Window.active
+            enabled: dock.available && dock.expanded && card.QtWindow.Window.active
             onActivated: dock.dismissWithEscape()
         }
         AttachedPanelSurface {
@@ -330,7 +341,7 @@ PanelWindow {
             Keys.onUpPressed: event => { focusNext(false); event.accepted = true; }
             Keys.onDownPressed: event => { focusNext(true); event.accepted = true; }
             function focusNext(forward) {
-                let current = Window.window?.activeFocusItem || strip;
+                let current = strip.QtWindow.Window.window?.activeFocusItem || strip;
                 let next = current.nextItemInFocusChain(forward);
                 if (next) next.forceActiveFocus();
             }
@@ -575,7 +586,7 @@ PanelWindow {
             // Only track for windows with autofocus search bars
             if (!["launcher", "keybindings", "settings"].includes(dock.section)) return;
             // Check if focus moved outside dock content
-            let activeItem = card.Window.window?.activeFocusItem;
+            let activeItem = card.QtWindow.Window.window?.activeFocusItem;
             let focusInsideDock = false;
             if (activeItem) {
                 try {
@@ -597,7 +608,7 @@ PanelWindow {
         }
     }
     Connections {
-        target: card.Window.window
+        target: card.QtWindow.Window.window
         function onActiveFocusItemChanged() { dock.scheduleFocusCheck(); }
     }
     function scheduleFocusCheck() {

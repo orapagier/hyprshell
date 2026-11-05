@@ -34,7 +34,7 @@ ShellRoot {
     SettingsStore { id: store }
     DesktopServices { id: services }
     NotificationInbox { id: inbox; preferences: store.config.notifications }
-    ApplicationService { id: apps; store: store }
+    ApplicationService { id: apps; store: store; entries: []; windows: [] }
     SettingsController { id: editor; store: store; dockEnabled: true; dockResolver: () => dock.prepareSettings() }
     Hyprdock { id: dock; store: store; services: services; inbox: inbox; applicationService: apps; settingsController: editor; motionEnabled: false }
     TestCase { id: keys; name: "DockEscapeDriver"; when: false }
@@ -134,8 +134,16 @@ ShellRoot {
                 // A focused popup lives in the window overlay, outside the card.
                 dock.open("settings", true); keys.wait(200);
                 let popup = Qt.createQmlObject('import QtQuick; import QtQuick.Controls.Basic; Popup { width: 100; height: 80; focus: true; closePolicy: Popup.CloseOnEscape; TextField { focus: true } }', strip);
+                strip.data.push(popup);
                 popup.open(); keys.wait(100);
-                test.pressEscape("settings popup");
+                let nested = Qt.createQmlObject('import QtQuick; import QtQuick.Controls.Basic; Popup { width: 60; height: 40; focus: true; closePolicy: Popup.NoAutoClose; TextField { focus: true } }', popup.contentItem);
+                popup.contentItem.data.push(nested);
+                nested.open(); keys.wait(100);
+                test.pressEscape("nested settings popup");
+                test.check(!popup.visible && !nested.visible, "all nested popups close in one Escape");
+                dock.open("settings", true); keys.wait(200);
+                test.check(!popup.visible && !nested.visible, "closed popups stay closed when dock reopens");
+                test.pressEscape("reopened settings after nested popup");
                 popup.destroy();
                 test.check(!editor.window || !editor.window.dockOpened, "embedded settings releases host");
                 console.log("DOCK_ESCAPE_OK"); Qt.quit();
