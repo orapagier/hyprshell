@@ -32,7 +32,7 @@
     "spacing": 8,
     "compactSpacing": 2,
     "centerItems": false,
-    "dockEnabled": false,
+    "dockEnabled": true,
     "dockTransparency": 0,
     "edgeAttached": true,
     "autoHide": false,
@@ -415,7 +415,11 @@
     "blurInputMethods": true,
     "gapsOut": 10,
     "blurBrightness": 0,
-    "blurNoise": 0
+    "blurNoise": 0,
+    "gapsOutTop": 5,
+    "gapsOutBottom": 5,
+    "gapsOutRight": 5,
+    "gapsOutLeft": 5
   },
   "locking": {
     "enabled": true,

@@ -6,6 +6,7 @@ Item {
     property string sinkName: ""
     enabled: false
     property var levels: Array(12).fill(0)
+    property bool stopping: false
     readonly property bool wanted: enabled && sinkName.length > 0
     readonly property string helper: decodeURIComponent(Qt.resolvedUrl("helpers/audio-spectrum").toString().replace(/^file:\/\//, ""))
     function validFrame(frame) {
@@ -19,11 +20,16 @@ Item {
         if (frame.some((value, index) => value !== levels[index])) levels = frame;
     }
     function restart() {
-        capture.running = false;
-        levels = Array(12).fill(0);
-        reconnect.interval = 100;
-        if (wanted) reconnect.restart();
-        else reconnect.stop();
+        if (wanted) {
+            if (stopping) return;
+            reconnect.interval = 100;
+            reconnect.restart();
+        } else {
+            stopping = true;
+            capture.running = false;
+            levels = Array(12).fill(0);
+            reconnect.stop();
+        }
     }
     onSinkNameChanged: Qt.callLater(restart)
     onWantedChanged: restart()
@@ -47,6 +53,7 @@ Item {
         }
         stderr: StdioCollector {}
         onExited: {
+            spectrum.stopping = false;
             spectrum.levels = Array(12).fill(0);
             // Output changes restart promptly; a lost audio server retries gently.
             if (spectrum.wanted && !reconnect.running) {
