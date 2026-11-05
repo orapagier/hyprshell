@@ -15,6 +15,6 @@ effect = "shooting_stars"
 
 [workspace_overrides]
 1 = false
-2 = false
+2 = true
 3 = false
 4 = false

@@ -145,6 +145,18 @@ ColumnLayout {
             resetDescription: "Restore opaque dark windows (0%)"
             onEdited: value => root.edited("dockTransparency", value === "" ? 0 : value / 100)
         }
+        SettingsSwitch {
+            Layout.fillWidth: true
+            objectName: "dockLiquidGlassControl"
+            text: "Liquid glass effect"
+            checked: root.settings.dockLiquidGlass === true
+            onToggled: root.edited("dockLiquidGlass", checked)
+        }
+        Label {
+            Layout.fillWidth: true
+            text: "Enable animated specular highlights, subtle noise grain, and dynamic gradient shifts for a liquid glass appearance."
+            wrapMode: Text.WordWrap; color: Style.SettingsTheme.muted; font.pixelSize: Style.SettingsTheme.captionSize
+        }
         SettingsBackgroundControl {
             objectName: "fullBackgroundControl"
             Layout.fillWidth: true

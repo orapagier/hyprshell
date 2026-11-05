@@ -17,6 +17,7 @@
     "centerItems": false,
     "dockEnabled": false,
     "dockTransparency": 0,
+    "dockLiquidGlass": false,
     "edgeAttached": false,
     "autoHide": false,
     "uniformItems": true,

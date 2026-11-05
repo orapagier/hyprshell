@@ -8,6 +8,8 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "SettingsModel.js" as Model
+import QtQuick 2.0
+import "LiquidGlassSurface.qml"
 
 PanelWindow {
     id: dock
@@ -184,14 +186,53 @@ PanelWindow {
         }
     }
     Timer { id: collapseDelay; interval: 350; onTriggered: { if (!cardHover.hovered && !dockState.pinned && !dock.section) dock.collapse(); } }
-    GlassSurface {
+    Item {
         id: glass
         objectName: "dockGlass"
-        wallpaperSource: dock.wallpaperSource
-        screenWidth: dock.width; screenHeight: dock.height
-        region: dock.surfaceRect
-        cacheFullWallpaper: true
-        translucency: dock.store.panelConfig.bar.dockTransparency ?? 0
+        property url wallpaperSource: dock.wallpaperSource
+        property real screenWidth: dock.width
+        property real screenHeight: dock.height
+        property rect region: dock.surfaceRect
+        property bool cacheFullWallpaper: true
+        property real translucency: dock.store.panelConfig.bar.dockTransparency ?? 0
+        property color accent: "#b4befe"
+        readonly property color sample: glassSurface.sample
+        readonly property var menuColors: glassSurface.menuColors
+        readonly property color base: glassSurface.base
+        readonly property color topColor: glassSurface.topColor
+        readonly property color bottomColor: glassSurface.bottomColor
+        readonly property color middleColor: glassSurface.middleColor
+        readonly property color rimColor: glassSurface.rimColor
+
+        GlassSurface {
+            id: glassSurface
+            wallpaperSource: glass.wallpaperSource
+            screenWidth: glass.screenWidth
+            screenHeight: glass.screenHeight
+            region: glass.region
+            cacheFullWallpaper: glass.cacheFullWallpaper
+            translucency: glass.translucency
+            accent: glass.accent
+        }
+
+        LiquidGlassSurface {
+            id: liquidGlassSurface
+            wallpaperSource: glass.wallpaperSource
+            screenWidth: glass.screenWidth
+            screenHeight: glass.screenHeight
+            region: glass.region
+            cacheFullWallpaper: glass.cacheFullWallpaper
+            translucency: glass.translucency
+            accent: glass.accent
+            enabled: dock.store.panelConfig.bar.dockLiquidGlass ?? false
+            highlightIntensity: 0.12
+            noiseOpacity: 0.025
+            animationSpeed: 1.0
+            x: glass.region.x
+            y: glass.region.y
+            width: glass.region.width
+            height: glass.region.height
+        }
     }
     Item {
         id: interaction
@@ -214,6 +255,20 @@ PanelWindow {
                     if (dock.keyboardSession && dock.section && !headerPointer.running && !dockState.dismissInhibited)
                         keyboardLeaveDelay.restart();
                 }
+            }
+        }
+        // Track mouse position for liquid glass highlight effect
+        MouseArea {
+            id: liquidGlassTracker
+            anchors.fill: parent
+            hoverEnabled: true
+            onPositionChanged: {
+                if (glass.liquidGlassSurface && glass.liquidGlassSurface.enabled)
+                    glass.liquidGlassSurface.updateHighlightPosition(mouse.x + interaction.x, mouse.y + interaction.y)
+            }
+            onEntered: {
+                if (glass.liquidGlassSurface && glass.liquidGlassSurface.enabled)
+                    glass.liquidGlassSurface.updateHighlightPosition(mouse.x + interaction.x, mouse.y + interaction.y)
             }
         }
     }
@@ -395,7 +450,7 @@ PanelWindow {
                                 visible: shortcutIcon.button.modelData.name !== "settings"
                                 color: dock.itemColor(shortcutIcon.button.modelData.name)
                                 font: shortcutMetrics.font
-                                scale: 16 / Math.max(1, shortcutMetrics.tightBoundingRect.height)
+                                scale: (shortcutIcon.button.modelData.name === "dashboard" ? 14 : 16) / Math.max(1, shortcutMetrics.tightBoundingRect.height)
                                 transformOrigin: Item.TopLeft
                                 x: (parent.width - shortcutMetrics.tightBoundingRect.width * scale) / 2 - shortcutMetrics.tightBoundingRect.x * scale
                                 y: (parent.height - shortcutMetrics.tightBoundingRect.height * scale) / 2 - (baselineOffset + shortcutMetrics.tightBoundingRect.y) * scale
@@ -411,6 +466,7 @@ PanelWindow {
                             Grid {
                                 anchors.centerIn: parent
                                 visible: shortcutIcon.button.modelData.name === "launcher"
+                                scale: 14 / 16
                                 columns: 3; spacing: 2
                                 Repeater { model: 9; Rectangle { required property int index; width: 4; height: 4; radius: 2; color: dock.itemColor("launcher") } }
                             }
