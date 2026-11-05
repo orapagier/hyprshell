@@ -457,6 +457,11 @@ ShellRoot {
         function dashboard(): void { shell.toggleDashboard(); }
         function restoreDesktop(): void { applications.desktop.run('restore'); }
         function ready(): bool {
+            if (shell.dockEnabled) {
+                if (docks.instances.length === 0) return false;
+                for (let dock of docks.instances) if (dock.available && !dock.backingWindowVisible) return false;
+                return true;
+            }
             if (panels.instances.length === 0) return false;
             for (let panel of panels.instances) if (panel.shown && !panel.backingWindowVisible) return false;
             return true;
@@ -506,18 +511,21 @@ ShellRoot {
         }
         function toggleMenu(name: string): void {
             if (!["calendar", "notifications", "audio", "wifi", "bluetooth", "battery", "power", "launcher"].includes(name)) return;
+            if (shell.dockEnabled) { shell.focusedDock()?.open(name, true); return; }
             let focused = Hyprland.focusedMonitor;
             let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || (panels.instances.length ? panels.instances[0] : null);
             for (let other of panels.instances) if (other !== panel) other.closeMenu();
             if (panel) panel.toggleMenu(name);
         }
         function toggleKeybindings(): void {
+            if (shell.dockEnabled) { shell.focusedDock()?.open("keybindings", true); return; }
             let focused = Hyprland.focusedMonitor;
             let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || (panels.instances.length ? panels.instances[0] : null);
             for (let other of panels.instances) if (other !== panel) other.closeMenu();
             if (panel) panel.toggleKeybindings();
         }
         function toggleLauncher(): void {
+            if (shell.dockEnabled) { shell.focusedDock()?.open("launcher", true); return; }
             let focused = Hyprland.focusedMonitor;
             let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || (panels.instances.length ? panels.instances[0] : null);
             for (let other of panels.instances) if (other !== panel) other.closeMenu();
