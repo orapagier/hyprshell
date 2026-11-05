@@ -63,11 +63,11 @@ PanelWindow {
     // The strip stays centered on the output, independent of the content width.
     readonly property real stripLength: Math.min(vertical ? height : width, naturalLength + 200)
     readonly property real targetWidth: Math.min(width, vertical
-        ? (section ? contentWidth + stripSize + 24 : expanded ? stripSize : 24)
-        : expanded ? Math.max(stripLength, section ? contentWidth + 32 : 0) : compactLength)
+        ? (section ? contentWidth + stripSize + 40 : expanded ? stripSize : 24)
+        : expanded ? Math.max(stripLength, section ? contentWidth + 40 : 0) : compactLength)
     readonly property real targetHeight: Math.min(height, vertical
         ? expanded ? Math.max(stripLength, section ? contentHeight + 40 : 0) : compactLength
-        : section ? contentHeight + stripSize + 28 : expanded ? stripSize : 22)
+        : section ? contentHeight + stripSize + 40 : expanded ? stripSize : 22)
     property real animatedWidth: targetWidth
     property real animatedHeight: targetHeight
     readonly property rect targetRect: Qt.rect(
@@ -422,10 +422,10 @@ PanelWindow {
         Item {
             id: body
             objectName: "hyprdockBody"
-            x: dock.edge === "left" ? dock.stripSize + 8 : 20
-            y: dock.edge === "top" ? dock.stripSize + 8 : 20
-            width: Math.max(1, card.width - (dock.vertical ? dock.stripSize + 28 : 40))
-            height: Math.max(1, card.height - (dock.vertical ? 40 : dock.stripSize + 28))
+            x: dock.edge === "left" ? dock.stripSize + 20 : 20
+            y: dock.edge === "top" ? dock.stripSize + 20 : 20
+            width: Math.max(1, card.width - (dock.vertical ? dock.stripSize + 40 : 40))
+            height: Math.max(1, card.height - (dock.vertical ? 40 : dock.stripSize + 40))
             visible: dock.section.length > 0
             clip: true
             ColumnLayout {
@@ -461,8 +461,8 @@ PanelWindow {
                         clip: true
                         // Lay out the editor at its destination size once;
                         // the animated viewport clips it into view.
-                        contentWidth: Math.max(760, dock.targetWidth - (dock.vertical ? dock.stripSize + 28 : 40))
-                        contentHeight: Math.max(1, dock.targetHeight - (dock.vertical ? 40 : dock.stripSize + 28)
+                        contentWidth: Math.max(760, dock.targetWidth - (dock.vertical ? dock.stripSize + 40 : 40))
+                        contentHeight: Math.max(1, dock.targetHeight - (dock.vertical ? 40 : dock.stripSize + 40)
                             - headingRow.implicitHeight - 10 - (popupLoader.active ? popupLoader.Layout.preferredHeight + 10 : 0))
                         boundsBehavior: Flickable.StopAtBounds
                         Item { id: settingsInner; property var output: dock.screen; width: settingsSlot.contentWidth; height: settingsSlot.contentHeight }
@@ -574,7 +574,7 @@ PanelWindow {
             if (!monitor) return;
             // The body margins and header height are fixed; its width and origin
             // follow the destination rather than the currently animated surface.
-            let bodyWidth = dock.targetWidth - (dock.vertical ? dock.stripSize + 28 : 40);
+            let bodyWidth = dock.targetWidth - (dock.vertical ? dock.stripSize + 40 : 40);
             let popupOffset = popupLoader.active ? popupLoader.Layout.preferredHeight + 10 : 0;
             let point = Qt.point(dock.targetRect.x + body.x + bodyWidth / 2,
                 dock.targetRect.y + body.y + popupOffset + headingRow.implicitHeight / 2);
