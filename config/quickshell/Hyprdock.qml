@@ -8,6 +8,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "SettingsModel.js" as Model
+import "style" as Style
 import QtQuick 2.0
 import "LiquidGlassSurface.qml"
 
@@ -306,7 +307,9 @@ PanelWindow {
             edge: dock.edge
             start: 12
             end: (dock.vertical ? height : width) - 12
-            surfaceColor: glass.bottomColor
+            surfaceColor: dockState.displayedSection === "settings"
+                ? Qt.rgba(Style.SettingsTheme.frame.r, Style.SettingsTheme.frame.g, Style.SettingsTheme.frame.b, glass.bottomColor.a)
+                : glass.bottomColor
             outlineColor: "transparent"
             raised: false
         }
@@ -532,7 +535,7 @@ PanelWindow {
                         contentHeight: Math.max(1, dock.targetHeight - (dock.vertical ? 64 : dock.stripSize + 40)
                             - headingRow.implicitHeight - 10 - (popupLoader.active ? popupLoader.Layout.preferredHeight + 10 : 0))
                         boundsBehavior: Flickable.StopAtBounds
-                        Item { id: settingsInner; property var output: dock.screen; width: settingsSlot.contentWidth; height: settingsSlot.contentHeight }
+                        Item { id: settingsInner; property var output: dock.screen; readonly property color wallpaperSample: glass.sample; width: settingsSlot.contentWidth; height: settingsSlot.contentHeight }
                         ScrollBar.horizontal: ScrollBar {}
                     }
                     Item { id: projectorSlot; anchors.fill: parent; visible: dock.section === "displays" }

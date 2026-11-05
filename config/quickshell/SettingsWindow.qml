@@ -54,7 +54,7 @@ FloatingWindow {
     Binding {
         target: Style.SettingsTheme
         property: "wallpaperSample"
-        value: windowWallpaper.sampleRect(Qt.rect(0, 0, windowWallpaper.screenWidth, windowWallpaper.screenHeight))
+        value: window.dockHost?.wallpaperSample ?? windowWallpaper.sampleRect(Qt.rect(0, 0, windowWallpaper.screenWidth, windowWallpaper.screenHeight))
         restoreMode: Binding.RestoreBindingOrValue
     }
     property string lockingError: ""
@@ -656,7 +656,7 @@ FloatingWindow {
         palette.mid: Style.SettingsTheme.border
         font.family: "Noto Sans"
         font.pixelSize: Style.SettingsTheme.bodySize
-        background: Rectangle { color: Style.SettingsTheme.background }
+        background: Rectangle { radius: Style.SettingsTheme.paneRadius; color: Style.SettingsTheme.background }
         contentItem: ColumnLayout {
             spacing: 0
             RowLayout {

@@ -2,32 +2,33 @@ pragma Singleton
 import QtQuick
 import "../AdaptiveColors.js" as Colors
 
-// Keep broad surfaces nearly neutral; reserve wallpaper color for accents.
+// One wallpaper hue across the frame, nested surfaces and accents.
 QtObject {
     property color wallpaperSample: "#141721"
     readonly property real textScale: Theme.textScale
     readonly property bool highContrast: Theme.highContrast
     readonly property bool reducedMotion: Theme.reducedMotion
     readonly property color background: highContrast ? "#000000"
-        : Qt.hsva(wallpaperSample.hsvHue, Math.min(0.10, wallpaperSample.hsvSaturation * 0.14), 0.105, 1)
+        : Qt.hsva(wallpaperSample.hsvHue, Math.min(0.42, wallpaperSample.hsvSaturation * 0.65), 0.15, 1)
+    readonly property color frame: highContrast ? "#000000" : Colors.mix(background, Qt.color("#000000"), 0.42)
     readonly property color sidebar: highContrast ? "#0c0c0c" : Colors.mix(background, Qt.color("#000000"), 0.22)
-    readonly property color pane: highContrast ? "#000000" : Colors.mix(background, text, 0.025)
-    readonly property color surface: highContrast ? "#161616" : Colors.mix(background, text, 0.045)
-    readonly property color card: highContrast ? "#161616" : Colors.mix(background, text, 0.045)
-    readonly property color cardHover: highContrast ? "#242424" : Colors.mix(background, text, 0.075)
-    readonly property color hero: highContrast ? "#101010" : Colors.mix(background, text, 0.065)
-    readonly property color navRow: highContrast ? "#111111" : Colors.mix(background, text, 0.035)
+    readonly property color pane: highContrast ? "#000000" : Colors.mix(background, accent, 0.025)
+    readonly property color surface: highContrast ? "#161616" : Colors.mix(background, accent, 0.045)
+    readonly property color card: highContrast ? "#161616" : Colors.mix(background, accent, 0.045)
+    readonly property color cardHover: highContrast ? "#242424" : Colors.mix(background, accent, 0.075)
+    readonly property color hero: highContrast ? "#101010" : Colors.mix(background, accent, 0.065)
+    readonly property color navRow: highContrast ? "#111111" : Colors.mix(background, accent, 0.035)
     readonly property color navSelected: highContrast ? "#333333" : Colors.mix(background, accent, 0.20)
-    readonly property color iconBadge: highContrast ? "#2c2c2c" : Colors.mix(background, text, 0.085)
+    readonly property color iconBadge: highContrast ? "#2c2c2c" : Colors.mix(background, accent, 0.085)
     readonly property color iconBadgeActive: highContrast ? "#f0f0f0" : Colors.mix(background, accent, 0.27)
     readonly property color iconBadgeText: highContrast ? "#ffffff" : accent
     readonly property color iconBadgeTextActive: highContrast ? "#000000" : accent
     readonly property color statusPill: highContrast ? "#1a1a1a" : Colors.mix(background, accent, 0.07)
-    readonly property color field: highContrast ? "#000000" : Colors.mix(background, text, 0.015)
-    readonly property color button: highContrast ? "#222222" : Colors.mix(background, text, 0.09)
-    readonly property color hover: highContrast ? "#303030" : Colors.mix(background, text, 0.13)
-    readonly property color pressed: highContrast ? "#404040" : Colors.mix(background, text, 0.17)
-    readonly property color border: highContrast ? "#ffffff" : Colors.mix(background, text, 0.14)
+    readonly property color field: highContrast ? "#000000" : Colors.mix(background, accent, 0.015)
+    readonly property color button: highContrast ? "#222222" : Colors.mix(background, accent, 0.09)
+    readonly property color hover: highContrast ? "#303030" : Colors.mix(background, accent, 0.13)
+    readonly property color pressed: highContrast ? "#404040" : Colors.mix(background, accent, 0.17)
+    readonly property color border: highContrast ? "#ffffff" : Colors.mix(background, accent, 0.14)
     readonly property color controlBorder: highContrast ? "#ffffff" : Colors.mix(background, accent, 0.55)
     readonly property color separator: highContrast ? "#8a8a8a" : border
     readonly property color divider: highContrast ? "#7a7a7a" : Colors.mix(background, text, 0.14)
