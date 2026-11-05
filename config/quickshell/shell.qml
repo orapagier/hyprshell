@@ -23,7 +23,7 @@ ShellRoot {
     }
     onDockEnabledChanged: {
         let reopenSettings = settingsController.window?.uiOpened === true;
-        dashboardWindow.close(); activityWindow.close();
+        dashboardLoader.item?.close(); activityLoader.item?.close();
         for (let panel of panels.instances) panel.closeMenu();
         for (let dock of docks.instances) dock.collapse();
         projectorWindow.dismiss();
@@ -58,55 +58,77 @@ ShellRoot {
     ApplicationService {
         id: applications; store: preferences
     }
-    Dashboard {
-        id: dashboardWindow
-        cornersEnabled: !shell.dockEnabled
-        services: desktopServices
-        wallpaperSource: wallpapers.sources[dashboardWindow.screen?.name] || ""
-        translucency: preferences.panelConfig.bar.popdownTranslucency ?? 0.06
-        onOpenedChanged: if (opened) {
-            activityWindow.close();
-            for (let panel of panels.instances) panel.closeMenu();
-        }
-        onSettingsRequested: settingsController.open()
-        onLockRequested: locking.lockNow()
-        onMenuRequested: name => {
-            let focused = Hyprland.focusedMonitor;
-            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
-            for (let other of panels.instances) other.closeMenu();
-            if (panel) panel.toggleMenu(name);
+    // Lazy-loaded dashboard/activity overlays. Created on first open, kept alive.
+    // Access via dashboardLoader.item / activityLoader.item; may be null until first open.
+    LazyLoader {
+        id: dashboardLoader
+        active: false
+        Dashboard {
+            id: dashboardWindow
+            cornersEnabled: !shell.dockEnabled
+            services: desktopServices
+            wallpaperSource: wallpapers.sources[dashboardWindow.screen?.name] || ""
+            translucency: preferences.panelConfig.bar.popdownTranslucency ?? 0.06
+            onOpenedChanged: if (opened) {
+                activityLoader.item?.close();
+                for (let panel of panels.instances) panel.closeMenu();
+            }
+            onSettingsRequested: settingsController.open()
+            onLockRequested: locking.lockNow()
+            onMenuRequested: name => {
+                let focused = Hyprland.focusedMonitor;
+                let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || (panels.instances.length ? panels.instances[0] : null);
+                for (let other of panels.instances) other.closeMenu();
+                if (panel) panel.toggleMenu(name);
+            }
         }
     }
-    Dashboard {
-        id: activityWindow
-        cornersEnabled: !shell.dockEnabled
-        services: desktopServices
-        rightCorner: true
-        wallpaperSource: wallpapers.sources[activityWindow.screen?.name] || ""
-        translucency: preferences.panelConfig.bar.popdownTranslucency ?? 0.06
-        onOpenedChanged: if (opened) {
-            dashboardWindow.close();
-            for (let panel of panels.instances) panel.closeMenu();
-        }
-        contentPage: Component {
-            ActivityContent {
-                inbox: notificationInbox
-                store: preferences
-                active: activityWindow.opened
-                wallpaperSource: activityWindow.wallpaperSource
-                screenWidth: activityWindow.width
-                screenHeight: activityWindow.height
-                wallpaperRegion: activityWindow.bodyRect
-                onDismissRequested: activityWindow.close()
+    LazyLoader {
+        id: activityLoader
+        active: false
+        Dashboard {
+            id: activityWindow
+            cornersEnabled: !shell.dockEnabled
+            services: desktopServices
+            rightCorner: true
+            wallpaperSource: wallpapers.sources[activityWindow.screen?.name] || ""
+            translucency: preferences.panelConfig.bar.popdownTranslucency ?? 0.06
+            onOpenedChanged: if (opened) {
+                dashboardLoader.item?.close();
+                for (let panel of panels.instances) panel.closeMenu();
+            }
+            contentPage: Component {
+                ActivityContent {
+                    inbox: notificationInbox
+                    store: preferences
+                    active: activityWindow.opened
+                    wallpaperSource: activityWindow.wallpaperSource
+                    screenWidth: activityWindow.width
+                    screenHeight: activityWindow.height
+                    wallpaperRegion: activityWindow.bodyRect
+                    onDismissRequested: activityWindow.close()
+                }
             }
         }
     }
     function toggleDashboard() {
-        if (dockEnabled) { focusedDock()?.open("dashboard", true); return; }
+        if (dockEnabled) {
+            let dock = focusedDock();
+            console.log("toggleDashboard: dockEnabled, focusedDock:", dock ? "found" : "null", dock?.screen?.name);
+            if (dock) {
+                console.log("toggleDashboard: calling dock.open");
+                dock.open("dashboard", true);
+                console.log("toggleDashboard: after dock.open");
+            }
+            return;
+        }
         for (let panel of panels.instances) panel.closeMenu();
         let focused = Hyprland.focusedMonitor;
         let output = Quickshell.screens.find(s => focused && s.name === focused.name) || Quickshell.screens[0];
-        dashboardWindow.toggle(output);
+        dashboardLoader.active = true;
+        let dash = dashboardLoader.item;
+        if (!dash) return;
+        dash.toggle(output);
     }
     ProjectorWindow { id: projectorWindow }
     PresentationView { id: presentationView }
@@ -153,7 +175,8 @@ ShellRoot {
     Variants {
         id: panels
         // Create layer surfaces with saved margins and attachment on the first map.
-        model: preferences.loaded ? Quickshell.screens : []
+        // In dock mode we don't need the legacy bar path at all.
+        model: preferences.loaded && !shell.dockEnabled ? Quickshell.screens : []
         PanelWindow {
             id: panel
             required property var modelData
@@ -331,8 +354,8 @@ ShellRoot {
                 trayModel: tray.items
                 wallpaperSource: bar.wallpaperSource
                 onRevealed: {
-                    dashboardWindow.close();
-                    activityWindow.close();
+                    dashboardLoader.item?.close();
+                    activityLoader.item?.close();
                     menuState.close();
                     keybindings.opened = false;
                     for (let other of panels.instances) if (other !== panel) other.closeMenu();
@@ -350,7 +373,7 @@ ShellRoot {
     }
     Variants {
         id: docks
-        model: preferences.loaded ? Quickshell.screens : []
+        model: preferences.loaded && shell.dockEnabled ? Quickshell.screens : []
         Hyprdock {
             id: dockPanel
             modeEnabled: shell.dockEnabled
@@ -396,7 +419,7 @@ ShellRoot {
     }
     FrameTiming {
         id: frameTiming
-        windows: [{name: "dashboard", window: dashboardWindow}, {name: "activity", window: activityWindow}]
+        windows: [{name: "dashboard", window: dashboardLoader.item}, {name: "activity", window: activityLoader.item}]
             .concat(panels.instances.map(panel => ({name: "panel-" + panel.screen.name, window: panel})))
             .concat(docks.instances.map(dock => ({name: "dock-" + dock.screen.name, window: dock})))
             .concat(settingsController.window ? [{name: "settings", window: settingsController.window}] : [])
@@ -406,7 +429,7 @@ ShellRoot {
         supported: shell.dockEnabled && docks.instances.length === 1
         dock: shell.focusedDock() || null
         settings: settingsController
-        otherUiOpen: dashboardWindow.opened || activityWindow.opened || projectorWindow.uiOpened || hyprviewWindow.projectionOpen
+        otherUiOpen: dashboardLoader.item?.opened || activityLoader.item?.opened || projectorWindow.uiOpened || hyprviewWindow.projectionOpen
     }
     IpcHandler {
         target: "performance"
@@ -449,7 +472,7 @@ ShellRoot {
             if (shell.dockEnabled) { shell.focusedDock()?.open("displays", true); return; }
             for (let panel of panels.instances) panel.closeMenu();
             let focused = Hyprland.focusedMonitor;
-            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
+            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || (panels.instances.length ? panels.instances[0] : null);
             if (panel) projectorWindow.screen = panel.screen;
             projectorWindow.open();
         }
@@ -460,7 +483,19 @@ ShellRoot {
             hyprviewWindow.dismiss();
         }
         function dock(): void { if (shell.dockEnabled) shell.focusedDock()?.revealKeyboard(); }
-        function activity(): void { if (shell.dockEnabled) shell.focusedDock()?.open("activity", true); }
+        function activity(): void { 
+            if (shell.dockEnabled) { 
+                shell.focusedDock()?.open("activity", true); 
+                return;
+            }
+            for (let panel of panels.instances) panel.closeMenu();
+            let focused = Hyprland.focusedMonitor;
+            let output = Quickshell.screens.find(s => focused && s.name === focused.name) || Quickshell.screens[0];
+            activityLoader.active = true;
+            let act = activityLoader.item;
+            if (!act) return;
+            act.toggle(output);
+        }
         function toggleDock(): void {
             shell.focusedDock()?.collapse();
             shell.toggleWorkspacePanel("hyprdock");
@@ -472,19 +507,19 @@ ShellRoot {
         function toggleMenu(name: string): void {
             if (!["calendar", "notifications", "audio", "wifi", "bluetooth", "battery", "power", "launcher"].includes(name)) return;
             let focused = Hyprland.focusedMonitor;
-            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
+            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || (panels.instances.length ? panels.instances[0] : null);
             for (let other of panels.instances) if (other !== panel) other.closeMenu();
             if (panel) panel.toggleMenu(name);
         }
         function toggleKeybindings(): void {
             let focused = Hyprland.focusedMonitor;
-            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
+            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || (panels.instances.length ? panels.instances[0] : null);
             for (let other of panels.instances) if (other !== panel) other.closeMenu();
             if (panel) panel.toggleKeybindings();
         }
         function toggleLauncher(): void {
             let focused = Hyprland.focusedMonitor;
-            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || panels.instances[0];
+            let panel = panels.instances.find(p => focused && p.screen.name === focused.name) || (panels.instances.length ? panels.instances[0] : null);
             for (let other of panels.instances) if (other !== panel) other.closeMenu();
             if (panel) panel.toggleLauncher();
         }

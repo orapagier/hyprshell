@@ -89,7 +89,60 @@ def tree_sample(pid, proc=Path('/proc')):
         except OSError as error:
             errors.append(f'{process}: process exited or inaccessible: {error}')
         result[f'{process}:{row["start"]}'] = row
-    return {'processes': result, 'errors': errors,
+    # Collect DRM memory accounting (per-client GEM allocations from fdinfo)
+    drm_clients = {}
+    try:
+        # Check all processes in the tree for DRM fdinfo
+        for identity, row in result.items():
+            pid = row['pid']
+            fdinfo_path = Path('/proc') / str(pid) / 'fdinfo'
+            if not fdinfo_path.exists():
+                continue
+            for fd_file in fdinfo_path.iterdir():
+                try:
+                    content = fd_file.read_text()
+                    client_id = None
+                    for line in content.splitlines():
+                        if line.startswith('drm-client-id:'):
+                            client_id = int(line.split()[1])
+                            if client_id not in drm_clients:
+                                drm_clients[client_id] = {'total': 0, 'shared': 0, 'pid': pid}
+                        elif line.startswith('drm-total-system0:') and client_id is not None:
+                            val = line.split()[1]
+                            unit = val[-2:] if val.endswith(('KiB', 'MiB', 'GiB')) else 'B'
+                            num = int(val[:-2]) if unit != 'B' else int(val)
+                            if unit == 'KiB':
+                                num *= 1024
+                            elif unit == 'MiB':
+                                num *= 1024 * 1024
+                            elif unit == 'GiB':
+                                num *= 1024 * 1024 * 1024
+                            drm_clients[client_id]['total'] += num
+                        elif line.startswith('drm-shared-system0:') and client_id is not None:
+                            val = line.split()[1]
+                            unit = val[-2:] if val.endswith(('KiB', 'MiB', 'GiB')) else 'B'
+                            num = int(val[:-2]) if unit != 'B' else int(val)
+                            if unit == 'KiB':
+                                num *= 1024
+                            elif unit == 'MiB':
+                                num *= 1024 * 1024
+                            elif unit == 'GiB':
+                                num *= 1024 * 1024 * 1024
+                            drm_clients[client_id]['shared'] += num
+                except (OSError, ValueError):
+                    pass
+    except (OSError, PermissionError):
+        errors.append('DRM memory unavailable: fdinfo not readable')
+    drm_total = sum(c['total'] for c in drm_clients.values())
+    drm_shared = sum(c['shared'] for c in drm_clients.values())
+    drm_unique = sum(c['total'] - c['shared'] for c in drm_clients.values())
+    drm_report = {
+        'total_bytes': drm_total,
+        'shared_bytes': drm_shared,
+        'unique_bytes': drm_unique,
+        'clients': {str(k): v for k, v in drm_clients.items()}
+    }
+    return {'processes': result, 'errors': errors, 'drm': drm_report,
             'collection_seconds': time.monotonic() - started}
 
 
@@ -158,6 +211,21 @@ def summarize_tree(samples, pid):
             memory[name].append(None if any(r['pss_bytes'] is None for r in group)
                                 else sum(r['pss_bytes'] for r in group) / 1048576)
     elapsed = samples[-1]['time'] - samples[0]['time']
+    # Use DRM from the last sample
+    last_drm = samples[-1]['tree'].get('drm', {})
+    # Convert to MiB for consistency with PSS
+    drm_mib = {}
+    if last_drm:
+        for key in ('total_bytes', 'shared_bytes', 'unique_bytes'):
+            drm_mib[key.replace('_bytes', '_mib')] = round(last_drm[key] / 1048576, 3)
+        drm_mib['clients'] = {}
+        for cid, cdata in last_drm.get('clients', {}).items():
+            drm_mib['clients'][cid] = {
+                'total_mib': round(cdata['total'] / 1048576, 3),
+                'shared_mib': round(cdata['shared'] / 1048576, 3),
+                'unique_mib': round((cdata['total'] - cdata['shared']) / 1048576, 3),
+                'pid': cdata.get('pid')
+            }
     return {'observed_lifetimes_complete': complete and not any(
                 (created, exited, threads_created, threads_exited)),
             'memory_snapshots_complete': memory_snapshots_complete(samples, pid),
@@ -176,6 +244,7 @@ def summarize_tree(samples, pid):
                 'pss_mib_median': statistics.median(r['pss_bytes'] for r in rows) / 1048576
                     if all(r['pss_bytes'] is not None for r in rows) else None
             } for identity, rows in per_process.items()},
+            'drm_mib': drm_mib,
             'collection_seconds_total': sum(s['tree']['collection_seconds'] for s in samples)}
 
 

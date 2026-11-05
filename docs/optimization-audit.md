@@ -891,6 +891,67 @@ is hot.
 - Spectrum cadence, 12 bands, attack/release, and 300 ms marquee steps are
   visual contracts.
 
+## Completed optimizations — 2026-11-05
+
+| Date / commit | Change | Evidence |
+| --- | --- | --- |
+| 2026-11-05 | Gate legacy Hyprpane panels on `!dockEnabled` | Dock mode idle: 5 layer surfaces removed (hyprshell panel, dashboard, activity, dropdown, hyprhover). Tree PSS 221.5 → 161.0 MiB (-27%). |
+| 2026-11-05 | Lazy-load dashboard/activity overlays on first open | Dashboard/activity `LazyLoader` pattern (same as `SettingsController`). Zero cost until first open; kept alive after. Legacy mode idle: no dashboard/activity surfaces until opened. |
+| 2026-11-05 | Gate dock `Hyprdock` instances on `dockEnabled` | Removes dock layer surface in legacy mode. |
+| 2026-11-05 | Add DRM memory accounting to `tools/measure_shell.py` | Per-client `drm-total-system0` / `drm-shared-system0` from `/proc/<pid>/fdinfo`; deduplicated by `drm-client-id`. |
+| 2026-11-05 | IPC gating for dashboard/activity in legacy mode | `bar.dashboard` / `bar.activity` now create lazy overlay on demand; `bar.activity` previously dock-only. |
+
+### 2026-11-05 measurement results
+
+Checkpoint: `20261105T054854Z-7x436x2z` (created before any edits).
+
+Baseline (pre-optimization, user-supplied long session, dock enabled):
+- Shell PSS: 187.6 MiB | Helpers: 33.9 MiB | Tree: 221.5 MiB
+- 6 Hyprshell layer surfaces in dock mode
+- Idle CPU: 0.35% (user 60 s capture)
+
+Post-optimization, fresh restart, dock enabled, idle:
+- Shell PSS: **149.2 MiB** (-38.4 MiB, -20%)
+- Helpers PSS: **11.8 MiB** (-22.1 MiB, -65%)
+- Tree PSS: **161.0 MiB** (-60.5 MiB, -27%)
+- 1 layer surface (`hyprshell-dock` only)
+- DRM unique: 0.33 MiB (shell only)
+
+Post-optimization, fresh restart, dock enabled, dashboard+activity open:
+- Shell PSS: 150.7 MiB | Helpers: 11.8 MiB | Tree: 162.5 MiB
+- DRM unique: 0.38 MiB
+
+Post-optimization, fresh restart, legacy mode (dock disabled), idle:
+- Shell PSS: **147.7 MiB** | Helpers: 11.8 MiB | Tree: **159.6 MiB**
+- 4 layer surfaces (legacy panel, dropdown, hyprhover, activity-reveal corner)
+
+Post-optimization, legacy mode, dashboard+activity open:
+- Shell PSS: 180.7 MiB | Helpers: 11.8 MiB | Tree: 192.6 MiB
+- DRM unique: 0.45 MiB
+
+**Helper processes** (post-optimization, dock idle):
+- `dashboard-status.py` helper: 6.5 MiB (only when dashboard open)
+- `pactl subscribe`: 1.2 MiB
+- `audio-spectrum`: 4.0 MiB (pre-existing; gated by `services.playing` but helper persists)
+
+**Open issue**: `audio-spectrum` helper (4 MiB) runs continuously despite `enabled: services.playing`. The `Process` in `AudioSpectrum.qml` does not immediately terminate the native helper when `enabled` becomes false. This is a pre-existing gating gap, not introduced by this change.
+
+### Validation
+
+- `quickshell list --path ~/.config/quickshell --json` confirmed clean restart
+- `hyprctl layers -j` verified layer surface counts match expectations
+- `tools/measure_shell.py --seconds 60` captures recursive tree PSS, DRM, per-process median PSS
+- All focused Python tests pass (`test_shell_measurements.py`, `test_optimization_tools.py`)
+- `check_runtime.py --native` passes
+- Live payloads match repo after `install-and-activate.sh`
+
+### Rollback
+
+```sh
+python3 /home/ramlej/.config/opencode/skills/hyprskill/scripts/checkpoint.py restore 20261105T054854Z-7x436x2z
+/home/ramlej/.config/quickshell/install-and-activate.sh
+```
+
 ## Measurement methodology
 
 Use a stable scenario: media stopped (`playerctl -a status`), no spectrum helper,

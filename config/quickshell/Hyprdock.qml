@@ -29,6 +29,8 @@ PanelWindow {
     readonly property bool vertical: edge === "left" || edge === "right"
     readonly property alias section: dockState.section
     readonly property alias settingsHost: settingsInner
+    // Expose dockState for shell IPC debugging
+    readonly property var dockState: dockState
     readonly property bool expanded: revealed || section.length > 0
     property bool hoverDismissed: false
     property bool revealed: false
