@@ -89,8 +89,8 @@ PanelWindow {
         Math.min(surfaceRect.x, targetRect.x), Math.min(surfaceRect.y, targetRect.y),
         Math.max(surfaceRect.x + surfaceRect.width, targetRect.x + targetRect.width) - Math.min(surfaceRect.x, targetRect.x),
         Math.max(surfaceRect.y + surfaceRect.height, targetRect.y + targetRect.height) - Math.min(surfaceRect.y, targetRect.y))
-    Behavior on animatedWidth { enabled: dock.motionEnabled; SpringAnimation { spring: 3.2; damping: 0.3; mass: 1; epsilon: 0.3 } }
-    Behavior on animatedHeight { enabled: dock.motionEnabled; SpringAnimation { spring: 3.2; damping: 0.3; mass: 1; epsilon: 0.3 } }
+    Behavior on animatedWidth { enabled: dock.motionEnabled; SpringAnimation { spring: 12.8; damping: 0.6; mass: 1; epsilon: 0.3 } }
+    Behavior on animatedHeight { enabled: dock.motionEnabled; SpringAnimation { spring: 12.8; damping: 0.6; mass: 1; epsilon: 0.3 } }
     visible: true
     color: "transparent"
     anchors { top: true; bottom: true; left: true; right: true }
@@ -171,6 +171,7 @@ PanelWindow {
         id: dockState
         objectName: "dockMenuState"
         hoverEnabled: !dock.hoverDismissed
+        hoverOpenInterval: 60
         dismissPinnedOnLeave: false
         dismissInhibited: dock.section === "settings" && !!card.Overlay.overlay
             && Array.from(card.Overlay.overlay.children).some(child => child.visible)

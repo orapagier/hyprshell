@@ -57,12 +57,14 @@ ShellRoot {
                     let baseX = edge === "left" ? 1 : edge === "right" ? dock.width - 1 : dock.width / 2;
                     let baseY = edge === "top" ? 1 : edge === "bottom" ? dock.height - 1 : dock.height / 2;
                     pointer.mouseMove(dock.contentItem, baseX, baseY);
-                    pointer.wait(600);
+                    pointer.wait(350);
+                    test.check(dock.workloadState().settled, "strip reveal settles within 350 ms: " + edge);
                     test.check(dock.expanded && !dock.section, "base only reveals items: " + edge + "/" + dock.section);
                     let trigger = test.find(dock.contentItem, "calendarTrigger");
                     let position = trigger.mapToItem(dock.contentItem, trigger.width / 2, trigger.height / 2);
                     pointer.mouseMove(dock.contentItem, position.x, position.y);
                     pointer.wait(450);
+                    test.check(dock.workloadState().settled, "hover content settles within 450 ms: " + edge);
                     test.check(Math.abs(trigger.scale - 1.22) < 0.01, "noticeable hover zoom: " + edge);
                     test.check(dock.section === "calendar", "hover opens calendar: " + edge + "/" + dock.section + "/" + trigger.hovered + "/" + test.find(dock.contentItem, "dockMenuState").hoveredMenu);
                     for (let frame = 0; frame < 30; ++frame) {
@@ -98,7 +100,8 @@ ShellRoot {
                         let move = dock.pointerMoves[count];
                         let coords = /x = (-?\\d+), y = (-?\\d+)/.exec(move);
                         test.check(coords !== null, "valid compositor dispatch");
-                        pointer.wait(1400);
+                        pointer.wait(300);
+                        test.check(dock.workloadState().settled, "shortcut content settles within 350 ms: " + edge + "/" + name);
                         let heading = test.find(dock.contentItem, "dockHeading");
                         let center = heading.mapToItem(dock.contentItem, heading.width / 2, heading.height / 2);
                         test.check(Math.abs(Number(coords[1]) - (100 + center.x)) <= 1

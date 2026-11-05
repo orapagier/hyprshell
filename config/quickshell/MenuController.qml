@@ -8,6 +8,7 @@ Item {
     onSectionChanged: if (section.length) displayedSection = section
     property string hoveredMenu: ""
     property bool hoverEnabled: true
+    property int hoverOpenInterval: 110
     onHoverEnabledChanged: {
         openDelay.stop();
         hoveredMenu = "";
@@ -60,7 +61,7 @@ Item {
     }
     Timer {
         id: openDelay
-        interval: 110
+        interval: controller.hoverOpenInterval
         onTriggered: {
             if (controller.dismissInhibited || !controller.hoverEnabled || !controller.hoveredMenu.length) return;
             if (controller.section !== controller.hoveredMenu) {
