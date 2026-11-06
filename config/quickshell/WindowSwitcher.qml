@@ -51,6 +51,24 @@ PanelWindow {
         let index = Switcher.nextIndex(workspaceRows.length, selectedIndex, step);
         if (index >= 0) selectedAddress = workspaceRows[index].address;
     }
+    function revealSelected() {
+        if (!opened || selectedIndex < 0) return;
+        let cardLeft = film.railX + stage.frameInset
+                     + selectedIndex * (stage.cardWidth + stage.frameGap);
+        let cardRight = cardLeft + stage.cardWidth;
+        let viewportLeft = filmstrip.contentX;
+        let viewportRight = viewportLeft + filmstrip.width;
+        let target = viewportLeft;
+        if (cardLeft - stage.frameInset < viewportLeft)
+            target = cardLeft - stage.frameInset;
+        else if (cardRight + stage.frameInset > viewportRight)
+            target = cardRight + stage.frameInset - filmstrip.width;
+        target = Math.max(0, Math.min(filmstrip.contentWidth - filmstrip.width, target));
+        if (Math.abs(target - filmstrip.contentX) < 1) return;
+        selectionScroll.stop();
+        selectionScroll.to = target;
+        selectionScroll.start();
+    }
     function activateAddress(address) {
         let row = workspaceRows.find(candidate => candidate.address === address);
         if (!row) return;
@@ -74,10 +92,12 @@ PanelWindow {
     function close() { opened = false; }
 
     onWorkspaceRowsChanged: ensureSelection()
+    onSelectedAddressChanged: if (opened) Qt.callLater(() => revealSelected())
     onOpenedChanged: {
         if (!opened) { selectedAddress = ""; return; }
         Hyprland.refreshToplevels();
         Qt.callLater(() => keyCatcher.forceActiveFocus());
+        Qt.callLater(() => revealSelected());
     }
 
     visible: opened
@@ -162,10 +182,12 @@ PanelWindow {
         readonly property int count: switcher.workspaceRows.length
         readonly property real usableWidth: Math.max(1, width)
         readonly property real usableHeight: Math.max(1, height)
-        readonly property real cardHeight: Math.min(210, Math.max(118, usableHeight * 0.48))
+        readonly property real cardHeight: Math.min(218, Math.max(124, usableHeight * 0.50))
         readonly property real cardWidth: Math.round(cardHeight * 1.58)
         readonly property real frameGap: Math.max(8, Math.min(14, usableWidth * 0.012))
-        readonly property real filmWidth: count > 0 ? count * cardWidth + Math.max(0, count - 1) * frameGap + 32 : 0
+        readonly property real frameInset: 24
+        readonly property real previewInset: 3
+        readonly property real filmWidth: count > 0 ? count * cardWidth + Math.max(0, count - 1) * frameGap + frameInset * 2 : 0
 
         Flickable {
             id: filmstrip
@@ -175,6 +197,13 @@ PanelWindow {
             contentHeight: height
             boundsBehavior: Flickable.StopAtBounds
             interactive: contentWidth > width
+            NumberAnimation {
+                id: selectionScroll
+                target: filmstrip
+                property: "contentX"
+                duration: 160
+                easing.type: Easing.OutCubic
+            }
 
             Item {
                 id: film
@@ -214,7 +243,7 @@ PanelWindow {
 
                 Row {
                     id: frames
-                    x: filmRail.x + 16
+                    x: filmRail.x + stage.frameInset
                     y: Math.round((film.height - stage.cardHeight) / 2)
                     spacing: stage.frameGap
 
@@ -250,7 +279,7 @@ PanelWindow {
                                 PreviewCapture {
                                     id: capture
                                     anchors.fill: parent
-                                    anchors.margins: cardSurface.border.width
+                                    anchors.margins: cardSurface.border.width + stage.previewInset
                                     source: card.modelData.handle?.wayland || null
                                     active: switcher.opened
                                 }
