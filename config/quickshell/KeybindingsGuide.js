@@ -31,6 +31,7 @@ const localBindings = [
     {shortcut: "Enter", action: "Launch the selected application", context: "Application launcher"},
     {shortcut: "Arrow keys", action: "Choose a window", context: "Workspace window switcher"},
     {shortcut: "Enter", action: "Focus the selected window", context: "Workspace window switcher"},
+    {shortcut: "Super + Q", action: "Close the selected window", context: "Workspace window switcher"},
     {shortcut: "Escape", action: "Close the switcher", context: "Workspace window switcher"},
     {shortcut: "Escape", action: "Close the open menu", context: "Bar menus and application launcher"},
     {shortcut: "Up / Down", action: "Browse shortcuts", context: "Shortcut guide"},
