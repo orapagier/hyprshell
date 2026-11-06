@@ -55,14 +55,7 @@ PanelWindow {
         if (!opened || selectedIndex < 0) return;
         let cardLeft = film.railX + stage.frameInset
                      + selectedIndex * (stage.cardWidth + stage.frameGap);
-        let cardRight = cardLeft + stage.cardWidth;
-        let viewportLeft = filmstrip.contentX;
-        let viewportRight = viewportLeft + filmstrip.width;
-        let target = viewportLeft;
-        if (cardLeft - stage.frameInset < viewportLeft)
-            target = cardLeft - stage.frameInset;
-        else if (cardRight + stage.frameInset > viewportRight)
-            target = cardRight + stage.frameInset - filmstrip.width;
+        let target = cardLeft + stage.cardWidth / 2 - filmstrip.width / 2;
         target = Math.max(0, Math.min(filmstrip.contentWidth - filmstrip.width, target));
         if (Math.abs(target - filmstrip.contentX) < 1) return;
         selectionScroll.stop();
@@ -187,13 +180,16 @@ PanelWindow {
         readonly property real frameGap: Math.max(8, Math.min(14, usableWidth * 0.012))
         readonly property real frameInset: 24
         readonly property real previewInset: 3
+        // Extra scrollable space lets even the first and last frame reach the
+        // viewport center when selected.
+        readonly property real centerPadding: Math.max(0, (width - cardWidth) / 2 - frameInset)
         readonly property real filmWidth: count > 0 ? count * cardWidth + Math.max(0, count - 1) * frameGap + frameInset * 2 : 0
 
         Flickable {
             id: filmstrip
             anchors.fill: parent
             clip: true
-            contentWidth: Math.max(width, stage.filmWidth + 32)
+            contentWidth: Math.max(width, stage.filmWidth + stage.centerPadding * 2)
             contentHeight: height
             boundsBehavior: Flickable.StopAtBounds
             interactive: contentWidth > width
