@@ -32,6 +32,8 @@ TestCase {
         compare(Apps.windowCommand('move','0xabcd',3,false),'movetoworkspacesilent 3,address:0xabcd');
         compare(Apps.windowCommand('close','ab',0,true),'hl.dsp.window.close({ window = "address:0xab" })');
         compare(Apps.windowCommand('focus','0xab',0,true),'hl.dsp.focus({ window = "address:0xab" })');
+        compare(Apps.raiseWindowCode('ab'),'hl.dsp.window.alter_zorder({ mode = "top", window = "address:0xab" })');
+        verify(Apps.pointerActivateCode('ab').includes('alter_zorder'));
         for (let lua of [false, true]) {
             for (let action of ['focus', 'close', 'move']) {
                 compare(Apps.windowCommand(action,'555ef619df90',3,lua),
@@ -39,6 +41,10 @@ TestCase {
             }
         }
         for(let address of ['', '0xab" }); evil()', 'not-address']) compare(Apps.windowCommand('focus',address,1,true),'');
+        for(let address of ['', '0xab" }); evil()', 'not-address']) {
+            compare(Apps.raiseWindowCode(address),'');
+            compare(Apps.pointerActivateCode(address),'');
+        }
         for(let workspace of [0,100,1.5,'2']) compare(Apps.windowCommand('move','ab',workspace,true),'');
         compare(Apps.windowCommand('minimize','ab',1,true),'');
     }

@@ -133,6 +133,17 @@ ShellRoot {
     ProjectorWindow { id: projectorWindow }
     PresentationView { id: presentationView }
     Hyprview { id: hyprviewWindow }
+    WindowSwitcher {
+        id: workspaceWindowSwitcher
+        applicationService: applications
+        wallpaperSource: wallpapers.sources[workspaceWindowSwitcher.screen?.name] || ""
+        onOpenedChanged: if (opened) {
+            dashboardLoader.item?.close();
+            activityLoader.item?.close();
+            for (let panel of panels.instances) panel.closeMenu();
+            for (let dock of docks.instances) dock.collapse();
+        }
+    }
     SettingsController {
         id: settingsController
         dockEnabled: shell.dockEnabled
@@ -486,6 +497,9 @@ ShellRoot {
         }
         function closeHyprview(): void {
             hyprviewWindow.dismiss();
+        }
+        function windowSwitcher(): void {
+            workspaceWindowSwitcher.cycle(1);
         }
         function dock(): void { if (shell.dockEnabled) shell.focusedDock()?.revealKeyboard(); }
         function activity(): void { 

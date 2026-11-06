@@ -57,6 +57,27 @@ Item {
         error = '';
         return true;
     }
+    function activateWindow(address, preservePointer) {
+        // Focusing a floating window normally raises it. Lua makes that
+        // explicit so a window chosen from the overlapping-window switcher is
+        // always placed above its peers.
+        if (!windows.some(w => w.address === address)) { error = 'This window has closed.'; return false; }
+        let command = Apps.windowCommand('focus', address, undefined, Hyprland.usingLua);
+        if (!command) { error = 'This window can no longer be focused.'; return false; }
+        if (Hyprland.usingLua && preservePointer) {
+            let activate = Apps.pointerActivateCode(address);
+            if (activate) Quickshell.execDetached(['hyprctl', 'eval', activate]);
+            else { error = 'This window can no longer be focused.'; return false; }
+        } else {
+            Hyprland.dispatch(command);
+            if (Hyprland.usingLua) {
+                let raise = Apps.raiseWindowCode(address);
+                if (raise) Hyprland.dispatch(raise);
+            }
+        }
+        error = '';
+        return true;
+    }
     function edit(action) {
         if (busy) return false;
         error = '';

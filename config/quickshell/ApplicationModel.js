@@ -9,6 +9,10 @@ function windowClass(window) {
     let info = window.lastIpcObject || {};
     return String(window.wayland && window.wayland.appId || info.class || info.initialClass || '');
 }
+function windowSelector(address) {
+    if (!/^(?:0x)?[a-fA-F0-9]+$/.test(String(address || ''))) return '';
+    return 'address:' + (String(address).startsWith('0x') ? address : '0x' + address);
+}
 function match(window, entries, overrides) {
     let cls = windowClass(window), info = window.lastIpcObject || {};
     let identities = [cls, info.class, info.initialClass].filter(Boolean);
@@ -47,9 +51,9 @@ function launchCommand(entry) {
         ? ['uwsm', 'app', '-t', 'service', '--', id] : [];
 }
 function windowCommand(action, address, workspace, lua) {
-    if (!/^(?:0x)?[a-fA-F0-9]+$/.test(String(address || ''))) return '';
     // Quickshell exposes bare hex addresses; Hyprland selectors need 0x.
-    let selector = 'address:' + (String(address).startsWith('0x') ? address : '0x' + address);
+    let selector = windowSelector(address);
+    if (!selector) return '';
     if (action === 'focus') return lua ? 'hl.dsp.focus({ window = "' + selector + '" })' : 'focuswindow ' + selector;
     if (action === 'close') return lua ? 'hl.dsp.window.close({ window = "' + selector + '" })' : 'closewindow ' + selector;
     if (action === 'move' && Number.isInteger(workspace) && workspace >= 1 && workspace <= 99)
@@ -58,14 +62,22 @@ function windowCommand(action, address, workspace, lua) {
     return '';
 }
 
+function raiseWindowCode(address) {
+    let selector = windowSelector(address);
+    return selector ? 'hl.dsp.window.alter_zorder({ mode = "top", window = "' + selector + '" })' : '';
+}
+
 // Run in one compositor event so unrelated focus actions never inherit the override.
-function pointerFocusCode(address) {
+function pointerWindowCode(address, raise) {
     let command = windowCommand('focus', address, 0, true);
-    if (!command) return '';
+    let zOrder = raise ? raiseWindowCode(address) : '';
+    if (!command || raise && !zOrder) return '';
     return 'local saved = { no_warps = hl.get_config("cursor.no_warps"), '
         + 'warp_on_change_workspace = hl.get_config("cursor.warp_on_change_workspace"), '
         + 'warp_on_toggle_special = hl.get_config("cursor.warp_on_toggle_special") }; '
         + 'hl.config({ cursor = { no_warps = true, warp_on_change_workspace = 0, warp_on_toggle_special = 0 } }); '
-        + 'local ok, err = pcall(function() hl.dispatch(' + command + ') end); '
+        + 'local ok, err = pcall(function() hl.dispatch(' + command + ')' + (zOrder ? '; hl.dispatch(' + zOrder + ')' : '') + ' end); '
         + 'hl.config({ cursor = saved }); if not ok then error(err) end';
 }
+function pointerFocusCode(address) { return pointerWindowCode(address, false); }
+function pointerActivateCode(address) { return pointerWindowCode(address, true); }

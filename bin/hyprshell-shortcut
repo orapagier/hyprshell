@@ -12,6 +12,7 @@ case "${1:-}" in
     displays) method=displays; args=() ;;
     hyprview) method=hyprview; args=() ;;
     hyprview-close) method=closeHyprview; args=() ;;
+    window-switcher) method=windowSwitcher; args=() ;;
     calendar|notifications|audio|wifi|bluetooth|battery|power) method=toggleMenu; args=("$1") ;;
     *) printf 'Unknown Hyprshell shortcut.\n' >&2; exit 1 ;;
 esac
