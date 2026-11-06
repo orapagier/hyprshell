@@ -48,8 +48,16 @@ PanelWindow {
         moveSelection(Number(step) < 0 ? -1 : 1);
     }
     function moveSelection(step) {
-        let index = Switcher.nextIndex(workspaceRows.length, selectedIndex, step);
-        if (index >= 0) selectedAddress = workspaceRows[index].address;
+        let rows = workspaceRows;
+        let count = rows.length;
+        if (count === 0) return;
+        let current = selectedIndex;
+        // If no valid selection, start from beginning (for forward) or end (for backward)
+        if (current < 0 || current >= count) {
+            current = step < 0 ? count - 1 : 0;
+        }
+        let next = Switcher.nextIndex(count, current, step);
+        if (next >= 0) selectedAddress = rows[next].address;
     }
     function activateAddress(address) {
         let row = workspaceRows.find(candidate => candidate.address === address);
@@ -132,7 +140,7 @@ PanelWindow {
             anchors { top: parent.top; topMargin: 32; horizontalCenter: parent.horizontalCenter }
             text: switcher.hasRows
                 ? switcher.workspaceRows.length + (switcher.workspaceRows.length === 1 ? " window" : " windows") + " · choose one to bring it forward"
-                : "No open windows on this workspace"
+                : "No open windows on this workspace — press Super+Tab to try another"
             color: switcher.menuColors.secondary
             font.family: "Noto Sans"
             font.pixelSize: 12
@@ -147,7 +155,7 @@ PanelWindow {
         Text {
             anchors.centerIn: parent
             text: switcher.hasRows ? "← ↑ previous   ·   ↓ → next   ·   Enter focus   ·   Super + Q close window   ·   Esc close"
-                                  : "Esc close"
+                                  : "Esc close · Super + Tab cycle workspaces"
             color: switcher.menuColors.secondary
             font.family: "Noto Sans"
             font.pixelSize: 12
@@ -160,6 +168,7 @@ PanelWindow {
         anchors { top: header.bottom; bottom: footer.top; left: parent.left; right: parent.right
             topMargin: 4; bottomMargin: 4; leftMargin: Math.max(18, switcher.width * 0.045); rightMargin: Math.max(18, switcher.width * 0.045) }
         readonly property int count: switcher.workspaceRows.length
+        readonly property int maxVisibleCards: 5
         readonly property real usableWidth: Math.max(1, width)
         readonly property real usableHeight: Math.max(1, height)
         readonly property real cardHeight: Math.min(218, Math.max(124, usableHeight * 0.50))
@@ -167,9 +176,11 @@ PanelWindow {
         readonly property real frameGap: Math.max(8, Math.min(14, usableWidth * 0.012))
         readonly property real frameInset: 24
         readonly property real previewInset: 3
-        readonly property int visibleFrames: Math.min(3, count)
-        readonly property real filmWidth: count > 0 ? Math.min(usableWidth,
-            visibleFrames * cardWidth + Math.max(0, visibleFrames - 1) * frameGap + frameInset * 2) : 0
+        readonly property int visibleCount: Math.min(count, maxVisibleCards)
+        // Frame grows to fit exactly the visible cards with margins on both sides
+        readonly property real filmWidth: visibleCount * cardWidth + Math.max(0, visibleCount - 1) * frameGap + frameInset * 2
+        // Highlight position: even counts -> right of center (index = count/2), odd -> center (index = floor(count/2))
+        readonly property int highlightIndex: Math.floor(visibleCount / 2)
 
         Item {
             id: film
@@ -179,7 +190,7 @@ PanelWindow {
 
                 Rectangle {
                     id: filmRail
-                    visible: switcher.hasRows
+                    visible: true
                     x: film.railX
                     y: film.railY
                     width: stage.filmWidth
@@ -190,11 +201,11 @@ PanelWindow {
                     border.color: Qt.rgba(switcher.menuColors.text.r, switcher.menuColors.text.g, switcher.menuColors.text.b, 0.28)
                 }
                 Repeater {
-                    model: stage.visibleFrames * 4
+                    model: stage.visibleCount * 4
                     delegate: Rectangle {
                         required property int index
-                        readonly property int frame: index % stage.visibleFrames
-                        readonly property int railSlot: Math.floor(index / stage.visibleFrames)
+                        readonly property int frame: index % stage.visibleCount
+                        readonly property int railSlot: Math.floor(index / stage.visibleCount)
                         readonly property bool lowerRail: railSlot >= 2
                         x: filmRail.x + 10 + frame * (stage.cardWidth + stage.frameGap)
                            + ((railSlot % 2) ? stage.cardWidth - 20 : 0)
@@ -208,30 +219,39 @@ PanelWindow {
 
                 Item {
                     id: frames
-                    x: filmRail.x
+                    x: filmRail.x + stage.frameInset
                     y: Math.round((film.height - stage.cardHeight) / 2)
-                    width: filmRail.width
+                    width: stage.visibleCount * stage.cardWidth + Math.max(0, stage.visibleCount - 1) * stage.frameGap
                     height: stage.cardHeight
-                    clip: true
 
                     Repeater {
-                        model: switcher.workspaceRows
+                        model: stage.visibleCount
                         delegate: Item {
                             id: card
-                            required property var modelData
                             required property int index
-                            readonly property bool selected: switcher.selectedAddress === modelData.address
-                            readonly property int carouselIndex: stage.count > 0
-                                ? (index - switcher.selectedIndex + stage.count) % stage.count : index
-                            readonly property real slotOffset: carouselIndex === 0 ? 0
-                                : (carouselIndex % 2 ? 1 : -1) * Math.ceil(carouselIndex / 2)
-                            objectName: "windowSwitcherCard-" + modelData.address
-                            x: Math.round((frames.width - width) / 2
-                                + slotOffset * (width + stage.frameGap))
+                            readonly property var rowData: index < switcher.workspaceRows.length ? switcher.workspaceRows[index] : null
+                            readonly property bool selected: rowData && switcher.selectedAddress === rowData.address
+                            // Visual position: selected card goes to highlightIndex, others fill in order around it
+                            readonly property int visualIndex: (() => {
+                                if (!rowData) return index;
+                                if (selected) return stage.highlightIndex;
+                                // Non-selected cards: count how many non-selected cards precede this one
+                                let before = 0;
+                                for (let i = 0; i < index; ++i) {
+                                    let other = switcher.workspaceRows[i];
+                                    if (other && other.address !== switcher.selectedAddress) before++;
+                                }
+                                // Skip the highlightIndex slot if we would land on or after it
+                                return before >= stage.highlightIndex ? before + 1 : before;
+                            })()
+                            objectName: rowData ? "windowSwitcherCard-" + rowData.address : "windowSwitcherCard-empty"
+                            x: visualIndex * (stage.cardWidth + stage.frameGap)
                             width: stage.cardWidth
                             height: stage.cardHeight
                             z: selected ? stage.count + 2 : index + 1
-                            Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                            opacity: rowData ? 1.0 : 0.3
+                            Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                            Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
                             Rectangle {
                                 anchors.fill: parent
@@ -239,6 +259,7 @@ PanelWindow {
                                 radius: 8
                                 color: "#52000000"
                                 z: -1
+                                opacity: 1.0
                             }
                             Rectangle {
                                 id: cardSurface
@@ -246,16 +267,16 @@ PanelWindow {
                                 radius: 5
                                 clip: true
                                 color: switcher.menuColors.background
-                                border.width: card.selected ? 2 : 1
-                                border.color: card.selected ? switcher.menuColors.accent
-                                                              : Qt.rgba(switcher.menuColors.text.r, switcher.menuColors.text.g, switcher.menuColors.text.b, 0.24)
+                                border.width: selected ? 2 : 1
+                                border.color: selected ? switcher.menuColors.accent
+                                                           : Qt.rgba(switcher.menuColors.text.r, switcher.menuColors.text.g, switcher.menuColors.text.b, 0.24)
                                 Behavior on border.color { ColorAnimation { duration: 120 } }
                                 PreviewCapture {
                                     id: capture
                                     anchors.fill: parent
                                     anchors.margins: cardSurface.border.width + stage.previewInset
-                                    source: card.modelData.handle?.wayland || null
-                                    active: switcher.opened
+                                    source: rowData.handle?.wayland || null
+                                    active: switcher.opened && rowData
                                 }
                                 Rectangle {
                                     anchors.fill: parent
@@ -281,7 +302,7 @@ PanelWindow {
                                     id: title
                                     anchors { left: parent.left; right: numberBadge.left; bottom: parent.bottom
                                         leftMargin: 11; rightMargin: 7; bottomMargin: 21 }
-                                    text: card.modelData.title || "Untitled window"
+                                    text: rowData ? (rowData.title || "Untitled window") : ""
                                     color: switcher.menuColors.text
                                     elide: Text.ElideRight
                                     font.family: "Noto Sans"
@@ -290,7 +311,7 @@ PanelWindow {
                                 }
                                 Text {
                                     anchors { left: title.left; right: title.right; bottom: parent.bottom; bottomMargin: 6 }
-                                    text: card.modelData.identity || card.modelData.appId || "Window"
+                                    text: rowData ? (rowData.identity || rowData.appId || "Window") : ""
                                     color: switcher.menuColors.secondary
                                     elide: Text.ElideRight
                                     font.family: "Noto Sans"
@@ -300,12 +321,12 @@ PanelWindow {
                                     id: numberBadge
                                     anchors { right: parent.right; bottom: parent.bottom; rightMargin: 8; bottomMargin: 10 }
                                     width: 22; height: 22; radius: 5
-                                    color: card.selected ? switcher.menuColors.accent
-                                                         : Qt.rgba(switcher.menuColors.text.r, switcher.menuColors.text.g, switcher.menuColors.text.b, 0.12)
+                                    color: selected ? switcher.menuColors.accent
+                                                             : Qt.rgba(switcher.menuColors.text.r, switcher.menuColors.text.g, switcher.menuColors.text.b, 0.12)
                                     Text {
                                         anchors.centerIn: parent
-                                        text: String(card.index + 1)
-                                        color: card.selected ? switcher.menuColors.background : switcher.menuColors.text
+                                        text: rowData ? String(index + 1) : ""
+                                        color: selected ? switcher.menuColors.background : switcher.menuColors.text
                                         font.family: "Noto Sans"
                                         font.pixelSize: 10
                                         font.weight: Font.DemiBold
@@ -316,8 +337,12 @@ PanelWindow {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onEntered: switcher.selectedAddress = card.modelData.address
-                                onClicked: switcher.activateAddress(card.modelData.address)
+                                onEntered: {
+                                    if (rowData) switcher.selectedAddress = rowData.address;
+                                }
+                                onClicked: {
+                                    if (rowData) switcher.activateAddress(rowData.address);
+                                }
                             }
                         }
                     }
