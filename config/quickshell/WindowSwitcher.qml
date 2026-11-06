@@ -51,17 +51,6 @@ PanelWindow {
         let index = Switcher.nextIndex(workspaceRows.length, selectedIndex, step);
         if (index >= 0) selectedAddress = workspaceRows[index].address;
     }
-    function revealSelected() {
-        if (!opened || selectedIndex < 0) return;
-        let cardLeft = film.railX + stage.frameInset
-                     + selectedIndex * (stage.cardWidth + stage.frameGap);
-        let target = cardLeft + stage.cardWidth / 2 - filmstrip.width / 2;
-        target = Math.max(0, Math.min(filmstrip.contentWidth - filmstrip.width, target));
-        if (Math.abs(target - filmstrip.contentX) < 1) return;
-        selectionScroll.stop();
-        selectionScroll.to = target;
-        selectionScroll.start();
-    }
     function activateAddress(address) {
         let row = workspaceRows.find(candidate => candidate.address === address);
         if (!row) return;
@@ -85,12 +74,10 @@ PanelWindow {
     function close() { opened = false; }
 
     onWorkspaceRowsChanged: ensureSelection()
-    onSelectedAddressChanged: if (opened) Qt.callLater(() => revealSelected())
     onOpenedChanged: {
         if (!opened) { selectedAddress = ""; return; }
         Hyprland.refreshToplevels();
         Qt.callLater(() => keyCatcher.forceActiveFocus());
-        Qt.callLater(() => revealSelected());
     }
 
     visible: opened
@@ -180,33 +167,15 @@ PanelWindow {
         readonly property real frameGap: Math.max(8, Math.min(14, usableWidth * 0.012))
         readonly property real frameInset: 24
         readonly property real previewInset: 3
-        // Extra scrollable space lets even the first and last frame reach the
-        // viewport center when selected.
-        readonly property real centerPadding: Math.max(0, (width - cardWidth) / 2 - frameInset)
-        readonly property real filmWidth: count > 0 ? count * cardWidth + Math.max(0, count - 1) * frameGap + frameInset * 2 : 0
+        readonly property int visibleFrames: Math.min(3, count)
+        readonly property real filmWidth: count > 0 ? Math.min(usableWidth,
+            visibleFrames * cardWidth + Math.max(0, visibleFrames - 1) * frameGap + frameInset * 2) : 0
 
-        Flickable {
-            id: filmstrip
+        Item {
+            id: film
             anchors.fill: parent
-            clip: true
-            contentWidth: Math.max(width, stage.filmWidth + stage.centerPadding * 2)
-            contentHeight: height
-            boundsBehavior: Flickable.StopAtBounds
-            interactive: contentWidth > width
-            NumberAnimation {
-                id: selectionScroll
-                target: filmstrip
-                property: "contentX"
-                duration: 160
-                easing.type: Easing.OutCubic
-            }
-
-            Item {
-                id: film
-                width: filmstrip.contentWidth
-                height: filmstrip.height
-                readonly property real railX: Math.max(0, (width - stage.filmWidth) / 2)
-                readonly property real railY: Math.round((height - stage.cardHeight - 32) / 2)
+            readonly property real railX: Math.max(0, (width - stage.filmWidth) / 2)
+            readonly property real railY: Math.round((height - stage.cardHeight - 32) / 2)
 
                 Rectangle {
                     id: filmRail
@@ -221,11 +190,11 @@ PanelWindow {
                     border.color: Qt.rgba(switcher.menuColors.text.r, switcher.menuColors.text.g, switcher.menuColors.text.b, 0.28)
                 }
                 Repeater {
-                    model: stage.count * 4
+                    model: stage.visibleFrames * 4
                     delegate: Rectangle {
                         required property int index
-                        readonly property int frame: index % stage.count
-                        readonly property int railSlot: Math.floor(index / stage.count)
+                        readonly property int frame: index % stage.visibleFrames
+                        readonly property int railSlot: Math.floor(index / stage.visibleFrames)
                         readonly property bool lowerRail: railSlot >= 2
                         x: filmRail.x + 10 + frame * (stage.cardWidth + stage.frameGap)
                            + ((railSlot % 2) ? stage.cardWidth - 20 : 0)
@@ -237,11 +206,13 @@ PanelWindow {
                     }
                 }
 
-                Row {
+                Item {
                     id: frames
-                    x: filmRail.x + stage.frameInset
+                    x: filmRail.x
                     y: Math.round((film.height - stage.cardHeight) / 2)
-                    spacing: stage.frameGap
+                    width: filmRail.width
+                    height: stage.cardHeight
+                    clip: true
 
                     Repeater {
                         model: switcher.workspaceRows
@@ -250,10 +221,17 @@ PanelWindow {
                             required property var modelData
                             required property int index
                             readonly property bool selected: switcher.selectedAddress === modelData.address
+                            readonly property int carouselIndex: stage.count > 0
+                                ? (index - switcher.selectedIndex + stage.count) % stage.count : index
+                            readonly property real slotOffset: carouselIndex === 0 ? 0
+                                : (carouselIndex % 2 ? 1 : -1) * Math.ceil(carouselIndex / 2)
                             objectName: "windowSwitcherCard-" + modelData.address
+                            x: Math.round((frames.width - width) / 2
+                                + slotOffset * (width + stage.frameGap))
                             width: stage.cardWidth
                             height: stage.cardHeight
                             z: selected ? stage.count + 2 : index + 1
+                            Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                             Rectangle {
                                 anchors.fill: parent
@@ -345,7 +323,6 @@ PanelWindow {
                     }
                 }
             }
-        }
         Text {
             anchors.centerIn: parent
             visible: !switcher.hasRows
