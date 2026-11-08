@@ -91,6 +91,7 @@ def snapshot_managed_files(repo, config, home):
     groups.extend([
         (repo / 'config/kitty', config / 'kitty'),
         (repo / 'config/mpv', config / 'mpv'),
+        (repo / 'config/swappy', config / 'swappy'),
         (repo / 'config/hyprmatrix', config / 'hyprmatrix'),
         (repo / 'config/autostart', config / 'autostart'),
         (repo / 'bin', home / '.local/bin'),

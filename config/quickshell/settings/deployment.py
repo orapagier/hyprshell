@@ -33,6 +33,7 @@ def digest(path):
 def protected(key):
     return (key.startswith('config/hyprshell/hyprland/') or key == 'config/hypr/hyprland-gui.lua'
             or key.startswith('config/hyprshell/') and Path(key).name in PREFERENCES
+            or key == 'config/swappy/config'
             or key == 'config/hyprmatrix/config.toml'
             or key == 'config/xdg-terminals.list')
 
@@ -43,7 +44,7 @@ def ignored(path):
 
 def payload(repo):
     files = {}
-    groups = [('config/kitty', 'config/kitty'), ('config/mpv', 'config/mpv'), ('config/systemd/user', 'config/systemd/user'), ('config/hypr', 'config/hypr'), ('config/quickshell', 'config/quickshell'),
+    groups = [('config/kitty', 'config/kitty'), ('config/mpv', 'config/mpv'), ('config/swappy', 'config/swappy'), ('config/systemd/user', 'config/systemd/user'), ('config/hypr', 'config/hypr'), ('config/quickshell', 'config/quickshell'),
               ('config/hyprshell', 'config/hyprshell'), ('config/hyprmatrix', 'config/hyprmatrix'), ('config/xdg-desktop-portal', 'config/xdg-desktop-portal'),
               ('config/autostart', 'config/autostart'), ('bin', 'home/.local/bin'),
               ('assets/applications', 'data/applications'), ('assets/fonts', 'data/fonts/hyprshell'),
