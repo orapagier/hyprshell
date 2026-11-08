@@ -15,6 +15,9 @@ PanelWindow {
     property bool opened: false
     property int workspaceId: 0
     property string selectedAddress: ""
+    // Unbounded card index under the fixed highlight slot. Rotating the cards
+    // right decrements it, so the previous card slides into the highlight.
+    property int rotationAnchor: 0
     readonly property var workspaceRows: Switcher.workspaceRows(windowRows, workspaceId)
     readonly property int selectedIndex: Switcher.indexForAddress(workspaceRows, selectedAddress)
     readonly property var selectedRow: selectedIndex >= 0 ? workspaceRows[selectedIndex] : null
@@ -29,17 +32,36 @@ PanelWindow {
         let monitor = output ? Hyprland.monitorFor(output) : Hyprland.focusedMonitor;
         return Number(monitor?.activeWorkspace?.id || 0);
     }
+    function normalizedAnchorIndex() {
+        return Switcher.wrapIndex(workspaceRows.length, rotationAnchor);
+    }
+    function syncSelectionFromAnchor() {
+        let index = normalizedAnchorIndex();
+        if (index < 0) return;
+        let next = workspaceRows[index].address;
+        if (next !== selectedAddress) selectedAddress = next;
+    }
     function ensureSelection() {
         if (!opened) return;
         let next = Switcher.preferredAddress(workspaceRows, selectedAddress, Hyprland.activeToplevel?.address || "");
-        if (next !== selectedAddress) selectedAddress = next;
+        let index = Switcher.indexForAddress(workspaceRows, next);
+        if (next !== selectedAddress) {
+            if (index >= 0)
+                rotationAnchor = Switcher.nearestAnchor(workspaceRows.length, rotationAnchor, index);
+            selectedAddress = next;
+        } else if (index >= 0 && normalizedAnchorIndex() !== index) {
+            rotationAnchor = Switcher.nearestAnchor(workspaceRows.length, rotationAnchor, index);
+        }
     }
     function open(output) {
         let target = output || focusedOutput();
         if (target) screen = target;
         workspaceId = workspaceFor(target);
-        selectedAddress = Switcher.preferredAddress(
-            Switcher.workspaceRows(windowRows, workspaceId), "", Hyprland.activeToplevel?.address || "");
+        let rows = Switcher.workspaceRows(windowRows, workspaceId);
+        let next = Switcher.preferredAddress(rows, "", Hyprland.activeToplevel?.address || "");
+        let index = Switcher.indexForAddress(rows, next);
+        rotationAnchor = index >= 0 ? index : 0;
+        selectedAddress = next;
         opened = true;
     }
     // Repeating Super+Tab advances while the switcher owns keyboard focus.
@@ -48,16 +70,9 @@ PanelWindow {
         moveSelection(Number(step) < 0 ? -1 : 1);
     }
     function moveSelection(step) {
-        let rows = workspaceRows;
-        let count = rows.length;
-        if (count === 0) return;
-        let current = selectedIndex;
-        // If no valid selection, start from beginning (for forward) or end (for backward)
-        if (current < 0 || current >= count) {
-            current = step < 0 ? count - 1 : 0;
-        }
-        let next = Switcher.nextIndex(count, current, step);
-        if (next >= 0) selectedAddress = rows[next].address;
+        if (workspaceRows.length <= 1) return;
+        rotationAnchor = Switcher.anchorAfterStep(rotationAnchor, step);
+        syncSelectionFromAnchor();
     }
     function activateAddress(address) {
         let row = workspaceRows.find(candidate => candidate.address === address);
@@ -82,6 +97,14 @@ PanelWindow {
     function close() { opened = false; }
 
     onWorkspaceRowsChanged: ensureSelection()
+    onSelectedAddressChanged: {
+        if (!opened) return;
+        let index = Switcher.indexForAddress(workspaceRows, selectedAddress);
+        if (index < 0 || normalizedAnchorIndex() === index) return;
+        // Hover or an external selection change: rotate the shortest way to
+        // bring that card under the fixed highlight.
+        rotationAnchor = Switcher.nearestAnchor(workspaceRows.length, rotationAnchor, index);
+    }
     onOpenedChanged: {
         if (!opened) { selectedAddress = ""; return; }
         Hyprland.refreshToplevels();
@@ -154,7 +177,7 @@ PanelWindow {
         height: 30
         Text {
             anchors.centerIn: parent
-            text: switcher.hasRows ? "← ↑ previous   ·   ↓ → next   ·   Enter focus   ·   Super + Q close window   ·   Esc close"
+            text: switcher.hasRows ? "← ↑ rotate left   ·   ↓ → rotate right   ·   Enter focus   ·   Super + Q close window   ·   Esc close"
                                   : "Esc close · Super + Tab cycle workspaces"
             color: switcher.menuColors.secondary
             font.family: "Noto Sans"
@@ -176,6 +199,7 @@ PanelWindow {
         readonly property real frameGap: Math.max(8, Math.min(14, usableWidth * 0.012))
         readonly property real frameInset: 24
         readonly property real previewInset: 3
+        readonly property real cardClipMargin: 8
         readonly property int visibleCount: Math.min(count, maxVisibleCards)
         // Frame grows to fit exactly the visible cards with margins on both sides
         readonly property real filmWidth: visibleCount * cardWidth + Math.max(0, visibleCount - 1) * frameGap + frameInset * 2
@@ -218,40 +242,45 @@ PanelWindow {
                 }
 
                 Item {
-                    id: frames
-                    x: filmRail.x + stage.frameInset
-                    y: Math.round((film.height - stage.cardHeight) / 2)
-                    width: stage.visibleCount * stage.cardWidth + Math.max(0, stage.visibleCount - 1) * stage.frameGap
-                    height: stage.cardHeight
+                    id: cardViewport
+                    x: filmRail.x + stage.frameInset - stage.cardClipMargin
+                    y: Math.round((film.height - stage.cardHeight) / 2) - stage.cardClipMargin
+                    width: stage.visibleCount * stage.cardWidth + Math.max(0, stage.visibleCount - 1) * stage.frameGap + stage.cardClipMargin * 2
+                    height: stage.cardHeight + stage.cardClipMargin * 2
+                    clip: true
 
-                    Repeater {
-                        model: stage.visibleCount
-                        delegate: Item {
-                            id: card
-                            required property int index
-                            readonly property var rowData: index < switcher.workspaceRows.length ? switcher.workspaceRows[index] : null
-                            readonly property bool selected: rowData && switcher.selectedAddress === rowData.address
-                            // Visual position: selected card goes to highlightIndex, others fill in order around it
-                            readonly property int visualIndex: (() => {
-                                if (!rowData) return index;
-                                if (selected) return stage.highlightIndex;
-                                // Non-selected cards: count how many non-selected cards precede this one
-                                let before = 0;
-                                for (let i = 0; i < index; ++i) {
-                                    let other = switcher.workspaceRows[i];
-                                    if (other && other.address !== switcher.selectedAddress) before++;
-                                }
-                                // Skip the highlightIndex slot if we would land on or after it
-                                return before >= stage.highlightIndex ? before + 1 : before;
-                            })()
-                            objectName: rowData ? "windowSwitcherCard-" + rowData.address : "windowSwitcherCard-empty"
-                            x: visualIndex * (stage.cardWidth + stage.frameGap)
-                            width: stage.cardWidth
-                            height: stage.cardHeight
-                            z: selected ? stage.count + 2 : index + 1
-                            opacity: rowData ? 1.0 : 0.3
-                            Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                            Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                    Item {
+                        id: frames
+                        x: stage.cardClipMargin
+                        y: stage.cardClipMargin
+                        width: stage.visibleCount * stage.cardWidth + Math.max(0, stage.visibleCount - 1) * stage.frameGap
+                        height: stage.cardHeight
+
+                        Repeater {
+                            // Three laps let a wrapping card leave one edge while
+                            // an identical copy enters from the other.
+                            model: stage.count * 3
+                            delegate: Item {
+                                id: card
+                                required property int index
+                                readonly property int rowIndex: index % Math.max(1, stage.count)
+                                readonly property int lap: Math.floor(index / Math.max(1, stage.count)) - 1
+                                readonly property var rowData: rowIndex < switcher.workspaceRows.length ? switcher.workspaceRows[rowIndex] : null
+                                // Slot relative to the fixed highlight. Duplicate
+                                // laps keep entering/exiting cards local to the rail.
+                                readonly property int slotPosition: rowIndex - switcher.rotationAnchor + stage.highlightIndex + lap * stage.count
+                                readonly property bool activeSlot: slotPosition >= -1 && slotPosition <= stage.visibleCount
+                                readonly property bool shown: slotPosition >= 0 && slotPosition < stage.visibleCount
+                                readonly property bool selected: rowData && shown && switcher.selectedAddress === rowData.address && slotPosition === stage.highlightIndex
+                                objectName: rowData ? "windowSwitcherCard-" + rowData.address + (lap === 0 ? "" : "-lap" + lap) : "windowSwitcherCard-empty"
+                                x: slotPosition * (stage.cardWidth + stage.frameGap)
+                                width: stage.cardWidth
+                                height: stage.cardHeight
+                                z: selected ? stage.count * 3 + 2 : (shown ? slotPosition + 2 : 1)
+                                visible: activeSlot
+                                opacity: shown ? 1.0 : 0.0
+                                Behavior on x { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
                             Rectangle {
                                 anchors.fill: parent
@@ -276,7 +305,7 @@ PanelWindow {
                                     anchors.fill: parent
                                     anchors.margins: cardSurface.border.width + stage.previewInset
                                     source: rowData.handle?.wayland || null
-                                    active: switcher.opened && rowData
+                                    active: switcher.opened && rowData && activeSlot
                                 }
                                 Rectangle {
                                     anchors.fill: parent
@@ -325,7 +354,7 @@ PanelWindow {
                                                              : Qt.rgba(switcher.menuColors.text.r, switcher.menuColors.text.g, switcher.menuColors.text.b, 0.12)
                                     Text {
                                         anchors.centerIn: parent
-                                        text: rowData ? String(index + 1) : ""
+                                        text: rowData ? String(rowIndex + 1) : ""
                                         color: selected ? switcher.menuColors.background : switcher.menuColors.text
                                         font.family: "Noto Sans"
                                         font.pixelSize: 10
@@ -335,6 +364,7 @@ PanelWindow {
                             }
                             MouseArea {
                                 anchors.fill: parent
+                                enabled: shown
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onEntered: {
@@ -347,6 +377,7 @@ PanelWindow {
                         }
                     }
                 }
+            }
             }
         Text {
             anchors.centerIn: parent
