@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
+import "style" as Style
 import "WindowSwitcherModel.js" as Switcher
 
 // An overlay for windows that overlap on an auto-floating workspace. Window
@@ -13,6 +14,7 @@ PanelWindow {
     property var windowRows: applicationService ? applicationService.windowRows : []
     property url wallpaperSource: ""
     property bool opened: false
+    property real reveal: 0
     property int workspaceId: 0
     property string selectedAddress: ""
     // Unbounded card index under the fixed highlight slot. Rotating the cards
@@ -21,6 +23,10 @@ PanelWindow {
     readonly property var workspaceRows: Switcher.workspaceRows(windowRows, workspaceId)
     readonly property int selectedIndex: Switcher.indexForAddress(workspaceRows, selectedAddress)
     readonly property var selectedRow: selectedIndex >= 0 ? workspaceRows[selectedIndex] : null
+    Behavior on reveal {
+        enabled: !Style.Theme.reducedMotion
+        SpringAnimation { spring: 4.0; damping: 0.38; epsilon: 0.001 }
+    }
     readonly property bool hasRows: workspaceRows.length > 0
     signal windowActivated(string address)
 
@@ -106,7 +112,8 @@ PanelWindow {
         rotationAnchor = Switcher.nearestAnchor(workspaceRows.length, rotationAnchor, index);
     }
     onOpenedChanged: {
-        if (!opened) { selectedAddress = ""; return; }
+        if (!opened) { selectedAddress = ""; reveal = 0; return; }
+        reveal = 1;
         Hyprland.refreshToplevels();
         Qt.callLater(() => keyCatcher.forceActiveFocus());
     }
@@ -188,8 +195,10 @@ PanelWindow {
     Item {
         id: stage
         z: 1
+        opacity: Math.min(1, switcher.reveal * 1.6)
         anchors { top: header.bottom; bottom: footer.top; left: parent.left; right: parent.right
             topMargin: 4; bottomMargin: 4; leftMargin: Math.max(18, switcher.width * 0.045); rightMargin: Math.max(18, switcher.width * 0.045) }
+        transform: Scale { origin.x: width / 2; origin.y: height / 2; xScale: 0.965 + 0.035 * switcher.reveal; yScale: 0.965 + 0.035 * switcher.reveal }
         readonly property int count: switcher.workspaceRows.length
         readonly property int maxVisibleCards: 5
         readonly property real usableWidth: Math.max(1, width)
@@ -199,7 +208,12 @@ PanelWindow {
         readonly property real frameGap: Math.max(8, Math.min(14, usableWidth * 0.012))
         readonly property real frameInset: 24
         readonly property real previewInset: 3
-        readonly property real cardClipMargin: 8
+        readonly property real cardClipMarginX: 14
+        readonly property real cardClipMarginY: 24
+        readonly property bool motionEnabled: !Style.Theme.reducedMotion
+        readonly property real focusScale: 1.07
+        readonly property real idleScale: 0.955
+        readonly property real liquidStretch: 0.05
         readonly property int visibleCount: Math.min(count, maxVisibleCards)
         // Frame grows to fit exactly the visible cards with margins on both sides
         readonly property real filmWidth: visibleCount * cardWidth + Math.max(0, visibleCount - 1) * frameGap + frameInset * 2
@@ -243,16 +257,16 @@ PanelWindow {
 
                 Item {
                     id: cardViewport
-                    x: filmRail.x + stage.frameInset - stage.cardClipMargin
-                    y: Math.round((film.height - stage.cardHeight) / 2) - stage.cardClipMargin
-                    width: stage.visibleCount * stage.cardWidth + Math.max(0, stage.visibleCount - 1) * stage.frameGap + stage.cardClipMargin * 2
-                    height: stage.cardHeight + stage.cardClipMargin * 2
+                    x: filmRail.x + stage.frameInset - stage.cardClipMarginX
+                    y: Math.round((film.height - stage.cardHeight) / 2) - stage.cardClipMarginY
+                    width: stage.visibleCount * stage.cardWidth + Math.max(0, stage.visibleCount - 1) * stage.frameGap + stage.cardClipMarginX * 2
+                    height: stage.cardHeight + stage.cardClipMarginY * 2
                     clip: true
 
                     Item {
                         id: frames
-                        x: stage.cardClipMargin
-                        y: stage.cardClipMargin
+                        x: stage.cardClipMarginX
+                        y: stage.cardClipMarginY
                         width: stage.visibleCount * stage.cardWidth + Math.max(0, stage.visibleCount - 1) * stage.frameGap
                         height: stage.cardHeight
 
@@ -276,29 +290,60 @@ PanelWindow {
                                 property bool snapping: false
                                 property real visualSlot: 0
                                 property bool initialized: false
+                                property real zoom: selected ? stage.focusScale : stage.idleScale
+                                property real travel: 0
                                 objectName: rowData ? "windowSwitcherCard-" + rowData.address + "-copy" + copy : "windowSwitcherCard-empty"
                                 x: (initialized ? visualSlot : slotPosition) * (stage.cardWidth + stage.frameGap)
                                 width: stage.cardWidth
                                 height: stage.cardHeight
+                                scale: zoom
                                 z: selected ? stage.count * 3 + 2 : (shown ? slotPosition + 2 : 1)
                                 visible: activeSlot
                                 opacity: shown ? 1.0 : 0.0
+                                transform: Scale {
+                                    origin.x: card.width / 2
+                                    origin.y: card.height / 2
+                                    xScale: 1 + stage.liquidStretch * Math.abs(card.travel)
+                                    yScale: 1 - stage.liquidStretch * 0.6 * Math.abs(card.travel)
+                                }
+                                // scale property gets a matching liquid overshoot.
+                                Behavior on scale {
+                                    enabled: stage.motionEnabled && !card.snapping
+                                    NumberAnimation { duration: Style.Theme.duration(card, 300); easing.type: Easing.OutBack; easing.overshoot: 0.45 }
+                                }
                                 Behavior on visualSlot {
                                     enabled: !card.snapping
-                                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                                    NumberAnimation { duration: 260; easing.type: Easing.OutCubic }
                                 }
                                 Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                                NumberAnimation {
+                                    id: travelAnimation
+                                    target: card
+                                    property: "travel"
+                                    duration: Style.Theme.duration(card, 320)
+                                    easing.type: Easing.OutCubic
+                                }
                                 onSlotPositionChanged: {
                                     let delta = Math.abs(slotPosition - knownSlot);
-                                    knownSlot = slotPosition;
                                     if (delta > stage.count * 1.5) {
                                         // Wrapped to the other edge: snap while the
                                         // copy is outside the visible strip.
                                         card.snapping = true;
+                                        knownSlot = slotPosition;
                                         card.visualSlot = slotPosition;
+                                        card.travel = 0
                                         Qt.callLater(() => { card.snapping = false; });
                                     } else if (delta > 0) {
+                                        knownSlot = slotPosition;
                                         card.visualSlot = slotPosition;
+                                        if (stage.motionEnabled) {
+                                            card.travel = 1
+                                            travelAnimation.from = 1
+                                            travelAnimation.to = 0
+                                            travelAnimation.restart()
+                                        }
+                                    } else {
+                                        knownSlot = slotPosition;
                                     }
                                 }
                                 Component.onCompleted: {
@@ -308,12 +353,31 @@ PanelWindow {
                                 }
 
                             Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: -4
-                                radius: 8
+                                id: cardShadow
+                                x: -7
+                                y: card.selected ? -1 : 2
+                                width: parent.width + 14
+                                height: parent.height + (card.selected ? 18 : 10)
+                                radius: 10
                                 color: "#52000000"
+                                z: -2
+                                opacity: card.selected ? 0.95 : 0.55
+                                Behavior on y { enabled: stage.motionEnabled; NumberAnimation { duration: Style.Theme.duration(parent, 260); easing.type: Easing.OutCubic } }
+                                Behavior on height { enabled: stage.motionEnabled; NumberAnimation { duration: Style.Theme.duration(parent, 260); easing.type: Easing.OutCubic } }
+                                Behavior on opacity { enabled: stage.motionEnabled; NumberAnimation { duration: Style.Theme.duration(parent, 200); easing.type: Easing.OutCubic } }
+                            }
+                            Rectangle {
+                                id: accentRim
+                                anchors.fill: parent
+                                anchors.margins: -3
+                                radius: 7
+                                color: "transparent"
+                                border.width: card.selected ? 3 : 0
+                                border.color: switcher.menuColors.accent
+                                opacity: card.selected ? 0.75 : 0.0
                                 z: -1
-                                opacity: 1.0
+                                Behavior on opacity { enabled: stage.motionEnabled; NumberAnimation { duration: Style.Theme.duration(parent, 220); easing.type: Easing.OutCubic } }
+                                Behavior on border.width { enabled: stage.motionEnabled; NumberAnimation { duration: Style.Theme.duration(parent, 180); easing.type: Easing.OutCubic } }
                             }
                             Rectangle {
                                 id: cardSurface
@@ -346,6 +410,14 @@ PanelWindow {
                                     horizontalAlignment: Text.AlignHCenter
                                     font.family: "Noto Sans"
                                     font.pixelSize: 12
+                                }
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: Qt.rgba(switcher.menuColors.accent.r, switcher.menuColors.accent.g,
+                                                 switcher.menuColors.accent.b, 0.10)
+                                    opacity: card.selected ? 1.0 : 0.0
+                                    Behavior on opacity { enabled: stage.motionEnabled; NumberAnimation { duration: Style.Theme.duration(parent, 180); easing.type: Easing.OutCubic } }
+                                    visible: opacity > 0
                                 }
                                 Rectangle {
                                     anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
