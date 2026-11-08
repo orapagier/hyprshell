@@ -257,30 +257,55 @@ PanelWindow {
                         height: stage.cardHeight
 
                         Repeater {
-                            // Three laps let a wrapping card leave one edge while
-                            // an identical copy enters from the other.
+                            // Three duplicate copies of every card. carouselSlot()
+                            // keeps them inside a fixed window, so a copy only jumps
+                            // between the edges while it is offscreen and an
+                            // unbounded anchor can spin without ever running out.
                             model: stage.count * 3
                             delegate: Item {
                                 id: card
                                 required property int index
                                 readonly property int rowIndex: index % Math.max(1, stage.count)
-                                readonly property int lap: Math.floor(index / Math.max(1, stage.count)) - 1
+                                readonly property int copy: Math.floor(index / Math.max(1, stage.count))
                                 readonly property var rowData: rowIndex < switcher.workspaceRows.length ? switcher.workspaceRows[rowIndex] : null
-                                // Slot relative to the fixed highlight. Duplicate
-                                // laps keep entering/exiting cards local to the rail.
-                                readonly property int slotPosition: rowIndex - switcher.rotationAnchor + stage.highlightIndex + lap * stage.count
+                                readonly property int slotPosition: Switcher.carouselSlot(stage.count, stage.visibleCount, switcher.rotationAnchor, rowIndex, copy)
                                 readonly property bool activeSlot: slotPosition >= -1 && slotPosition <= stage.visibleCount
                                 readonly property bool shown: slotPosition >= 0 && slotPosition < stage.visibleCount
-                                readonly property bool selected: rowData && shown && switcher.selectedAddress === rowData.address && slotPosition === stage.highlightIndex
-                                objectName: rowData ? "windowSwitcherCard-" + rowData.address + (lap === 0 ? "" : "-lap" + lap) : "windowSwitcherCard-empty"
-                                x: slotPosition * (stage.cardWidth + stage.frameGap)
+                                readonly property bool selected: rowData && shown && switcher.selectedAddress === rowData.address
+                                property int knownSlot: 0
+                                property bool snapping: false
+                                property real visualSlot: 0
+                                property bool initialized: false
+                                objectName: rowData ? "windowSwitcherCard-" + rowData.address + "-copy" + copy : "windowSwitcherCard-empty"
+                                x: (initialized ? visualSlot : slotPosition) * (stage.cardWidth + stage.frameGap)
                                 width: stage.cardWidth
                                 height: stage.cardHeight
                                 z: selected ? stage.count * 3 + 2 : (shown ? slotPosition + 2 : 1)
                                 visible: activeSlot
                                 opacity: shown ? 1.0 : 0.0
-                                Behavior on x { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-                                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                                Behavior on visualSlot {
+                                    enabled: !card.snapping
+                                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                                }
+                                Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                                onSlotPositionChanged: {
+                                    let delta = Math.abs(slotPosition - knownSlot);
+                                    knownSlot = slotPosition;
+                                    if (delta > stage.count * 1.5) {
+                                        // Wrapped to the other edge: snap while the
+                                        // copy is outside the visible strip.
+                                        card.snapping = true;
+                                        card.visualSlot = slotPosition;
+                                        Qt.callLater(() => { card.snapping = false; });
+                                    } else if (delta > 0) {
+                                        card.visualSlot = slotPosition;
+                                    }
+                                }
+                                Component.onCompleted: {
+                                    knownSlot = slotPosition;
+                                    visualSlot = slotPosition;
+                                    initialized = true;
+                                }
 
                             Rectangle {
                                 anchors.fill: parent

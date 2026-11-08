@@ -61,3 +61,20 @@ function anchorAfterStep(anchor, step) {
     step = Math.trunc(Number(step) || 0);
     return Math.trunc(Number(anchor) || 0) - step;
 }
+
+// Place one of three duplicate copies of a card inside a fixed carousel
+// window. The window is wide enough to keep three spaced copies, with one
+// offscreen slot on each side of the strip. A card leaving one edge is the
+// same card re-entering the other, so an unbounded anchor can spin forever
+// while every copy's visible position still moves only one slot at a time.
+function carouselSlot(count, visible, anchor, row, copy) {
+    count = Math.max(0, Number(count) || 0);
+    if (!count) return 0;
+    visible = Math.max(0, Math.min(count, Math.trunc(Number(visible) || 0)));
+    row = ((Math.trunc(Number(row) || 0) % count) + count) % count;
+    copy = Math.trunc(Number(copy) || 0) - 1;
+    let width = 3 * count;
+    let low = visible - 2 * count;
+    let raw = row - Math.trunc(Number(anchor) || 0) + Math.floor(visible / 2) + copy * count;
+    return low + (((raw - low) % width) + width) % width;
+}
