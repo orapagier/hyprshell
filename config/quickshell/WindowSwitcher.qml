@@ -70,7 +70,7 @@ PanelWindow {
         selectedAddress = next;
         opened = true;
     }
-    // Repeating Super+Tab advances while the switcher owns keyboard focus.
+    // Repeating Super+Shift+Tab advances while the switcher owns keyboard focus.
     function cycle(step) {
         if (!opened) { open(); return; }
         moveSelection(Number(step) < 0 ? -1 : 1);
@@ -170,7 +170,7 @@ PanelWindow {
             anchors { top: parent.top; topMargin: 32; horizontalCenter: parent.horizontalCenter }
             text: switcher.hasRows
                 ? switcher.workspaceRows.length + (switcher.workspaceRows.length === 1 ? " window" : " windows") + " · choose one to bring it forward"
-                : "No open windows on this workspace — press Super+Tab to try another"
+                : "No open windows on this workspace — press Super+Shift+Tab to try another"
             color: switcher.menuColors.secondary
             font.family: "Noto Sans"
             font.pixelSize: 12
@@ -185,7 +185,7 @@ PanelWindow {
         Text {
             anchors.centerIn: parent
             text: switcher.hasRows ? "← ↑ rotate left   ·   ↓ → rotate right   ·   Enter focus   ·   Super + Q close window   ·   Esc close"
-                                  : "Esc close · Super + Tab cycle workspaces"
+                                  : "Esc close · Super + Shift + Tab cycle workspaces"
             color: switcher.menuColors.secondary
             font.family: "Noto Sans"
             font.pixelSize: 12
@@ -479,7 +479,7 @@ PanelWindow {
         Text {
             anchors.centerIn: parent
             visible: !switcher.hasRows
-            text: "Open a window here, then press Super + Tab to select it."
+            text: "Open a window here, then press Super + Shift + Tab to select it."
             color: switcher.menuColors.text
             font.family: "Noto Sans"
             font.pixelSize: 14

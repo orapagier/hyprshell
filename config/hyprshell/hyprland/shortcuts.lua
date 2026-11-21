@@ -27,7 +27,8 @@ hl.bind(mainMod .. " + CTRL + H", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"), { description = "Toggle split direction" })    -- dwindle only
 
 hl.bind("SUPER + K", hl.dsp.exec_cmd('"$HOME/.local/bin/keybindings-launcher"'), { description = "Show searchable keybindings" })
-hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" window-switcher'), { description = "Show workspace window switcher" })
+hl.bind(mainMod .. " + TAB", hl.dsp.window.cycle_next(), { description = "Cycle focus through open windows" })
+hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" window-switcher'), { description = "Show workspace window switcher" })
 
 -- Hyprshell keyboard access, including when Hyprpane is hidden.
 hl.bind("SUPER + D", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" dashboard'), { description = "Toggle dashboard" })
