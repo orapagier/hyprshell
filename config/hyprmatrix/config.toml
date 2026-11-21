@@ -6,15 +6,15 @@ x = 1.0
 y = 0.5
 opacity = 1.0
 background = 0.0
-density = 0.29999983310699463
+density = 0.49999988079071045
 speed = 6.0
 font_size = 12
 fps = 15
 theme = "wallpaper"
-effect = "shooting_stars"
+effect = "matrix"
 
 [workspace_overrides]
 1 = false
 2 = true
 3 = false
-4 = false
+4 = true
