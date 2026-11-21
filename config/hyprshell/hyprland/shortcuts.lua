@@ -45,6 +45,12 @@ hl.bind("ALT + W", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" wifi')
 hl.bind("ALT + V", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" bluetooth'), { description = "Toggle Bluetooth" })
 hl.bind("ALT + B", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" battery'), { description = "Toggle battery" })
 hl.bind("ALT + P", hl.dsp.exec_cmd('"$HOME/.local/bin/hyprshell-shortcut" power'), { description = "Toggle power options" })
+-- Alt+L blocks keyboard input until pressed again; a config reload unlocks it.
+hl.define_submap("keyboard_locked", function()
+    hl.bind("catchall", hl.dsp.no_op(), { ignore_mods = true, description = "Ignore keyboard input while locked" })
+    hl.bind("ALT + L", hl.dsp.submap("reset"), { description = "Unlock keyboard" })
+end)
+hl.bind("ALT + L", hl.dsp.submap("keyboard_locked"), { description = "Lock keyboard" })
 hl.bind("SUPER + L", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/backend.py" --lock'), { description = "Lock screen" })
 -- Direct power actions: hold Super+Alt and press the action letter.
 hl.bind("SUPER + ALT + L", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/settings/backend.py" --lock'), { description = "Lock screen" })

@@ -19,6 +19,7 @@ spec.loader.exec_module(guide_reader)
 # callbacks, application launches, power actions and compositor IPC never run.
 AUDIT_LUA = r'''
 local rows = {}
+local submap = ''
 local function normalize(keys)
     return keys:upper():gsub('%s+', '')
 end
@@ -30,10 +31,16 @@ local function dispatcher(path)
 end
 hl = {dsp = dispatcher('')}
 hl.bind = function(keys, action, options)
-    local row = {keys = keys, action = action, options = options or {}, enabled = true}
+    local row = {keys = keys, action = action, options = options or {}, enabled = true, submap = submap}
     row.set_enabled = function(self, enabled) self.enabled = enabled end
     table.insert(rows, row)
     return row
+end
+hl.define_submap = function(name, fn)
+    local previous = submap
+    submap = name
+    fn()
+    submap = previous
 end
 hl.unbind = function(keys)
     for _, row in ipairs(rows) do
@@ -52,7 +59,7 @@ for _, row in ipairs(rows) do
         io.write(row.keys, '\t', options.description or '', '\t',
             tostring(options.release or false), '\t', tostring(options.repeating or false), '\t',
             tostring(options.mouse or false), '\t', tostring(options.locked or false), '\t',
-            action.dispatcher, '\t', type(action.arguments) == 'string' and action.arguments or '', '\n')
+            action.dispatcher, '\t', type(action.arguments) == 'string' and action.arguments or '', '\t', row.submap, '\n')
     end
 end
 '''
@@ -64,13 +71,13 @@ def configured_bindings(config):
                             text=True, capture_output=True, check=True, timeout=10)
     rows = []
     for line in result.stdout.splitlines():
-        keys, description, release, repeat, mouse, locked, dispatcher, argument = line.split('\t')
+        keys, description, release, repeat, mouse, locked, dispatcher, argument, submap = line.split('\t')
         parts = [p.strip() for p in keys.split('+')]
         mask = sum({'SUPER': 64, 'CTRL': 4, 'ALT': 8, 'SHIFT': 1}[p] for p in parts[:-1])
         rows.append(dict(key=parts[-1], modmask=mask, description=description,
                          release=release == 'true', repeat=repeat == 'true',
                          mouse=mouse == 'true', locked=locked == 'true',
-                         dispatcher=dispatcher, arg=argument))
+                         dispatcher=dispatcher, arg=argument, submap=submap))
     return rows
 
 
@@ -147,10 +154,11 @@ end
 
     def test_every_configured_binding_survives_guide_and_remaps_are_respected(self):
         rows = configured_bindings(ROOT / 'config')
-        combinations = [(r['modmask'], r['key'].upper()) for r in rows]
+        defaults = [r for r in rows if not r['submap']]
+        combinations = [(r['modmask'], r['key'].upper()) for r in defaults]
         self.assertEqual(len(combinations), len(set(combinations)), 'Conflicting configured shortcuts')
         self.assertTrue(all(r['description'] for r in rows), 'Missing shortcut descriptions')
-        by_key = dict(zip(combinations, rows))
+        by_key = dict(zip(combinations, defaults))
         self.assertIn((64, 'P'), by_key)
         self.assertIn((65, 'P'), by_key)
         self.assertIn((64, 'K'), by_key)
