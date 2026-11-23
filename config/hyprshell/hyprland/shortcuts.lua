@@ -27,6 +27,7 @@ hl.bind(mainMod .. " + CTRL + H", hl.dsp.exec_cmd('python3 "${XDG_CONFIG_HOME:-$
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"), { description = "Toggle split direction" })    -- dwindle only
 
 hl.bind("SUPER + K", hl.dsp.exec_cmd('"$HOME/.local/bin/keybindings-launcher"'), { description = "Show searchable keybindings" })
+hl.bind("SHIFT + U", hl.dsp.exec_cmd('"$HOME/.local/bin/wpx-usb-send.py"'), { description = "Send a USB disk to Windows" })
 hl.bind(mainMod .. " + TAB", function()
     hl.dispatch(hl.dsp.window.cycle_next())
     hl.dispatch(hl.dsp.window.alter_zorder({ mode = "top" }))
