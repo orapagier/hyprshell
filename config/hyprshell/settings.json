@@ -463,7 +463,7 @@
     "dimMinutes": 5,
     "dimPercent": 20,
     "offMinutes": 15,
-    "suspendMinutes": 30,
+    "suspendMinutes": 0,
     "lidAction": "suspend",
     "profile": "balanced",
     "separateBatteryTimers": true,
