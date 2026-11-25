@@ -32,7 +32,7 @@
     "spacing": 8,
     "compactSpacing": 2,
     "centerItems": false,
-    "dockEnabled": false,
+    "dockEnabled": true,
     "dockTransparency": 0,
     "dockLiquidGlass": false,
     "edgeAttached": true,
@@ -418,7 +418,7 @@
       "opacity": 1,
       "fontSize": 0,
       "radius": -1,
-      "background": "off",
+      "background": "inherit",
       "spacingLeft": 0,
       "spacingRight": 0,
       "iconSize": 15,
@@ -469,7 +469,7 @@
     "separateBatteryTimers": true,
     "batteryDimMinutes": 5,
     "batteryOffMinutes": 10,
-    "batterySuspendMinutes": 20,
+    "batterySuspendMinutes": 30,
     "batteryDimPercent": 20
   },
   "notifications": {
