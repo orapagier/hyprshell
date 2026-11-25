@@ -1,4 +1,5 @@
 """Network commands and the native page, isolated from this laptop's networks."""
+import io
 import json
 import os
 from pathlib import Path
@@ -146,6 +147,61 @@ class NetworkTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 network.request({'operation': 'hotspot-start'})
             command.assert_not_called()
+
+    def test_hotspot_custom_password_is_read_from_stdin_not_arguments(self):
+        added = f"Connection 'Hotspot-abcdef12' ({HOTSPOT}) successfully added.\n"
+        calls = []
+
+        def run(args, input_text=None):
+            calls.append((list(args), input_text))
+            return added if 'add' in args else ''
+
+        payload = {'operation': 'hotspot-start', 'ssid': 'My Hotspot', 'passwordViaStdin': True}
+        password = 'correct horse battery staple'
+        with patch.object(network, 'hotspot_status', return_value=self.hotspot_state()), patch.object(
+                network, 'nmcli', side_effect=run):
+            result = network.request(payload, password)
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['message'], 'Hotspot started with the password you entered.')
+        self.assertNotIn(password, repr(result))
+        add, up = calls
+        self.assertEqual(add[0][:4], ['connection', 'add', 'type', 'wifi'])
+        self.assertEqual(add[0][add[0].index('ssid') + 1], 'My Hotspot')
+        self.assertEqual(add[0][add[0].index('802-11-wireless.mode') + 1], 'ap')
+        self.assertEqual(add[0][add[0].index('ipv4.method') + 1], 'shared')
+        self.assertIsNone(add[1])
+        self.assertNotIn(password, repr(add))
+        self.assertEqual(up[0], ['--ask', 'connection', 'up', 'uuid', HOTSPOT])
+        self.assertEqual(up[1], password)
+        self.assertNotIn(password, repr(up[0]))
+
+        bad = ['short', 'x' * 64, 'two\nlines', 'nul\0byte', 'del\x7fete']
+        with patch.object(network, 'hotspot_status', return_value=self.hotspot_state()), patch.object(
+                network, 'nmcli') as command:
+            for value in bad:
+                with self.assertRaises(ValueError):
+                    network.request(payload, value)
+            command.assert_not_called()
+
+        with patch.object(network, 'hotspot_status', return_value=self.hotspot_state()), patch.object(
+                network, 'nmcli', side_effect=[added, ValueError('activation failed'), '']) as command:
+            with self.assertRaises(ValueError):
+                network.request(payload, password)
+            self.assertEqual(command.call_args_list[-1].args[0], ['connection', 'delete', 'uuid', HOTSPOT])
+
+    def test_main_reads_hotspot_password_from_stdin_only_when_flagged(self):
+        payload = {'operation': 'hotspot-start', 'ssid': 'Cafe', 'passwordViaStdin': True}
+        argv = ['network.py', '--request-json', json.dumps(payload)]
+        with patch.object(sys, 'argv', argv), patch.object(network.sys, 'stdin', io.StringIO('secret-password\n')), patch.object(
+                network, 'request', return_value={'ok': True}) as request, patch('builtins.print'):
+            network.main()
+        request.assert_called_once_with(payload, 'secret-password')
+
+        with patch.object(sys, 'argv', ['network.py', '--request-json', json.dumps({'operation': 'hotspot-status'})]), patch.object(
+                network.sys, 'stdin', io.StringIO('should-not-be-read\n')), patch.object(
+                network, 'request', return_value={'ok': True}) as request, patch('builtins.print'):
+            network.main()
+        request.assert_called_once_with({'operation': 'hotspot-status'}, '')
 
     def test_hotspot_stop_requires_matching_active_uuid(self):
         active = {'name': 'Hotspot', 'uuid': HOTSPOT, 'device': 'wlan0', 'ssid': 'Hotspot-abc'}

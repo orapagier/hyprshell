@@ -132,10 +132,11 @@ The editor package is part of the desktop dependencies; no extra applet is start
 
 The hotspot control in Hyprpane and Hyprdock shares the active Wi-Fi or
 Ethernet connection on demand. It reports the active hotspot, starts one with
-NetworkManager and an optional network name, and stops it without deleting the
-saved profile. NetworkManager generates the password when none is supplied;
-it is shown once in the menu and never stored in Hyprshell settings, QML or
-helper arguments. Wi-Fi must be enabled before starting.
+an optional network name and password, and stops it without deleting the saved
+profile. NetworkManager generates the password when the field is empty and
+shows it once in the menu; a password you enter goes to NetworkManager through
+stdin and is never stored in Hyprshell settings, QML or process arguments.
+Wi-Fi must be enabled before starting.
 
 The Network page is created only when selected and released when leaving it,
 after any short helper command completes. There is no Network-page timer or

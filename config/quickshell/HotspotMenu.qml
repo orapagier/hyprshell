@@ -11,14 +11,17 @@ ColumnLayout {
     readonly property var menuColors: Colors.menuColorsFor(page)
     property var info: ({})
     property string message: ""
+    property string pendingPassword: ""
     property bool success: true
     readonly property bool busy: worker.running
     readonly property bool active: !!page.info.hotspot
     spacing: 8
 
-    function request(payload) {
+    function request(payload, password) {
         if (busy) return;
         page.message = "";
+        page.pendingPassword = password || "";
+        worker.stdinEnabled = page.pendingPassword.length > 0;
         worker.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/network.py").toString().replace(/^file:\/\//, "")),
                           "--request-json", JSON.stringify(payload)];
         worker.running = true;
@@ -28,6 +31,12 @@ ColumnLayout {
 
     Process {
         id: worker
+        onStarted: {
+            if (page.pendingPassword) {
+                worker.write(page.pendingPassword + "\n");
+                page.pendingPassword = "";
+            }
+        }
         onExited: code => { if (code !== 0 && !page.message) { page.success = false; page.message = "Network helper failed. Refresh and try again."; } }
         stdout: StdioCollector {
             onStreamFinished: {
@@ -79,6 +88,17 @@ ColumnLayout {
         background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#44cdd6f4" }
         onAccepted: start.clicked()
     }
+    TextField {
+        id: password
+        objectName: "hotspotPassword"
+        visible: !page.active
+        Layout.fillWidth: true
+        echoMode: TextInput.Password
+        placeholderText: "Password (optional, 8+ characters)"
+        color: page.menuColors.text; placeholderTextColor: page.menuColors.secondary; font.pixelSize: 13
+        background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#44cdd6f4" }
+        onAccepted: start.clicked()
+    }
     MenuLabel {
         objectName: "hotspotMessage"
         text: page.message
@@ -94,8 +114,17 @@ ColumnLayout {
             text: page.busy ? "Working…" : page.active ? "Stop hotspot" : "Start hotspot"
             Layout.fillWidth: true
             enabled: !page.busy && (!page.active || !!page.info.hotspot?.uuid)
-            onClicked: page.active ? page.request({operation: "hotspot-stop", uuid: page.info.hotspot.uuid})
-                                   : page.request({operation: "hotspot-start", ssid: ssid.text})
+            onClicked: {
+                if (page.active) {
+                    page.request({operation: "hotspot-stop", uuid: page.info.hotspot.uuid});
+                } else if (!page.busy) {
+                    let payload = {operation: "hotspot-start", ssid: ssid.text};
+                    let entered = password.text;
+                    if (entered) payload.passwordViaStdin = true;
+                    password.text = "";
+                    page.request(payload, entered);
+                }
+            }
         }
         MenuButton {
             objectName: "hotspotRefresh"
@@ -115,7 +144,7 @@ ColumnLayout {
         }
     }
     MenuLabel {
-        text: "NetworkManager shares the active Ethernet or Wi-Fi connection. It generates a password when you start; the password appears here once and is saved in your connections."
+        text: "NetworkManager shares the active Ethernet or Wi-Fi connection. Leave the password empty to generate one; a password you enter goes to NetworkManager through stdin, never Hyprshell settings or arguments."
         color: page.menuColors.secondary
         Layout.fillWidth: true
     }

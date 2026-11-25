@@ -7,12 +7,13 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 
 
-def nmcli(arguments):
+def nmcli(arguments, input_text=None):
     try:
         result = subprocess.run(['nmcli', '--wait', '15', *arguments],
-                                capture_output=True, text=True, timeout=20,
+                                input=input_text, capture_output=True, text=True, timeout=20,
                                 env=dict(os.environ, LC_ALL='C'))
     except FileNotFoundError:
         raise ValueError('NetworkManager is missing. Install the desktop networking dependencies.') from None
@@ -108,10 +109,13 @@ def hotspot_status():
             'sources': sources, 'connectivity': nmcli(['--get-values', 'CONNECTIVITY', 'general']).strip()}
 
 
-def hotspot_start(payload):
+def hotspot_start(payload, password=''):
     ssid = payload.get('ssid', '')
     if not isinstance(ssid, str) or len(ssid.encode('utf-8')) > 32 or any(ord(c) < 32 for c in ssid):
-        raise ValueError('Enter a network name of at most 32 UTF-8 bytes, on one line.')
+        raise ValueError('Enter a hotspot name of at most 32 UTF-8 bytes, on one line.')
+    if password and (not isinstance(password, str) or not 8 <= len(password.encode('utf-8')) <= 63
+                     or any(ord(c) < 32 or ord(c) == 127 for c in password)):
+        raise ValueError('Enter a password of 8 to 63 printable characters, or leave it empty to generate one.')
     current = hotspot_status()
     if current['hotspot']:
         raise ValueError('A hotspot is already active. Stop it before starting another.')
@@ -119,17 +123,40 @@ def hotspot_start(payload):
         raise ValueError('Turn on Wi-Fi before starting a hotspot.')
     if not current['wifiDevice']:
         raise ValueError('No Wi-Fi device is available for a hotspot.')
-    # NetworkManager generates a password when none is supplied; never put one in argv.
-    args = ['device', 'wifi', 'hotspot', 'ifname', current['wifiDevice']]
-    if ssid:
-        args += ['ssid', ssid]
-    output = nmcli(args).strip()
+    if password:
+        # nmcli --ask reads the secret from stdin; no password ever enters argv.
+        suffix = hashlib.sha256(os.urandom(6)).hexdigest()[:8]
+        profile = 'Hotspot-' + suffix
+        output = nmcli(['connection', 'add', 'type', 'wifi', 'con-name', profile,
+                        'ifname', current['wifiDevice'], 'ssid', ssid or profile,
+                        '802-11-wireless.mode', 'ap', '802-11-wireless.band', 'bg',
+                        '802-11-wireless-security.key-mgmt', 'wpa-psk',
+                        'connection.autoconnect', 'no', 'ipv4.method', 'shared'])
+        match = UUID.search(output)
+        if not match:
+            raise ValueError('Could not create the hotspot profile. Refresh and try again.')
+        try:
+            nmcli(['--ask', 'connection', 'up', 'uuid', match.group(0)], input_text=password)
+        except ValueError:
+            try:
+                nmcli(['connection', 'delete', 'uuid', match.group(0)])
+            except ValueError:
+                pass
+            raise
+        output = ''
+    else:
+        args = ['device', 'wifi', 'hotspot', 'ifname', current['wifiDevice']]
+        if ssid:
+            args += ['ssid', ssid]
+        output = nmcli(args).strip()
     try:
         state = hotspot_status()
     except ValueError:
         state = {'ok': True, 'hotspot': None, 'wifiDevice': current['wifiDevice'],
                  'wifiEnabled': current['wifiEnabled'], 'sources': current['sources'], 'connectivity': ''}
-    return {**state, 'ok': True, 'message': output or 'Hotspot started.'}
+    # nmcli may echo a supplied password; never send it back to the menu.
+    message = 'Hotspot started with the password you entered.' if password else output or 'Hotspot started.'
+    return {**state, 'ok': True, 'message': message}
 
 
 def hotspot_stop(payload):
@@ -177,7 +204,7 @@ def connect_terminal(arguments):
     return {'ok': True, 'message': 'Connection terminal opened. Complete authentication there, then Refresh to check the result.'}
 
 
-def request(payload):
+def request(payload, password=''):
     if not isinstance(payload, dict):
         raise ValueError('Invalid network request.')
     operation = payload.get('operation')
@@ -191,7 +218,7 @@ def request(payload):
     if operation == 'hotspot-status':
         return hotspot_status()
     if operation == 'hotspot-start':
-        return hotspot_start(payload)
+        return hotspot_start(payload, password)
     if operation == 'hotspot-stop':
         return hotspot_stop(payload)
     if operation in ('edit', 'connect', 'disconnect', 'forget'):
@@ -237,7 +264,13 @@ def main():
     parser.add_argument('--request-json', required=True)
     args = parser.parse_args()
     try:
-        result = request(json.loads(args.request_json))
+        payload = json.loads(args.request_json)
+        password = ''
+        if isinstance(payload, dict) and payload.get('operation') == 'hotspot-start' and payload.get('passwordViaStdin') is True:
+            password = sys.stdin.readline(256).rstrip('\r\n')
+            if not password:
+                raise ValueError('Enter a password or leave the field empty to generate one.')
+        result = request(payload, password)
     except (ValueError, OSError, subprocess.TimeoutExpired) as error:
         message = str(error) if isinstance(error, ValueError) else 'Could not open the network tool. Try again from your desktop session.'
         result = {'ok': False, 'message': message}
