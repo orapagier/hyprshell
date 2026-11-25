@@ -15,6 +15,7 @@ import network
 
 WIFI = '11111111-1111-1111-1111-111111111111'
 VPN = '22222222-2222-2222-2222-222222222222'
+HOTSPOT = '33333333-3333-3333-3333-333333333333'
 
 
 class NetworkTests(unittest.TestCase):
@@ -102,6 +103,63 @@ class NetworkTests(unittest.TestCase):
             self.assertEqual(launch.call_args.kwargs['stdin'], subprocess.DEVNULL)
         with patch.object(network.shutil, 'which', return_value=None):
             with self.assertRaises(ValueError): network.editor([])
+
+    def hotspot_state(self, active=None):
+        return {'ok': True, 'hotspot': active, 'wifiDevice': 'wlan0', 'wifiEnabled': True,
+                'sources': ['Wired connection 1'], 'connectivity': 'full'}
+
+    def test_hotspot_status_distinguishes_ap_from_client_and_finds_uplink(self):
+        active = (f'Home:{WIFI}:802-11-wireless:wlp0s20f3\n'
+                  f'Hotspot:{HOTSPOT}:802-11-wireless:wlan0\n'
+                  f'Wired connection 1:{VPN}:802-3-ethernet:eth0\n')
+        with patch.object(network, 'nmcli', side_effect=[active, 'infrastructure\n', 'ap\n',
+                                                         'Hotspot-abc\n',
+                                                         'eth0:ethernet:connected:Wired connection 1\n'
+                                                         'wlan0:wifi:disconnected:\n', 'enabled\n', 'full\n']):
+            result = network.request({'operation': 'hotspot-status'})
+        self.assertEqual(result['hotspot'], {'name': 'Hotspot', 'uuid': HOTSPOT,
+                                            'device': 'wlan0', 'ssid': 'Hotspot-abc'})
+        self.assertEqual(result['sources'], ['Wired connection 1'])
+        self.assertEqual(result['wifiDevice'], 'wlan0')
+        self.assertTrue(result['wifiEnabled'])
+
+    def test_hotspot_start_generates_password_without_secrets_in_arguments(self):
+        with patch.object(network, 'hotspot_status', return_value=self.hotspot_state()), patch.object(
+                network, 'nmcli', return_value='Hotspot is active. Password: generated-secret') as command:
+            result = network.request({'operation': 'hotspot-start', 'ssid': 'My Hotspot'})
+            command.assert_called_once_with(['device', 'wifi', 'hotspot', 'ifname', 'wlan0', 'ssid', 'My Hotspot'])
+            self.assertIn('generated-secret', result['message'])
+            for invalid in ('a' * 33, '界' * 11, 'two\nlines', 'nul\0byte', None):
+                with self.assertRaises(ValueError):
+                    network.request({'operation': 'hotspot-start', 'ssid': invalid})
+            self.assertEqual(command.call_count, 1)
+            network.request({'operation': 'hotspot-start'})
+            command.assert_called_with(['device', 'wifi', 'hotspot', 'ifname', 'wlan0'])
+        active = {'name': 'Hotspot', 'uuid': HOTSPOT, 'device': 'wlan0', 'ssid': 'Hotspot-abc'}
+        with patch.object(network, 'hotspot_status', return_value=self.hotspot_state(active)), patch.object(
+                network, 'nmcli') as command:
+            with self.assertRaises(ValueError):
+                network.request({'operation': 'hotspot-start'})
+            command.assert_not_called()
+        with patch.object(network, 'hotspot_status', return_value={**self.hotspot_state(), 'wifiEnabled': False}), patch.object(
+                network, 'nmcli') as command:
+            with self.assertRaises(ValueError):
+                network.request({'operation': 'hotspot-start'})
+            command.assert_not_called()
+
+    def test_hotspot_stop_requires_matching_active_uuid(self):
+        active = {'name': 'Hotspot', 'uuid': HOTSPOT, 'device': 'wlan0', 'ssid': 'Hotspot-abc'}
+        with patch.object(network, 'hotspot_status', side_effect=[self.hotspot_state(active), self.hotspot_state()]), patch.object(
+                network, 'nmcli') as command:
+            result = network.request({'operation': 'hotspot-stop', 'uuid': HOTSPOT})
+            command.assert_called_once_with(['connection', 'down', 'uuid', HOTSPOT])
+            self.assertIsNone(result['hotspot'])
+        with patch.object(network, 'hotspot_status', return_value=self.hotspot_state(active)), patch.object(
+                network, 'nmcli') as command:
+            for payload in ({}, {'uuid': '$(bad)'}, {'uuid': WIFI}, {'operation': 'hotspot-stop'}):
+                with self.assertRaises(ValueError):
+                    network.request({'operation': 'hotspot-stop', **payload})
+            command.assert_not_called()
 
     def test_service_permission_timeout_and_command_errors_are_actionable(self):
         for error, text in [('Could not create NMClient object: Could not connect', 'Cannot reach'), ('Operation not permitted', 'access was denied'), ('Not authorized', 'access was denied'), ('unknown failure', 'operation failed')]:

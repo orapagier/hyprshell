@@ -59,7 +59,7 @@ Item {
         function test_shortcuts_data() {
             let rows = [];
             for (let edge of ["top","bottom","left","right"])
-                for (let menu of ["launcher","settings","audio","wifi","bluetooth","notifications","battery","power","calendar","workspacePreview","media"])
+                for (let menu of ["launcher","settings","audio","wifi","bluetooth","notifications","battery","power","hotspot","calendar","workspacePreview","media"])
                     rows.push({tag:edge + "-" + menu,edge:edge,menu:menu});
             return rows;
         }

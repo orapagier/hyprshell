@@ -130,6 +130,13 @@ also use this editor. Its connection chooser supports VPN import; provider VPNs
 need their corresponding NetworkManager plugin. WireGuard support is built in.
 The editor package is part of the desktop dependencies; no extra applet is started.
 
+The hotspot control in Hyprpane and Hyprdock shares the active Wi-Fi or
+Ethernet connection on demand. It reports the active hotspot, starts one with
+NetworkManager and an optional network name, and stops it without deleting the
+saved profile. NetworkManager generates the password when none is supplied;
+it is shown once in the menu and never stored in Hyprshell settings, QML or
+helper arguments. Wi-Fi must be enabled before starting.
+
 The Network page is created only when selected and released when leaving it,
 after any short helper command completes. There is no Network-page timer or
 background status process. Refresh reads metadata on demand; it does not force
@@ -209,7 +216,7 @@ in the always-loaded store and service components.
 
 `settings/defaults.json` defines schema version 1 and the built-in module IDs:
 launcher, settings, workspaces, media, calendar, tray, notifications, audio, wifi,
-bluetooth, battery, power. `SettingsStore.qml` merges saved preferences with
+bluetooth, battery, power, hotspot. `SettingsStore.qml` merges saved preferences with
 defaults, watches changes, and retains the last readable configuration when
 JSON parsing fails. `SettingsModel.js` is shared by the window and the bar.
 

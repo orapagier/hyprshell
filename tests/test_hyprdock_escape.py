@@ -76,7 +76,7 @@ ShellRoot {
                 test.check(dock.expanded, "leaving and reentering reveals dock again");
                 keys.mouseMove(dock.contentItem, 20, dock.height - 20);
                 for (let keyboard of [false, true]) {
-                    for (let name of ["launcher", "keybindings", "wifi", "calendar", "audio", "bluetooth", "battery", "power", "notifications", "dashboard", "activity", "settings"]) {
+                    for (let name of ["launcher", "keybindings", "wifi", "calendar", "audio", "bluetooth", "battery", "power", "hotspot", "notifications", "dashboard", "activity", "settings"]) {
                         if (keyboard) dock.open(name, true);
                         else { dock.revealed = true; state.hover(name); }
                         keys.wait(200);

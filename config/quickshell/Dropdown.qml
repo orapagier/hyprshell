@@ -87,9 +87,9 @@ PanelWindow {
                     if (workspaceId > 0) dropdown.services.workspace(workspaceId);
                 } else dropdown.settingsRequested();
             }
-            title: dropdown.displayedSection === "workspacePreview" ? "Workspace " + (dropdown.previewWorkspace?.name || dropdown.previewWorkspace?.id || "") : ({media:"Now playing",launcher:"Applications",settings:"Hyprshell",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",notifications:"Notifications",battery:"Battery",power:"Power options"})[dropdown.displayedSection] || ""
-            symbol: ({workspacePreview:"󰍹",media:"󰎆",launcher:"",settings:"󰒓",calendar:"󰃭",audio:dropdown.services.audioIcon || "󰕾",wifi:"󰤨",bluetooth:"󰂯",notifications:"󰂚",battery:"󰁹",power:"󰐥"})[dropdown.displayedSection] || ""
-            page: ({workspacePreview: workspacePage, media: mediaPage, settings: settingsPage, calendar: calendarPage, audio: audioPage, wifi: wifiPage, bluetooth: bluetoothPage, notifications: inboxPage, battery: batteryPage, power: powerPage})[dropdown.displayedSection] || null
+            title: dropdown.displayedSection === "workspacePreview" ? "Workspace " + (dropdown.previewWorkspace?.name || dropdown.previewWorkspace?.id || "") : ({media:"Now playing",launcher:"Applications",settings:"Hyprshell",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",notifications:"Notifications",battery:"Battery",power:"Power options",hotspot:"Hotspot"})[dropdown.displayedSection] || ""
+            symbol: ({workspacePreview:"󰍹",media:"󰎆",launcher:"",settings:"󰒓",calendar:"󰃭",audio:dropdown.services.audioIcon || "󰕾",wifi:"󰤨",bluetooth:"󰂯",notifications:"󰂚",battery:"󰁹",power:"󰐥",hotspot:"󰤨"})[dropdown.displayedSection] || ""
+            page: ({workspacePreview: workspacePage, media: mediaPage, settings: settingsPage, calendar: calendarPage, audio: audioPage, wifi: wifiPage, bluetooth: bluetoothPage, notifications: inboxPage, battery: batteryPage, power: powerPage, hotspot: hotspotPage})[dropdown.displayedSection] || null
             onHoverChanged: inside => dropdown.hoverChanged(inside)
         }
     }
@@ -152,6 +152,7 @@ PanelWindow {
     Component { id: audioPage; AudioMenu { services: dropdown.services } }
     Component { id: wifiPage; WifiMenu { services: dropdown.services } }
     Component { id: bluetoothPage; BluetoothMenu { services: dropdown.services } }
+    Component { id: hotspotPage; HotspotMenu { services: dropdown.services } }
     Component { id: batteryPage; BatteryMenu { services: dropdown.services } }
     Component { id: inboxPage; InboxMenu { inbox: dropdown.inbox } }
     Component { id: powerPage; PowerMenu {} }

@@ -279,7 +279,8 @@ FloatingWindow {
             wifi: "Wi-Fi",
             bluetooth: "Bluetooth",
             battery: "Battery",
-            power: "Power"
+            power: "Power",
+            hotspot: "Hotspot"
         })
     readonly property var symbols: ({
             launcher: "",
@@ -293,7 +294,8 @@ FloatingWindow {
             wifi: "󰤨",
             bluetooth: "󰂯",
             battery: "󰁹",
-            power: "󰐥"
+            power: "󰐥",
+            hotspot: "󰤨"
         })
     visible: false
     title: "Hyprshell Settings"
@@ -1129,6 +1131,9 @@ FloatingWindow {
                                                 battery: {
                                                     present: true,
                                                     text: "󰁹 86%"
+                                                },
+                                                hotspot: {
+                                                    text: "󰤨"
                                                 }
                                             })
                                         mediaData: ({

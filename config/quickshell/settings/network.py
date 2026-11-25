@@ -47,6 +47,9 @@ def fields(line):
     return result + [value]
 
 
+UUID = re.compile(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}')
+
+
 def profiles():
     rows = nmcli(['--terse', '--escape', 'yes', '--fields', 'NAME,UUID,TYPE', 'connection', 'show'])
     active = set(nmcli(['--terse', '--fields', 'UUID', 'connection', 'show', '--active']).splitlines())
@@ -69,9 +72,85 @@ def status():
             'editor': bool(shutil.which('nm-connection-editor'))}
 
 
+def active_hotspot():
+    rows = nmcli(['--terse', '--escape', 'yes', '--fields', 'NAME,UUID,TYPE,DEVICE',
+                  'connection', 'show', '--active'])
+    for line in rows.splitlines():
+        values = fields(line)
+        if len(values) != 4:
+            raise ValueError('Could not read network connections. Refresh and try again.')
+        name, ident, kind, device = values
+        if kind != '802-11-wireless' or not device or not UUID.fullmatch(ident):
+            continue
+        args = ['--get-values', '802-11-wireless.mode', 'connection', 'show', ident]
+        if nmcli(args).strip() != 'ap':
+            continue
+        ssid = nmcli(['--get-values', '802-11-wireless.ssid', 'connection', 'show', ident]).strip()
+        return {'name': name, 'uuid': ident, 'device': device, 'ssid': ssid}
+    return None
+
+
+def hotspot_status():
+    hotspot = active_hotspot()
+    devices = nmcli(['--terse', '--fields', 'DEVICE,TYPE,STATE,CONNECTION', 'device', 'status'])
+    wifi_device, sources = '', []
+    for line in devices.splitlines():
+        values = fields(line)
+        if len(values) != 4:
+            raise ValueError('Could not read network devices. Refresh and try again.')
+        device, kind, state, connection = values
+        if kind == 'wifi' and not wifi_device:
+            wifi_device = device
+        if connection and kind in ('ethernet', 'wifi') and connection != (hotspot or {}).get('name'):
+            sources.append(connection)
+    return {'ok': True, 'hotspot': hotspot, 'wifiDevice': wifi_device,
+            'wifiEnabled': nmcli(['--get-values', 'WIFI', 'general']).strip() == 'enabled',
+            'sources': sources, 'connectivity': nmcli(['--get-values', 'CONNECTIVITY', 'general']).strip()}
+
+
+def hotspot_start(payload):
+    ssid = payload.get('ssid', '')
+    if not isinstance(ssid, str) or len(ssid.encode('utf-8')) > 32 or any(ord(c) < 32 for c in ssid):
+        raise ValueError('Enter a network name of at most 32 UTF-8 bytes, on one line.')
+    current = hotspot_status()
+    if current['hotspot']:
+        raise ValueError('A hotspot is already active. Stop it before starting another.')
+    if not current['wifiEnabled']:
+        raise ValueError('Turn on Wi-Fi before starting a hotspot.')
+    if not current['wifiDevice']:
+        raise ValueError('No Wi-Fi device is available for a hotspot.')
+    # NetworkManager generates a password when none is supplied; never put one in argv.
+    args = ['device', 'wifi', 'hotspot', 'ifname', current['wifiDevice']]
+    if ssid:
+        args += ['ssid', ssid]
+    output = nmcli(args).strip()
+    try:
+        state = hotspot_status()
+    except ValueError:
+        state = {'ok': True, 'hotspot': None, 'wifiDevice': current['wifiDevice'],
+                 'wifiEnabled': current['wifiEnabled'], 'sources': current['sources'], 'connectivity': ''}
+    return {**state, 'ok': True, 'message': output or 'Hotspot started.'}
+
+
+def hotspot_stop(payload):
+    ident = payload.get('uuid')
+    if not isinstance(ident, str) or not UUID.fullmatch(ident):
+        raise ValueError('Refresh the hotspot status before stopping it.')
+    current = hotspot_status()
+    if not current['hotspot'] or current['hotspot']['uuid'] != ident:
+        raise ValueError('The hotspot already stopped. Refresh to check the current state.')
+    nmcli(['connection', 'down', 'uuid', ident])
+    try:
+        state = hotspot_status()
+    except ValueError:
+        state = {'ok': True, 'hotspot': None, 'wifiDevice': current['wifiDevice'],
+                 'wifiEnabled': current['wifiEnabled'], 'sources': current['sources'], 'connectivity': ''}
+    return {**state, 'ok': True, 'message': 'Hotspot stopped. Its saved profile was kept.'}
+
+
 def selected(payload):
     ident = payload.get('uuid')
-    if not isinstance(ident, str) or not re.fullmatch(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}', ident):
+    if not isinstance(ident, str) or not UUID.fullmatch(ident):
         raise ValueError('Choose a saved connection from the list.')
     row = next((row for row in profiles() if row['uuid'] == ident), None)
     if row is None or row['revision'] != payload.get('expected'):
@@ -109,6 +188,12 @@ def request(payload):
         if not isinstance(ssid, str) or not 1 <= len(ssid.encode('utf-8')) <= 32 or any(c in ssid for c in '\r\n\0'):
             raise ValueError('Enter the exact network name, between 1 and 32 UTF-8 bytes, on one line.')
         return connect_terminal(['device', 'wifi', 'connect', ssid, 'hidden', 'yes'])
+    if operation == 'hotspot-status':
+        return hotspot_status()
+    if operation == 'hotspot-start':
+        return hotspot_start(payload)
+    if operation == 'hotspot-stop':
+        return hotspot_stop(payload)
     if operation in ('edit', 'connect', 'disconnect', 'forget'):
         row = selected(payload)
         if operation == 'edit':

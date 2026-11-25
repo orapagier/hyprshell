@@ -19,7 +19,7 @@ function wallpaperPalette(source) {
     return palette;
 }
 var vibrantIds = ['launcher', 'settings', 'workspaces', 'media', 'calendar', 'tray',
-    'notifications', 'audio', 'wifi', 'bluetooth', 'battery', 'power'];
+    'notifications', 'audio', 'wifi', 'bluetooth', 'battery', 'power', 'hotspot'];
 
 function fullBackgroundEnabled(bar) {
     return bar.fullBackground === "on"

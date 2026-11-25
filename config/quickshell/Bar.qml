@@ -140,7 +140,8 @@ Item {
             wifi: wifi,
             bluetooth: bluetooth,
             battery: battery,
-            power: power
+            power: power,
+            hotspot: hotspot
         })
     readonly property var defaultSides: ({
             launcher: "left",
@@ -310,7 +311,8 @@ Item {
             audio: {},
             network: {},
             bluetooth: {},
-            battery: {}
+            battery: {},
+            hotspot: {}
         })
     property real mediaMaximumWidth: Math.max(80, Math.min(300, width * 0.24))
     property var mediaData: ({
@@ -387,7 +389,8 @@ Item {
             wifi: wifi,
             bluetooth: bluetooth,
             battery: battery,
-            power: power
+            power: power,
+            hotspot: hotspot
         })
     function menuRect(name) {
         let item = menuTargets[name];
@@ -1318,6 +1321,27 @@ Item {
         pixelSize: 15
         leftPadding: 9
         rightPadding: 9
+    }
+    BarMenuButton {
+        id: hotspot
+        x: bar.itemX("hotspot")
+        y: bar.itemY("hotspot")
+        vertical: bar.iconPills
+        maximumWidth: bar.vertical ? bar.verticalThickness - 4 : 10000
+        settings: bar.appearance("hotspot")
+        opacity: Settings.item(bar.settings, "hotspot").opacity ?? 1
+        visible: bar.itemEnabled("hotspot")
+        bar: bar
+        menu: "hotspot"
+        text: bar.statusData.hotspot?.text || "󰤨"
+        foreground: "#a6e3a1"
+        tint: bar.rgba("#a6e3a1", 0.18)
+        outline: bar.rgba("#a6e3a1", 0.26)
+        family: "GoMono Nerd Font"
+        pixelSize: 15
+        implicitWidth: bar.uniformItems || (bar.compactItemPadding && !bar.vertical) ? naturalWidth : vertical ? bar.verticalThickness - 4 : implicitHeight
+        leftPadding: 4
+        rightPadding: 4
     }
     }
 }

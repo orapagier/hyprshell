@@ -91,7 +91,7 @@ ShellRoot {
                 hover.reveal('right');
                 test.check(hover.drawerSurface.bodyRect.x + hover.drawerSurface.bodyWidth === hover.width, 'right drawer touches right edge');
                 // Exercise every inline page without invoking its external actions.
-                for (let id of ['settings','workspaces','media','calendar','tray','notifications','audio','wifi','bluetooth','battery','power','launcher']) {
+                for (let id of ['settings','workspaces','media','calendar','tray','notifications','audio','wifi','bluetooth','battery','power','hotspot','launcher']) {
                     hover.controls.parent.selected = id;
                     test.check(hover.controls.parent.children.find(child => child.objectName === 'hyprhoverTabPage').item !== null, 'inline page loaded: ' + id);
                 }

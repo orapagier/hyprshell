@@ -18,7 +18,8 @@ Pill {
         if ((menu === "launcher" || menu === "settings") && !settings.text && !settings.icon) return "";
         return ({launcher:"", settings:"󰒓", calendar:"󰃭", notifications:"󰂚",
             audio:bar.statusData.audio?.icon || "󰕾", wifi:bar.statusData.network?.text || "󰤮",
-            bluetooth:bar.statusData.bluetooth?.text || "󰂲", battery:icon || "󰁹", power:"󰐥"})[menu] || icon;
+            bluetooth:bar.statusData.bluetooth?.text || "󰂲", battery:icon || "󰁹", power:"󰐥",
+            hotspot:"󰤨"})[menu] || icon;
     }
     onActiveFocusChanged: if (activeFocus) bar.ensureItemVisible(control)
     onWheel: event => { if (vertical) bar.scrollVertical(event); }

@@ -371,7 +371,7 @@ PanelWindow {
                             background: "off", hyprknots: false, uniformItems: false, height: 36,
                             contentPaddingTop: 0, contentPaddingBottom: 0, contentPaddingLeft: 0, contentPaddingRight: 0,
                             verticalPresentation: "compact"});
-                        const status = ["notifications", "bluetooth", "audio", "wifi", "battery", "power"];
+                        const status = ["notifications", "bluetooth", "audio", "wifi", "battery", "power", "hotspot"];
                         const sideOrder = {left: 0, center: 1, right: 2};
                         config.items.sort((a, b) => (sideOrder[a.side] - sideOrder[b.side]) || a.order - b.order);
                         config.items = config.items.filter(item => !status.includes(item.id))
@@ -514,7 +514,7 @@ PanelWindow {
                     id: headingRow
                     objectName: "dockHeading"
                     Layout.fillWidth: true
-                    Label { Layout.fillWidth: true; text: ({settings:"Hyprsettings",dashboard:"Dashboard",activity:"Activity",keybindings:"Keyboard shortcuts",launcher:"Applications",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",battery:"Battery",power:"Power",media:"Now playing",notifications:"Notifications",displays:"Projector options",alerts:"Notifications",workspacePreview:"Workspace"})[dockState.displayedSection] || "Hyprdock"; color: dock.headerColor; font.pixelSize: 16 }
+                    Label { Layout.fillWidth: true; text: ({settings:"Hyprsettings",dashboard:"Dashboard",activity:"Activity",keybindings:"Keyboard shortcuts",launcher:"Applications",calendar:"Calendar",audio:"Audio",wifi:"Wi-Fi",bluetooth:"Bluetooth",battery:"Battery",power:"Power",hotspot:"Hotspot",media:"Now playing",notifications:"Notifications",displays:"Projector options",alerts:"Notifications",workspacePreview:"Workspace"})[dockState.displayedSection] || "Hyprdock"; color: dock.headerColor; font.pixelSize: 16 }
                     ToolButton {
                         Accessible.name: "Close dock content"
                         implicitWidth: 30; implicitHeight: 30
@@ -572,7 +572,7 @@ PanelWindow {
                             width: menuViewport.availableWidth
                             height: implicitHeight
                             active: dock.section.length > 0 && !["settings", "displays", "dashboard", "activity"].includes(dock.section)
-                            sourceComponent: ({dashboard:dashboardPage,activity:activityPage,keybindings:keysPage,launcher:launcherPage,calendar:calendarPage,audio:audioPage,wifi:wifiPage,bluetooth:bluetoothPage,battery:batteryPage,power:powerPage,notifications:inboxPage,media:mediaPage,workspacePreview:workspacePage})[dockState.displayedSection] || null
+                            sourceComponent: ({dashboard:dashboardPage,activity:activityPage,keybindings:keysPage,launcher:launcherPage,calendar:calendarPage,audio:audioPage,wifi:wifiPage,bluetooth:bluetoothPage,battery:batteryPage,power:powerPage,hotspot:hotspotPage,notifications:inboxPage,media:mediaPage,workspacePreview:workspacePage})[dockState.displayedSection] || null
                             onLoaded: if (dockState.openedByShortcut) Qt.callLater(() => { if (page.item) { if (page.item.focusFirst) page.item.focusFirst(); else if (!["launcher", "keybindings"].includes(dock.section)) page.item.forceActiveFocus(); } });
                         }
                     }
@@ -685,6 +685,7 @@ PanelWindow {
     Component { id: audioPage; AudioMenu { services: dock.services } }
     Component { id: wifiPage; WifiMenu { services: dock.services } }
     Component { id: bluetoothPage; BluetoothMenu { services: dock.services } }
+    Component { id: hotspotPage; HotspotMenu { services: dock.services } }
     Component { id: batteryPage; BatteryMenu { services: dock.services } }
     Component { id: powerPage; PowerMenu {} }
     Component { id: inboxPage; InboxMenu { inbox: dock.inbox } }

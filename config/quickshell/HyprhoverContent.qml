@@ -14,8 +14,8 @@ Column {
     readonly property var tabs: modelBar.orderedItems(group)
     readonly property real preferredWidth: Math.max(280, Math.min(368, page.item?.implicitWidth || 0), tabs.length * 32 + Math.max(0, tabs.length - 1) * 6) + 32
     property string selected: ""
-    readonly property var labels: ({launcher:"Apps", settings:"Settings", workspaces:"Workspaces", media:"Media", calendar:"Calendar", tray:"Tray", notifications:"Notifications", audio:"Audio", wifi:"Wi-Fi", bluetooth:"Bluetooth", battery:"Battery", power:"Power"})
-    readonly property var symbols: ({launcher:"󰀻", settings:"󰒓", workspaces:"󰍹", media:"󰎆", calendar:"󰃭", tray:"󰀻", notifications:"󰂚", audio:"󰕾", wifi:"󰤨", bluetooth:"󰂯", battery:"󰁹", power:"󰐥"})
+    readonly property var labels: ({launcher:"Apps", settings:"Settings", workspaces:"Workspaces", media:"Media", calendar:"Calendar", tray:"Tray", notifications:"Notifications", audio:"Audio", wifi:"Wi-Fi", bluetooth:"Bluetooth", battery:"Battery", power:"Power", hotspot:"Hotspot"})
+    readonly property var symbols: ({launcher:"󰀻", settings:"󰒓", workspaces:"󰍹", media:"󰎆", calendar:"󰃭", tray:"󰀻", notifications:"󰂚", audio:"󰕾", wifi:"󰤨", bluetooth:"󰂯", battery:"󰁹", power:"󰐥", hotspot:"󰤨"})
     signal dismissRequested()
     signal settingsRequested()
     spacing: 12
@@ -97,12 +97,14 @@ Column {
         width: parent.width
         sourceComponent: ({launcher: appsPage, settings: settingsPage, workspaces: workspacesPage, media: mediaPage,
             calendar: calendarPage, tray: trayPage, notifications: notificationsPage, audio: audioPage,
-            wifi: wifiPage, bluetooth: bluetoothPage, battery: batteryPage, power: powerPage})[content.selected] || null
+            wifi: wifiPage, bluetooth: bluetoothPage, battery: batteryPage, power: powerPage,
+            hotspot: hotspotPage})[content.selected] || null
     }
     Component { id: calendarPage; CalendarMenu {} }
     Component { id: audioPage; AudioMenu { services: content.owner.services } }
     Component { id: wifiPage; WifiMenu { services: content.owner.services } }
     Component { id: bluetoothPage; BluetoothMenu { services: content.owner.services } }
+    Component { id: hotspotPage; HotspotMenu { services: content.owner.services } }
     Component { id: batteryPage; BatteryMenu { services: content.owner.services } }
     Component { id: notificationsPage; InboxMenu { inbox: content.owner.inbox } }
     Component { id: powerPage; PowerMenu {} }

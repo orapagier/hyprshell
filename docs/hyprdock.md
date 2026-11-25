@@ -36,7 +36,7 @@ background from opaque dark (0%, the default) to transparent (100%). This settin
 (`bar.dockTransparency`) is independent of ordinary panel popdown translucency.
 
 Workspace numbers have individual compact pills, and
-Bluetooth, audio, Wi-Fi, battery and power form the trailing group. Other enabled
+Bluetooth, audio, Wi-Fi, battery, power and hotspot form the trailing group. Other enabled
 items retain their relative order and workspace/tray behavior. The
 strip scrolls when it cannot fit. Menus fit their content height, bounded by the screen. The dock expands horizontally on top/bottom
 edges and vertically on side edges; larger content is bounded by the screen.
@@ -55,7 +55,7 @@ menu state, and content routing. Its single attached background samples the
 wallpaper under the dock. Reduced motion disables the spring behaviors. Input
 is limited to the dock's bounds; opening content does not resize applications.
 
-Calendar, audio, Wi-Fi, Bluetooth, battery, power, notifications, media and
+Calendar, audio, Wi-Fi, Bluetooth, battery, power, hotspot, notifications, media and
 workspace previews reuse their existing content components. Launcher, shortcut
 guide, Dashboard, Activity, Settings and projector controls are hosted there
 as well. Notification popups appear inside the focused output's dock; the
