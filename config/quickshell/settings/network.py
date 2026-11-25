@@ -131,7 +131,11 @@ def hotspot_start(payload, password=''):
                         'ifname', current['wifiDevice'], 'ssid', ssid or profile,
                         '802-11-wireless.mode', 'ap', '802-11-wireless.band', 'bg',
                         '802-11-wireless-security.key-mgmt', 'wpa-psk',
-                        'connection.autoconnect', 'no', 'ipv4.method', 'shared'])
+                        '802-11-wireless-security.proto', 'rsn',
+                        '802-11-wireless-security.pairwise', 'ccmp',
+                        '802-11-wireless-security.group', 'ccmp',
+                        'connection.autoconnect', 'no', 'ipv4.method', 'shared',
+                        'ipv6.method', 'ignore'])
         match = UUID.search(output)
         if not match:
             raise ValueError('Could not create the hotspot profile. Refresh and try again.')

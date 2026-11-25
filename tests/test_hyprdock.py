@@ -47,7 +47,7 @@ ShellRoot {
         return null;
     }
     property int phase: 0
-    property var names: ["calendar", "audio", "wifi", "bluetooth", "battery", "power", "hotspot", "notifications", "launcher", "keybindings", "dashboard", "activity", "displays", "settings"]
+    property var names: ["calendar", "audio", "wifi", "hotspot", "battery", "power", "bluetooth", "notifications", "launcher", "keybindings", "dashboard", "activity", "displays", "settings"]
     Timer {
         interval: 600; running: true; repeat: true
         onTriggered: {
@@ -81,7 +81,7 @@ ShellRoot {
                     }
                     dock.wallpaperSource = "";
                     test.check(dock.itemPalette.join(",") === originalPalette, "returning wallpaper restores palette");
-                    test.check(bar.settings.items.slice(-7).map(i => i.id).join(",") === "notifications,bluetooth,audio,wifi,battery,power,hotspot", "status controls trail the strip");
+                    test.check(bar.settings.items.slice(-7).map(i => i.id).join(",") === "notifications,bluetooth,audio,wifi,hotspot,battery,power", "status controls trail the strip");
                     test.check(bar.appearance("workspaces").background === "on" && bar.appearance("workspaces").uniformTextHeight === 7 && bar.appearance("workspaces").uniformGlyphHeight === 16 && bar.workspacePillSize === 16, "small workspace numbers with individual pills");
                     test.check(test.find(dock.contentItem, "hyprdockSurface").clip, "items reveal within animated background bounds");
                     dock.revealKeyboard();

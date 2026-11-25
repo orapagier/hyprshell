@@ -371,7 +371,7 @@ PanelWindow {
                             background: "off", hyprknots: false, uniformItems: false, height: 36,
                             contentPaddingTop: 0, contentPaddingBottom: 0, contentPaddingLeft: 0, contentPaddingRight: 0,
                             verticalPresentation: "compact"});
-                        const status = ["notifications", "bluetooth", "audio", "wifi", "battery", "power", "hotspot"];
+                        const status = ["notifications", "bluetooth", "audio", "wifi", "hotspot", "battery", "power"];
                         const sideOrder = {left: 0, center: 1, right: 2};
                         config.items.sort((a, b) => (sideOrder[a.side] - sideOrder[b.side]) || a.order - b.order);
                         config.items = config.items.filter(item => !status.includes(item.id))
