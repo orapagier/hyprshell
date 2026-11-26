@@ -131,12 +131,15 @@ need their corresponding NetworkManager plugin. WireGuard support is built in.
 The editor package is part of the desktop dependencies; no extra applet is started.
 
 The hotspot control in Hyprpane and Hyprdock shares the active Wi-Fi or
-Ethernet connection on demand. It reports the active hotspot, starts one with
-an optional network name and password, and stops it without deleting the saved
-profile. NetworkManager generates the password when the field is empty and
-shows it once in the menu; a password you enter goes to NetworkManager through
-stdin and is never stored in Hyprshell settings, QML or process arguments.
-Wi-Fi must be enabled before starting.
+Ethernet connection on demand. It reports the active and saved hotspots,
+starts one with an optional network name and password, and stops it without
+deleting the saved profile. The saved hotspot lives in NetworkManager under
+`Hyprshell Hotspot`: leaving the password blank reuses it, while Save settings
+or Start with a new name/password updates it. NetworkManager generates the
+password for a one-off hotspot when no saved profile exists and the field is
+empty; an entered password goes through stdin and is never stored in Hyprshell
+settings, QML or process arguments. Wi-Fi must be enabled before starting or
+saving a password.
 
 The Network page is created only when selected and released when leaving it,
 after any short helper command completes. There is no Network-page timer or

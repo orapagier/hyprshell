@@ -49,6 +49,8 @@ def fields(line):
 
 
 UUID = re.compile(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}')
+# NetworkManager owns the saved password; Hyprshell never reads or stores it.
+SAVED_HOTSPOT_ID = 'Hyprshell Hotspot'
 
 
 def profiles():
@@ -91,6 +93,99 @@ def active_hotspot():
     return None
 
 
+def saved_hotspot():
+    rows = nmcli(['--terse', '--escape', 'yes', '--fields', 'NAME,UUID,TYPE', 'connection', 'show'])
+    for line in rows.splitlines():
+        values = fields(line)
+        if len(values) != 3:
+            raise ValueError('Could not read network connections. Refresh and try again.')
+        name, ident, kind = values
+        if name != SAVED_HOTSPOT_ID or kind != '802-11-wireless' or not UUID.fullmatch(ident):
+            continue
+        ssid = nmcli(['--get-values', '802-11-wireless.ssid', 'connection', 'show', ident]).strip()
+        return {'name': name, 'uuid': ident, 'ssid': ssid}
+    return None
+
+
+def hotspot_fields(payload, password):
+    ssid = payload.get('ssid', '')
+    if not isinstance(ssid, str) or len(ssid.encode('utf-8')) > 32 or any(ord(c) < 32 for c in ssid):
+        raise ValueError('Enter a hotspot name of at most 32 UTF-8 bytes, on one line.')
+    if password and (not isinstance(password, str) or not 8 <= len(password.encode('utf-8')) <= 63
+                     or any(ord(c) < 32 or ord(c) == 127 for c in password)):
+        raise ValueError('Enter a password of 8 to 63 printable characters, or leave it empty to keep the saved one.')
+    return ssid
+
+
+def create_hotspot_profile(ssid, password, device, profile):
+    output = nmcli(['connection', 'add', 'type', 'wifi', 'con-name', profile,
+                    'ifname', device, 'ssid', ssid or profile,
+                    '802-11-wireless.mode', 'ap', '802-11-wireless.band', 'bg',
+                    '802-11-wireless-security.key-mgmt', 'wpa-psk',
+                    '802-11-wireless-security.proto', 'rsn',
+                    '802-11-wireless-security.pairwise', 'ccmp',
+                    '802-11-wireless-security.group', 'ccmp',
+                    'connection.autoconnect', 'no', 'ipv4.method', 'shared',
+                    'ipv6.method', 'ignore'])
+    match = UUID.search(output)
+    if not match:
+        raise ValueError('Could not create the hotspot profile. Refresh and try again.')
+    ident = match.group(0)
+    try:
+        # nmcli --ask reads the secret from stdin; no password ever enters argv.
+        nmcli(['--ask', 'connection', 'up', 'uuid', ident], input_text=password)
+    except ValueError:
+        try:
+            nmcli(['connection', 'delete', 'uuid', ident])
+        except ValueError:
+            pass
+        raise
+    return ident
+
+
+def save_saved_hotspot(ssid, password, device, saved, activate):
+    """Keep the old profile until the replacement has safely stored its secret."""
+    if password:
+        suffix = hashlib.sha256(os.urandom(6)).hexdigest()[:8]
+        name = ssid or (saved or {}).get('ssid') or SAVED_HOTSPOT_ID
+        ident = create_hotspot_profile(name, password, device, SAVED_HOTSPOT_ID + ' ' + suffix)
+        backup = SAVED_HOTSPOT_ID + ' old'
+        try:
+            nmcli(['connection', 'down', 'uuid', ident])
+            if saved:
+                nmcli(['connection', 'modify', 'uuid', saved['uuid'], 'connection.id', backup])
+        except ValueError:
+            try:
+                nmcli(['connection', 'delete', 'uuid', ident])
+            except ValueError:
+                pass
+            raise
+        try:
+            nmcli(['connection', 'modify', 'uuid', ident, 'connection.id', SAVED_HOTSPOT_ID])
+        except ValueError:
+            if saved:
+                try:
+                    nmcli(['connection', 'modify', 'uuid', saved['uuid'], 'connection.id', saved['name']])
+                except ValueError:
+                    pass
+            try:
+                nmcli(['connection', 'delete', 'uuid', ident])
+            except ValueError:
+                pass
+            raise
+        if saved:
+            nmcli(['connection', 'delete', 'uuid', saved['uuid']])
+    else:
+        if not saved:
+            raise ValueError('Enter a password the first time you save a hotspot.')
+        ident = saved['uuid']
+        if ssid and ssid != saved['ssid']:
+            nmcli(['connection', 'modify', 'uuid', ident, '802-11-wireless.ssid', ssid])
+    if activate:
+        nmcli(['connection', 'up', 'uuid', ident])
+    return ident
+
+
 def hotspot_status():
     hotspot = active_hotspot()
     devices = nmcli(['--terse', '--fields', 'DEVICE,TYPE,STATE,CONNECTION', 'device', 'status'])
@@ -104,18 +199,13 @@ def hotspot_status():
             wifi_device = device
         if connection and kind in ('ethernet', 'wifi') and connection != (hotspot or {}).get('name'):
             sources.append(connection)
-    return {'ok': True, 'hotspot': hotspot, 'wifiDevice': wifi_device,
+    return {'ok': True, 'hotspot': hotspot, 'saved': saved_hotspot(), 'wifiDevice': wifi_device,
             'wifiEnabled': nmcli(['--get-values', 'WIFI', 'general']).strip() == 'enabled',
             'sources': sources, 'connectivity': nmcli(['--get-values', 'CONNECTIVITY', 'general']).strip()}
 
 
 def hotspot_start(payload, password=''):
-    ssid = payload.get('ssid', '')
-    if not isinstance(ssid, str) or len(ssid.encode('utf-8')) > 32 or any(ord(c) < 32 for c in ssid):
-        raise ValueError('Enter a hotspot name of at most 32 UTF-8 bytes, on one line.')
-    if password and (not isinstance(password, str) or not 8 <= len(password.encode('utf-8')) <= 63
-                     or any(ord(c) < 32 or ord(c) == 127 for c in password)):
-        raise ValueError('Enter a password of 8 to 63 printable characters, or leave it empty to generate one.')
+    ssid = hotspot_fields(payload, password)
     current = hotspot_status()
     if current['hotspot']:
         raise ValueError('A hotspot is already active. Stop it before starting another.')
@@ -123,44 +213,24 @@ def hotspot_start(payload, password=''):
         raise ValueError('Turn on Wi-Fi before starting a hotspot.')
     if not current['wifiDevice']:
         raise ValueError('No Wi-Fi device is available for a hotspot.')
-    if password:
-        # nmcli --ask reads the secret from stdin; no password ever enters argv.
-        suffix = hashlib.sha256(os.urandom(6)).hexdigest()[:8]
-        profile = 'Hotspot-' + suffix
-        output = nmcli(['connection', 'add', 'type', 'wifi', 'con-name', profile,
-                        'ifname', current['wifiDevice'], 'ssid', ssid or profile,
-                        '802-11-wireless.mode', 'ap', '802-11-wireless.band', 'bg',
-                        '802-11-wireless-security.key-mgmt', 'wpa-psk',
-                        '802-11-wireless-security.proto', 'rsn',
-                        '802-11-wireless-security.pairwise', 'ccmp',
-                        '802-11-wireless-security.group', 'ccmp',
-                        'connection.autoconnect', 'no', 'ipv4.method', 'shared',
-                        'ipv6.method', 'ignore'])
-        match = UUID.search(output)
-        if not match:
-            raise ValueError('Could not create the hotspot profile. Refresh and try again.')
-        try:
-            nmcli(['--ask', 'connection', 'up', 'uuid', match.group(0)], input_text=password)
-        except ValueError:
-            try:
-                nmcli(['connection', 'delete', 'uuid', match.group(0)])
-            except ValueError:
-                pass
-            raise
+    if password or current['saved']:
+        save_saved_hotspot(ssid, password, current['wifiDevice'], current['saved'], True)
+        # nmcli may echo a supplied password; never send it back to the menu.
+        message = ('Hotspot started; name and password saved.' if password
+                   else 'Hotspot started with your saved name and password.')
         output = ''
     else:
         args = ['device', 'wifi', 'hotspot', 'ifname', current['wifiDevice']]
         if ssid:
             args += ['ssid', ssid]
         output = nmcli(args).strip()
+        message = 'Hotspot started.'
     try:
         state = hotspot_status()
     except ValueError:
-        state = {'ok': True, 'hotspot': None, 'wifiDevice': current['wifiDevice'],
+        state = {'ok': True, 'hotspot': None, 'saved': current['saved'], 'wifiDevice': current['wifiDevice'],
                  'wifiEnabled': current['wifiEnabled'], 'sources': current['sources'], 'connectivity': ''}
-    # nmcli may echo a supplied password; never send it back to the menu.
-    message = 'Hotspot started with the password you entered.' if password else output or 'Hotspot started.'
-    return {**state, 'ok': True, 'message': message}
+    return {**state, 'ok': True, 'message': output or message}
 
 
 def hotspot_stop(payload):
@@ -174,9 +244,21 @@ def hotspot_stop(payload):
     try:
         state = hotspot_status()
     except ValueError:
-        state = {'ok': True, 'hotspot': None, 'wifiDevice': current['wifiDevice'],
+        state = {'ok': True, 'hotspot': None, 'saved': current['saved'], 'wifiDevice': current['wifiDevice'],
                  'wifiEnabled': current['wifiEnabled'], 'sources': current['sources'], 'connectivity': ''}
     return {**state, 'ok': True, 'message': 'Hotspot stopped. Its saved profile was kept.'}
+
+
+def hotspot_save(payload, password=''):
+    ssid = hotspot_fields(payload, password)
+    current = hotspot_status()
+    if current['hotspot']:
+        raise ValueError('Stop the hotspot before changing its saved name or password.')
+    if not current['wifiEnabled'] or not current['wifiDevice']:
+        raise ValueError('Turn on Wi-Fi before saving a hotspot password.')
+    save_saved_hotspot(ssid, password, current['wifiDevice'], current['saved'], False)
+    state = hotspot_status()
+    return {**state, 'ok': True, 'message': 'Hotspot name and password saved.'}
 
 
 def selected(payload):
@@ -223,6 +305,8 @@ def request(payload, password=''):
         return hotspot_status()
     if operation == 'hotspot-start':
         return hotspot_start(payload, password)
+    if operation == 'hotspot-save':
+        return hotspot_save(payload, password)
     if operation == 'hotspot-stop':
         return hotspot_stop(payload)
     if operation in ('edit', 'connect', 'disconnect', 'forget'):
@@ -270,10 +354,11 @@ def main():
     try:
         payload = json.loads(args.request_json)
         password = ''
-        if isinstance(payload, dict) and payload.get('operation') == 'hotspot-start' and payload.get('passwordViaStdin') is True:
+        if (isinstance(payload, dict) and payload.get('operation') in ('hotspot-start', 'hotspot-save')
+                and payload.get('passwordViaStdin') is True):
             password = sys.stdin.readline(256).rstrip('\r\n')
             if not password:
-                raise ValueError('Enter a password or leave the field empty to generate one.')
+                raise ValueError('Enter a new password or leave the field empty to keep the saved one.')
         result = request(payload, password)
     except (ValueError, OSError, subprocess.TimeoutExpired) as error:
         message = str(error) if isinstance(error, ValueError) else 'Could not open the network tool. Try again from your desktop session.'

@@ -17,6 +17,7 @@ import network
 WIFI = '11111111-1111-1111-1111-111111111111'
 VPN = '22222222-2222-2222-2222-222222222222'
 HOTSPOT = '33333333-3333-3333-3333-333333333333'
+NEW_HOTSPOT = '44444444-4444-4444-4444-444444444444'
 
 
 class NetworkTests(unittest.TestCase):
@@ -105,21 +106,23 @@ class NetworkTests(unittest.TestCase):
         with patch.object(network.shutil, 'which', return_value=None):
             with self.assertRaises(ValueError): network.editor([])
 
-    def hotspot_state(self, active=None):
-        return {'ok': True, 'hotspot': active, 'wifiDevice': 'wlan0', 'wifiEnabled': True,
+    def hotspot_state(self, active=None, saved=None):
+        return {'ok': True, 'hotspot': active, 'saved': saved, 'wifiDevice': 'wlan0', 'wifiEnabled': True,
                 'sources': ['Wired connection 1'], 'connectivity': 'full'}
 
     def test_hotspot_status_distinguishes_ap_from_client_and_finds_uplink(self):
         active = (f'Home:{WIFI}:802-11-wireless:wlp0s20f3\n'
                   f'Hotspot:{HOTSPOT}:802-11-wireless:wlan0\n'
                   f'Wired connection 1:{VPN}:802-3-ethernet:eth0\n')
+        saved = f'Hyprshell Hotspot:{HOTSPOT}:802-11-wireless\n'
         with patch.object(network, 'nmcli', side_effect=[active, 'infrastructure\n', 'ap\n',
                                                          'Hotspot-abc\n',
                                                          'eth0:ethernet:connected:Wired connection 1\n'
-                                                         'wlan0:wifi:disconnected:\n', 'enabled\n', 'full\n']):
+                                                         'wlan0:wifi:disconnected:\n', saved, 'ramlej\n', 'enabled\n', 'full\n']):
             result = network.request({'operation': 'hotspot-status'})
         self.assertEqual(result['hotspot'], {'name': 'Hotspot', 'uuid': HOTSPOT,
                                             'device': 'wlan0', 'ssid': 'Hotspot-abc'})
+        self.assertEqual(result['saved'], {'name': 'Hyprshell Hotspot', 'uuid': HOTSPOT, 'ssid': 'ramlej'})
         self.assertEqual(result['sources'], ['Wired connection 1'])
         self.assertEqual(result['wifiDevice'], 'wlan0')
         self.assertTrue(result['wifiEnabled'])
@@ -162,10 +165,11 @@ class NetworkTests(unittest.TestCase):
                 network, 'nmcli', side_effect=run):
             result = network.request(payload, password)
         self.assertTrue(result['ok'])
-        self.assertEqual(result['message'], 'Hotspot started with the password you entered.')
+        self.assertEqual(result['message'], 'Hotspot started; name and password saved.')
         self.assertNotIn(password, repr(result))
-        add, up = calls
+        add, up, down, rename, final_up = calls
         self.assertEqual(add[0][:4], ['connection', 'add', 'type', 'wifi'])
+        self.assertTrue(add[0][add[0].index('con-name') + 1].startswith('Hyprshell Hotspot'))
         self.assertEqual(add[0][add[0].index('ssid') + 1], 'My Hotspot')
         self.assertEqual(add[0][add[0].index('802-11-wireless.mode') + 1], 'ap')
         self.assertEqual(add[0][add[0].index('ipv4.method') + 1], 'shared')
@@ -178,6 +182,10 @@ class NetworkTests(unittest.TestCase):
         self.assertEqual(up[0], ['--ask', 'connection', 'up', 'uuid', HOTSPOT])
         self.assertEqual(up[1], password)
         self.assertNotIn(password, repr(up[0]))
+        self.assertEqual(down[0], ['connection', 'down', 'uuid', HOTSPOT])
+        self.assertEqual(rename[0], ['connection', 'modify', 'uuid', HOTSPOT, 'connection.id', 'Hyprshell Hotspot'])
+        self.assertEqual(final_up[0], ['connection', 'up', 'uuid', HOTSPOT])
+        self.assertIsNone(final_up[1])
 
         bad = ['short', 'x' * 64, 'two\nlines', 'nul\0byte', 'del\x7fete']
         with patch.object(network, 'hotspot_status', return_value=self.hotspot_state()), patch.object(
@@ -193,6 +201,85 @@ class NetworkTests(unittest.TestCase):
                 network.request(payload, password)
             self.assertEqual(command.call_args_list[-1].args[0], ['connection', 'delete', 'uuid', HOTSPOT])
 
+    def test_hotspot_start_reuses_and_renames_saved_profile(self):
+        saved = {'name': 'Hyprshell Hotspot', 'uuid': HOTSPOT, 'ssid': 'ramlej'}
+        with patch.object(network, 'hotspot_status', return_value=self.hotspot_state(saved=saved)), patch.object(
+                network, 'nmcli') as command:
+            result = network.request({'operation': 'hotspot-start', 'ssid': ''})
+        command.assert_called_once_with(['connection', 'up', 'uuid', HOTSPOT])
+        self.assertEqual(result['message'], 'Hotspot started with your saved name and password.')
+
+        calls = []
+        def run(args, input_text=None):
+            calls.append((list(args), input_text))
+            return ''
+
+        with patch.object(network, 'hotspot_status', return_value=self.hotspot_state(saved=saved)), patch.object(
+                network, 'nmcli', side_effect=run):
+            network.request({'operation': 'hotspot-start', 'ssid': 'Cafe'})
+        self.assertEqual(calls, [
+            (['connection', 'modify', 'uuid', HOTSPOT, '802-11-wireless.ssid', 'Cafe'], None),
+            (['connection', 'up', 'uuid', HOTSPOT], None),
+        ])
+
+    def test_hotspot_save_edits_without_leaving_hotspot_on(self):
+        saved = {'name': 'Hyprshell Hotspot', 'uuid': HOTSPOT, 'ssid': 'ramlej'}
+        renamed = {**saved, 'ssid': 'Cafe'}
+        with patch.object(network, 'hotspot_status', side_effect=[self.hotspot_state(saved=saved),
+                                                                  self.hotspot_state(saved=renamed)]), patch.object(
+                network, 'nmcli') as command:
+            result = network.request({'operation': 'hotspot-save', 'ssid': 'Cafe'})
+        command.assert_called_once_with(['connection', 'modify', 'uuid', HOTSPOT, '802-11-wireless.ssid', 'Cafe'])
+        self.assertEqual(result['message'], 'Hotspot name and password saved.')
+        self.assertIsNone(result['hotspot'])
+
+        calls = []
+        def run(args, input_text=None):
+            calls.append((list(args), input_text))
+            return f"Connection 'Hyprshell Hotspot temp' ({NEW_HOTSPOT}) successfully added.\n" if 'add' in args else ''
+
+        with patch.object(network, 'hotspot_status', side_effect=[self.hotspot_state(saved=saved),
+                                                                  self.hotspot_state(saved=saved)]), patch.object(
+                network, 'nmcli', side_effect=run):
+            network.request({'operation': 'hotspot-save', 'ssid': 'Cafe', 'passwordViaStdin': True}, 'new-password-123')
+        self.assertEqual([call[0] for call in calls], [
+            calls[0][0],
+            ['--ask', 'connection', 'up', 'uuid', NEW_HOTSPOT],
+            ['connection', 'down', 'uuid', NEW_HOTSPOT],
+            ['connection', 'modify', 'uuid', HOTSPOT, 'connection.id', 'Hyprshell Hotspot old'],
+            ['connection', 'modify', 'uuid', NEW_HOTSPOT, 'connection.id', 'Hyprshell Hotspot'],
+            ['connection', 'delete', 'uuid', HOTSPOT],
+        ])
+        self.assertEqual(calls[1][1], 'new-password-123')
+        self.assertNotIn('new-password-123', repr(calls[0]))
+        self.assertNotIn('new-password-123', repr(calls[1][0]))
+
+        with patch.object(network, 'hotspot_status', return_value=self.hotspot_state()), patch.object(
+                network, 'nmcli') as command:
+            with self.assertRaisesRegex(ValueError, 'first time'):
+                network.request({'operation': 'hotspot-save', 'ssid': 'Cafe'})
+            command.assert_not_called()
+
+    def test_hotspot_password_change_with_blank_name_keeps_saved_ssid(self):
+        saved = {'name': 'Hyprshell Hotspot', 'uuid': HOTSPOT, 'ssid': 'ramlej'}
+        calls = []
+        def run(args, input_text=None):
+            calls.append((list(args), input_text))
+            return f"Connection 'Hyprshell Hotspot temp' ({NEW_HOTSPOT}) successfully added.\n" if 'add' in args else ''
+
+        with patch.object(network, 'hotspot_status', return_value=self.hotspot_state(saved=saved)), patch.object(
+                network, 'nmcli', side_effect=run):
+            network.request({'operation': 'hotspot-save', 'ssid': '', 'passwordViaStdin': True}, 'another-password-123')
+        self.assertEqual(calls[0][0][calls[0][0].index('ssid') + 1], 'ramlej')
+        self.assertNotIn('another-password-123', repr(calls[0][0]))
+
+    def test_hotspot_menu_wires_saved_profile_editing(self):
+        source = (ROOT / 'config/quickshell/HotspotMenu.qml').read_text()
+        self.assertIn('"hotspot-save"', source)
+        self.assertIn('page.info.saved?.ssid', source)
+        self.assertIn('"hotspotName"', source)
+        self.assertNotIn('802-11-wireless-security.psk', source)
+
     def test_main_reads_hotspot_password_from_stdin_only_when_flagged(self):
         payload = {'operation': 'hotspot-start', 'ssid': 'Cafe', 'passwordViaStdin': True}
         argv = ['network.py', '--request-json', json.dumps(payload)]
@@ -200,6 +287,13 @@ class NetworkTests(unittest.TestCase):
                 network, 'request', return_value={'ok': True}) as request, patch('builtins.print'):
             network.main()
         request.assert_called_once_with(payload, 'secret-password')
+
+        save = {'operation': 'hotspot-save', 'ssid': 'Cafe', 'passwordViaStdin': True}
+        with patch.object(sys, 'argv', ['network.py', '--request-json', json.dumps(save)]), patch.object(
+                network.sys, 'stdin', io.StringIO('new-secret-password\n')), patch.object(
+                network, 'request', return_value={'ok': True}) as request, patch('builtins.print'):
+            network.main()
+        request.assert_called_once_with(save, 'new-secret-password')
 
         with patch.object(sys, 'argv', ['network.py', '--request-json', json.dumps({'operation': 'hotspot-status'})]), patch.object(
                 network.sys, 'stdin', io.StringIO('should-not-be-read\n')), patch.object(

@@ -12,6 +12,8 @@ ColumnLayout {
     property var info: ({})
     property string message: ""
     property string pendingPassword: ""
+    property string pendingOperation: "hotspot-status"
+    property bool nameEdited: false
     property bool success: true
     readonly property bool busy: worker.running
     readonly property bool active: !!page.info.hotspot
@@ -20,6 +22,7 @@ ColumnLayout {
     function request(payload, password) {
         if (busy) return;
         page.message = "";
+        page.pendingOperation = payload.operation || "";
         page.pendingPassword = password || "";
         worker.stdinEnabled = page.pendingPassword.length > 0;
         worker.command = ["python3", decodeURIComponent(Qt.resolvedUrl("settings/network.py").toString().replace(/^file:\/\//, "")),
@@ -27,6 +30,10 @@ ColumnLayout {
         worker.running = true;
     }
     function refresh() { request({operation: "hotspot-status"}) }
+    function applySavedSsid() {
+        if (!page.active && !page.nameEdited)
+            ssid.text = page.info.saved?.ssid || "";
+    }
     Component.onCompleted: refresh()
 
     Process {
@@ -45,6 +52,8 @@ ColumnLayout {
                     page.success = result.ok !== false;
                     page.info = result;
                     page.message = result.message || (page.success ? "" : "Could not read NetworkManager status.");
+                    if (page.success && page.pendingOperation !== "hotspot-status") page.nameEdited = false;
+                    page.applySavedSsid();
                 } catch (error) {
                     page.success = false;
                     page.info = {};
@@ -80,12 +89,14 @@ ColumnLayout {
     }
     TextField {
         id: ssid
+        objectName: "hotspotName"
         visible: !page.active
         Layout.fillWidth: true
         echoMode: TextInput.Normal
-        placeholderText: "Network name (optional)"
+        placeholderText: "Network name (uses saved name when blank)"
         color: page.menuColors.text; placeholderTextColor: page.menuColors.secondary; font.pixelSize: 13
         background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#44cdd6f4" }
+        onTextEdited: page.nameEdited = true
         onAccepted: start.clicked()
     }
     TextField {
@@ -94,7 +105,7 @@ ColumnLayout {
         visible: !page.active
         Layout.fillWidth: true
         echoMode: TextInput.Password
-        placeholderText: "Password (optional, 8+ characters)"
+        placeholderText: "New password (blank keeps saved one)"
         color: page.menuColors.text; placeholderTextColor: page.menuColors.secondary; font.pixelSize: 13
         background: Rectangle { radius: 8; color: "#0bffffff"; border.color: "#44cdd6f4" }
         onAccepted: start.clicked()
@@ -127,6 +138,20 @@ ColumnLayout {
             }
         }
         MenuButton {
+            objectName: "hotspotSave"
+            text: "Save settings"
+            visible: !page.active
+            Layout.fillWidth: true
+            enabled: !page.busy
+            onClicked: {
+                let payload = {operation: "hotspot-save", ssid: ssid.text};
+                let entered = password.text;
+                if (entered) payload.passwordViaStdin = true;
+                password.text = "";
+                page.request(payload, entered);
+            }
+        }
+        MenuButton {
             objectName: "hotspotRefresh"
             text: "Refresh"
             Layout.fillWidth: true
@@ -144,7 +169,7 @@ ColumnLayout {
         }
     }
     MenuLabel {
-        text: "NetworkManager shares the active Ethernet or Wi-Fi connection. Leave the password empty to generate one; a password you enter goes to NetworkManager through stdin, never Hyprshell settings or arguments."
+        text: "NetworkManager shares the active Ethernet or Wi-Fi connection and saves your hotspot name and password. Leave the password blank to reuse the saved one; a new password goes through stdin, never Hyprshell settings or arguments."
         color: page.menuColors.secondary
         Layout.fillWidth: true
     }
